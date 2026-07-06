@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>单词卡 v6</title>
+<title>英语提升计划</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
 <!-- ══ SCREEN: BATCH LIST ══ -->
 <div class="screen active" id="screenHome">
   <div class="home-header">
-    <div class="app-title">📚 单词卡</div>
+    <div class="app-title">📚 英语提升计划</div>
     <div class="app-sub" id="homeSubtitle">选择一个单词本开始学习</div>
   </div>
   <div class="user-bar">
@@ -19,8 +19,12 @@
     <button class="user-btn" id="uBtnSister"  onclick="switchUser('sister')">👧 姐姐</button>
     <button class="user-btn" id="uBtnBrother" onclick="switchUser('brother')">👦 弟弟</button>
   </div>
-  <div class="checkin-strip student-only" id="checkinStrip"></div>
-  <div style="height:10px"></div>
+  <div class="current-mode" id="currentModeBadge"></div>
+  <div class="home-mini-row student-only">
+    <div class="checkin-strip" id="checkinStrip"></div>
+    <button class="mini-practice-btn" onclick="openThemeQuizList()">专项小练</button>
+  </div>
+  <div style="height:8px"></div>
   <div class="task-grid student-only" id="homeQuickActions">
     <button class="task-btn review" id="todayReviewBtn" onclick="startTodayReview()" disabled>
       <span class="task-icon">📖</span><span class="task-title">今日温习</span><span class="task-sub" id="todayReviewSub">最新单词本</span>
@@ -43,6 +47,27 @@
   <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">🔀 设置明日混合词库</button>
 </div>
 
+<!-- ══ SCREEN: SPECIAL PRACTICE INDEX ══ -->
+<div class="screen" id="screenThemeQuizzes">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screenHome');loadHome()">←</button>
+    <span class="topbar-title">专项小练</span>
+  </div>
+  <div class="practice-book">
+    <div class="practice-book-title">练习册页码</div>
+    <div class="practice-page-grid" id="themeQuizList"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: SPECIAL PRACTICE PLAYER ══ -->
+<div class="screen" id="screenThemeQuizPlayer">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeThemeQuiz()">←</button>
+    <span class="topbar-title" id="themeQuizTitle">专项小练</span>
+  </div>
+  <iframe class="theme-quiz-frame" id="themeQuizFrame" title="专项小练"></iframe>
+</div>
+
 <!-- ══ SCREEN: NEW BATCH ══ -->
 <div class="screen" id="screenNewBatch">
   <div class="topbar">
@@ -52,7 +77,7 @@
   <div class="panel">
     <div class="form-group">
       <label class="form-label">单词本名称</label>
-      <input class="form-input" id="newBatchName" placeholder="例：六月第二周" maxlength="30">
+      <input class="form-input" id="newBatchName" placeholder="例：07.06｜生词" maxlength="30">
     </div>
     <div class="form-group">
       <label class="form-label">粘贴单词内容</label>
@@ -229,7 +254,7 @@
   <div class="modal">
     <div class="modal-title">重命名单词本</div>
     <div class="modal-sub">输入新名称</div>
-    <input class="modal-input" id="renameInput" placeholder="例：六月第二周" maxlength="30">
+    <input class="modal-input" id="renameInput" placeholder="例：07.06｜生词" maxlength="30">
     <div class="modal-row">
       <button class="modal-btn cancel" onclick="closeAllModals()">取消</button>
       <button class="modal-btn confirm" onclick="confirmRename()">确认</button>
@@ -354,6 +379,7 @@
 <script src="js/utils.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/home.js"></script>
+<script src="js/themeQuizzes.js"></script>
 <script src="js/batch.js"></script>
 <script src="js/import.js"></script>
 <script src="js/tasks.js"></script>

@@ -10,6 +10,7 @@ Object.assign(window, {
   startBatchReview, startBatchChallenge, finishReviewToSource,
   startReviewMatchPlay, nextWrongReviewCard,
   openStudentWordCard, studentWordNav, showTeacherMixSelect, saveTomorrowMixedLibrary,
+  openThemeQuizList, openThemeQuiz, closeThemeQuiz,
   showRename, confirmRename, onTitleTap, showSync, confirmSync, showPush, togglePush,
   toggleEditPanel, showWordSelector, openCardEditor, editNav, saveCardEdit, deleteCard,
   closeAllModals, deleteBatch, goDetail, retryResult,

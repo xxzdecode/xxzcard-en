@@ -58,7 +58,10 @@ async function sbSet(key, value) {
 }
 
 async function loadData() { return await sbGet('main'); }
-async function saveData(data) { await sbSet('main', data); }
+async function saveData(data) {
+  normalizeAppData(data);
+  await sbSet('main', data);
+}
 async function loadUserBatch(batchId) {
   const r = await sbGet(currentUser + '_' + batchId);
   return r || { known:[], unknown:[] };
@@ -94,7 +97,7 @@ async function initData() {
   }
   if (!data.pin) data.pin = null;
   if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
-  data.batches.forEach(b => { if (!b.sharedWith) b.sharedWith = []; });
+  normalizeAppData(data);
   hideLoading();
   // 离线时在标题区显示一个小提示
   if (!sbOnline) showOfflineBanner();
@@ -112,14 +115,81 @@ function showOfflineBanner() {
   home.insertBefore(el, home.firstChild);
 }
 function makeBatch(name, cards) {
-  return { id: String(Date.now())+String(Math.floor(Math.random()*9999)), name, cards, sharedWith: [] };
+  const id = String(Date.now())+String(Math.floor(Math.random()*9999));
+  const date = parseBatchDate(name) || batchTodayISO();
+  return { id, date, name: normalizeBatchName(name, date), cards, sharedWith: [] };
 }
 function todayStr() {
+  return formatBatchName(batchTodayISO(), '');
+}
+
+function batchTodayISO() {
   const d = new Date();
-  const yy = String(d.getFullYear()).slice(2);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function formatBatchName(date, title) {
+  const d = parseISODate(date) || new Date();
   const mm = String(d.getMonth()+1).padStart(2,'0');
   const dd = String(d.getDate()).padStart(2,'0');
-  return `${yy}.${mm}.${dd}`;
+  return `${mm}.${dd}｜${String(title || '').trim()}`;
+}
+
+function parseISODate(value) {
+  const m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (d.getFullYear() !== Number(m[1]) || d.getMonth() !== Number(m[2]) - 1 || d.getDate() !== Number(m[3])) return null;
+  return d;
+}
+
+function makeISODate(year, month, day) {
+  const d = new Date(year, month - 1, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return '';
+  return year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+}
+
+function parseBatchNameParts(name) {
+  const text = String(name || '').trim();
+  let m = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s*[|｜-]?\s*(.*))?$/);
+  if (m) return { date: makeISODate(Number(m[1]), Number(m[2]), Number(m[3])), title: m[4] || '' };
+
+  m = text.match(/^(\d{2})\.(\d{2})\.(\d{2})(?:\s*[|｜]?\s*(.*))?$/);
+  if (m) return { date: makeISODate(2000 + Number(m[1]), Number(m[2]), Number(m[3])), title: m[4] || '' };
+
+  m = text.match(/^(\d{2})[./](\d{2})(?:\s*[|｜]?\s*(.*))?$/);
+  if (m) return { date: makeISODate(new Date().getFullYear(), Number(m[1]), Number(m[2])), title: m[3] || '' };
+
+  return { date: '', title: text };
+}
+
+function parseBatchDate(name) {
+  return parseBatchNameParts(name).date;
+}
+
+function normalizeBatchName(name, date) {
+  const parts = parseBatchNameParts(name);
+  return formatBatchName(date || parts.date || batchTodayISO(), parts.title);
+}
+
+function normalizeBatch(batch) {
+  if (!batch || typeof batch !== 'object') return false;
+  const oldDate = batch.date;
+  const oldName = batch.name;
+  const parsed = parseBatchNameParts(batch.name);
+  batch.date = parseISODate(batch.date) ? batch.date : (parsed.date || batchTodayISO());
+  batch.name = normalizeBatchName(batch.name, batch.date);
+  if (!Array.isArray(batch.sharedWith)) batch.sharedWith = [];
+  return oldDate !== batch.date || oldName !== batch.name;
+}
+
+function normalizeAppData(data) {
+  if (!data || !Array.isArray(data.batches)) return false;
+  let changed = false;
+  data.batches.forEach(batch => {
+    if (normalizeBatch(batch)) changed = true;
+  });
+  return changed;
 }
 
 // 轮询同步：每30秒自动拉一次最新数据（学生端看到老师更新）
@@ -139,7 +209,7 @@ setInterval(async () => {
   }
   const fresh = await loadData();
   if (!fresh) return;
-  fresh.batches.forEach(b => { if (!b.sharedWith) b.sharedWith = []; });
+  normalizeAppData(fresh);
   appData = fresh;
   const home = document.getElementById('screenHome');
   if (home && home.classList.contains('active')) loadHome();

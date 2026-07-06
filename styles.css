@@ -50,10 +50,64 @@ body {
    SCREEN: BATCH LIST (Home)
 ══════════════════════════════ */
 .home-header {
-  width: 100%; padding: 24px 20px 14px; text-align: center;
+  width: 100%; padding: 24px 20px 12px; text-align: center;
 }
 .app-title { font-size: 22px; font-weight: 800; color: var(--blue-dark); }
 .app-sub { font-size: 13px; color: var(--text-mid); margin-top: 4px; }
+
+.home-mini-row {
+  width: calc(100% - 40px); max-width: 400px; margin: 8px auto 2px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.mini-practice-btn {
+  flex-shrink: 0; height: 30px; padding: 0 12px; border-radius: 999px; border: none;
+  background: rgba(255,255,255,0.76); color: var(--blue-dark);
+  font-size: 12px; font-weight: 800; font-family: inherit; cursor: pointer;
+  box-shadow: 0 3px 12px rgba(74,144,196,0.12);
+}
+.mini-practice-btn:active { transform: scale(0.96); }
+
+.practice-book {
+  width: calc(100% - 40px); max-width: 400px; margin-top: 6px;
+  padding: 22px 18px 26px; border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.62) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.58));
+  background-size: 28px 100%, auto;
+  box-shadow: var(--shadow);
+}
+.practice-book-title {
+  font-size: 12px; font-weight: 800; color: var(--text-light);
+  margin-bottom: 16px; letter-spacing: 1px;
+}
+.practice-page-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 12px;
+}
+.practice-page-btn {
+  border: none; background: transparent; font-family: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0;
+}
+.practice-page-num {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--white); color: var(--blue-dark);
+  box-shadow: 0 4px 14px rgba(74,144,196,0.14);
+  font-size: 17px; font-weight: 900;
+}
+.practice-page-name {
+  max-width: 72px; font-size: 11px; font-weight: 700; line-height: 1.25;
+  color: var(--text-mid); text-align: center;
+}
+.practice-page-btn:active .practice-page-num { transform: scale(0.94); }
+.theme-quiz-frame {
+  width: 100%; height: calc(100dvh - 66px); border: none; background: #fffaf7;
+}
+
+@media (max-width: 380px) {
+  .practice-page-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .practice-page-num { width: 48px; height: 48px; font-size: 16px; }
+}
 
 .batch-list {
   width: calc(100% - 40px); max-width: 400px;
@@ -563,6 +617,10 @@ body {
 .user-btn.active-teacher { border-color: var(--purple); background: var(--purple-light); color: #5B3FA0; }
 .user-btn.active-sister  { border-color: var(--green);  background: #E8FAF1; color: var(--green-dark); }
 .user-btn.active-brother { border-color: var(--blue);   background: var(--sky); color: var(--blue-dark); }
+.current-mode {
+  width: calc(100% - 40px); max-width: 400px; margin: 2px auto 0;
+  text-align: center; font-size: 12px; font-weight: 700; color: var(--text-light);
+}
 
 /* ── PIN pad ── */
 .pin-display {
@@ -596,11 +654,10 @@ body.is-teacher .student-only { display: none; }
 body.is-teacher .task-grid.student-only,
 body.is-teacher .detail-task-row.student-only { display: none; }
 .checkin-strip {
-  width: calc(100% - 40px); max-width: 400px; margin: 10px auto 0;
+  flex: 1; min-width: 0;
   display: flex; flex-wrap: nowrap; align-items: center; gap: 5px;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
-  background: var(--white); border-radius: 14px; border: 1.5px solid var(--sky-mid);
-  box-shadow: var(--shadow); padding: 9px 10px; min-height: 18px;
+  padding: 0; min-height: 18px;
   scrollbar-width: none;
 }
 .checkin-strip::-webkit-scrollbar { display: none; }

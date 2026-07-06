@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>三单变位分类小游戏（马卡龙版）</title>
+  <style>
+    :root {
+      --bg: #fffaf7;
+      --panel: rgba(255,255,255,0.88);
+      --panel-2: #fffefc;
+      --text: #5b5663;
+      --muted: #8d8794;
+      --border: #eedfe7;
+      --pink: #ffd9e6;
+      --pink-deep: #f3a7bf;
+      --purple: #e8dcff;
+      --purple-deep: #b9a4ea;
+      --mint: #d8f4ea;
+      --mint-deep: #8bc6b3;
+      --blue: #dcecff;
+      --blue-deep: #93b6e4;
+      --yellow: #fff2c9;
+      --yellow-deep: #ebc97c;
+      --peach: #ffe4d6;
+      --peach-deep: #eba988;
+      --right: #def7df;
+      --wrong: #ffd7d7;
+      --shadow: 0 14px 36px rgba(215, 183, 196, 0.18);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at top left, #ffeef5 0%, transparent 28%),
+        radial-gradient(circle at top right, #eaf5ff 0%, transparent 24%),
+        linear-gradient(180deg, #fffdfb, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .app {
+      max-width: 1060px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      margin-bottom: 14px;
+    }
+
+    header.panel {
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #695f77;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      color: #6e647b;
+    }
+
+    .tip {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      color: #675b6f;
+      background: linear-gradient(180deg, #fff8fd, #ffe7f0);
+      box-shadow: 0 6px 14px rgba(225, 173, 195, 0.24);
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 9px 18px rgba(225, 173, 195, 0.28);
+    }
+
+    button.secondary {
+      background: linear-gradient(180deg, #f7f0ff, #ebe0ff);
+    }
+
+    button.warning {
+      background: linear-gradient(180deg, #fff4eb, #ffe3d1);
+    }
+
+    .score {
+      margin-left: auto;
+      padding: 10px 15px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f4fffb, #e5faf2);
+      border: 1px solid #d8efe7;
+      color: #5d8b7d;
+      font-weight: 900;
+    }
+
+    .word-bank {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 92px;
+      padding: 10px;
+      border: 2px dashed #ecd9e5;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #fffefc, #fff8fb);
+      transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      position: relative;
+    }
+
+    .drop-zone::before {
+      content: "把词卡拖到这里，可以放回词卡区";
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 12px;
+      color: #b2a5b4;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .word-bank.over {
+      background: linear-gradient(180deg, #fffdfd, #fef1f6);
+      border-color: #d8bee6;
+      transform: translateY(-1px);
+    }
+
+    .word {
+      user-select: none;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      cursor: grab;
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      background: linear-gradient(180deg, #fffaf0, var(--yellow));
+      border: 1px solid #f1deb1;
+      color: #6c5e43;
+      box-shadow: 0 4px 10px rgba(240, 210, 142, 0.18);
+    }
+
+    .word small {
+      font-weight: 700;
+      color: #8b7c5f;
+    }
+
+    .word.selected {
+      outline: 3px solid #cbb6f4;
+      background: linear-gradient(180deg, #faf6ff, #efe5ff);
+    }
+
+    .bins {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .bin {
+      min-height: 200px;
+      border: 2px dashed #e7dce9;
+      border-radius: 22px;
+      padding: 14px;
+      background: var(--panel-2);
+      transition: background .12s ease, border-color .12s ease, transform .12s ease;
+    }
+
+    .bin:nth-child(1) { background: linear-gradient(180deg, #fffdfd, #fff2f6); }
+    .bin:nth-child(2) { background: linear-gradient(180deg, #fffefd, #fff5e9); }
+    .bin:nth-child(3) { background: linear-gradient(180deg, #fcfffd, #eefaf6); }
+    .bin:nth-child(4) { background: linear-gradient(180deg, #fdfdff, #f1ecff); }
+
+    .bin.over {
+      border-color: #bda4ef;
+      transform: translateY(-1px);
+    }
+
+    .bin-title {
+      font-size: 17px;
+      font-weight: 900;
+      margin-bottom: 6px;
+      color: #6b6377;
+    }
+
+    .bin-rule {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--muted);
+      min-height: 42px;
+      margin-bottom: 10px;
+    }
+
+    .bin-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 98px;
+    }
+
+    .result {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: #faf7ff;
+      border: 1px solid #ece1fa;
+      color: var(--text);
+      line-height: 1.7;
+      display: none;
+    }
+
+    .result.show { display: block; }
+
+    .correct { background: var(--right) !important; border-color: #9ad6a1 !important; }
+    .incorrect { background: var(--wrong) !important; border-color: #ef9f9f !important; }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #fffefe, #fff8fb);
+    }
+
+    summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      font-weight: 900;
+      color: #6b6476;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .summary-note {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .list-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 0 14px 14px;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .mini-card {
+      border: 1px solid #efe4eb;
+      background: rgba(255,255,255,0.78);
+      border-radius: 18px;
+      padding: 12px;
+    }
+
+    .mini-card b {
+      display: inline-block;
+      margin-bottom: 4px;
+      color: #7b6ca7;
+    }
+
+    @media (max-width: 860px) {
+      .bins { grid-template-columns: 1fr; }
+      .list-grid { grid-template-columns: 1fr; }
+      .score { margin-left: 0; }
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 10px; }
+      .panel { border-radius: 18px; padding: 14px; margin-bottom: 10px; }
+      header.panel { padding: 16px 14px; }
+      h1 { font-size: 23px; line-height: 1.2; }
+      h2 { font-size: 18px; margin-bottom: 10px; }
+      .tip { font-size: 14px; line-height: 1.55; }
+      .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      button { min-height: 42px; padding: 10px 12px; font-size: 13px; }
+      .score {
+        grid-column: 1 / -1;
+        width: 100%;
+        margin-left: 0;
+        text-align: center;
+      }
+      .word-bank { min-height: 76px; gap: 8px; padding: 9px; border-radius: 16px; }
+      .drop-zone::before { display: none; }
+      .word {
+        width: fit-content;
+        max-width: 100%;
+        min-height: 40px;
+        padding: 9px 12px;
+        touch-action: manipulation;
+      }
+      .bins { gap: 10px; }
+      .bin { min-height: 146px; border-radius: 18px; padding: 12px; }
+      .bin-rule { min-height: 0; font-size: 12px; margin-bottom: 8px; }
+      .bin-content { min-height: 64px; gap: 7px; }
+      .list-grid { gap: 9px; font-size: 13px; }
+      .mini-card { border-radius: 14px; padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="panel">
+      <h1>三单变位分类小游戏</h1>
+      <p class="tip">玩法：先看上面的词卡，把词拖到正确分类里，或者先点词卡再点分类框。分类完成后点“检查答案”。这版把 <b>have → has</b> 和 <b>be → is</b> 都放进“特殊变化”里。</p>
+      <div class="toolbar">
+        <button onclick="newRound()">换一组词</button>
+        <button onclick="checkAnswer()">检查答案</button>
+        <button class="secondary" onclick="showAnswers()">显示答案</button>
+        <button class="warning" onclick="resetCurrent()">重来</button>
+        <div class="score" id="score">得分：0 / 0</div>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>词卡区</h2>
+      <div id="wordBank" class="word-bank drop-zone"></div>
+    </section>
+
+    <section class="panel">
+      <h2>分类区</h2>
+      <div class="bins">
+        <div class="bin" data-type="s">
+          <div class="bin-title">直接 + s</div>
+          <div class="bin-rule">大多数动词直接加 s<br>like → likes / play → plays</div>
+          <div class="bin-content"></div>
+        </div>
+        <div class="bin" data-type="es">
+          <div class="bin-title">加 es</div>
+          <div class="bin-rule">s / x / ch / sh / o 结尾<br>go → goes / watch → watches</div>
+          <div class="bin-content"></div>
+        </div>
+        <div class="bin" data-type="ies">
+          <div class="bin-title">变 y 为 ies</div>
+          <div class="bin-rule">辅音字母 + y 结尾<br>study → studies</div>
+          <div class="bin-content"></div>
+        </div>
+        <div class="bin" data-type="special">
+          <div class="bin-title">特殊变化</div>
+          <div class="bin-rule">have → has<br>be → is（am / are 也归这里）</div>
+          <div class="bin-content"></div>
+        </div>
+      </div>
+      <div id="result" class="result"></div>
+    </section>
+
+    <section class="panel">
+      <details>
+        <summary>
+          <span>常见词清单</span>
+          <span class="summary-note">点击展开 / 收起</span>
+        </summary>
+        <div class="list-grid">
+          <div class="mini-card"><b>直接 + s</b><br>like-likes 喜欢<br>play-plays 玩<br>read-reads 读<br>eat-eats 吃<br>drink-drinks 喝<br>run-runs 跑<br>get-gets 得到<br>want-wants 想要<br>live-lives 居住<br>speak-speaks 说</div>
+          <div class="mini-card"><b>加 es</b><br>go-goes 去<br>do-does 做<br>watch-watches 看<br>wash-washes 洗<br>teach-teaches 教<br>fix-fixes 修理<br>pass-passes 经过<br>miss-misses 想念/错过<br>brush-brushes 刷<br>catch-catches 抓住</div>
+          <div class="mini-card"><b>变 y 为 ies</b><br>study-studies 学习<br>try-tries 尝试<br>fly-flies 飞<br>cry-cries 哭<br>carry-carries 携带<br>worry-worries 担心</div>
+          <div class="mini-card"><b>特殊变化</b><br>have-has 有<br>be-is 是<br>am → is（按三单变化理解）<br>are → is（按三单变化理解）<br>he is / she is / it is</div>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <script>
+    const words = [
+      { base: 'like', third: 'likes', cn: '喜欢', type: 's' },
+      { base: 'play', third: 'plays', cn: '玩', type: 's' },
+      { base: 'read', third: 'reads', cn: '读', type: 's' },
+      { base: 'eat', third: 'eats', cn: '吃', type: 's' },
+      { base: 'drink', third: 'drinks', cn: '喝', type: 's' },
+      { base: 'run', third: 'runs', cn: '跑', type: 's' },
+      { base: 'get', third: 'gets', cn: '得到', type: 's' },
+      { base: 'want', third: 'wants', cn: '想要', type: 's' },
+      { base: 'live', third: 'lives', cn: '居住', type: 's' },
+      { base: 'speak', third: 'speaks', cn: '说', type: 's' },
+      { base: 'open', third: 'opens', cn: '打开', type: 's' },
+      { base: 'help', third: 'helps', cn: '帮助', type: 's' },
+      { base: 'go', third: 'goes', cn: '去', type: 'es' },
+      { base: 'do', third: 'does', cn: '做', type: 'es' },
+      { base: 'watch', third: 'watches', cn: '看', type: 'es' },
+      { base: 'wash', third: 'washes', cn: '洗', type: 'es' },
+      { base: 'teach', third: 'teaches', cn: '教', type: 'es' },
+      { base: 'fix', third: 'fixes', cn: '修理', type: 'es' },
+      { base: 'pass', third: 'passes', cn: '经过', type: 'es' },
+      { base: 'miss', third: 'misses', cn: '想念/错过', type: 'es' },
+      { base: 'brush', third: 'brushes', cn: '刷', type: 'es' },
+      { base: 'catch', third: 'catches', cn: '抓住', type: 'es' },
+      { base: 'study', third: 'studies', cn: '学习', type: 'ies' },
+      { base: 'try', third: 'tries', cn: '尝试', type: 'ies' },
+      { base: 'fly', third: 'flies', cn: '飞', type: 'ies' },
+      { base: 'cry', third: 'cries', cn: '哭', type: 'ies' },
+      { base: 'carry', third: 'carries', cn: '携带', type: 'ies' },
+      { base: 'worry', third: 'worries', cn: '担心', type: 'ies' },
+      { base: 'have', third: 'has', cn: '有', type: 'special' },
+      { base: 'be', third: 'is', cn: '是', type: 'special' },
+      { base: 'am', third: 'is', cn: '是', type: 'special' },
+      { base: 'are', third: 'is', cn: '是', type: 'special' }
+    ];
+
+    let currentWords = [];
+    let selectedCard = null;
+
+    function shuffle(arr) {
+      return [...arr].sort(() => Math.random() - 0.5);
+    }
+
+    function makeCard(item) {
+      const card = document.createElement('div');
+      card.className = 'word';
+      card.draggable = true;
+      card.dataset.type = item.type;
+      card.dataset.base = item.base;
+      card.dataset.third = item.third;
+      card.dataset.cn = item.cn;
+      card.innerHTML = `${item.base} <small>${item.cn}</small>`;
+
+      card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', item.base);
+        selectedCard = card;
+      });
+
+      card.addEventListener('dragend', () => {
+        document.querySelectorAll('.over').forEach(el => el.classList.remove('over'));
+      });
+
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.word').forEach(w => w.classList.remove('selected'));
+        selectedCard = card;
+        card.classList.add('selected');
+      });
+
+      return card;
+    }
+
+    function renderWords() {
+      const bank = document.getElementById('wordBank');
+      bank.innerHTML = '';
+      currentWords.forEach(item => bank.appendChild(makeCard(item)));
+      document.querySelectorAll('.bin-content').forEach(c => c.innerHTML = '');
+      const result = document.getElementById('result');
+      result.className = 'result';
+      result.innerHTML = '';
+      updateScore(0, currentWords.length);
+    }
+
+    function setupBins() {
+      document.querySelectorAll('.bin').forEach(bin => {
+        bin.addEventListener('dragover', e => {
+          e.preventDefault();
+          bin.classList.add('over');
+        });
+        bin.addEventListener('dragleave', () => bin.classList.remove('over'));
+        bin.addEventListener('drop', e => {
+          e.preventDefault();
+          bin.classList.remove('over');
+          if (selectedCard) {
+            bin.querySelector('.bin-content').appendChild(selectedCard);
+            selectedCard.classList.remove('selected');
+            selectedCard = null;
+          }
+        });
+        bin.addEventListener('click', e => {
+          if (selectedCard && !e.target.classList.contains('word')) {
+            bin.querySelector('.bin-content').appendChild(selectedCard);
+            selectedCard.classList.remove('selected');
+            selectedCard = null;
+          }
+        });
+      });
+
+      const bank = document.getElementById('wordBank');
+
+      bank.addEventListener('dragover', e => {
+        e.preventDefault();
+        bank.classList.add('over');
+      });
+
+      bank.addEventListener('dragleave', () => bank.classList.remove('over'));
+
+      bank.addEventListener('drop', e => {
+        e.preventDefault();
+        bank.classList.remove('over');
+        if (selectedCard) {
+          bank.appendChild(selectedCard);
+          selectedCard.classList.remove('selected');
+          selectedCard = null;
+        }
+      });
+
+      bank.addEventListener('click', e => {
+        if (selectedCard && !e.target.classList.contains('word')) {
+          bank.appendChild(selectedCard);
+          selectedCard.classList.remove('selected');
+          selectedCard = null;
+        }
+      });
+    }
+
+    function newRound() {
+      const s = shuffle(words.filter(w => w.type === 's')).slice(0, 5);
+      const es = shuffle(words.filter(w => w.type === 'es')).slice(0, 4);
+      const ies = shuffle(words.filter(w => w.type === 'ies')).slice(0, 3);
+      const special = shuffle(words.filter(w => w.type === 'special')).slice(0, 2);
+      currentWords = shuffle([...s, ...es, ...ies, ...special]);
+      renderWords();
+    }
+
+    function resetCurrent() {
+      renderWords();
+    }
+
+    function checkAnswer() {
+      let right = 0;
+      const total = currentWords.length;
+      const mistakes = [];
+      document.querySelectorAll('.word').forEach(card => {
+        card.classList.remove('correct', 'incorrect');
+        const parentBin = card.closest('.bin');
+        if (!parentBin) {
+          card.classList.add('incorrect');
+          mistakes.push(`${card.dataset.base} → ${card.dataset.third}：还没分类`);
+          return;
+        }
+        const chosen = parentBin.dataset.type;
+        if (chosen === card.dataset.type) {
+          card.classList.add('correct');
+          right++;
+        } else {
+          card.classList.add('incorrect');
+          mistakes.push(`${card.dataset.base} → ${card.dataset.third}：应该放到「${typeName(card.dataset.type)}」`);
+        }
+      });
+      updateScore(right, total);
+      const result = document.getElementById('result');
+      result.className = 'result show';
+      if (right === total) {
+        result.innerHTML = '全部正确！<br>本组重点：肯定句三单要变，does / doesn’t 后动词用原形。';
+      } else {
+        result.innerHTML = `正确：${right} / ${total}<br>` + mistakes.join('<br>');
+      }
+    }
+
+    function showAnswers() {
+      document.querySelectorAll('.word').forEach(card => {
+        const target = document.querySelector(`.bin[data-type="${card.dataset.type}"] .bin-content`);
+        target.appendChild(card);
+        card.classList.remove('incorrect');
+        card.classList.add('correct');
+      });
+      updateScore(currentWords.length, currentWords.length);
+      const result = document.getElementById('result');
+      result.className = 'result show';
+      result.innerHTML = currentWords.map(w => `${w.base} → ${w.third}（${w.cn}）`).join('<br>');
+    }
+
+    function updateScore(right, total) {
+      document.getElementById('score').textContent = `得分：${right} / ${total}`;
+    }
+
+    function typeName(type) {
+      return {
+        s: '直接 + s',
+        es: '加 es',
+        ies: '变 y 为 ies',
+        special: '特殊变化'
+      }[type];
+    }
+
+    setupBins();
+    newRound();
+  </script>
+</body>
+</html>

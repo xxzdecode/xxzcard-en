@@ -1,5 +1,13 @@
 function getVisibleBatchesNewestFirst() {
-  return [...visibleBatches()].sort((a, b) => Number(b.id) - Number(a.id));
+  return [...visibleBatches()].sort(compareBatchesNewestFirst);
+}
+
+function compareBatchesNewestFirst(a, b) {
+  normalizeBatch(a);
+  normalizeBatch(b);
+  const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
+  if (dateCmp !== 0) return dateCmp;
+  return Number(b.id) - Number(a.id);
 }
 
 function isoDate(offsetDays) {
