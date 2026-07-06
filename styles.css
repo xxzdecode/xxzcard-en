@@ -60,10 +60,14 @@ body {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .mini-practice-btn {
-  flex-shrink: 0; height: 30px; padding: 0 12px; border-radius: 999px; border: none;
-  background: rgba(255,255,255,0.76); color: var(--blue-dark);
-  font-size: 12px; font-weight: 800; font-family: inherit; cursor: pointer;
-  box-shadow: 0 3px 12px rgba(74,144,196,0.12);
+  flex-shrink: 0; height: 30px; padding: 0 13px; border-radius: 999px; border: 1px solid #D8B45A;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,255,222,0.95) 0 2px, transparent 3px),
+    linear-gradient(135deg,#FFF8C9 0%,#F0D783 56%,#D7AA43 100%);
+  color: #6A4A08;
+  font-size: 12px; font-weight: 900; font-family: inherit; cursor: pointer;
+  text-shadow: 0 1px 0 rgba(255,246,190,0.9);
+  box-shadow: 0 3px 12px rgba(166,119,28,0.16), inset 0 1px 0 rgba(255,255,224,0.9);
 }
 .mini-practice-btn:active { transform: scale(0.96); }
 
@@ -283,6 +287,8 @@ body {
 .task-btn.challenge { background: linear-gradient(135deg,#FFF9EC,#FFF0C8); color: #7A4F00; }
 .task-btn.mixed.review { background: linear-gradient(135deg,#E0F7FA,#E8F5E9); color: #1A6B5A; }
 .task-btn.mixed.challenge { background: var(--purple-light); color: #5B3FA0; }
+#todayReviewBtn,
+#btnBatchReview { background: linear-gradient(135deg,#FFE6F0,#FFC8DC); color: #8A1F4C; }
 .task-icon { font-size: 26px; line-height: 1; }
 .task-title { font-size: 15px; font-weight: 800; }
 .task-sub { font-size: 11px; font-weight: 600; opacity: 0.72; text-align: center; line-height: 1.3; }
