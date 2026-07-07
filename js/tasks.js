@@ -73,7 +73,8 @@ async function completeActiveChallenge(correct, total) {
 async function updateHomeTaskButtons(batches) {
   const latest = batches[0];
   const mixed = await getMixedTaskBatches();
-  const mixedDateText = mixed.length > 0 ? mixedBatchDateSummary(mixed) : '';
+  const mixedLabelBatches = mixed.length > 0 ? getMixedLabelBatches(mixed) : [];
+  const mixedDateText = mixedLabelBatches.length > 0 ? mixedBatchDateSummary(mixedLabelBatches) : '';
   const todayReview = latest ? await reviewStatus('todayReview', latest.name) : { text: '暂无单词卡', state: '' };
   const todayChallenge = latest ? await challengeStatus('todayChallenge') : { text: '暂无单词卡', state: '' };
   const mixedReview = mixed.length > 0 ? await reviewStatus('mixedReview', mixedDateText) : { text: '暂无混合词库', state: '' };
@@ -136,16 +137,16 @@ function latestVisibleBatch() {
 }
 
 function formatBatchDateLabel(batch) {
-  const date = String(batch && batch.date ? batch.date : '').trim();
-  let match = date.match(/^\d{4}[-./](\d{1,2})[-./](\d{1,2})$/);
-  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
-  match = date.match(/^(\d{1,2})[-./](\d{1,2})$/);
-  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
-
   const name = String(batch && batch.name ? batch.name : '');
-  match = name.match(/\b\d{2,4}[./-](\d{1,2})[./-](\d{1,2})\b/);
+  let match = name.match(/\b\d{2,4}[./-](\d{1,2})[./-](\d{1,2})\b/);
   if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
   match = name.match(/\b(\d{1,2})[./-](\d{1,2})\b/);
+  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
+
+  const date = String(batch && batch.date ? batch.date : '').trim();
+  match = date.match(/^\d{4}[-./](\d{1,2})[-./](\d{1,2})$/);
+  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
+  match = date.match(/^(\d{1,2})[-./](\d{1,2})$/);
   if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
   return '';
 }
@@ -157,6 +158,21 @@ function mixedBatchDateSummary(batches) {
     if (label && !labels.includes(label)) labels.push(label);
   });
   return labels.length > 0 ? labels.join('、') : `${batches.length} 组单词卡`;
+}
+
+function getTodayMixedAssignmentBatches() {
+  const assignments = Array.isArray(appData.mixedAssignments) ? appData.mixedAssignments : [];
+  const today = isoDate();
+  const picked = [...assignments].reverse().find(a => a.date === today && Array.isArray(a.batchIds));
+  if (!picked) return [];
+  return picked.batchIds
+    .map(id => appData.batches.find(b => String(b.id) === String(id)))
+    .filter(Boolean);
+}
+
+function getMixedLabelBatches(activeBatches) {
+  const assigned = getTodayMixedAssignmentBatches();
+  return assigned.length > 0 ? assigned : activeBatches;
 }
 
 async function getMixedTaskBatches() {
@@ -368,7 +384,7 @@ async function showTeacherMixSelect() {
   if (bar) bar.style.display = '';
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '至少选择 2 个单词本';
+    btn.textContent = '至少选择 1 个单词本';
     btn.onclick = () => saveMixedLibraryForDay(1);
   }
   if (todayBtn) {
@@ -380,7 +396,7 @@ async function showTeacherMixSelect() {
 
 async function saveMixedLibraryForDay(offsetDays) {
   const ids = Array.from(mergeSelected);
-  if (ids.length < 2) return;
+  if (ids.length < 1) return;
   if (!Array.isArray(appData.mixedAssignments)) appData.mixedAssignments = [];
   const offset = Number(offsetDays) === 0 ? 0 : 1;
   appData.mixedAssignments.push({ date: isoDate(offset), batchIds: ids.map(String), createdAt: Date.now() });

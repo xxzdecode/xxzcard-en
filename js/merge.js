@@ -40,9 +40,9 @@ function updateMergeBtn() {
   const n = mergeSelected.size;
   if (isTeacher()) {
     if (todayBtn) todayBtn.style.display = '';
-    if (n < 2) {
+    if (n < 1) {
       btn.disabled = true;
-      btn.textContent = '至少选择 2 个单词本';
+      btn.textContent = '至少选择 1 个单词本';
       if (todayBtn) todayBtn.disabled = true;
     } else {
       btn.disabled = false;
@@ -55,7 +55,7 @@ function updateMergeBtn() {
     return;
   }
   if (todayBtn) todayBtn.style.display = 'none';
-  if (n < 2) { btn.disabled = true; btn.textContent = '至少选 2 个单词本'; }
+  if (n < 1) { btn.disabled = true; btn.textContent = '至少选 1 个单词本'; }
   else { btn.disabled = false; btn.textContent = `合并 ${n} 个单词本，开始练习 →`; }
 }
 
