@@ -87,9 +87,9 @@ function removeSpellingSlot(si) {
 
 function buildDailyPool(cards, urec) {
   // priority: known > new > unknown (cap 10)
-  const known = cards.filter(c => urec.known.includes(c.en));
-  const newW  = cards.filter(c => !urec.known.includes(c.en) && !urec.unknown.includes(c.en));
-  const unk   = cards.filter(c => urec.unknown.includes(c.en));
+  const known = cards.filter(c => urec.known.includes(getCardWord(c)));
+  const newW  = cards.filter(c => !urec.known.includes(getCardWord(c)) && !urec.unknown.includes(getCardWord(c)));
+  const unk   = cards.filter(c => urec.unknown.includes(getCardWord(c)));
   let pool = [...known.sort(() => Math.random()-0.5)];
   if (pool.length < 10) pool.push(...newW.sort(() => Math.random()-0.5));
   if (pool.length < 10) pool.push(...unk.sort(() => Math.random()-0.5));
@@ -108,42 +108,44 @@ function findClozeSpan(ex, en) {
 }
 
 function makeDailyQuestion(card, allCards) {
+  const word = getCardWord(card);
+  const meaning = getCardMeaning(card);
   // pick random type
   const types = ['A','B','C','L','S','O'];
   // filter: A requires a usable cloze span in the example sentence
-  const clozeSpan = card.ex ? findClozeSpan(card.ex, card.en) : null;
+  const clozeSpan = card.ex ? findClozeSpan(card.ex, word) : null;
   const available = clozeSpan ? types : ['B','C','L','S','O'];
   const type = available[Math.floor(Math.random()*available.length)];
 
   // pick 3 wrong options from same batch
-  const others = allCards.filter(c => c.en !== card.en);
+  const others = allCards.filter(c => getCardWord(c) !== word);
   const shuffled = [...others].sort(() => Math.random()-0.5);
   const wrong3 = shuffled.slice(0,3);
 
   if (type === 'A') {
-    const options = shuffle4([card.en, ...wrong3.map(c=>c.en)]);
+    const options = shuffle4([word, ...wrong3.map(getCardWord)]);
     const maxLen = Math.max(...options.map(o => o.length));
-    return { type:'A', sentencePrefix: clozeSpan.prefix, sentenceSuffix: clozeSpan.suffix, answer: card.en, options, maxLen, card };
+    return { type:'A', sentencePrefix: clozeSpan.prefix, sentenceSuffix: clozeSpan.suffix, answer: word, options, maxLen, card };
   } else if (type === 'B') {
     // show Chinese, pick English
-    const options = shuffle4([card.en, ...wrong3.map(c=>c.en)]);
-    return { type:'B', question: card.zh + (card.pos ? `（${card.pos}）` : ''), answer: card.en, options, card };
+    const options = shuffle4([word, ...wrong3.map(getCardWord)]);
+    return { type:'B', question: meaning + (card.pos ? `（${card.pos}）` : ''), answer: word, options, card };
   } else if (type === 'C') {
     // show English, pick Chinese
-    const options = shuffle4([card.zh, ...wrong3.map(c=>c.zh)]);
-    return { type:'C', question: card.en, answer: card.zh, options, card };
+    const options = shuffle4([meaning, ...wrong3.map(getCardMeaning)]);
+    return { type:'C', question: word, answer: meaning, options, card };
   } else if (type === 'L') {
     // listening: speak the English word, pick the EN word heard
-    const options = shuffle4([card.en, ...wrong3.map(c=>c.en)]);
-    return { type:'L', question: card.en, answer: card.en, options, card };
+    const options = shuffle4([word, ...wrong3.map(getCardWord)]);
+    return { type:'L', question: word, answer: word, options, card };
   } else if (type === 'S') {
     // spelling: show Chinese, spell the English word with letter tiles
-    const puzzle = buildSpellingPuzzle(card.en);
-    return { type:'S', question: card.zh + (card.pos ? `（${card.pos}）` : ''), answer: card.en, puzzle, card };
+    const puzzle = buildSpellingPuzzle(word);
+    return { type:'S', question: meaning + (card.pos ? `（${card.pos}）` : ''), answer: word, puzzle, card };
   } else {
-    const answer = card.en.toLowerCase().split('/')[0].trim().replace(/[^a-zA-Z]/g, '');
+    const answer = word.toLowerCase().split('/')[0].trim().replace(/[^a-zA-Z]/g, '');
     const letters = answer.split('').sort(() => Math.random()-0.5);
-    return { type:'O', question: card.zh + (card.pos ? `（${card.pos}）` : ''), answer: card.en, letters, card };
+    return { type:'O', question: meaning + (card.pos ? `（${card.pos}）` : ''), answer: word, letters, card };
   }
 }
 
@@ -319,7 +321,7 @@ function confirmDQAnswer() {
       dqWrongList.push(q.card);
       if (typeof markCardUnknown === 'function') markCardUnknown(q.card);
       fb.className = 'dq-feedback wrong-fb';
-      fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${q.card.en} — ${q.card.zh}`;
+      fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${getCardWord(q.card)} — ${getCardMeaning(q.card)}`;
     }
     return;
   }
@@ -339,7 +341,7 @@ function confirmDQAnswer() {
       dqWrongList.push(q.card);
       if (typeof markCardUnknown === 'function') markCardUnknown(q.card);
       fb.className = 'dq-feedback wrong-fb';
-      fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${q.card.en} — ${q.card.zh}`;
+      fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${getCardWord(q.card)} — ${getCardMeaning(q.card)}`;
     }
     return;
   }
@@ -367,7 +369,7 @@ function confirmDQAnswer() {
     dqWrongList.push(q.card);
     if (typeof markCardUnknown === 'function') markCardUnknown(q.card);
     fb.className = 'dq-feedback wrong-fb';
-    fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${q.card.en} — ${q.card.zh}`;
+    fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${getCardWord(q.card)} — ${getCardMeaning(q.card)}`;
   }
 }
 

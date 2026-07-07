@@ -1,0 +1,997 @@
+﻿English word cards export
+Exported: 2026-07-07
+Source: Supabase kv_store.main
+
+## 06.10｜复习卷四·选择题
+id: 17813615072907015
+date: 2026-06-10
+sharedWith: sister
+cards: 16
+
+### 1. average
+en: average
+zh: 平均的
+pos: 形容词
+emoji: 📊
+ex: The average temperature in July is 32°C. / 七月的平均气温是32摄氏度。
+
+### 2. temperature
+en: temperature
+zh: 气温、温度
+pos: 名词
+emoji: 🌡️
+ex: The temperature fell to zero last night. / 昨晚气温降到了零度。
+note: 📌 take one's temperature — 量体温
+
+### 3. findings
+en: findings
+zh: 调查结果
+pos: 名词复数
+emoji: 🔍
+ex: The findings show that students sleep less now. / 研究结论表明学生现在睡眠更少了。
+note: 💡 findings 通常用复数，很少说 a finding。
+
+### 4. presentations
+en: presentations
+zh: 展示汇报
+pos: 名词复数
+emoji: 📢
+ex: She gave a great presentation in class. / 她在课堂上做了很棒的汇报。
+
+### 5. conversations
+en: conversations
+zh: 交谈、对话
+pos: 名词复数
+emoji: 💬
+ex: We had a long conversation about the weather. / 我们就天气进行了一次长谈。
+note: 📌 have a conversation with sb. — 和某人进行一次对话
+
+### 6. its
+en: its
+zh: 它的
+pos: 物主代词
+emoji: 🐾
+ex: The dog wagged its tail happily. / 那只狗高兴地摇着它的尾巴。
+tip: ⚠️ 易错：its = 它的（无撇号）；it's = it is 的缩写（有撇号）
+
+### 7. predict
+en: predict
+zh: 预测、预报
+pos: 动词
+emoji: 🌦️
+ex: Can you predict tomorrow's weather? / 你能预测明天的天气吗？
+tip: 💡 古人靠观察动物来预测天气——燕子低飞，代表快要下雨了！
+
+### 8. wind
+en: wind
+zh: 风
+pos: 名词
+emoji: 🌬️
+ex: The wind is blowing from the north. / 风从北方吹来。
+
+### 9. direction
+en: direction
+zh: 方向
+pos: 名词
+emoji: 🧭
+ex: Walk in the direction of the school. / 朝学校的方向走。
+
+### 10. fell
+en: fell
+zh: 生病、病倒
+pos: 动词（fall的过去式）
+emoji: 🤒
+ex: He fell ill after the picnic. / 野餐后他病倒了。
+note: 📌 固定搭配：fall ill（生病）→ 过去式：fell ill
+
+### 11. what
+en: what
+zh: 什么
+pos: 代词
+emoji: ❓
+ex: What is the weather like today? / How is the weather today? / 今天天气怎么样？
+note: 📌 两种问天气的方式意思完全一样：
+tip: 💡 What is … like? 和 How is …? 都能用来问状态，非常经典！
+
+### 12. resort
+en: resort
+zh: 度假胜地
+pos: 名词
+emoji: 🏖️
+ex: Sanya is a famous beach resort in China. / 三亚是中国著名的海滨度假胜地。
+
+### 13. picnic
+en: picnic
+zh: 野餐
+pos: 名词/动词
+emoji: 🧺
+ex: Let's go on a picnic this weekend! / 这周末我们去野餐吧！
+note: 📌 go on a picnic — 去野餐
+
+### 14. effect
+en: effect
+zh: 影响、效果
+pos: 名词
+emoji: ⚡
+ex: The effect of sunshine on plants is huge. / 阳光对植物的影响很大。
+note: 📌 固定搭配：the effect of A on B — A对B的影响
+
+### 15. since
+en: since
+zh: 从……以来、自从
+pos: 介词/连词
+emoji: ⏳
+ex: I have lived here since 2020. / 我从2020年就住在这里了。
+note: 📌 固定搭配：since then — 从那以后
+
+### 16. weather
+en: weather
+zh: 天气怎么样？
+pos: 固定句型
+emoji: ☀️
+ex: What is the weather like in Beijing in winter? / 北京冬天的天气怎么样？
+note: 📌 等价：How is the weather?
+tip: 💡 What is … like? 不只能问天气，也能问任何事物的状态！
+
+
+## 06.11｜wonders
+id: 17813617969204838
+date: 2026-06-11
+sharedWith: brother
+cards: 13
+
+### 1. trick
+en: trick
+zh: 花招；技巧
+pos: 名词
+emoji: 🎩
+ex: That’s a magic trick. / 那是一个魔术。
+note: 📌 play a trick（开玩笑）
+
+### 2. yell
+en: yell
+zh: 大喊
+pos: 动词
+emoji: 📢
+ex: Don’t yell in class. / 不要在教室里大喊。
+
+### 3. quick
+en: quick
+zh: 快的
+pos: 形容词
+emoji: ⚡
+ex: He is quick. / 他很快。
+note: 📌 a quick answer（快速回答）
+
+### 4. liquid
+en: liquid
+zh: 液体
+pos: 名词
+emoji: 🥤
+ex: Water is a liquid. / 水是一种液体。
+
+### 5. mad
+en: mad
+zh: 生气的
+pos: 形容词
+emoji: 😠
+ex: She is mad. / 她生气了。
+note: 📌 be mad at somebody（生某人的气）
+
+### 6. as well
+en: as well
+zh: 也；还
+pos: 短语
+ex: I like apples as well. / 我也喜欢苹果。
+note: 📌 放在句末较常见
+
+### 7. plan
+en: plan
+zh: 计划
+pos: 名词；动词
+emoji: 📝
+ex: We have a plan. / 我们有一个计划。
+note: 📌 make a plan（制定计划）
+
+### 8. mosquito
+en: mosquito
+zh: 蚊子
+pos: 名词
+emoji: 🦟
+ex: A mosquito bit me. / 一只蚊子咬了我。
+
+### 9. sip
+en: sip
+zh: 小口喝
+pos: 动词
+emoji: 🧃
+ex: Sip your juice slowly. / 慢慢小口喝果汁。
+note: 📌 take a sip（喝一小口）
+
+### 10. figure out
+en: figure out
+zh: 弄明白；解决
+pos: 短语动词
+emoji: 🤔
+ex: I can figure it out. / 我能弄明白。
+note: 📌 figure out a problem（解决问题）
+
+### 11. idea
+en: idea
+zh: 主意；想法
+pos: 名词
+emoji: 💡
+ex: That’s a good idea. / 那是个好主意。
+
+### 12. solve
+en: solve
+zh: 解决
+pos: 动词
+emoji: ✅
+ex: We can solve it. / 我们可以解决它。
+note: 📌 solve a problem（解决问题）
+
+### 13. problem
+en: problem
+zh: 问题；难题
+pos: 名词
+emoji: ❓
+ex: I have a problem. / 我遇到了一个问题。
+note: 📌 no problem（没问题）
+
+
+## 06.11｜复习卷5
+id: 17813618398483263
+date: 2026-06-11
+sharedWith: sister
+cards: 4
+
+### 1. person
+en: person
+zh: 人
+pos: 名词
+emoji: 👤
+ex: She is a kind person. / 她是一个善良的人。
+note: 📌 one person（一个人）
+
+### 2. leave
+en: leave
+zh: 离开
+pos: 动词
+emoji: 🚪
+ex: I leave home at seven. / 我七点离开家。
+note: 📌 leave school（离开学校）
+
+### 3. clever
+en: clever
+zh: 聪明的
+pos: 形容词
+emoji: 🧠
+ex: He is a clever boy. / 他是一个聪明的男孩。
+note: 📌 a clever student（聪明的学生）
+tip: 💡 clever 常用来夸人爱动脑筋、学东西快。
+
+### 4. beautiful
+en: beautiful
+zh: 美丽的；漂亮的
+pos: 形容词
+emoji: 🌸
+ex: The flower is beautiful. / 这朵花很漂亮。
+note: 📌 beautiful flowers（美丽的花）
+tip: 💡 beautiful 可以形容人、花、风景等美好的事物。
+
+
+## 06.14｜复习卷生词
+id: 17814355498014337
+date: 2026-06-14
+sharedWith: sister
+cards: 13
+
+### 1. wind
+en: wind
+zh: 风
+pos: 名词
+emoji: 🌬️
+ex: The wind blows. / 风吹着。
+note: 🌬️ strong wind 大风；cold wind 冷风；in the wind 在风中
+tip: 💡 风虽然看不见，但能看到树叶摇动和风筝飞起来。想到风筝飞起来，就想到 wind。
+
+### 2. person
+en: person
+zh: 人
+pos: 名词
+emoji: 🚶
+ex: She is a nice person. / 她是个好人。
+note: 🚶 good person 好人；young person 年轻人；kind person 善良的人
+tip: 💡 一个人叫 person，很多人叫 people。
+
+### 3. leave
+en: leave
+zh: 离开
+pos: 动词
+emoji: 🚶‍♂️
+ex: I leave now. / 我现在离开。
+note: 🚶‍♂️ leave home 离开家；leave school 离开学校；leave early 提前离开
+tip: 💡 背着书包走出教室的时候，就是 leave。
+
+### 4. clever
+en: clever
+zh: 聪明的
+pos: 形容词
+emoji: 🧠
+ex: She is clever. / 她很聪明。
+note: 🧠 very clever 很聪明；clever student 聪明的学生；clever idea 聪明的主意
+tip: 💡 遇到问题能很快想到办法的人，通常就是 clever。
+
+### 5. beautiful
+en: beautiful
+zh: 美丽的；漂亮的
+pos: 形容词
+emoji: 🌸
+ex: The flower is beautiful. / 这朵花很漂亮。
+note: 🌸 beautiful flower 美丽的花；beautiful girl 漂亮的女孩；beautiful park 美丽的公园
+tip: 💡 看到彩虹、花朵或风景时，可以用 beautiful 来形容。
+
+### 6. great
+en: great
+zh: 棒的；优秀的
+pos: 形容词
+emoji: ⭐
+ex: You are great. / 你真棒。
+note: ⭐ great job 干得好；great idea 好主意；great teacher 好老师
+tip: 💡 老师夸奖你时经常会说 Great job!
+
+### 7. famous
+en: famous
+zh: 有名的
+pos: 形容词
+emoji: 🌟
+ex: He is famous. / 他很有名。
+note: 🌟 famous singer 著名歌手；famous city 著名城市；famous person 名人
+tip: 💡 很多人都知道的人或地方，就是 famous。
+
+### 8. before
+en: before
+zh: 在……之前
+pos: 介词
+emoji: ⏰
+ex: Come before nine. / 九点前来。
+note: ⏰ before school 上学前；before dinner 晚饭前；before nine 九点前
+tip: 💡 before 表示更早发生的事情。
+
+### 9. after
+en: after
+zh: 在……之后
+pos: 介词
+emoji: ⏳
+ex: Go home after school. / 放学后回家。
+note: ⏳ after school 放学后；after dinner 晚饭后；after class 下课后
+tip: 💡 after 表示后面发生的事情。
+
+### 10. born
+en: born
+zh: 出生
+pos: 动词
+emoji: 👶
+ex: I was born in China. / 我出生在中国。
+note: 👶 born in 出生于；born on 出生于（具体日期）
+tip: 💡 小宝宝来到世界上的那一天，就是 born。
+
+### 11. love
+en: love
+zh: 喜欢；喜爱
+pos: 动词
+emoji: ❤️
+ex: I love reading. / 我喜欢阅读。
+note: ❤️ love reading 喜欢阅读；love animals 喜欢动物；love music 喜欢音乐
+tip: 💡 love 比 like 表示更强烈的喜欢。
+
+### 12. expensive
+en: expensive
+zh: 昂贵的
+pos: 形容词
+emoji: 💰
+ex: This bag is expensive. / 这个包很贵。
+note: 💰 expensive bag 贵的包；expensive toy 贵的玩具；very expensive 很贵
+tip: 💡 需要花很多钱买的东西，就是 expensive。
+
+### 13. inexpensive
+en: inexpensive
+zh: 不贵的；便宜的
+pos: 形容词
+emoji: 🪙
+ex: This book is inexpensive. / 这本书不贵。
+note: 🪙 inexpensive book 不贵的书；inexpensive clothes 不贵的衣服
+tip: 💡 in- 表示“不”，expensive 是贵，inexpensive 就是不贵。
+
+
+## 06.15｜生词
+id: 1781530055954834
+date: 2026-06-15
+sharedWith: sister
+cards: 17
+
+### 1. week
+en: week
+zh: 星期；周
+pos: 名词
+emoji: 📅
+ex: There are seven days in a week. / 一周有七天。
+note: 📌 last week（上周）, next week（下周）
+tip: 💡 week 表示连续七天。
+
+### 2. lesson
+en: lesson
+zh: 课；课程
+pos: 名词
+emoji: 📚
+ex: We have an English lesson today. / 今天我们有英语课。
+note: 📌 English lesson（英语课）, music lesson（音乐课）
+tip: 💡 lesson 不仅指学校的课，也可以指钢琴课、舞蹈课等。
+
+### 3. begin
+en: begin
+zh: 开始
+pos: 动词
+emoji: ▶️
+ex: The class begins at eight o’clock. / 课程八点开始。
+note: 📌 begin to do（开始做某事）
+tip: 💡 begin 和 start 意思几乎一样。
+
+### 4. start
+en: start
+zh: 开始
+pos: 动词
+emoji: 🚀
+ex: Let’s start the game. / 让我们开始游戏吧。
+note: 📌 start a game（开始游戏）
+tip: 💡 日常口语里 start 比 begin 更常见。
+
+### 5. mother
+en: mother
+zh: 妈妈；母亲
+pos: 名词
+emoji: 👩
+ex: My mother cooks dinner. / 我妈妈做晚饭。
+note: 📌 mother and father（爸爸妈妈）
+tip: 💡 口语里更常说 Mom 或 Mum。
+
+### 6. father
+en: father
+zh: 爸爸；父亲
+pos: 名词
+emoji: 👨
+ex: My father drives a car. / 我爸爸开车。
+note: 📌 father and mother（父母）
+tip: 💡 口语里更常说 Dad。
+
+### 7. diary
+en: diary
+zh: 日记
+pos: 名词
+emoji: 📔
+ex: I write in my diary every day. / 我每天写日记。
+note: 📌 keep a diary（写日记）
+tip: 💡 diary 记录每天发生的事情。
+
+### 8. write
+en: write
+zh: 写
+pos: 动词
+emoji: ✍️
+ex: Please write your name. / 请写下你的名字。
+note: 📌 write a letter（写信）, write a diary（日记）
+tip: 💡 write 的过去式是 wrote。
+
+### 9. short
+en: short
+zh: 短的
+pos: 形容词
+emoji: 📏
+ex: This story is short. / 这个故事很短。
+note: 📌 short hair（短发）, short story（短故事）
+tip: 💡 short 的反义词是 long。
+
+### 10. long
+en: long
+zh: 长的
+pos: 形容词
+emoji: 📐
+ex: The ruler is long. / 这把尺子很长。
+note: 📌 long hair（长发）, long road（长路）
+tip: 💡 long 的反义词是 short。
+
+### 11. dear
+en: dear
+zh: 亲爱的
+pos: 形容词
+emoji: ❤️
+ex: Dear Mom, I love you. / 亲爱的妈妈，我爱你。
+note: 📌 Dear Mom, Dear Dad（信件开头）
+tip: 💡 写信时经常用 Dear 开头。
+
+### 12. India
+en: India
+zh: 印度
+pos: 专有名词
+emoji: 🇮🇳
+ex: India is a big country. / 印度是一个大国。
+note: 📌 in India（在印度）
+tip: 💡 India 的人叫 Indian。
+
+### 13. secret
+en: secret
+zh: 秘密
+pos: 名词
+emoji: 🤫
+ex: This is my secret. / 这是我的秘密。
+note: 📌 keep a secret（保守秘密）
+tip: 💡 secret 也可以作形容词，表示“秘密的”。
+
+### 14. many
+en: many
+zh: 许多
+pos: 形容词
+emoji: 🔢
+ex: I have many books. / 我有很多书。
+note: 📌 many students（许多学生）
+tip: 💡 many 后面接可数名词复数。
+
+### 15. pizza
+en: pizza
+zh: 披萨
+pos: 名词
+emoji: 🍕
+ex: I eat pizza on Sunday. / 我星期天吃披萨。
+note: 📌 eat pizza（吃披萨）
+tip: 💡 pizza 起源于意大利。
+
+### 16. school
+en: school
+zh: 学校
+pos: 名词
+emoji: 🏫
+ex: We go to school every day. / 我们每天去学校。
+note: 📌 at school（在学校）, go to school（去上学）
+tip: 💡 school 既可以指建筑，也可以指上学这件事。
+
+### 17. in
+en: in
+zh: 在……里面；在……地方
+pos: 介词
+emoji: 📦
+ex: The book is in the bag. / 书在书包里。
+note: 📌 in the diary（在日记里）, in school（在学校）
+tip: 💡 in 表示“在内部”。
+
+
+## 06.16｜生词
+id: 17816166605017496
+date: 2026-06-16
+sharedWith: brother
+cards: 10
+
+### 1. cute
+en: cute
+zh: 可爱的
+pos: 形容词
+emoji: 🐱
+ex: The cat is cute. / 这只小猫很可爱。
+note: 📌 用来形容小动物、小朋友好看惹人喜爱
+
+### 2. use
+en: use
+zh: 使用；用处
+pos: 动词、名词
+emoji: ✏️
+ex: I use a pencil. / 我用一支铅笔。
+note: 📌 动词读/juːz/，名词读/juːs/
+
+### 3. fuse
+en: fuse
+zh: 保险丝；熔化
+pos: 名词、动词
+emoji: 🔌
+ex: The fuse breaks. / 保险丝断了。
+note: 📌 家里电路过载会烧断fuse
+
+### 4. huge
+en: huge
+zh: 巨大的
+pos: 形容词
+emoji: 🐘
+ex: It is a huge elephant. / 它是一头巨大的大象。
+note: 📌 形容尺寸、数量非常大
+
+### 5. excuse
+en: excuse
+zh: 原谅；借口
+pos: 动词、名词
+emoji: 🙇
+ex: Excuse me. / 打扰一下。
+note: 📌 日常礼貌用语开头常用
+
+### 6. amuse
+en: amuse
+zh: 逗笑，使开心
+pos: 动词
+emoji: 🤣
+ex: Toys amuse me. / 玩具逗得我很开心。
+note: 📌 让人发笑、消遣都可以用
+
+### 7. confuse
+en: confuse
+zh: 使糊涂，混淆
+pos: 动词
+emoji: 😵
+ex: Don't confuse them. / 别把它们弄混了。
+note: 📌 分不清两样东西就用confuse
+
+### 8. volume
+en: volume
+zh: 音量；体积；书册
+pos: 名词
+emoji: 🔊
+ex: Turn down the volume. / 把音量调小。
+note: 📌 看电视听歌调节声音大小用它
+
+### 9. accuse
+en: accuse
+zh: 指责，控告
+pos: 动词
+emoji: 🫵
+ex: Don't accuse me. / 不要指责我。
+note: 📌 认为别人做错事而责怪
+
+### 10. distribute
+en: distribute
+zh: 分发，分配
+pos: 动词
+emoji: 📦
+ex: Distribute candies. / 分发糖果。
+note: 📌 把东西分给很多人
+
+
+## 07.04｜元音生词
+id: 1783274551321176
+date: 2026-07-04
+sharedWith: sister, brother
+cards: 48
+
+### 1. bed
+en: bed
+zh: 床
+pos: 名词
+emoji: 🛏️
+ex: This is my bed. / 这是我的床。
+
+### 2. red
+en: red
+zh: 红色；红色的
+pos: 形容词
+emoji: 🔴
+ex: The apple is red. / 苹果是红色的。
+
+### 3. head
+en: head
+zh: 头
+pos: 名词
+emoji: 🙂
+ex: Touch your head. / 摸摸你的头。
+
+### 4. many
+en: many
+zh: 许多
+pos: 形容词
+emoji: 🔢
+ex: I have many books. / 我有许多书。
+
+### 5. car
+en: car
+zh: 汽车
+pos: 名词
+emoji: 🚗
+ex: This is a car. / 这是一辆汽车。
+
+### 6. far
+en: far
+zh: 远的
+pos: 形容词
+emoji: 🛣️
+ex: The school is far. / 学校很远。
+
+### 7. fast
+en: fast
+zh: 快的
+pos: 形容词
+emoji: ⚡
+ex: The car is fast. / 这辆汽车很快。
+tip: ⚠️ past 是“过去”，fast 才是“快的”。
+
+### 8. father
+en: father
+zh: 父亲；爸爸
+pos: 名词
+emoji: 👨
+ex: My father is tall. / 我的爸爸很高。
+
+### 9. up
+en: up
+zh: 向上
+pos: 副词
+emoji: ⬆️
+ex: Stand up, please. / 请站起来。
+
+### 10. cup
+en: cup
+zh: 杯子
+pos: 名词
+emoji: ☕
+ex: This is my cup. / 这是我的杯子。
+
+### 11. brother
+en: brother
+zh: 兄；弟
+pos: 名词
+emoji: 👦
+ex: He is my brother. / 他是我的兄弟。
+
+### 12. monkey
+en: monkey
+zh: 猴子
+pos: 名词
+emoji: 🐒
+ex: The monkey is funny. / 这只猴子很有趣。
+
+### 13. short
+en: short
+zh: 短的；矮的
+pos: 形容词
+emoji: 📏
+ex: The pencil is short. / 这支铅笔很短。
+
+### 14. door
+en: door
+zh: 门
+pos: 名词
+emoji: 🚪
+ex: Open the door. / 打开门。
+
+### 15. your
+en: your
+zh: 你的
+pos: 代词
+emoji: 👉
+ex: This is your book. / 这是你的书。
+
+### 16. four
+en: four
+zh: 四
+pos: 数词
+emoji: 4️⃣
+ex: I have four pencils. / 我有四支铅笔。
+
+### 17. not
+en: not
+zh: 不
+pos: 副词
+emoji: ❌
+ex: I am not sad. / 我不伤心。
+
+### 18. on
+en: on
+zh: 在……上面
+pos: 介词
+emoji: 🔝
+ex: The book is on the desk. / 书在桌子上。
+
+### 19. soccer
+en: soccer
+zh: 足球
+pos: 名词
+ex: I like soccer. / 我喜欢足球。
+
+### 20. orange
+en: orange
+zh: 橙子；橙色
+pos: 名词
+emoji: 🍊
+ex: I eat an orange. / 我吃一个橙子。
+
+### 21. her
+en: her
+zh: 她的
+pos: 代词
+emoji: 👧
+ex: This is her bag. / 这是她的包。
+
+### 22. girl
+en: girl
+zh: 女孩
+pos: 名词
+emoji: 👧
+ex: The girl is happy. / 这个女孩很开心。
+
+### 23. first
+en: first
+zh: 第一
+pos: 序数词
+emoji: 🥇
+ex: I am first. / 我是第一名。
+
+### 24. nurse
+en: nurse
+zh: 护士
+pos: 名词
+emoji: 🧑‍⚕️
+ex: She is a nurse. / 她是一名护士。
+
+### 25. of
+en: of
+zh: ……的
+pos: 介词
+emoji: 🔗
+ex: A cup of water. / 一杯水。
+
+### 26. China
+en: China
+zh: 中国
+pos: 名词
+emoji: 🇨🇳
+ex: I am from China. / 我来自中国。
+
+### 27. Canada
+en: Canada
+zh: 加拿大
+pos: 名词
+emoji: 🇨🇦
+ex: He is from Canada. / 他来自加拿大。
+
+### 28. August
+en: August
+zh: 八月
+pos: 名词
+emoji: 🗓️
+ex: My birthday is in August. / 我的生日在八月。
+
+### 29. me
+en: me
+zh: 我
+pos: 代词
+emoji: 🙋
+ex: Look at me. / 看我。
+
+### 30. meet
+en: meet
+zh: 遇见
+pos: 动词
+emoji: 🤝
+ex: Nice to meet you. / 很高兴见到你。
+
+### 31. read
+en: read
+zh: 读
+pos: 动词
+emoji: 📖
+ex: I read a book. / 我读一本书。
+
+### 32. meat
+en: meat
+zh: 肉
+pos: 名词
+emoji: 🥩
+ex: I like meat. / 我喜欢肉。
+
+### 33. it
+en: it
+zh: 它
+pos: 代词
+emoji: 🐾
+ex: It is small. / 它很小。
+
+### 34. sit
+en: sit
+zh: 坐
+pos: 动词
+emoji: 🪑
+ex: Please sit down. / 请坐下。
+
+### 35. in
+en: in
+zh: 在……里面
+pos: 介词
+emoji: 📦
+ex: The cat is in the box. / 猫在盒子里。
+
+### 36. fish
+en: fish
+zh: 鱼
+pos: 名词
+emoji: 🐟
+ex: I see a fish. / 我看见一条鱼。
+
+### 37. zoo
+en: zoo
+zh: 动物园
+pos: 名词
+emoji: 🦁
+ex: I go to the zoo. / 我去动物园。
+
+### 38. food
+en: food
+zh: 食物
+pos: 名词
+emoji: 🍎
+ex: This food is good. / 这个食物很好。
+
+### 39. who
+en: who
+zh: 谁
+pos: 代词
+emoji: ❓
+ex: Who is he? / 他是谁？
+
+### 40. ruler
+en: ruler
+zh: 尺子
+pos: 名词
+emoji: 📏
+ex: This is a ruler. / 这是一把尺子。
+
+### 41. put
+en: put
+zh: 放
+pos: 动词
+emoji: 📥
+ex: Put the book on the desk. / 把书放在桌子上。
+
+### 42. push
+en: push
+zh: 推
+pos: 动词
+emoji: 👉
+ex: Push the door. / 推门。
+
+### 43. book
+en: book
+zh: 书
+pos: 名词
+emoji: 📚
+ex: I have a book. / 我有一本书。
+
+### 44. good
+en: good
+zh: 好的
+pos: 形容词
+emoji: 👍
+ex: You are good. / 你很棒。
+
+### 45. dad
+en: dad
+zh: 爸爸
+pos: 名词
+emoji: 👨
+ex: My dad is nice. / 我的爸爸很好。
+
+### 46. family
+en: family
+zh: 家庭
+pos: 名词
+emoji: 👨‍👩‍👧‍👦
+ex: I love my family. / 我爱我的家人。
+
+### 47. thank
+en: thank
+zh: 谢谢
+pos: 动词
+emoji: 🙏
+ex: Thank you. / 谢谢你。
+
+### 48. glad
+en: glad
+zh: 开心的
+pos: 形容词
+emoji: 😊
+ex: I am glad. / 我很开心。
+
+

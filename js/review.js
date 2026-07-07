@@ -56,16 +56,16 @@ function renderReviewMatch(step) {
   reviewMatchPairsDone = 0;
   reviewMatchLocked = false;
   step.tiles = step.cards.flatMap(c => [
-    { side: 'en', en: c.en, text: c.en },
-    { side: 'zh', en: c.en, text: c.zh || c.en }
+    { side: 'en', en: getCardWord(c), text: getCardWord(c) },
+    { side: 'zh', en: getCardWord(c), text: getCardMeaning(c) || getCardWord(c) }
   ]).sort(() => Math.random() - 0.5);
   reviewCardShell('对对碰', `
     <div class="match-preview-grid">
       ${step.cards.map(c => `
         <div class="match-preview-card">
           <div class="match-preview-emoji">${c.emoji || '📚'}</div>
-          <div class="match-preview-en">${c.en}</div>
-          <div class="match-preview-zh">${c.zh || ''}</div>
+          <div class="match-preview-en">${getCardWord(c)}</div>
+          <div class="match-preview-zh">${getCardMeaning(c)}</div>
         </div>`).join('')}
     </div>
     <button class="review-action secondary" onclick="startReviewMatchPlay()">我记住了</button>`);
@@ -116,47 +116,52 @@ function chooseReviewMatch(btn, total) {
 }
 
 function renderReviewRepeat(card) {
+  const word = getCardWord(card);
+  const meaning = getCardMeaning(card);
   reviewCardShell('跟读', `
-    <div class="review-question">${card.en}</div>
-    <div class="review-sub">${card.zh || ''}</div>
-    <button class="review-action" onclick="speakWord('${escapeJs(card.en)}')">🔊 播放发音</button>
+    <div class="review-question">${word}</div>
+    <div class="review-sub">${meaning}</div>
+    <button class="review-action" onclick="speakWord('${escapeJs(word)}')">🔊 播放发音</button>
     <button class="review-action secondary" onclick="nextReviewStep()">我读完了</button>`);
-  speakWord(card.en);
+  speakWord(word);
 }
 
 function renderReviewBlank(card) {
-  const answer = simpleWord(card.en);
+  const word = getCardWord(card);
+  const answer = simpleWord(word);
   const part = makeMissingPart(answer);
   const options = makeSegmentOptions(part.missing, answer);
   reviewCardShell('缺字母选择', `
     <div class="review-spell-word">${part.masked}</div>
-    <div class="review-sub">${card.zh || ''}</div>
+    <div class="review-sub">${getCardMeaning(card)}</div>
     <div class="review-options">
-      ${options.map(o => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(o)}','${escapeJs(part.missing)}','${escapeJs(card.en)}')">${o}</button>`).join('')}
+      ${options.map(o => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(o)}','${escapeJs(part.missing)}','${escapeJs(word)}')">${o}</button>`).join('')}
     </div>`);
 }
 
 function renderReviewListen(card) {
+  const word = getCardWord(card);
   const options = makeWordOptions(card);
   reviewCardShell('听音选词', `
-    <button class="review-action" onclick="speakWord('${escapeJs(card.en)}')">🔊 播放</button>
+    <button class="review-action" onclick="speakWord('${escapeJs(word)}')">🔊 播放</button>
     <div class="review-options">
-      ${options.map(o => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(o)}','${escapeJs(card.en)}','${escapeJs(card.en)}')">${o}</button>`).join('')}
+      ${options.map(o => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(o)}','${escapeJs(word)}','${escapeJs(word)}')">${o}</button>`).join('')}
     </div>`);
-  speakWord(card.en);
+  speakWord(word);
 }
 
 function renderReviewSort(card) {
   reviewSortPicked = [];
-  const letters = simpleWord(card.en).split('').sort(() => Math.random() - 0.5);
+  const word = getCardWord(card);
+  const letters = simpleWord(word).split('').sort(() => Math.random() - 0.5);
   reviewCardShell('字母排序', `
-    <div class="review-question">${card.zh || ''}</div>
+    <div class="review-question">${getCardMeaning(card)}</div>
     <div class="review-sub">把字母排成正确的英文单词</div>
     <div class="review-answer-box" id="reviewSortAnswer"></div>
     <div class="review-letter-row" id="reviewLetterRow">
       ${letters.map((l, i) => `<button class="review-letter" data-i="${i}" onclick="pickReviewLetter(this,'${escapeJs(l)}')">${l}</button>`).join('')}
     </div>
-    <button class="review-action" onclick="checkReviewSort('${escapeJs(card.en)}')">确认</button>`);
+    <button class="review-action" onclick="checkReviewSort('${escapeJs(word)}')">确认</button>`);
 }
 
 function answerReviewChoice(btn, picked, answer, cardEn) {
@@ -166,7 +171,7 @@ function answerReviewChoice(btn, picked, answer, cardEn) {
   if (ok) {
     setTimeout(nextReviewStep, 260);
   } else {
-    const card = activeTaskAllCards.find(c => c.en === cardEn) || { en: cardEn, zh: '' };
+    const card = activeTaskAllCards.find(c => getCardWord(c) === cardEn) || { en: cardEn, zh: '' };
     addReviewWrong(card);
     setTimeout(() => showReviewCorrection(card), 260);
   }
@@ -186,7 +191,7 @@ function checkReviewSort(cardEn) {
   if (ok) {
     nextReviewStep();
   } else {
-    const card = activeTaskAllCards.find(c => c.en === cardEn) || { en: cardEn, zh: '' };
+    const card = activeTaskAllCards.find(c => getCardWord(c) === cardEn) || { en: cardEn, zh: '' };
     addReviewWrong(card);
     showReviewCorrection(card);
   }
@@ -206,16 +211,15 @@ function showReviewCorrection(card) {
 }
 
 function renderWordBackHtml(card) {
+  normalizeEnglishCard(card);
+  const word = getCardWord(card);
   return `
     <div class="back-header">
-      <div class="en-word">${card.en}</div>
-      <button class="speak-btn" onclick="speakWord('${escapeJs(card.en)}')">🔊</button>
+      <div class="en-word">${escapeHtml(word)}</div>
+      <button class="speak-btn" onclick="speakWord('${escapeJs(word)}')">🔊</button>
     </div>
     <div class="back-body">
-      <div><div class="sec-label">释义</div><div class="meaning-text">${card.zh || ''}</div></div>
-      ${card.emoji ? `<div class="student-word-emoji">${card.emoji}</div>` : ''}
-      ${card.ex ? renderExampleHtml(card.ex) : ''}
-      <div class="review-answer-note">正确答案：${card.en} / ${card.zh || ''}</div>
+      ${renderEnglishCardBackHtml(card, { includeLegacy: true, answerNote: true })}
     </div>`;
 }
 
@@ -228,16 +232,18 @@ function renderExampleHtml(ex) {
 }
 
 function addReviewWrong(card) {
-  if (!reviewWrongCards.some(c => c.en === card.en)) reviewWrongCards.push(card);
+  const word = getCardWord(card);
+  if (!reviewWrongCards.some(c => getCardWord(c) === word)) reviewWrongCards.push(card);
 }
 
 async function markCardUnknown(card) {
-  if (isTeacher() || !card || !card.en) return;
+  const word = getCardWord(card);
+  if (isTeacher() || !card || !word) return;
   const batchId = card._batchId || (activeTask && activeTask.batchId) || currentBatchId;
   if (!batchId) return;
   const rec = await loadUserBatch(String(batchId));
-  if (!rec.unknown.includes(card.en)) rec.unknown.push(card.en);
-  rec.known = rec.known.filter(x => x !== card.en);
+  if (!rec.unknown.includes(word)) rec.unknown.push(word);
+  rec.known = rec.known.filter(x => x !== word);
   await saveUserBatch(String(batchId), rec);
 }
 
@@ -319,8 +325,9 @@ function makeSegmentOptions(answer, word) {
 }
 
 function makeWordOptions(card) {
-  const others = activeTaskAllCards.filter(c => c.en !== card.en).map(c => c.en);
-  return [card.en, ...others.sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  const word = getCardWord(card);
+  const others = activeTaskAllCards.filter(c => getCardWord(c) !== word).map(getCardWord);
+  return [word, ...others.sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
 }
 
 function escapeJs(s) {

@@ -14,7 +14,7 @@ const TASK_SOURCES = {
     async resolve() {
       const batch = latestVisibleBatch();
       if (!batch) {
-        alert('还没有可用的单词本');
+        alert('还没有可用的单词卡');
         return null;
       }
       return {

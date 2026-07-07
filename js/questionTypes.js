@@ -17,13 +17,16 @@ const CHALLENGE_TYPE_CLASSES = {
 };
 
 function makeQuestionContext(card, allCards) {
-  const others = allCards.filter(c => c.en !== card.en);
+  const word = getCardWord(card);
+  const others = allCards.filter(c => getCardWord(c) !== word);
   const wrong3 = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
   return {
     card,
     allCards,
     wrong3,
-    clozeSpan: card.ex ? findClozeSpan(card.ex, card.en) : null
+    word,
+    meaning: getCardMeaning(card),
+    clozeSpan: card.ex ? findClozeSpan(card.ex, word) : null
   };
 }
 
@@ -113,20 +116,20 @@ function applyQuestionResult(q, correct) {
   dqWrongList.push(q.card);
   if (typeof markCardUnknown === 'function') markCardUnknown(q.card);
   fb.className = 'dq-feedback wrong-fb';
-  fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${q.card.en} — ${q.card.zh}`;
+  fb.innerHTML = `❌ 正确答案：<strong>${q.answer}</strong>　${getCardWord(q.card)} — ${getCardMeaning(q.card)}`;
 }
 
 const ChallengeQuestionTypes = {
   A: {
     isAvailable: context => !!context.clozeSpan,
     build(context) {
-      const options = shuffle4([context.card.en, ...context.wrong3.map(c => c.en)]);
+      const options = shuffle4([context.word, ...context.wrong3.map(getCardWord)]);
       return {
         questionSet: 'task-challenge',
         type: 'A',
         sentencePrefix: context.clozeSpan.prefix,
         sentenceSuffix: context.clozeSpan.suffix,
-        answer: context.card.en,
+        answer: context.word,
         options,
         maxLen: Math.max(...options.map(o => o.length)),
         card: context.card
@@ -148,9 +151,9 @@ const ChallengeQuestionTypes = {
       return {
         questionSet: 'task-challenge',
         type: 'B',
-        question: context.card.zh + (context.card.pos ? `（${context.card.pos}）` : ''),
-        answer: context.card.en,
-        options: shuffle4([context.card.en, ...context.wrong3.map(c => c.en)]),
+        question: context.meaning + (context.card.pos ? `（${context.card.pos}）` : ''),
+        answer: context.word,
+        options: shuffle4([context.word, ...context.wrong3.map(getCardWord)]),
         card: context.card
       };
     },
@@ -166,9 +169,9 @@ const ChallengeQuestionTypes = {
       return {
         questionSet: 'task-challenge',
         type: 'C',
-        question: context.card.en,
-        answer: context.card.zh,
-        options: shuffle4([context.card.zh, ...context.wrong3.map(c => c.zh)]),
+        question: context.word,
+        answer: context.meaning,
+        options: shuffle4([context.meaning, ...context.wrong3.map(getCardMeaning)]),
         card: context.card
       };
     },
@@ -184,9 +187,9 @@ const ChallengeQuestionTypes = {
       return {
         questionSet: 'task-challenge',
         type: 'L',
-        question: context.card.en,
-        answer: context.card.en,
-        options: shuffle4([context.card.en, ...context.wrong3.map(c => c.en)]),
+        question: context.word,
+        answer: context.word,
+        options: shuffle4([context.word, ...context.wrong3.map(getCardWord)]),
         card: context.card
       };
     },
@@ -212,9 +215,9 @@ const ChallengeQuestionTypes = {
       return {
         questionSet: 'task-challenge',
         type: 'S',
-        question: context.card.zh + (context.card.pos ? `（${context.card.pos}）` : ''),
-        answer: context.card.en,
-        puzzle: buildSpellingPuzzle(context.card.en),
+        question: context.meaning + (context.card.pos ? `（${context.card.pos}）` : ''),
+        answer: context.word,
+        puzzle: buildSpellingPuzzle(context.word),
         card: context.card
       };
     },

@@ -36,12 +36,25 @@ function toggleMergeItem(id) {
 
 function updateMergeBtn() {
   const btn = document.getElementById('mergeStartBtn');
+  const todayBtn = document.getElementById('mergeTodayBtn');
   const n = mergeSelected.size;
   if (isTeacher()) {
-    if (n < 2) { btn.disabled = true; btn.textContent = '至少选择 2 个单词本'; }
-    else { btn.disabled = false; btn.textContent = `保存 ${n} 个单词本为明日混合词库`; }
+    if (todayBtn) todayBtn.style.display = '';
+    if (n < 2) {
+      btn.disabled = true;
+      btn.textContent = '至少选择 2 个单词本';
+      if (todayBtn) todayBtn.disabled = true;
+    } else {
+      btn.disabled = false;
+      btn.textContent = `应用到明天（${n} 个）`;
+      if (todayBtn) {
+        todayBtn.disabled = false;
+        todayBtn.textContent = `应用到今天（${n} 个）`;
+      }
+    }
     return;
   }
+  if (todayBtn) todayBtn.style.display = 'none';
   if (n < 2) { btn.disabled = true; btn.textContent = '至少选 2 个单词本'; }
   else { btn.disabled = false; btn.textContent = `合并 ${n} 个单词本，开始练习 →`; }
 }
@@ -52,8 +65,9 @@ async function smartPick15(batches) {
     const urec = await loadUserBatch(batch.id);
     batch.cards.forEach(c => {
       const tagged = {...c, _batchId: batch.id};
-      if (urec.unknown.includes(c.en)) unknown.push(tagged);
-      else if (!urec.known.includes(c.en)) newCards.push(tagged);
+      const word = getCardWord(c);
+      if (urec.unknown.includes(word)) unknown.push(tagged);
+      else if (!urec.known.includes(word)) newCards.push(tagged);
       else known.push(tagged);
     });
   }));
@@ -142,18 +156,18 @@ function showResult(correct, total, wrongList) {
   const wl = document.getElementById('wrongList');
   if (wrongList.length > 0) {
     wr.style.display = 'block';
-    wl.innerHTML = wrongList.map(c=>`<div class="wrong-item"><span class="wrong-en">${c.en}</span><span class="wrong-zh">${c.zh}</span></div>`).join('');
+    wl.innerHTML = wrongList.map(c=>`<div class="wrong-item"><span class="wrong-en">${getCardWord(c)}</span><span class="wrong-zh">${getCardMeaning(c)}</span></div>`).join('');
   } else { wr.style.display = 'none'; }
   // adjust back button based on context
   const backBtn = document.getElementById('resultBackBtn');
   if (resultContext === 'task-challenge') {
-    backBtn.textContent = activeTaskReturn === 'detail' ? '← 返回单词本' : '← 返回首页';
+    backBtn.textContent = activeTaskReturn === 'detail' ? '← 返回单词卡' : '← 返回首页';
     backBtn.onclick = () => finishTaskToSource();
   } else if (resultContext === 'merge-daily' || resultContext === 'global-daily') {
     backBtn.textContent = '← 返回首页';
     backBtn.onclick = () => { showScreen('screenHome'); loadHome(); };
   } else {
-    backBtn.textContent = '← 返回单词本';
+    backBtn.textContent = '← 返回单词卡';
     backBtn.onclick = () => goDetail();
   }
   showScreen('screenResult');

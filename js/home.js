@@ -40,7 +40,7 @@ async function loadHome() {
 
   list.innerHTML = '';
   if (batches.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-emoji">${isTeacher()?'📭':'🔒'}</div><p>${isTeacher()?'还没有单词本<br>点上方按钮新建一个吧':'暂无推送的单词本<br>等老师推送后就可以学习啦'}</p></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-emoji">${isTeacher()?'📭':'🔒'}</div><p>${isTeacher()?'还没有单词本<br>点上方按钮新建一个吧':'暂无推送的单词卡<br>等老师推送后就可以学习啦'}</p></div>`;
   } else {
     batches.forEach(batch => {
       const urec = urecMap[batch.id] || {known:[],unknown:[]};
@@ -102,8 +102,9 @@ function buildGlobalDailyPool(batches, recs) {
   batches.forEach(b => {
     const rec = recs[b.id] || {known:[],unknown:[]};
     b.cards.forEach(c => {
-      if (rec.known.includes(c.en)) known.push(c);
-      else if (rec.unknown.includes(c.en)) unk.push(c);
+      const word = getCardWord(c);
+      if (rec.known.includes(word)) known.push(c);
+      else if (rec.unknown.includes(word)) unk.push(c);
       else newW.push(c);
     });
   });
@@ -136,12 +137,12 @@ function updateHomeQuickActions(batches, urecMap) {
 }
 async function startGlobalPool() {
   const batches = visibleBatches();
-  if (batches.length === 0) { alert('暂无推送的单词本，等老师推送后就可以学习啦'); return; }
+  if (batches.length === 0) { alert('暂无推送的单词卡，等老师推送后就可以学习啦'); return; }
   const recs = await loadAllVisibleRecs(batches);
   let deck = [];
   batches.forEach(b => {
     const rec = recs[b.id] || {known:[],unknown:[]};
-    b.cards.forEach(c => { if (rec.unknown.includes(c.en)) deck.push({...c, _batchId: b.id}); });
+    b.cards.forEach(c => { if (rec.unknown.includes(getCardWord(c))) deck.push({...c, _batchId: b.id}); });
   });
   if (deck.length === 0) { alert('还没有生词，再接着学吧！'); return; }
   globalUserRecs = recs;
@@ -153,11 +154,11 @@ async function startGlobalPool() {
 }
 async function startGlobalRandom() {
   const batches = visibleBatches();
-  if (batches.length === 0) { alert('暂无推送的单词本，等老师推送后就可以学习啦'); return; }
+  if (batches.length === 0) { alert('暂无推送的单词卡，等老师推送后就可以学习啦'); return; }
   const recs = await loadAllVisibleRecs(batches);
   let deck = [];
   batches.forEach(b => { b.cards.forEach(c => deck.push({...c, _batchId: b.id})); });
-  if (deck.length === 0) { alert('还没有单词，等老师推送单词本吧！'); return; }
+  if (deck.length === 0) { alert('还没有单词，等老师推送单词卡吧！'); return; }
   globalUserRecs = recs;
   studyIsGlobal = true; resultContext = ''; studyMode = 'shuffle';
   studyDeck = deck.sort(() => Math.random()-0.5).slice(0, 10);
@@ -167,7 +168,7 @@ async function startGlobalRandom() {
 }
 async function startGlobalDailyQuiz() {
   const batches = visibleBatches();
-  if (batches.length === 0) { alert('暂无推送的单词本，等老师推送后就可以测验啦'); return; }
+  if (batches.length === 0) { alert('暂无推送的单词卡，等老师推送后就可以测验啦'); return; }
   const recs = await loadAllVisibleRecs(batches);
   const pool = buildGlobalDailyPool(batches, recs);
   if (pool.length === 0) { alert('还没有单词可以测验哦！'); return; }

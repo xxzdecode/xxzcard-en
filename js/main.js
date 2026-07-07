@@ -11,8 +11,10 @@ Object.assign(window, {
   startReviewMatchPlay, nextWrongReviewCard,
   openStudentWordCard, studentWordNav, showTeacherMixSelect, saveTomorrowMixedLibrary,
   openThemeQuizList, openThemeQuiz, closeThemeQuiz,
+  openWordCards, openPhonemeTraining, speakEnglish,
   showRename, confirmRename, onTitleTap, showSync, confirmSync, showPush, togglePush,
   toggleEditPanel, showWordSelector, openCardEditor, editNav, saveCardEdit, deleteCard,
+  doDictionarySearch, openDictionaryResult, openBatchWordCard, jumpToWordLink,
   closeAllModals, deleteBatch, goDetail, retryResult,
   pinInput, pinDel, cancelPin,
 });

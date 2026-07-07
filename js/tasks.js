@@ -73,10 +73,13 @@ async function completeActiveChallenge(correct, total) {
 async function updateHomeTaskButtons(batches) {
   const latest = batches[0];
   const mixed = await getMixedTaskBatches();
-  const todayReview = latest ? await reviewStatus('todayReview', latest.name) : { text: '暂无单词本', state: '' };
-  const todayChallenge = latest ? await challengeStatus('todayChallenge') : { text: '暂无单词本', state: '' };
-  const mixedReview = mixed.length > 0 ? await reviewStatus('mixedReview', `${mixed.length} 个单词本`) : { text: '暂无混合词库', state: '' };
+  const mixedDateText = mixed.length > 0 ? mixedBatchDateSummary(mixed) : '';
+  const todayReview = latest ? await reviewStatus('todayReview', latest.name) : { text: '暂无单词卡', state: '' };
+  const todayChallenge = latest ? await challengeStatus('todayChallenge') : { text: '暂无单词卡', state: '' };
+  const mixedReview = mixed.length > 0 ? await reviewStatus('mixedReview', mixedDateText) : { text: '暂无混合词库', state: '' };
   const mixedChallenge = mixed.length > 0 ? await challengeStatus('mixedChallenge') : { text: '暂无混合词库', state: '' };
+  if (mixed.length > 0) mixedReview.text = mixedDateText;
+  if (mixed.length > 0) mixedChallenge.text = mixedDateText;
   setTaskButton('todayReviewBtn', !!latest, todayReview.text, todayReview.state);
   setTaskButton('todayChallengeBtn', !!latest && todayChallenge.state !== 'locked', todayChallenge.text, todayChallenge.state);
   setTaskButton('mixedReviewBtn', mixed.length > 0, mixedReview.text, mixedReview.state);
@@ -132,6 +135,30 @@ function latestVisibleBatch() {
   return getVisibleBatchesNewestFirst()[0] || null;
 }
 
+function formatBatchDateLabel(batch) {
+  const date = String(batch && batch.date ? batch.date : '').trim();
+  let match = date.match(/^\d{4}[-./](\d{1,2})[-./](\d{1,2})$/);
+  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
+  match = date.match(/^(\d{1,2})[-./](\d{1,2})$/);
+  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
+
+  const name = String(batch && batch.name ? batch.name : '');
+  match = name.match(/\b\d{2,4}[./-](\d{1,2})[./-](\d{1,2})\b/);
+  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
+  match = name.match(/\b(\d{1,2})[./-](\d{1,2})\b/);
+  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
+  return '';
+}
+
+function mixedBatchDateSummary(batches) {
+  const labels = [];
+  batches.forEach(batch => {
+    const label = formatBatchDateLabel(batch);
+    if (label && !labels.includes(label)) labels.push(label);
+  });
+  return labels.length > 0 ? labels.join('、') : `${batches.length} 组单词卡`;
+}
+
 async function getMixedTaskBatches() {
   const visible = getVisibleBatchesNewestFirst();
   const visibleIds = new Set(visible.map(b => String(b.id)));
@@ -165,8 +192,8 @@ async function prioritizedTaskDeck(cards, limit, batchId) {
       rec.unknown.forEach(en => unknownSet.add(en));
     }));
   }
-  const wrong = source.filter(c => unknownSet.has(c.en)).sort(() => Math.random() - 0.5);
-  const rest = source.filter(c => !unknownSet.has(c.en)).sort(() => Math.random() - 0.5);
+  const wrong = source.filter(c => unknownSet.has(getCardWord(c))).sort(() => Math.random() - 0.5);
+  const rest = source.filter(c => !unknownSet.has(getCardWord(c))).sort(() => Math.random() - 0.5);
   const ordered = [...wrong, ...rest];
   const picked = ordered.slice(0, Math.min(limit, ordered.length));
   while (picked.length < limit) {
@@ -178,7 +205,7 @@ async function prioritizedTaskDeck(cards, limit, batchId) {
 
 async function startTodayReview() {
   const batch = latestVisibleBatch();
-  if (!batch) { alert('还没有可用的单词本'); return; }
+  if (!batch) { alert('还没有可用的单词卡'); return; }
   await startReviewTask({
     key: 'todayReview',
     title: '今日温习',
@@ -191,7 +218,7 @@ async function startTodayReview() {
 
 async function startTodayChallenge() {
   const batch = latestVisibleBatch();
-  if (!batch) { alert('还没有可用的单词本'); return; }
+  if (!batch) { alert('还没有可用的单词卡'); return; }
   await startChallengeTask({
     key: 'todayChallenge',
     title: '今日挑战',
@@ -298,12 +325,15 @@ function studentWordNav(dir) {
 function renderStudentWordCard() {
   const card = studentWordCards[studentWordIndex];
   if (!card) return;
+  normalizeCardDictionary(card);
+  const word = getCardWord(card);
+  const meaning = getCardMeaning(card);
   const ex = card.ex ? `<div class="student-word-ex">${card.ex}</div>` : '';
   document.getElementById('studentWordCard').innerHTML = `
     <div class="student-word-emoji">${card.emoji || '📚'}</div>
-    <div class="student-word-en">${card.en}</div>
-    <div class="student-word-zh">${card.zh || ''}</div>
-    <button class="student-word-speak" onclick="speakWord('${String(card.en).replace(/'/g,"\\'")}')">🔊</button>
+    <div class="student-word-en">${escapeHtml(word)}</div>
+    <div class="student-word-zh">${escapeHtml(meaning)}</div>
+    <button class="student-word-speak" onclick="speakWord('${escapeJs(word)}')">🔊</button>
     ${ex}`;
   document.getElementById('studentWordPrevBtn').disabled = studentWordIndex <= 0;
   document.getElementById('studentWordNextBtn').disabled = studentWordIndex >= studentWordCards.length - 1;
@@ -314,9 +344,9 @@ async function showTeacherMixSelect() {
   mergeSelected = new Set();
   showScreen('screenMerge');
   const title = document.querySelector('#screenMerge .topbar-title');
-  if (title) title.textContent = '🔀 设置明日混合词库';
+  if (title) title.textContent = '🔀 设置混合词库';
   const hint = document.querySelector('#screenMerge .topbar + div');
-  if (hint) hint.textContent = '选择多个单词本，保存为明天学生端的混合温习 / 混合挑战词库';
+  if (hint) hint.textContent = '选择多个单词本，应用到今天或明天的混合温习 / 混合挑战';
   const list = document.getElementById('mergeList');
   list.innerHTML = '';
   getVisibleBatchesNewestFirst().forEach(batch => {
@@ -334,21 +364,32 @@ async function showTeacherMixSelect() {
   });
   const bar = document.getElementById('mergeStartBar');
   const btn = document.getElementById('mergeStartBtn');
+  const todayBtn = document.getElementById('mergeTodayBtn');
   if (bar) bar.style.display = '';
   if (btn) {
     btn.disabled = true;
     btn.textContent = '至少选择 2 个单词本';
-    btn.onclick = saveTomorrowMixedLibrary;
+    btn.onclick = () => saveMixedLibraryForDay(1);
+  }
+  if (todayBtn) {
+    todayBtn.style.display = '';
+    todayBtn.disabled = true;
+    todayBtn.textContent = '应用到今天';
   }
 }
 
-async function saveTomorrowMixedLibrary() {
+async function saveMixedLibraryForDay(offsetDays) {
   const ids = Array.from(mergeSelected);
   if (ids.length < 2) return;
   if (!Array.isArray(appData.mixedAssignments)) appData.mixedAssignments = [];
-  appData.mixedAssignments.push({ date: isoDate(1), batchIds: ids.map(String), createdAt: Date.now() });
+  const offset = Number(offsetDays) === 0 ? 0 : 1;
+  appData.mixedAssignments.push({ date: isoDate(offset), batchIds: ids.map(String), createdAt: Date.now() });
   await saveData(appData);
-  alert('已设置为明天的混合词库');
+  alert(offset === 0 ? '已应用到今天的混合词库' : '已应用到明天的混合词库');
   showScreen('screenHome');
   loadHome();
+}
+
+async function saveTomorrowMixedLibrary() {
+  await saveMixedLibraryForDay(1);
 }

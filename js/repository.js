@@ -97,6 +97,7 @@ async function initData() {
   }
   if (!data.pin) data.pin = null;
   if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
+  normalizePhonemeLibrary(data);
   normalizeAppData(data);
   hideLoading();
   // 离线时在标题区显示一个小提示
@@ -117,7 +118,7 @@ function showOfflineBanner() {
 function makeBatch(name, cards) {
   const id = String(Date.now())+String(Math.floor(Math.random()*9999));
   const date = parseBatchDate(name) || batchTodayISO();
-  return { id, date, name: normalizeBatchName(name, date), cards, sharedWith: [] };
+  return { id, date, name: normalizeBatchName(name, date), cards: (cards || []).map(normalizeEnglishCard), sharedWith: [] };
 }
 function todayStr() {
   return formatBatchName(batchTodayISO(), '');
@@ -185,9 +186,11 @@ function normalizeBatch(batch) {
 
 function normalizeAppData(data) {
   if (!data || !Array.isArray(data.batches)) return false;
+  normalizePhonemeLibrary(data);
   let changed = false;
   data.batches.forEach(batch => {
     if (normalizeBatch(batch)) changed = true;
+    (batch.cards || []).forEach(card => normalizeCardDictionary(card));
   });
   return changed;
 }

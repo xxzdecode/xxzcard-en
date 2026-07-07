@@ -83,7 +83,7 @@ function updateUserBar() {
   const cls = {teacher:'active-teacher',sister:'active-sister',brother:'active-brother'};
   document.getElementById('uBtn'+map[currentUser]).className = 'user-btn '+cls[currentUser];
   const names = {teacher:'👩‍🏫 老师模式',sister:'👧 姐姐模式',brother:'👦 弟弟模式'};
-  document.getElementById('homeSubtitle').textContent = '选择一个单词本开始学习';
+  document.getElementById('homeSubtitle').textContent = isTeacher() ? '选择一个单词本开始管理' : '完成今天的小挑战';
   const modeBadge = document.getElementById('currentModeBadge');
   if (modeBadge) modeBadge.textContent = '当前：' + names[currentUser];
 }

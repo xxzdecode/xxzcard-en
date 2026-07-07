@@ -7,6 +7,7 @@
 
 ## Dictionary Enhancements
 
+- Refactor to a clean standard English card schema only: use `word` / `meaning` in runtime code and remove old-field compatibility for `en` / `zh` / `ex` / `note` after archived data has been converted.
 - Word roots and affix breakdown.
 - Word families.
 - Synonyms.

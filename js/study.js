@@ -13,7 +13,7 @@ async function startStudy(mode) {
     studyDeck = [...batch.cards].sort(() => Math.random()-0.5);
     document.getElementById('modeLabel').textContent = '🔀 随机模式';
   } else if (mode === 'pool') {
-    studyDeck = batch.cards.filter(c => currentUserRec.unknown.includes(c.en)).sort(() => Math.random()-0.5);
+    studyDeck = batch.cards.filter(c => currentUserRec.unknown.includes(getCardWord(c))).sort(() => Math.random()-0.5);
     document.getElementById('modeLabel').textContent = '💪 生词池';
   }
   studyCurrent = 0; studyFlipped = false;
@@ -22,47 +22,28 @@ async function startStudy(mode) {
 
 function renderStudyCard() {
   const c = studyDeck[studyCurrent];
+  normalizeEnglishCard(c);
   const idx = studyCurrent;
   document.getElementById('cardEmoji').style.background = getBg(idx);
   document.getElementById('cardEmoji').textContent = getEmoji(c, idx);
-  document.getElementById('cardZh').textContent = c.zh;
+  document.getElementById('cardZh').innerHTML = `
+    <span class="front-word">${escapeHtml(getCardWord(c))}</span>
+    ${c.phonetic ? `<span class="front-phonetic">${escapeHtml(c.phonetic)}</span>` : ''}
+  `;
   document.getElementById('cardPos').textContent = c.pos || '';
-  document.getElementById('cardEn').textContent = c.en;
+  document.getElementById('cardEn').textContent = getCardWord(c);
   const bb = document.getElementById('backBody');
-  bb.innerHTML = '';
-  if (c.meaning || c.zh) {
-    const d = document.createElement('div');
-    d.innerHTML = `<div class="sec-label">释义</div><div class="meaning-text">${(c.meaning||c.zh).replace(/\n/g,'<br>')}</div>`;
-    bb.appendChild(d);
-  }
-  if (c.note) {
-    const n = document.createElement('div'); n.className = 'note-box';
-    n.innerHTML = `<div class="note-text">${c.note}</div>`; bb.appendChild(n);
-  }
-  if (c.ex) {
-    const parts = c.ex.split('/').map(s=>s.trim());
-    const d = document.createElement('div');
-    d.innerHTML = `<div class="sec-label">例句</div>`;
-    const eb = document.createElement('div'); eb.className = 'example-box';
-    eb.innerHTML = parts.length >= 2
-      ? `<div class="example-en">${parts.slice(0,-1).join(' / ')}</div><div class="example-zh">${parts[parts.length-1]}</div>`
-      : `<div class="example-en">${c.ex}</div>`;
-    d.appendChild(eb); bb.appendChild(d);
-  }
-  if (c.tip) {
-    const t = document.createElement('div'); t.className = 'tip-box';
-    t.innerHTML = `<div class="tip-text">${c.tip.replace(/\n/g,'<br>')}</div>`; bb.appendChild(t);
-  }
+  bb.innerHTML = renderEnglishCardBackHtml(c, { includeLegacy: true });
   const total = studyDeck.length;
   document.getElementById('progressCount').textContent = `${studyCurrent+1}/${total}`;
   document.getElementById('progressFill').style.width = `${((studyCurrent+1)/total)*100}%`;
-  setFlipped(false); buildDots();
+  setFlipped(studyFlipped); buildDots();
 }
 function setFlipped(v) {
   studyFlipped = v;
   const w = document.getElementById('cardWrapper');
   v ? w.classList.add('flipped') : w.classList.remove('flipped');
-  document.getElementById('flipBtn').textContent = v ? '翻回正面' : '翻面 · 查看英文';
+  document.getElementById('flipBtn').textContent = v ? '翻回正面' : '翻面 · 查看释义';
 }
 function toggleFlip() { setFlipped(!studyFlipped); }
 function recForCard(c) {
@@ -73,17 +54,18 @@ function buildDots() {
   const row = document.getElementById('dotRow'); row.innerHTML = '';
   studyDeck.forEach((c,i) => {
     const rec = recForCard(c);
+    const word = getCardWord(c);
     const d = document.createElement('div');
     d.className = i===studyCurrent ? 'dot active'
-      : rec.known.includes(c.en) ? 'dot known'
-      : rec.unknown.includes(c.en) ? 'dot unknown' : 'dot';
+      : rec.known.includes(word) ? 'dot known'
+      : rec.unknown.includes(word) ? 'dot unknown' : 'dot';
     d.addEventListener('click', () => { studyCurrent = i; studyFlipped = false; renderStudyCard(); });
     row.appendChild(d);
   });
 }
 async function judge(known) {
   const c = studyDeck[studyCurrent];
-  const en = c.en;
+  const en = getCardWord(c);
   if (studyIsGlobal && c._batchId) {
     const bId = String(c._batchId);
     if (!globalUserRecs[bId]) globalUserRecs[bId] = await loadUserBatch(bId);
@@ -126,9 +108,18 @@ function animateSwipe(known) {
 }
 
 document.getElementById('cardWrapper').addEventListener('click', () => { if (!dragging) toggleFlip(); });
+document.getElementById('backBody').addEventListener('click', e => {
+  const link = e.target.closest('.word-link');
+  if (link) {
+    e.stopPropagation();
+    jumpToWordLink(link.dataset.batch, parseInt(link.dataset.idx, 10));
+    return;
+  }
+  if (e.target.closest('.more-details')) e.stopPropagation();
+});
 document.getElementById('speakBtn').addEventListener('click', e => {
   e.stopPropagation();
-  const text = studyDeck[studyCurrent].en.split('/')[0].trim();
+  const text = getCardWord(studyDeck[studyCurrent]).split('/')[0].trim();
   if ('speechSynthesis' in window) { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.9; speechSynthesis.speak(u); }
 });
 const stageEl = document.getElementById('stage');
