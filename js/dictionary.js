@@ -12,14 +12,81 @@ const KNOWLEDGE_LIBRARY = {
 
 // Update this list when the teacher says which phonemes have been learned.
 const LEARNED_PHONEMES = [
-  '/ɪ/',
-  '/æ/'
+  // 短元音
+  '/ɪ/', '/e/', '/æ/', '/ʌ/', '/ɒ/', '/ʊ/',
+
+  // 长元音
+  '/iː/', '/ɑː/', '/ɔː/', '/uː/', '/ɜː/',
+
+  // 双元音
+  '/eɪ/', '/aɪ/', '/ɔɪ/', '/aʊ/', '/əʊ/', '/ɪə/', '/eə/', '/ʊə/',
+
+  // 爆破音
+  '/p/', '/b/', '/t/', '/d/', '/k/', '/ɡ/'
 ];
+
+const PHONEME_GROUPS = [
+  {
+    title: '短元音',
+    phonemes: ['/ɪ/', '/e/', '/æ/', '/ʌ/', '/ɒ/', '/ʊ/']
+  },
+  {
+    title: '长元音',
+    phonemes: ['/iː/', '/ɑː/', '/ɔː/', '/uː/', '/ɜː/']
+  },
+  {
+    title: '双元音',
+    phonemes: ['/eɪ/', '/aɪ/', '/ɔɪ/', '/aʊ/', '/əʊ/', '/ɪə/', '/eə/', '/ʊə/']
+  },
+  {
+    title: '爆破音',
+    phonemes: ['/p/', '/b/', '/t/', '/d/', '/k/', '/ɡ/']
+  }
+];
+
+const PHONEME_INFO = {
+  // 短元音
+  '/ɪ/': { spellings: ['i'] },
+  '/e/': { spellings: ['e'] },
+  '/æ/': { spellings: ['a'] },
+  '/ʌ/': { spellings: ['u', 'o'] },
+  '/ɒ/': { spellings: ['o'] },
+  '/ʊ/': { spellings: ['oo', 'u'] },
+
+  // 长元音
+  '/iː/': { spellings: ['eer', 'ere', 'ee', 'ea', 'ie', 'ey', 'e', 'y'] },
+  '/ɑː/': { spellings: ['ar', 'a'] },
+  '/ɔː/': { spellings: ['oor', 'our', 'or', 'aw', 'au', 'al'] },
+  '/uː/': { spellings: ['oo', 'ue', 'ew', 'ou', 'u'] },
+  '/ɜː/': { spellings: ['ear', 'eer', 'ir', 'ur', 'er'] },
+
+  // 双元音
+  '/eɪ/': { spellings: ['eigh', 'ai', 'ay', 'ey', 'a'] },
+  '/aɪ/': { spellings: ['igh', 'ie', 'i', 'y'] },
+  '/ɔɪ/': { spellings: ['oi', 'oy'] },
+  '/aʊ/': { spellings: ['ou', 'ow'] },
+  '/əʊ/': { spellings: ['oa', 'ow', 'oe', 'o'] },
+  '/ɪə/': { spellings: ['ear', 'eer', 'ere'] },
+  '/eə/': { spellings: ['air', 'are', 'ear'] },
+  '/ʊə/': { spellings: ['ure', 'oor'] },
+
+  // 辅音
+  '/p/': { spellings: ['p'] },
+  '/b/': { spellings: ['b'] },
+  '/t/': { spellings: ['t'] },
+  '/d/': { spellings: ['d'] },
+  '/k/': { spellings: ['ck', 'ch', 'k', 'c'] },
+  '/ɡ/': { spellings: ['g'] },
+  '/f/': { spellings: ['ph', 'ff', 'f'] },
+  '/ʃ/': { spellings: ['sh', 'ch', 'ti', 'ci'] },
+  '/tʃ/': { spellings: ['tch', 'ch'] },
+  '/dʒ/': { spellings: ['dge', 'dg', 'ge', 'j', 'g'] }
+};
 
 const PHONEME_INVENTORY = [
   '/iː/', '/ɪ/', '/e/', '/æ/', '/ɑː/', '/ɒ/', '/ɔː/', '/ʊ/', '/uː/', '/ʌ/', '/ɜː/', '/ə/',
   '/eɪ/', '/aɪ/', '/ɔɪ/', '/aʊ/', '/əʊ/', '/ɪə/', '/eə/', '/ʊə/',
-  '/p/', '/b/', '/t/', '/d/', '/k/', '/g/', '/f/', '/v/', '/θ/', '/ð/', '/s/', '/z/',
+  '/p/', '/b/', '/t/', '/d/', '/k/', '/ɡ/', '/f/', '/v/', '/θ/', '/ð/', '/s/', '/z/',
   '/ʃ/', '/ʒ/', '/tʃ/', '/dʒ/', '/h/', '/m/', '/n/', '/ŋ/', '/l/', '/r/', '/j/', '/w/'
 ];
 
@@ -92,10 +159,12 @@ function parseWordFamilyField(value) {
 }
 
 function normalizePhoneme(value) {
-  const text = String(value || '').trim();
+  let text = String(value || '').trim();
   if (!text) return '';
-  if (text.startsWith('/') && text.endsWith('/')) return text;
-  return `/${text.replace(/^\/|\/$/g, '')}/`;
+  text = text.replace(/^\/|\/$/g, '');
+  text = text.replace(/:/g, 'ː');
+  if (text === 'g') text = 'ɡ';
+  return `/${text}/`;
 }
 
 function parsePhonemeField(value) {
@@ -103,6 +172,59 @@ function parsePhonemeField(value) {
   const parsed = parseJsonField(value, null);
   const raw = Array.isArray(parsed) ? parsed : String(value).split(/[;；,\n]/);
   return [...new Set(raw.map(normalizePhoneme).filter(Boolean))];
+}
+
+function normalizePhoneticText(value) {
+  return String(value || '')
+    .replace(/[\/\[\]\s]/g, '')
+    .replace(/[ˈˌ']/g, '')
+    .replace(/:/g, 'ː')
+    .replace(/g/g, 'ɡ')
+    .trim();
+}
+
+function phonemeText(symbol) {
+  return normalizePhoneme(symbol).replace(/^\/|\/$/g, '');
+}
+
+function extractPhonemesFromPhonetic(phonetic) {
+  const text = normalizePhoneticText(phonetic);
+  if (!text) return [];
+
+  const candidates = [...new Set(PHONEME_INVENTORY
+    .concat(LEARNED_PHONEMES)
+    .map(normalizePhoneme)
+    .filter(Boolean))]
+    .map(symbol => ({ symbol, text: phonemeText(symbol) }))
+    .filter(item => item.text)
+    .sort((a, b) => b.text.length - a.text.length);
+
+  const found = [];
+  let i = 0;
+
+  while (i < text.length) {
+    const hit = candidates.find(item => text.startsWith(item.text, i));
+    if (hit) {
+      found.push(hit.symbol);
+      i += hit.text.length;
+    } else {
+      i += 1;
+    }
+  }
+
+  return [...new Set(found)];
+}
+
+function getCardTrainingPhonemes(card) {
+  normalizeCardDictionary(card);
+
+  const fromField = Array.isArray(card.phonemes)
+    ? card.phonemes.map(normalizePhoneme).filter(Boolean)
+    : [];
+
+  const fromPhonetic = extractPhonemesFromPhonetic(card.phonetic);
+
+  return [...new Set([...fromField, ...fromPhonetic])];
 }
 
 function parseArrayField(value) {
@@ -306,7 +428,7 @@ function renderMoreContentHtml(card) {
     body += `<div class="more-section"><div class="sec-label">小知识</div><div class="tip-box"><div class="tip-text">${escapeHtml(card.tip).replace(/\n/g,'<br>')}</div></div></div>`;
   }
 
-  return `<details class="more-details"><summary>📚 更多内容</summary><div class="more-content">${body}</div></details>`;
+  return `<details class="more-details" open><summary>📚 更多内容</summary><div class="more-content">${body}</div></details>`;
 }
 
 function renderLegacyContentHtml(card) {
@@ -486,15 +608,84 @@ function getLearnedPhonemes() {
 function buildPhonemeGroups() {
   const groups = new Map(getLearnedPhonemes().map(item => [item.symbol, []]));
   visibleBatches().forEach(batch => {
-    (batch.cards || []).forEach(card => {
+    (batch.cards || []).forEach((card, cardIdx) => {
       normalizeCardDictionary(card);
-      (card.phonemes || []).forEach(symbol => {
+      getCardTrainingPhonemes(card).forEach(symbol => {
         if (!groups.has(symbol)) return;
-        groups.get(symbol).push({ card, batch });
+        groups.get(symbol).push({ card, batch, cardIdx });
       });
     });
   });
   return groups;
+}
+
+let currentPhonemeSymbol = '';
+
+function getLearnedPhonemeSet() {
+  return new Set(getLearnedPhonemes().map(item => item.symbol));
+}
+
+function setPhonemeTrainingTitle(text) {
+  const title = document.getElementById('phonemeTrainingTitle');
+  if (title) title.textContent = text || '音标训练';
+}
+
+function handlePhonemeBack() {
+  if (currentPhonemeSymbol) {
+    renderPhonemeTraining();
+    return;
+  }
+  showScreen('screenHome');
+  loadHome();
+}
+
+function getPhonemeSpellings(symbol) {
+  const info = PHONEME_INFO[normalizePhoneme(symbol)];
+  return info && Array.isArray(info.spellings) ? info.spellings : [];
+}
+
+function findBestSpelling(word, spellings) {
+  const lower = String(word || '').toLowerCase();
+  const sorted = [...spellings].sort((a, b) => b.length - a.length);
+  return sorted.find(spelling => lower.includes(String(spelling).toLowerCase())) || '';
+}
+
+function groupWordsBySpelling(symbol, words) {
+  const spellings = getPhonemeSpellings(symbol);
+  const groups = spellings.map(spelling => ({ spelling, words: [] }));
+  const other = { spelling: '其他', words: [] };
+
+  words.forEach(item => {
+    const word = getCardWord(item.card);
+    const best = findBestSpelling(word, spellings);
+    if (!best) {
+      other.words.push({ ...item, spelling: '' });
+      return;
+    }
+
+    const group = groups.find(g => g.spelling === best);
+    if (group) group.words.push({ ...item, spelling: best });
+  });
+
+  const filled = groups.filter(group => group.words.length);
+  if (other.words.length) filled.push(other);
+  return filled;
+}
+
+function renderHighlightedWord(word, spelling) {
+  const raw = String(word || '');
+  const target = String(spelling || '');
+  if (!raw || !target) return escapeHtml(raw);
+
+  const lower = raw.toLowerCase();
+  const idx = lower.indexOf(target.toLowerCase());
+  if (idx < 0) return escapeHtml(raw);
+
+  return [
+    escapeHtml(raw.slice(0, idx)),
+    `<span class="phoneme-highlight">${escapeHtml(raw.slice(idx, idx + target.length))}</span>`,
+    escapeHtml(raw.slice(idx + target.length))
+  ].join('');
 }
 
 function renderWordCardBatchList() {
@@ -536,26 +727,85 @@ function openWordCards() {
 function renderPhonemeTraining() {
   const list = document.getElementById('phonemeList');
   if (!list) return;
-  const learned = getLearnedPhonemes();
-  if (!learned.length) {
-    list.innerHTML = '<div class="phoneme-empty">还没有标记为已学的音标</div>';
+  currentPhonemeSymbol = '';
+  setPhonemeTrainingTitle('音标训练');
+
+  const learnedSet = getLearnedPhonemeSet();
+
+  const rows = PHONEME_GROUPS.map(group => {
+    const phonemes = group.phonemes
+      .map(normalizePhoneme)
+      .filter(symbol => learnedSet.has(symbol));
+
+    if (!phonemes.length) return '';
+
+    return `
+      <div class="phoneme-home-row">
+        <div class="phoneme-home-category">${escapeHtml(group.title)}</div>
+        <div class="phoneme-home-buttons">
+          ${phonemes.map(symbol => `
+            <button class="phoneme-home-btn" onclick="openPhonemeDetail('${escapeJs(symbol)}')">
+              ${escapeHtml(symbol)}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).filter(Boolean).join('');
+
+  list.innerHTML = rows || '<div class="phoneme-empty">还没有标记为已学的音标</div>';
+}
+
+function openPhonemeDetail(symbol) {
+  const list = document.getElementById('phonemeList');
+  if (!list) return;
+
+  const normalizedSymbol = normalizePhoneme(symbol);
+  currentPhonemeSymbol = normalizedSymbol;
+  setPhonemeTrainingTitle(normalizedSymbol);
+
+  const groups = buildPhonemeGroups();
+  const words = groups.get(normalizedSymbol) || [];
+  const spellingGroups = groupWordsBySpelling(normalizedSymbol, words);
+
+  if (!spellingGroups.length) {
+    list.innerHTML = `
+      <div class="phoneme-detail-card">
+        <div class="phoneme-detail-symbol">${escapeHtml(normalizedSymbol)}</div>
+        <div class="phoneme-empty">还没有匹配到例词</div>
+      </div>
+    `;
     return;
   }
-  const groups = buildPhonemeGroups();
-  list.innerHTML = learned.map(item => {
-    const words = groups.get(item.symbol) || [];
-    const body = words.length ? `
-      <div class="phoneme-word-list">
-        ${words.map(({ card }) => `
-          <button class="phoneme-word-btn" onclick="speakEnglish('${escapeJs(getCardWord(card))}')">
-            <span class="phoneme-word-en">${escapeHtml(getCardWord(card))}</span>
-            <span class="phoneme-word-zh">${escapeHtml(getCardMeaning(card))}</span>
-            <span class="phoneme-sound">🔊</span>
-          </button>
+
+  list.innerHTML = `
+    <div class="phoneme-detail-card">
+      <div class="phoneme-detail-symbol">${escapeHtml(normalizedSymbol)}</div>
+      <div class="phoneme-detail-hint">常见拼写和我们见过的词</div>
+
+      <div class="phoneme-spelling-table">
+        ${spellingGroups.map(group => `
+          <div class="phoneme-spelling-row">
+            <div class="phoneme-spelling-cell">${escapeHtml(group.spelling)}</div>
+            <div class="phoneme-word-chip-list">
+              ${group.words.map(({ card, spelling, batch, cardIdx }) => `
+                <button
+                  class="phoneme-word-chip"
+                  data-batch="${escapeHtml(batch.id)}"
+                  data-idx="${cardIdx}"
+                  onclick="speakEnglish('${escapeJs(getCardWord(card))}')"
+                >
+                  <span class="phoneme-word-en">${renderHighlightedWord(getCardWord(card), spelling)}</span>
+                  <span class="phoneme-word-zh">${escapeHtml(getCardMeaning(card))}</span>
+                  <span class="phoneme-sound">🔊</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
         `).join('')}
-      </div>` : '<div class="phoneme-empty">还没有匹配的例词</div>';
-    return `<div class="phoneme-card"><div class="phoneme-symbol">${escapeHtml(item.symbol)}</div>${body}</div>`;
-  }).join('');
+      </div>
+    </div>
+  `;
 }
 
 function openPhonemeTraining() {

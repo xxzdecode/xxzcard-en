@@ -45,11 +45,11 @@
     <span>·</span>
     <button onclick="openThemeQuizList()">专项小游戏</button>
   </div>
+  <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">🔀 设置混合词库</button>
+  <div style="height:12px" class="teacher-only"></div>
   <button class="add-batch-btn teacher-only" style="width:calc(100% - 40px);max-width:400px" onclick="showNewBatch()">＋ 新建单词本</button>
   <div style="height:12px" class="teacher-only"></div>
   <div class="batch-list teacher-only" id="batchList"></div>
-  <div style="height:12px"></div>
-  <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">🔀 设置混合词库</button>
 </div>
 
 <!-- ══ SCREEN: STUDENT WORD CARDS ══ -->
@@ -70,8 +70,8 @@
 <!-- ══ SCREEN: PHONEME TRAINING ══ -->
 <div class="screen" id="screenPhonemeTraining">
   <div class="topbar">
-    <button class="back-btn" onclick="showScreen('screenHome');loadHome()">←</button>
-    <span class="topbar-title">音标训练</span>
+    <button class="back-btn" onclick="handlePhonemeBack()">←</button>
+    <span class="topbar-title" id="phonemeTrainingTitle">音标训练</span>
   </div>
   <div class="phoneme-list" id="phonemeList"></div>
 </div>

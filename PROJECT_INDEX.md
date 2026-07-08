@@ -1,0 +1,136 @@
+# PROJECT_INDEX
+
+## 1. 项目用途
+
+这是一个面向英语单词卡学习的静态前端项目，页面标题为“英语提升计划”。项目主要支持老师维护单词本、学生进行单词学习、复习、挑战、专项小游戏、单词卡查看和音标训练。
+
+项目当前以 `index.html` 为主入口，通过多个 `js/` 文件拆分功能逻辑。数据通过 Supabase REST API 读写 `kv_store`，同时使用 `localStorage` 做本地镜像和离线兜底。
+
+## 2. 主要页面 / 入口文件
+
+- `index.html`：主页面入口，包含所有主要 screen 容器、弹窗、按钮绑定和脚本加载顺序。
+- `styles.css`：全局样式、首页、任务按钮、单词卡、复习/挑战、弹窗、老师/学生视图等样式。
+- `preview-special-practice.html`：专项练习预览页面。
+- `quizzes/third-person-sort.html`：独立专项小游戏页面，当前由主应用通过 iframe 打开。
+- `js/main.js`：把函数暴露到 `window`，供 `index.html` 内联事件使用；同时执行应用初始化。
+
+`index.html` 中的主要 screen：
+
+- `screenHome`：首页、用户切换、今日/混合任务入口、单词卡、音标训练、专项小游戏、老师入口。
+- `screenWordCards`：学生单词卡列表和单词卡查看。
+- `screenPhonemeTraining`：音标训练。
+- `screenThemeQuizzes`：专项小游戏列表。
+- `screenThemeQuizPlayer`：专项小游戏 iframe 播放页。
+- `screenNewBatch`：新建或追加导入单词。
+- `screenDetail`：单个单词本详情、编辑、同步、推送、批次任务。
+- `screenReview`：温习任务。
+- `screenStudy`：普通学习卡片。
+- `screenDailyQuiz`：挑战/测验题目。
+- `screenMerge`：混合词库选择。
+- `screenResult`：测验结果。
+
+## 3. 主要功能模块
+
+- `js/config.js`：Supabase 地址和请求头、默认卡片、卡片 emoji 和背景池。
+- `js/state.js`：全局运行时状态，包括当前用户、当前批次、学习进度、测验状态、混合选择、复习状态、PIN 状态等。
+- `js/repository.js`：数据读写层，负责 Supabase REST 访问、本地缓存、初始化数据、离线提示、批次日期和名称规范化。
+- `js/utils.js`：通用辅助函数，如当前批次、当前用户记录、老师判断、可见批次、screen 切换。
+- `js/auth.js`：用户切换、老师 PIN、用户栏状态、弹窗关闭、学生运行时视图重置。
+- `js/home.js`：首页加载、打卡、批次列表、首页任务按钮、全局学习/随机/每日测验入口。
+- `js/batch.js`：单词本详情、重命名、编辑面板、单词选择、卡片编辑、删除、同步记录、推送给学生。
+- `js/import.js`：新建单词本或追加导入，解析输入文本并确认导入。
+- `js/dictionary.js`：英语卡片标准化、词典字段解析、单词索引、词义/词族/搭配/例句展示、单词搜索、音标训练。
+- `js/tasks.js`：今日/混合/批次任务状态、任务完成记录、挑战次数限制、任务词库抽取、混合词库设置。
+- `js/taskEngine.js`：统一任务入口，按来源和模式启动温习或挑战。
+- `js/review.js`：温习流程，包含配对、跟读、填空、听力、排序、错题复习等。
+- `js/questionTypes.js`：挑战题型注册与判题逻辑，包含选择题、听力、拼写、排序等题型。
+- `js/quiz.js`：每日挑战/测验题生成、拼写拼图、选项渲染、答题确认和下一题流程。
+- `js/study.js`：普通学习卡片翻面、认识/不认识判断、滑动动画。
+- `js/merge.js`：多个单词本合并练习、智能抽取、混合模式菜单和结果。
+- `js/themeQuizzes.js`：专项小游戏注册表和 iframe 打开/关闭逻辑。
+
+## 4. 数据流相关文件
+
+- `js/config.js`：定义 Supabase `SB_URL`、`SB_KEY`、`SB_HEADERS`，以及默认数据。
+- `js/state.js`：保存运行时全局状态。
+- `js/repository.js`：核心数据流文件。
+  - `loadData()` / `saveData()` 读写主数据 `main`。
+  - `loadUserBatch()` / `saveUserBatch()` 读写学生个人批次记录。
+  - `sbGet()` / `sbSet()` 负责 Supabase 和 `localStorage` 镜像。
+  - `normalizeAppData()` / `normalizeBatch()` / `normalizeEnglishCard()` 负责数据规范化。
+  - 定时轮询会定期拉取云端数据并刷新首页。
+- `js/import.js`：把老师输入的文本解析为 cards 并写入 appData。
+- `js/batch.js`：修改单词本、编辑单词、推送可见学生、清空学生记录。
+- `js/tasks.js`：读写每日任务、挑战次数、混合词库设置。
+- `js/home.js`：根据 appData、用户记录和任务状态渲染首页。
+- `js/dictionary.js`：对卡片字段做标准化和展示层解析。
+
+数据目录 / 文档：
+
+- `doc/英语单词卡生成与导入规则书.md`：英语单词卡生成和导入规则说明。
+- `doc/english_word_card_examples.json`：英语单词卡示例数据。
+- `exports/word-cards-raw-2026-07-07.json`：导出的原始单词卡数据。
+- `exports/word-cards-readable-2026-07-07.txt`：可读版导出。
+- `exports/word-cards-summary-2026-07-07.txt`：导出摘要。
+
+## 5. 配置 / 构建相关文件
+
+- `index.html`：静态页面入口，同时定义脚本加载顺序。
+- `styles.css`：全局样式入口。
+- `js/config.js`：运行时配置和默认数据。
+- `.gitignore`：Git 忽略规则文件。
+- `IDEAS.md`：项目后续想法记录。
+
+当前项目目录中没有看到 `package.json`、打包配置或测试配置；项目形态更接近直接由浏览器加载的静态 HTML/CSS/JS。
+
+`index.html` 当前脚本加载顺序：
+
+1. `js/config.js`
+2. `js/state.js`
+3. `js/repository.js`
+4. `js/utils.js`
+5. `js/dictionary.js`
+6. `js/auth.js`
+7. `js/home.js`
+8. `js/themeQuizzes.js`
+9. `js/batch.js`
+10. `js/import.js`
+11. `js/tasks.js`
+12. `js/review.js`
+13. `js/study.js`
+14. `js/quiz.js`
+15. `js/questionTypes.js`
+16. `js/taskEngine.js`
+17. `js/merge.js`
+18. `js/main.js`
+
+## 6. 常见任务应该先看哪些文件
+
+- 看项目整体入口和页面结构：先看 `index.html`，再看 `js/main.js`。
+- 看首页显示、用户入口、批次列表：先看 `js/home.js`，再看 `js/utils.js`、`styles.css`。
+- 看老师新建/导入单词本：先看 `js/import.js`，再看 `js/repository.js`、`doc/英语单词卡生成与导入规则书.md`。
+- 看单词本详情、编辑、推送给学生：先看 `js/batch.js`，再看 `js/repository.js`。
+- 看 Supabase / 本地缓存 / 离线逻辑：先看 `js/config.js`、`js/repository.js`、`js/state.js`。
+- 看批次日期、批次名称、排序相关：先看 `js/repository.js`、`js/tasks.js`。
+- 看今日温习、今日挑战、混合温习、混合挑战：先看 `js/taskEngine.js`、`js/tasks.js`，再看 `js/review.js`、`js/quiz.js`、`js/questionTypes.js`。
+- 看普通单词卡学习流程：先看 `js/study.js`，再看 `js/batch.js`。
+- 看复习题型和错题流程：先看 `js/review.js`。
+- 看挑战题型和判题：先看 `js/questionTypes.js`，再看 `js/quiz.js`。
+- 看单词卡背面、词典字段、搜索、词族/搭配/例句：先看 `js/dictionary.js`。
+- 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
+- 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
+- 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
+- 看项目想法和边界：先看 `IDEAS.md`。
+
+## 7. 不要随便动的地方
+
+- `js/config.js` 中的 Supabase 配置、默认数据和全局常量。
+- `js/repository.js` 中的数据读写、离线兜底、批次规范化和轮询同步逻辑。
+- `js/state.js` 中的全局状态变量名；许多模块直接依赖这些变量。
+- `index.html` 底部脚本加载顺序；多个模块依赖前面脚本先定义的全局函数和变量。
+- `js/main.js` 的 `Object.assign(window, ...)`；`index.html` 里大量内联事件依赖这些全局函数。
+- `js/dictionary.js` 中的卡片字段标准化逻辑；它连接旧字段、新字段和展示层。
+- `js/tasks.js`、`js/taskEngine.js`、`js/review.js`、`js/quiz.js`、`js/questionTypes.js` 之间的任务/题型协作关系。
+- `js/themeQuizzes.js` 中的专项小游戏注册表；主页面入口依赖这里决定可打开的独立练习页。
+- `exports/` 里的导出数据文件；它们看起来是数据产物，修改前应确认用途。
+- `doc/英语单词卡生成与导入规则书.md`；这是导入格式和生成规则的来源文档。
