@@ -239,12 +239,13 @@ function addReviewWrong(card) {
 async function markCardUnknown(card) {
   const word = getCardWord(card);
   if (isTeacher() || !card || !word) return;
+  if (!canWriteCloudData()) return;
   const batchId = card._batchId || (activeTask && activeTask.batchId) || currentBatchId;
   if (!batchId) return;
   const rec = await loadUserBatch(String(batchId));
   if (!rec.unknown.includes(word)) rec.unknown.push(word);
   rec.known = rec.known.filter(x => x !== word);
-  await saveUserBatch(String(batchId), rec);
+  if (!await saveUserBatch(String(batchId), rec)) return;
 }
 
 function nextReviewStep() {
@@ -257,7 +258,7 @@ async function finishReviewRound() {
     renderWrongReviewStart();
     return;
   }
-  await saveReviewComplete(activeTask.key);
+  if (!await saveReviewComplete(activeTask.key)) return;
   reviewCardShell('温习完成', `
     <div class="review-question">完成啦！</div>
     <div class="review-sub">今天的温习已经完成。</div>
@@ -274,7 +275,8 @@ function renderWrongReviewCard() {
   const card = reviewWrongCards[reviewWrongIndex];
   if (!card) {
     reviewWrongCards = [];
-    saveReviewComplete(activeTask.key).then(() => {
+    saveReviewComplete(activeTask.key).then(saved => {
+      if (!saved) return;
       reviewCardShell('温习完成', `
         <div class="review-question">完成啦！</div>
         <div class="review-sub">错题也回顾完了。</div>

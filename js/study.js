@@ -64,6 +64,7 @@ function buildDots() {
   });
 }
 async function judge(known) {
+  if (!canWriteCloudData()) return;
   const c = studyDeck[studyCurrent];
   const en = getCardWord(c);
   if (studyIsGlobal && c._batchId) {
@@ -72,7 +73,7 @@ async function judge(known) {
     const rec = globalUserRecs[bId];
     if (known) { if (!rec.known.includes(en)) rec.known.push(en); rec.unknown = rec.unknown.filter(x=>x!==en); }
     else { if (!rec.unknown.includes(en)) rec.unknown.push(en); rec.known = rec.known.filter(x=>x!==en); }
-    await saveUserBatch(bId, rec);
+    if (!await saveUserBatch(bId, rec)) return;
   } else {
     if (known) {
       if (!currentUserRec.known.includes(en)) currentUserRec.known.push(en);
@@ -81,7 +82,7 @@ async function judge(known) {
       if (!currentUserRec.unknown.includes(en)) currentUserRec.unknown.push(en);
       currentUserRec.known = currentUserRec.known.filter(x=>x!==en);
     }
-    await saveUserRec();
+    if (!await saveUserRec()) return;
   }
   animateSwipe(known);
 }

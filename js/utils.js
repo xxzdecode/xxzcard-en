@@ -4,7 +4,7 @@ async function getUserRec() {
   currentUserRec = await loadUserBatch(currentBatchId);
   return currentUserRec;
 }
-async function saveUserRec() { if (!currentBatchId || !currentUserRec) return; await saveUserBatch(currentBatchId, currentUserRec); }
+async function saveUserRec() { if (!currentBatchId || !currentUserRec) return false; return await saveUserBatch(currentBatchId, currentUserRec); }
 function isTeacher() { return currentUser === 'teacher'; }
 
 // ══════════════════════════════════════

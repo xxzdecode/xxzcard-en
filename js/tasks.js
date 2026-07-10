@@ -22,7 +22,14 @@ async function loadDailyTaskData() {
 }
 
 async function saveDailyTaskData(data) {
-  await sbSet('daily_task_' + currentUser, data);
+  try {
+    if (!canWriteCloudData()) return false;
+    await sbSet('daily_task_' + currentUser, data);
+    return true;
+  } catch(e) {
+    showStorageError(e);
+    return false;
+  }
 }
 
 function ensureTodayTask(data) {
@@ -51,7 +58,7 @@ async function getTaskEntry(taskKey) {
 async function saveReviewComplete(taskKey) {
   const { data, entry } = await getTaskEntry(taskKey);
   entry.completed = true;
-  await saveDailyTaskData(data);
+  return await saveDailyTaskData(data);
 }
 
 async function canStartChallenge(taskKey) {
@@ -66,7 +73,7 @@ async function completeActiveChallenge(correct, total) {
   entry.attempts = (entry.attempts || 0) + 1;
   entry.bestScore = Math.max(entry.bestScore || 0, score);
   entry.checkedIn = true;
-  await saveDailyTaskData(data);
+  if (!await saveDailyTaskData(data)) return;
   await renderCheckInStrip();
 }
 
@@ -357,6 +364,7 @@ function renderStudentWordCard() {
 
 async function showTeacherMixSelect() {
   if (!isTeacher()) return;
+  if (!canWriteCloudData()) return;
   mergeSelected = new Set();
   showScreen('screenMerge');
   const title = document.querySelector('#screenMerge .topbar-title');
@@ -397,10 +405,11 @@ async function showTeacherMixSelect() {
 async function saveMixedLibraryForDay(offsetDays) {
   const ids = Array.from(mergeSelected);
   if (ids.length < 1) return;
+  if (!canWriteCloudData()) return;
   if (!Array.isArray(appData.mixedAssignments)) appData.mixedAssignments = [];
   const offset = Number(offsetDays) === 0 ? 0 : 1;
   appData.mixedAssignments.push({ date: isoDate(offset), batchIds: ids.map(String), createdAt: Date.now() });
-  await saveData(appData);
+  if (!await saveData(appData)) return;
   alert(offset === 0 ? '已应用到今天的混合词库' : '已应用到明天的混合词库');
   showScreen('screenHome');
   loadHome();

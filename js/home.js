@@ -6,13 +6,18 @@ function todayISO() {
 }
 async function markCheckIn(kind) { // kind: 'study' | 'quiz'
   if (isTeacher()) return;
+  if (!canWriteCloudData()) return;
   const key = 'checkin_' + currentUser;
-  let data = await sbGet(key);
-  if (!data || typeof data !== 'object') data = {};
-  const today = todayISO();
-  if (!data[today]) data[today] = {};
-  data[today][kind] = true;
-  await sbSet(key, data);
+  try {
+    let data = await sbGet(key);
+    if (!data || typeof data !== 'object') data = {};
+    const today = todayISO();
+    if (!data[today]) data[today] = {};
+    data[today][kind] = true;
+    await sbSet(key, data);
+  } catch(e) {
+    showStorageError(e);
+  }
 }
 async function renderCheckInStrip() {
   const strip = document.getElementById('checkinStrip');
@@ -74,9 +79,10 @@ async function loadHome() {
 }
 
 async function deleteBatch(id) {
+  if (!canWriteCloudData()) return;
   if (!confirm('确定删除这个单词本吗？')) return;
   appData.batches = appData.batches.filter(b => String(b.id) !== String(id));
-  await saveData(appData);
+  if (!await saveData(appData)) return;
   loadHome();
 }
 

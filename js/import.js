@@ -4,6 +4,7 @@ let importMode = 'new';
 let pendingCards = [];
 
 function showNewBatch() {
+  if (!canWriteCloudData()) return;
   importMode = 'new';
   document.getElementById('newBatchName').value = todayStr();
   document.getElementById('newBatchText').value = '';
@@ -14,6 +15,7 @@ function showNewBatch() {
   showScreen('screenNewBatch');
 }
 function showImportMore() {
+  if (!canWriteCloudData()) return;
   importMode = 'add';
   document.getElementById('newBatchName').value = getCurrentBatch().name;
   document.getElementById('newBatchText').value = '';
@@ -69,17 +71,20 @@ function previewParse() {
 }
 async function confirmImport() {
   if (pendingCards.length === 0) return;
+  if (!canWriteCloudData()) return;
   if (importMode === 'new') {
     const name = document.getElementById('newBatchName').value.trim() || todayStr();
     const batch = makeBatch(name, pendingCards);
-    appData.batches.push(batch); await saveData(appData);
+    appData.batches.push(batch);
+    if (!await saveData(appData)) return;
     currentBatchId = batch.id; await loadDetail(); showScreen('screenDetail');
   } else {
     const batch = getCurrentBatch();
     const existing = new Set((batch.cards || []).map(c => getCardKey(c)));
     const duplicates = pendingCards.filter(c => existing.has(getCardKey(c))).map(c => getCardWord(c));
     if (duplicates.length && !confirm(`检测到重复单词：${duplicates.join('、')}。仍然导入吗？`)) return;
-    batch.cards.push(...pendingCards.map(normalizeEnglishCard)); await saveData(appData);
+    batch.cards.push(...pendingCards.map(normalizeEnglishCard));
+    if (!await saveData(appData)) return;
     await loadDetail(); showScreen('screenDetail');
   }
 }

@@ -59,7 +59,9 @@ function pinInput(digit) {
         document.getElementById('pinError').textContent = ''; renderPinDots();
       } else if (pinMode === 'set2') {
         if (pinBuffer === pinTemp) {
-          appData.pin = pinBuffer; await saveData(appData);
+          if (!canWriteCloudData()) return;
+          appData.pin = pinBuffer;
+          if (!await saveData(appData)) return;
           resetStudentRuntimeView();
           document.getElementById('modalPin').classList.remove('show');
           currentUser = 'teacher'; localStorage.setItem('wc_user','teacher');

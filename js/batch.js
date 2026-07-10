@@ -1,5 +1,6 @@
 // Rename
 function showRename() {
+  if (!canWriteCloudData()) return;
   const batch = getCurrentBatch(); if (!batch) return;
   document.getElementById('renameInput').value = batch.name;
   document.getElementById('modalRename').classList.add('show');
@@ -7,7 +8,9 @@ function showRename() {
 }
 async function confirmRename() {
   const val = document.getElementById('renameInput').value.trim(); if (!val) return;
-  const batch = getCurrentBatch(); batch.name = val; await saveData(appData);
+  if (!canWriteCloudData()) return;
+  const batch = getCurrentBatch(); batch.name = val;
+  if (!await saveData(appData)) return;
   document.getElementById('detailTitle').textContent = val;
   closeAllModals(); loadHome();
 }
@@ -16,6 +19,7 @@ async function confirmRename() {
 // EDIT WORDS (teacher)
 // ══════════════════════════════════════
 function toggleEditPanel() {
+  if (!canWriteCloudData()) return;
   const panel = document.getElementById('editPanel');
   const btn = document.getElementById('editPanelToggle');
   const isOpen = panel.classList.toggle('open');
@@ -80,13 +84,14 @@ async function editNav(dir) {
   const batch = getCurrentBatch(); if (!batch) return;
   const newIdx = editingIdx + dir;
   if (newIdx < 0 || newIdx >= batch.cards.length) return;
-  await saveCardEdit(true); // auto-save current before moving
+  if (!await saveCardEdit(true)) return; // auto-save current before moving
   editingIdx = newIdx;
   fillEditorForm(batch.cards[editingIdx]);
   updateEditNav();
 }
 async function saveCardEdit(silent) {
   const batch = getCurrentBatch(); if (!batch || editingIdx < 0) return;
+  if (!canWriteCloudData()) return false;
   const en = document.getElementById('ef-en').value.trim();
   const zh = document.getElementById('ef-zh').value.trim();
   if (!en || !zh) { if (!silent) alert('英文和中文为必填项'); return; }
@@ -115,29 +120,34 @@ async function saveCardEdit(silent) {
     else if (!updated[k]) delete updated[k];
   });
   batch.cards[editingIdx] = updated;
-  await saveData(appData);
+  if (!await saveData(appData)) return false;
   if (!silent) { closeAllModals(); await loadDetail(); }
+  return true;
 }
 async function deleteCard() {
   const batch = getCurrentBatch(); if (!batch || editingIdx < 0) return;
+  if (!canWriteCloudData()) return;
   const card = batch.cards[editingIdx];
   if (!confirm(`确定删除单词「${getCardWord(card)}」吗？`)) return;
   batch.cards.splice(editingIdx, 1);
-  await saveData(appData);
+  if (!await saveData(appData)) return;
   closeAllModals();
   await loadDetail();
 }
 
 // Sync (clear records)
-function showSync() { document.getElementById('modalSync').classList.add('show'); }
+function showSync() { if (!canWriteCloudData()) return; document.getElementById('modalSync').classList.add('show'); }
 async function confirmSync(user) {
+  if (!canWriteCloudData()) return;
   if (!confirm('确定清空' + (user==='sister'?'姐姐':'弟弟') + '的学习记录吗？')) return;
-  await clearUserBatch(user, currentBatchId); closeAllModals();
+  if (!await clearUserBatch(user, currentBatchId)) return;
+  closeAllModals();
   alert('已清空，下次' + (user==='sister'?'姐姐':'弟弟') + '打开时将从头开始。');
 }
 
 // Push
 function showPush() {
+  if (!canWriteCloudData()) return;
   const batch = getCurrentBatch(); if (!batch) return;
   const sw = batch.sharedWith || [];
   const si = document.getElementById('pushSisterInd');
@@ -150,13 +160,14 @@ function showPush() {
 }
 async function togglePush(user) {
   const batch = getCurrentBatch(); if (!batch) return;
+  if (!canWriteCloudData()) return;
   if (!batch.sharedWith) batch.sharedWith = [];
   if (batch.sharedWith.includes(user)) {
     batch.sharedWith = batch.sharedWith.filter(u => u !== user);
   } else {
     batch.sharedWith.push(user);
   }
-  await saveData(appData);
+  if (!await saveData(appData)) return;
   const ind = document.getElementById(user==='sister' ? 'pushSisterInd' : 'pushBrotherInd');
   const on = batch.sharedWith.includes(user);
   ind.textContent = on ? '✅ 已推送' : '未推送';

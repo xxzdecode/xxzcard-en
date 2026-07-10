@@ -4,6 +4,10 @@
 const SB_TIMEOUT = 5000; // 5 秒超时
 let sbOnline = true;     // 运行时连通性标志
 
+let mainSnapshot = '';
+const SUPABASE_MIRROR_KEY = 'wc_supabase_mirror';
+const SUPABASE_MIRROR_INTERVAL = 5 * 60 * 1000;
+
 function sbFetchWithTimeout(url, options) {
   // 不用 AbortSignal（手机浏览器 postMessage 不能克隆它）
   // 改用 Promise.race：fetch 和一个定时 reject 竞速
@@ -22,8 +26,121 @@ function lsSet(key, value) {
   try { localStorage.setItem('wc_sb_' + key, JSON.stringify(value)); } catch(e) {}
 }
 
-async function sbGet(key) {
-  if (!sbOnline) return lsGet(key);
+function readSupabaseMirror() {
+  try {
+    const raw = localStorage.getItem(SUPABASE_MIRROR_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) {
+    return null;
+  }
+}
+
+function writeSupabaseMirror(mirror) {
+  try {
+    localStorage.setItem(SUPABASE_MIRROR_KEY, JSON.stringify(mirror));
+  } catch(e) {}
+}
+
+function getMirrorValue(key) {
+  const mirror = readSupabaseMirror();
+  if (mirror && mirror.rows && Object.prototype.hasOwnProperty.call(mirror.rows, key)) {
+    return cloneForStorage(mirror.rows[key]);
+  }
+  return lsGet(key);
+}
+
+function updateMirrorValue(key, value) {
+  const mirror = readSupabaseMirror() || { source: 'supabase', syncedAt: '', rows: {} };
+  if (!mirror.rows || typeof mirror.rows !== 'object') mirror.rows = {};
+  mirror.source = 'supabase';
+  mirror.syncedAt = new Date().toISOString();
+  mirror.rows[key] = cloneForStorage(value);
+  mirror.rowCount = Object.keys(mirror.rows).length;
+  writeSupabaseMirror(mirror);
+}
+
+function mirrorSyncedLabel() {
+  const mirror = readSupabaseMirror();
+  if (!mirror || !mirror.syncedAt) return '';
+  try {
+    return new Date(mirror.syncedAt).toLocaleString();
+  } catch(e) {
+    return mirror.syncedAt;
+  }
+}
+
+async function syncSupabaseMirror() {
+  if (!sbOnline) return null;
+  try {
+    const r = await sbFetchWithTimeout(
+      `${SB_URL}/rest/v1/kv_store?select=key,value`,
+      { headers: SB_HEADERS }
+    );
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = await r.json();
+    const mirrorRows = {};
+    (rows || []).forEach(row => {
+      if (!row || !row.key) return;
+      mirrorRows[row.key] = row.value;
+      lsSet(row.key, row.value);
+    });
+    const mirror = {
+      source: 'supabase',
+      syncedAt: new Date().toISOString(),
+      rowCount: Object.keys(mirrorRows).length,
+      rows: mirrorRows
+    };
+    writeSupabaseMirror(mirror);
+    return mirror;
+  } catch(e) {
+    console.warn('syncSupabaseMirror failed; switching to offline mode', e.message || e);
+    sbOnline = false;
+    showOfflineBanner();
+    return null;
+  }
+}
+
+function cloneForStorage(value) {
+  return value ? JSON.parse(JSON.stringify(value)) : value;
+}
+
+function fingerprintData(value) {
+  return JSON.stringify(value || null);
+}
+
+function setMainSnapshot(data) {
+  const copy = cloneForStorage(data);
+  if (copy) normalizeAppData(copy);
+  mainSnapshot = fingerprintData(copy);
+}
+
+function storageError(code, message) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
+
+function showStorageError(err) {
+  if (err && err.code === 'OFFLINE_READONLY') {
+    alert('\u5f53\u524d\u662f\u79bb\u7ebf\u6a21\u5f0f\uff0c\u53ea\u80fd\u67e5\u770b\uff0c\u4e0d\u80fd\u7f16\u8f91\u3002\u8bf7\u8054\u7f51\u540e\u5237\u65b0\u4e91\u7aef\u6570\u636e\u518d\u4fdd\u5b58\u3002');
+    return;
+  }
+  if (err && err.code === 'MAIN_CONFLICT') {
+    alert('\u4e91\u7aef\u6570\u636e\u521a\u521a\u88ab\u5176\u4ed6\u8bbe\u5907\u66f4\u65b0\u4e86\u3002\u4e3a\u4e86\u907f\u514d\u8986\u76d6\u65b0\u5185\u5bb9\uff0c\u5df2\u505c\u6b62\u672c\u6b21\u4fdd\u5b58\u5e76\u5237\u65b0\u4e3a\u4e91\u7aef\u7248\u672c\u3002');
+    return;
+  }
+  alert('\u4fdd\u5b58\u5931\u8d25\uff1a\u6ca1\u6709\u5199\u5165\u4e91\u7aef\u3002\u8bf7\u786e\u8ba4\u7f51\u7edc\u6b63\u5e38\u540e\u518d\u8bd5\u3002');
+}
+
+function canWriteCloudData() {
+  if (sbOnline) return true;
+  showOfflineBanner();
+  showStorageError(storageError('OFFLINE_READONLY', 'offline'));
+  return false;
+}
+
+async function sbGetRemote(key) {
+  if (!sbOnline) throw storageError('OFFLINE_READONLY', 'offline');
   try {
     const r = await sbFetchWithTimeout(
       `${SB_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}&select=value`,
@@ -32,18 +149,35 @@ async function sbGet(key) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const rows = await r.json();
     const val = rows.length ? rows[0].value : null;
-    if (val !== null) lsSet(key, val); // 写入本地镜像
+    if (val !== null) {
+      lsSet(key, val);
+      updateMirrorValue(key, val);
+    }
     return val;
   } catch(e) {
-    console.warn('sbGet 失败，切换离线模式:', e.message || e);
+    console.warn('sbGet failed; switching to offline mode', e.message || e);
     sbOnline = false;
-    return lsGet(key); // 降级返回本地缓存
+    showOfflineBanner();
+    throw storageError('OFFLINE_READONLY', 'offline');
+  }
+}
+
+async function loadUserBatch(batchId) {
+  const r = await sbGet(currentUser + '_' + batchId);
+  return r || { known:[], unknown:[] };
+}
+// Loading overlay
+async function sbGet(key) {
+  if (!sbOnline) return getMirrorValue(key);
+  try {
+    return await sbGetRemote(key);
+  } catch(e) {
+    return getMirrorValue(key);
   }
 }
 
 async function sbSet(key, value) {
-  lsSet(key, value); // 先写本地，保证不丢数据
-  if (!sbOnline) return;
+  if (!sbOnline) throw storageError('OFFLINE_READONLY', 'offline');
   try {
     const r = await sbFetchWithTimeout(`${SB_URL}/rest/v1/kv_store`, {
       method: 'POST',
@@ -51,25 +185,84 @@ async function sbSet(key, value) {
       body: JSON.stringify({ key, value })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
+    lsSet(key, value);
+    updateMirrorValue(key, value);
   } catch(e) {
-    console.warn('sbSet 失败，数据已保存本地:', e.message || e);
+    console.warn('sbSet failed; blocked local-only write', e.message || e);
     sbOnline = false;
+    showOfflineBanner();
+    throw storageError('OFFLINE_READONLY', 'offline');
   }
 }
 
-async function loadData() { return await sbGet('main'); }
-async function saveData(data) {
-  normalizeAppData(data);
-  await sbSet('main', data);
+async function loadData() {
+  const data = await sbGet('main');
+  if (data && sbOnline) setMainSnapshot(data);
+  return data;
 }
-async function loadUserBatch(batchId) {
-  const r = await sbGet(currentUser + '_' + batchId);
-  return r || { known:[], unknown:[] };
-}
-async function saveUserBatch(batchId, rec) { await sbSet(currentUser + '_' + batchId, rec); }
-async function clearUserBatch(user, batchId) { await sbSet(user + '_' + batchId, { known:[], unknown:[] }); }
 
-// Loading overlay
+async function ensureMainCanSave(data) {
+  const remote = await sbGetRemote('main');
+  if (remote) normalizeAppData(remote);
+  const remoteFp = fingerprintData(remote);
+  const dataFp = fingerprintData(data);
+  if (mainSnapshot && remoteFp !== mainSnapshot && remoteFp !== dataFp) {
+    appData = remote || { batches: [], pin: null };
+    setMainSnapshot(appData);
+    const home = document.getElementById('screenHome');
+    if (home && home.classList.contains('active')) loadHome();
+    throw storageError('MAIN_CONFLICT', 'main changed remotely');
+  }
+  if (remote) {
+    try {
+      localStorage.setItem('wc_main_last_good', JSON.stringify({ createdAt: new Date().toISOString(), value: remote }));
+    } catch(e) {}
+  }
+}
+
+async function saveData(data) {
+  try {
+    if (!canWriteCloudData()) return false;
+    normalizeAppData(data);
+    await ensureMainCanSave(data);
+    await sbSet('main', data);
+    setMainSnapshot(data);
+    return true;
+  } catch(e) {
+    if (e && e.code === 'OFFLINE_READONLY') {
+      const cached = getMirrorValue('main');
+      if (cached) {
+        normalizeAppData(cached);
+        appData = cached;
+      }
+    }
+    showStorageError(e);
+    return false;
+  }
+}
+
+async function saveUserBatch(batchId, rec) {
+  try {
+    if (!canWriteCloudData()) return false;
+    await sbSet(currentUser + '_' + batchId, rec);
+    return true;
+  } catch(e) {
+    showStorageError(e);
+    return false;
+  }
+}
+
+async function clearUserBatch(user, batchId) {
+  try {
+    if (!canWriteCloudData()) return false;
+    await sbSet(user + '_' + batchId, { known:[], unknown:[] });
+    return true;
+  } catch(e) {
+    showStorageError(e);
+    return false;
+  }
+}
+
 function showLoading(msg) {
   let el = document.getElementById('fbLoading');
   if (!el) {
@@ -99,6 +292,7 @@ async function initData() {
   if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
   normalizePhonemeLibrary(data);
   normalizeAppData(data);
+  if (sbOnline) syncSupabaseMirror();
   hideLoading();
   // 离线时在标题区显示一个小提示
   if (!sbOnline) showOfflineBanner();
@@ -113,6 +307,10 @@ function showOfflineBanner() {
   el.style.cssText = 'width:100%;background:#FFF8EC;color:#7A5C00;font-size:12px;font-weight:600;text-align:center;padding:6px 16px;border-bottom:1px solid #FFD166;position:sticky;top:0;z-index:50';
   el.textContent = '📶 离线模式 · 当前只读本机缓存，联网后将重新拉取云端数据';
   const home = document.getElementById('screenHome');
+  const synced = mirrorSyncedLabel();
+  el.textContent = synced
+    ? '\u79bb\u7ebf\u6a21\u5f0f - \u5f53\u524d\u53ea\u8bfb\u672c\u5730 Supabase \u955c\u50cf\uff0c\u6700\u540e\u540c\u6b65\uff1a' + synced
+    : '\u79bb\u7ebf\u6a21\u5f0f - \u5f53\u524d\u53ea\u8bfb\u672c\u5730 Supabase \u955c\u50cf';
   home.insertBefore(el, home.firstChild);
 }
 function makeBatch(name, cards) {
@@ -208,6 +406,8 @@ setInterval(async () => {
     if (banner) banner.remove();
     normalizeAppData(fresh);
     appData = fresh;
+    setMainSnapshot(appData);
+    syncSupabaseMirror();
     const home = document.getElementById('screenHome');
     if (home && home.classList.contains('active')) loadHome();
     return;
@@ -216,8 +416,13 @@ setInterval(async () => {
   if (!fresh || !sbOnline) return;
   normalizeAppData(fresh);
   appData = fresh;
+  setMainSnapshot(appData);
   const home = document.getElementById('screenHome');
   if (home && home.classList.contains('active')) loadHome();
 }, 30000);
+
+setInterval(() => {
+  if (sbOnline) syncSupabaseMirror();
+}, SUPABASE_MIRROR_INTERVAL);
 
 // ══════════════════════════════════════
