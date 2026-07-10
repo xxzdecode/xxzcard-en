@@ -13,7 +13,7 @@ const KNOWLEDGE_LIBRARY = {
 // Update this list when the teacher says which phonemes have been learned.
 const LEARNED_PHONEMES = [
   // 短元音
-  '/ɪ/', '/e/', '/æ/', '/ʌ/', '/ɒ/', '/ʊ/',
+  '/ɪ/', '/e/', '/æ/', '/ʌ/', '/ɒ/', '/ʊ/', '/ə/',
 
   // 长元音
   '/iː/', '/ɑː/', '/ɔː/', '/uː/', '/ɜː/',
@@ -22,13 +22,25 @@ const LEARNED_PHONEMES = [
   '/eɪ/', '/aɪ/', '/ɔɪ/', '/aʊ/', '/əʊ/', '/ɪə/', '/eə/', '/ʊə/',
 
   // 爆破音
-  '/p/', '/b/', '/t/', '/d/', '/k/', '/ɡ/'
+  '/p/', '/b/', '/t/', '/d/', '/k/', '/ɡ/',
+
+  // 摩擦音
+  '/f/', '/v/', '/θ/', '/ð/', '/s/', '/z/', '/ʃ/', '/ʒ/', '/h/',
+
+  // 破擦音
+  '/tʃ/', '/dʒ/',
+
+  // 鼻音
+  '/m/', '/n/', '/ŋ/',
+
+  // 近音
+  '/l/', '/r/', '/j/', '/w/'
 ];
 
 const PHONEME_GROUPS = [
   {
     title: '短元音',
-    phonemes: ['/ɪ/', '/e/', '/æ/', '/ʌ/', '/ɒ/', '/ʊ/']
+    phonemes: ['/ɪ/', '/e/', '/æ/', '/ʌ/', '/ɒ/', '/ʊ/', '/ə/']
   },
   {
     title: '长元音',
@@ -41,17 +53,34 @@ const PHONEME_GROUPS = [
   {
     title: '爆破音',
     phonemes: ['/p/', '/b/', '/t/', '/d/', '/k/', '/ɡ/']
+  },
+  {
+    title: '摩擦音',
+    phonemes: ['/f/', '/v/', '/θ/', '/ð/', '/s/', '/z/', '/ʃ/', '/ʒ/', '/h/']
+  },
+  {
+    title: '破擦音',
+    phonemes: ['/tʃ/', '/dʒ/']
+  },
+  {
+    title: '鼻音',
+    phonemes: ['/m/', '/n/', '/ŋ/']
+  },
+  {
+    title: '近音',
+    phonemes: ['/l/', '/r/', '/j/', '/w/']
   }
 ];
 
 const PHONEME_INFO = {
   // 短元音
-  '/ɪ/': { spellings: ['i'] },
-  '/e/': { spellings: ['e'] },
+  '/ɪ/': { spellings: ['ui', 'y', 'i'] },
+  '/e/': { spellings: ['ea', 'e'] },
   '/æ/': { spellings: ['a'] },
-  '/ʌ/': { spellings: ['u', 'o'] },
-  '/ɒ/': { spellings: ['o'] },
-  '/ʊ/': { spellings: ['oo', 'u'] },
+  '/ʌ/': { spellings: ['ou', 'u', 'o'] },
+  '/ɒ/': { spellings: ['wa', 'o'] },
+  '/ʊ/': { spellings: ['oul', 'oo', 'u'] },
+  '/ə/': { spellings: ['er', 'or', 'ar', 'a', 'e', 'o'] },
 
   // 长元音
   '/iː/': { spellings: ['eer', 'ere', 'ee', 'ea', 'ie', 'ey', 'e', 'y'] },
@@ -71,16 +100,30 @@ const PHONEME_INFO = {
   '/ʊə/': { spellings: ['ure', 'oor'] },
 
   // 辅音
-  '/p/': { spellings: ['p'] },
-  '/b/': { spellings: ['b'] },
-  '/t/': { spellings: ['t'] },
-  '/d/': { spellings: ['d'] },
+  '/p/': { spellings: ['pp', 'p'] },
+  '/b/': { spellings: ['bb', 'b'] },
+  '/t/': { spellings: ['tt', 'ed', 't'] },
+  '/d/': { spellings: ['dd', 'ed', 'd'] },
   '/k/': { spellings: ['ck', 'ch', 'k', 'c'] },
-  '/ɡ/': { spellings: ['g'] },
+  '/ɡ/': { spellings: ['gg', 'gu', 'g'] },
   '/f/': { spellings: ['ph', 'ff', 'f'] },
+  '/v/': { spellings: ['ve', 'v'] },
+  '/θ/': { spellings: ['th'] },
+  '/ð/': { spellings: ['th'] },
+  '/s/': { spellings: ['ss', 'ce', 'ci', 'c', 's'] },
+  '/z/': { spellings: ['zz', 'se', 's', 'z'] },
   '/ʃ/': { spellings: ['sh', 'ch', 'ti', 'ci'] },
+  '/ʒ/': { spellings: ['s'] },
+  '/h/': { spellings: ['wh', 'h'] },
   '/tʃ/': { spellings: ['tch', 'ch'] },
-  '/dʒ/': { spellings: ['dge', 'dg', 'ge', 'j', 'g'] }
+  '/dʒ/': { spellings: ['dge', 'dg', 'ge', 'j', 'g'] },
+  '/m/': { spellings: ['mm', 'mb', 'm'] },
+  '/n/': { spellings: ['kn', 'nn', 'n'] },
+  '/ŋ/': { spellings: ['ng', 'n'] },
+  '/l/': { spellings: ['ll', 'le', 'l'] },
+  '/r/': { spellings: ['wr', 'rr', 'r'] },
+  '/j/': { spellings: ['y'] },
+  '/w/': { spellings: ['wh', 'w'] }
 };
 
 const PHONEME_INVENTORY = [
@@ -163,6 +206,10 @@ function normalizePhoneme(value) {
   if (!text) return '';
   text = text.replace(/^\/|\/$/g, '');
   text = text.replace(/:/g, 'ː');
+  text = text.replace(/ɛ/g, 'e');
+  text = text.replace(/ɝ/g, 'ɜː');
+  text = text.replace(/ɚ/g, 'ə');
+  if (text === 'oʊ' || text === 'o') text = 'əʊ';
   if (text === 'g') text = 'ɡ';
   return `/${text}/`;
 }
@@ -175,12 +222,22 @@ function parsePhonemeField(value) {
 }
 
 function normalizePhoneticText(value) {
-  return String(value || '')
+  let text = String(value || '')
     .replace(/[\/\[\]\s]/g, '')
     .replace(/[ˈˌ']/g, '')
     .replace(/:/g, 'ː')
+    .replace(/ɛ/g, 'e')
+    .replace(/ɝ/g, 'ɜː')
+    .replace(/ɚ/g, 'ə')
     .replace(/g/g, 'ɡ')
     .trim();
+  text = text
+    .replace(/oʊ/g, 'əʊ')
+    .replace(/ɪr/g, 'ɪə')
+    .replace(/er/g, 'eə')
+    .replace(/ʊr/g, 'ʊə')
+    .replace(/o/g, 'əʊ');
+  return text;
 }
 
 function phonemeText(symbol) {
