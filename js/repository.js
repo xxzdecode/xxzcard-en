@@ -6,7 +6,8 @@ let sbOnline = true;     // 运行时连通性标志
 
 let mainSnapshot = '';
 const SUPABASE_MIRROR_KEY = 'wc_supabase_mirror';
-const SUPABASE_MIRROR_INTERVAL = 5 * 60 * 1000;
+const SUPABASE_MIRROR_SYNC_MINUTE = 5;
+const SUPABASE_MIRROR_RETRY_DELAY = 30 * 60 * 1000;
 
 function sbFetchWithTimeout(url, options) {
   // 不用 AbortSignal（手机浏览器 postMessage 不能克隆它）
@@ -39,6 +40,11 @@ function writeSupabaseMirror(mirror) {
   try {
     localStorage.setItem(SUPABASE_MIRROR_KEY, JSON.stringify(mirror));
   } catch(e) {}
+}
+
+function localDateKey(date) {
+  const d = date || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function getMirrorValue(key) {
@@ -87,6 +93,7 @@ async function syncSupabaseMirror() {
     const mirror = {
       source: 'supabase',
       syncedAt: new Date().toISOString(),
+      fullSyncedDate: localDateKey(),
       rowCount: Object.keys(mirrorRows).length,
       rows: mirrorRows
     };
@@ -98,6 +105,29 @@ async function syncSupabaseMirror() {
     showOfflineBanner();
     return null;
   }
+}
+
+function shouldSyncSupabaseMirrorToday() {
+  const mirror = readSupabaseMirror();
+  return !mirror || mirror.fullSyncedDate !== localDateKey();
+}
+
+async function syncSupabaseMirrorIfDue(force) {
+  if (!force && !shouldSyncSupabaseMirrorToday()) return null;
+  return await syncSupabaseMirror();
+}
+
+function nextSupabaseMirrorDelay() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, SUPABASE_MIRROR_SYNC_MINUTE, 0, 0);
+  return Math.max(1000, next.getTime() - now.getTime());
+}
+
+function scheduleDailySupabaseMirror(delay) {
+  setTimeout(async () => {
+    const mirror = await syncSupabaseMirrorIfDue(true);
+    scheduleDailySupabaseMirror(mirror ? nextSupabaseMirrorDelay() : SUPABASE_MIRROR_RETRY_DELAY);
+  }, delay || nextSupabaseMirrorDelay());
 }
 
 function cloneForStorage(value) {
@@ -292,7 +322,7 @@ async function initData() {
   if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
   normalizePhonemeLibrary(data);
   normalizeAppData(data);
-  if (sbOnline) syncSupabaseMirror();
+  if (sbOnline) syncSupabaseMirrorIfDue(false);
   hideLoading();
   // 离线时在标题区显示一个小提示
   if (!sbOnline) showOfflineBanner();
@@ -349,7 +379,57 @@ function makeISODate(year, month, day) {
   return year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
 }
 
-function parseBatchNameParts(name) {
+function batchDateLabelFromISO(date) {
+  const m = String(date || '').match(/^\d{4}-(\d{2})-(\d{2})$/);
+  return m ? `${m[1]}.${m[2]}` : '';
+}
+
+function addBatchDateCandidate(candidates, match, offset, token, year, month, day) {
+  const date = makeISODate(year, month, day);
+  if (!date) return;
+  candidates.push({
+    index: match.index + offset,
+    end: match.index + offset + String(token || '').length,
+    date
+  });
+}
+
+function findBatchDateCandidates(text) {
+  const value = String(text || '');
+  const candidates = [];
+  const year = new Date().getFullYear();
+  let m;
+
+  const fullDateRe = /(^|[^\d.\/-])(\d{4})[.\/-](\d{1,2})[.\/-](\d{1,2})(?![.\/-]\d)/g;
+  while ((m = fullDateRe.exec(value)) !== null) {
+    addBatchDateCandidate(candidates, m, m[1].length, m[0].slice(m[1].length), Number(m[2]), Number(m[3]), Number(m[4]));
+  }
+
+  const shortYearRe = /(^|[^\d.\/-])(\d{2})[.\/-](\d{1,2})[.\/-](\d{1,2})(?![.\/-]\d)/g;
+  while ((m = shortYearRe.exec(value)) !== null) {
+    addBatchDateCandidate(candidates, m, m[1].length, m[0].slice(m[1].length), 2000 + Number(m[2]), Number(m[3]), Number(m[4]));
+  }
+
+  const monthDayRe = /(^|[^\d.\/-])(\d{1,2})[.\/-](\d{1,2})(?![.\/-]\d)/g;
+  while ((m = monthDayRe.exec(value)) !== null) {
+    addBatchDateCandidate(candidates, m, m[1].length, m[0].slice(m[1].length), year, Number(m[2]), Number(m[3]));
+  }
+
+  const compactMonthDayRe = /(^|\D)(\d{4})(?!\d)/g;
+  while ((m = compactMonthDayRe.exec(value)) !== null) {
+    const token = m[2];
+    addBatchDateCandidate(candidates, m, m[1].length, token, year, Number(token.slice(0, 2)), Number(token.slice(2, 4)));
+  }
+
+  return candidates.sort((a, b) => a.index - b.index);
+}
+
+function getLastBatchDateFromText(text) {
+  const candidates = findBatchDateCandidates(text);
+  return candidates.length > 0 ? candidates[candidates.length - 1].date : '';
+}
+
+function parseBatchNamePartsLegacy(name) {
   const text = String(name || '').trim();
   let m = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s*[|｜-]?\s*(.*))?$/);
   if (m) return { date: makeISODate(Number(m[1]), Number(m[2]), Number(m[3])), title: m[4] || '' };
@@ -363,8 +443,26 @@ function parseBatchNameParts(name) {
   return { date: '', title: text };
 }
 
+function parseBatchNameParts(name) {
+  const text = String(name || '').trim();
+  const candidates = findBatchDateCandidates(text);
+  if (candidates.length === 0) return { date: '', title: text };
+
+  const last = candidates[candidates.length - 1];
+  if (candidates.length > 1 || last.index !== 0) return { date: last.date, title: text };
+
+  const title = text.slice(last.end).replace(/^\s*(?:[|~\-]+)?\s*/, '');
+  return { date: last.date, title };
+}
+
 function parseBatchDate(name) {
   return parseBatchNameParts(name).date;
+}
+
+function getBatchSortDate(batch) {
+  const nameDate = getLastBatchDateFromText(batch && batch.name);
+  if (nameDate) return nameDate;
+  return parseISODate(batch && batch.date) ? batch.date : '';
 }
 
 function normalizeBatchName(name, date) {
@@ -376,8 +474,9 @@ function normalizeBatch(batch) {
   if (!batch || typeof batch !== 'object') return false;
   const oldDate = batch.date;
   const oldName = batch.name;
+  const parsedDate = parseBatchDate(batch.name);
   if (!parseISODate(batch.date)) {
-    batch.date = parseBatchDate(batch.name) || batchTodayISO();
+    batch.date = parsedDate || batchTodayISO();
   }
   if (!String(batch.name || '').trim()) {
     batch.name = todayStr();
@@ -411,7 +510,7 @@ setInterval(async () => {
     normalizeAppData(fresh);
     appData = fresh;
     setMainSnapshot(appData);
-    syncSupabaseMirror();
+    syncSupabaseMirrorIfDue(false);
     const home = document.getElementById('screenHome');
     if (home && home.classList.contains('active')) loadHome();
     return;
@@ -425,8 +524,6 @@ setInterval(async () => {
   if (home && home.classList.contains('active')) loadHome();
 }, 30000);
 
-setInterval(() => {
-  if (sbOnline) syncSupabaseMirror();
-}, SUPABASE_MIRROR_INTERVAL);
+scheduleDailySupabaseMirror();
 
 // ══════════════════════════════════════

@@ -5,7 +5,7 @@ function getVisibleBatchesNewestFirst() {
 function compareBatchesNewestFirst(a, b) {
   normalizeBatch(a);
   normalizeBatch(b);
-  const dateCmp = String(b.date || '').localeCompare(String(a.date || ''));
+  const dateCmp = String(getBatchSortDate(b) || '').localeCompare(String(getBatchSortDate(a) || ''));
   if (dateCmp !== 0) return dateCmp;
   return Number(b.id) - Number(a.id);
 }
@@ -145,13 +145,11 @@ function latestVisibleBatch() {
 
 function formatBatchDateLabel(batch) {
   const name = String(batch && batch.name ? batch.name : '');
-  let match = name.match(/\b\d{2,4}[./-](\d{1,2})[./-](\d{1,2})\b/);
-  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
-  match = name.match(/\b(\d{1,2})[./-](\d{1,2})\b/);
-  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
+  const nameDate = getLastBatchDateFromText(name);
+  if (nameDate) return batchDateLabelFromISO(nameDate);
 
   const date = String(batch && batch.date ? batch.date : '').trim();
-  match = date.match(/^\d{4}[-./](\d{1,2})[-./](\d{1,2})$/);
+  let match = date.match(/^\d{4}[-./](\d{1,2})[-./](\d{1,2})$/);
   if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
   match = date.match(/^(\d{1,2})[-./](\d{1,2})$/);
   if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
