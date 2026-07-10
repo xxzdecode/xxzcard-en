@@ -208,6 +208,7 @@ body {
   background: var(--white); color: var(--blue-dark); font-size: 14px; font-weight: 600;
   cursor: pointer; margin-top: 8px; box-shadow: var(--shadow);
 }
+.secondary-btn:disabled { opacity: 0.45; pointer-events: none; cursor: default; }
 .parse-preview {
   background: var(--sky); border-radius: 12px; padding: 12px 14px;
   margin-top: 12px; display: none;

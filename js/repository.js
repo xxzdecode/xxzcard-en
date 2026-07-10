@@ -315,8 +315,9 @@ function showOfflineBanner() {
 }
 function makeBatch(name, cards) {
   const id = String(Date.now())+String(Math.floor(Math.random()*9999));
-  const date = parseBatchDate(name) || batchTodayISO();
-  return { id, date, name: normalizeBatchName(name, date), cards: (cards || []).map(normalizeEnglishCard), sharedWith: [] };
+  const date = batchTodayISO();
+  const displayName = String(name || '').trim() || todayStr();
+  return { id, date, name: displayName, cards: (cards || []).map(normalizeEnglishCard), sharedWith: [] };
 }
 function todayStr() {
   return formatBatchName(batchTodayISO(), '');
@@ -375,9 +376,12 @@ function normalizeBatch(batch) {
   if (!batch || typeof batch !== 'object') return false;
   const oldDate = batch.date;
   const oldName = batch.name;
-  const parsed = parseBatchNameParts(batch.name);
-  batch.date = parseISODate(batch.date) ? batch.date : (parsed.date || batchTodayISO());
-  batch.name = normalizeBatchName(batch.name, batch.date);
+  if (!parseISODate(batch.date)) {
+    batch.date = parseBatchDate(batch.name) || batchTodayISO();
+  }
+  if (!String(batch.name || '').trim()) {
+    batch.name = todayStr();
+  }
   if (!Array.isArray(batch.sharedWith)) batch.sharedWith = [];
   return oldDate !== batch.date || oldName !== batch.name;
 }

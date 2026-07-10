@@ -2,9 +2,21 @@
 // ══════════════════════════════════════
 let importMode = 'new';
 let pendingCards = [];
+let importInProgress = false;
+
+function setConfirmImportBusy(isBusy) {
+  const btn = document.getElementById('confirmImportBtn');
+  importInProgress = isBusy;
+  if (!btn) return;
+  if (!btn.dataset.defaultText) btn.dataset.defaultText = btn.textContent;
+  btn.disabled = isBusy;
+  btn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+  btn.textContent = isBusy ? '\u5bfc\u5165\u4e2d...' : btn.dataset.defaultText;
+}
 
 function showNewBatch() {
   if (!canWriteCloudData()) return;
+  setConfirmImportBusy(false);
   importMode = 'new';
   document.getElementById('newBatchName').value = todayStr();
   document.getElementById('newBatchText').value = '';
@@ -16,6 +28,7 @@ function showNewBatch() {
 }
 function showImportMore() {
   if (!canWriteCloudData()) return;
+  setConfirmImportBusy(false);
   importMode = 'add';
   document.getElementById('newBatchName').value = getCurrentBatch().name;
   document.getElementById('newBatchText').value = '';
@@ -70,21 +83,33 @@ function previewParse() {
   confirmBtn.style.display = 'block';
 }
 async function confirmImport() {
+  if (importInProgress) return;
   if (pendingCards.length === 0) return;
   if (!canWriteCloudData()) return;
   if (importMode === 'new') {
+    setConfirmImportBusy(true);
     const name = document.getElementById('newBatchName').value.trim() || todayStr();
     const batch = makeBatch(name, pendingCards);
     appData.batches.push(batch);
-    if (!await saveData(appData)) return;
+    if (!await saveData(appData)) {
+      appData.batches = appData.batches.filter(item => item.id !== batch.id);
+      setConfirmImportBusy(false);
+      return;
+    }
     currentBatchId = batch.id; await loadDetail(); showScreen('screenDetail');
   } else {
     const batch = getCurrentBatch();
     const existing = new Set((batch.cards || []).map(c => getCardKey(c)));
     const duplicates = pendingCards.filter(c => existing.has(getCardKey(c))).map(c => getCardWord(c));
     if (duplicates.length && !confirm(`检测到重复单词：${duplicates.join('、')}。仍然导入吗？`)) return;
-    batch.cards.push(...pendingCards.map(normalizeEnglishCard));
-    if (!await saveData(appData)) return;
+    setConfirmImportBusy(true);
+    const addedCards = pendingCards.map(normalizeEnglishCard);
+    batch.cards.push(...addedCards);
+    if (!await saveData(appData)) {
+      batch.cards.splice(batch.cards.length - addedCards.length, addedCards.length);
+      setConfirmImportBusy(false);
+      return;
+    }
     await loadDetail(); showScreen('screenDetail');
   }
 }
