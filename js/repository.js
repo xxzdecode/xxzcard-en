@@ -111,7 +111,7 @@ function showOfflineBanner() {
   el = document.createElement('div');
   el.id = 'offlineBanner';
   el.style.cssText = 'width:100%;background:#FFF8EC;color:#7A5C00;font-size:12px;font-weight:600;text-align:center;padding:6px 16px;border-bottom:1px solid #FFD166;position:sticky;top:0;z-index:50';
-  el.textContent = '📶 离线模式 · 数据已保存在本机，联网后自动同步';
+  el.textContent = '📶 离线模式 · 当前只读本机缓存，联网后将重新拉取云端数据';
   const home = document.getElementById('screenHome');
   home.insertBefore(el, home.firstChild);
 }
@@ -196,22 +196,24 @@ function normalizeAppData(data) {
 }
 
 // 轮询同步：每30秒自动拉一次最新数据（学生端看到老师更新）
-// 离线时自动变成重连探测，恢复后推送本地缓存到云端
+// 离线时只做重连探测，恢复后重新拉取云端数据，避免旧本地缓存覆盖云端。
 setInterval(async () => {
   if (!sbOnline) {
     // 尝试重连：探测一次
     sbOnline = true; // 临时乐观设回 true，让 sbGet 真的发请求
-    const probe = await sbGet('main');
-    if (!sbOnline) return; // 还是失败，继续等
-    // 重连成功：隐藏离线横幅，把本地缓存推上去
+    const fresh = await sbGet('main');
+    if (!sbOnline || !fresh) return; // 还是失败，继续等
+    // 重连成功：隐藏离线横幅，使用云端最新数据刷新本机状态。
     const banner = document.getElementById('offlineBanner');
     if (banner) banner.remove();
-    // 把 appData 重新同步到云端
-    await saveData(appData);
+    normalizeAppData(fresh);
+    appData = fresh;
+    const home = document.getElementById('screenHome');
+    if (home && home.classList.contains('active')) loadHome();
     return;
   }
   const fresh = await loadData();
-  if (!fresh) return;
+  if (!fresh || !sbOnline) return;
   normalizeAppData(fresh);
   appData = fresh;
   const home = document.getElementById('screenHome');
