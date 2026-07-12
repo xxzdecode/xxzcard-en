@@ -45,7 +45,7 @@
     <span>·</span>
     <button onclick="openThemeQuizList()">专项小游戏</button>
   </div>
-  <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">🔀 设置混合词库</button>
+  <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">📋 任务词库设置</button>
   <div style="height:12px" class="teacher-only"></div>
   <button class="add-batch-btn teacher-only" style="width:calc(100% - 40px);max-width:400px" onclick="showNewBatch()">＋ 新建单词本</button>
   <div style="height:12px" class="teacher-only"></div>
@@ -239,7 +239,7 @@
 <!-- ══ SCREEN: DAILY QUIZ ══ -->
 <div class="screen" id="screenDailyQuiz">
   <div class="study-topbar">
-    <button class="back-btn" onclick="goDetail()">←</button>
+    <button class="back-btn" onclick="confirmExitChallenge()">←</button>
     <div class="progress-wrap">
       <div class="progress-row">
         <span class="mode-label">📝 综合测验</span>
@@ -261,10 +261,20 @@
     选择要合并的单词本（智能抽取 15 张）
   </div>
   <div class="merge-list" id="mergeList"></div>
+  <div class="task-assignment-controls teacher-only" id="taskAssignmentControls" style="display:none">
+    <div class="task-assignment-title">应用到</div>
+    <div class="task-assignment-group">
+      <button class="task-assignment-option" id="assignmentDayToday" onclick="selectTaskAssignmentOption('day','today')">今天</button>
+      <button class="task-assignment-option" id="assignmentDayTomorrow" onclick="selectTaskAssignmentOption('day','tomorrow')">明天</button>
+    </div>
+    <div class="task-assignment-group">
+      <button class="task-assignment-option" id="assignmentTypeToday" onclick="selectTaskAssignmentOption('type','today')">今日任务</button>
+      <button class="task-assignment-option" id="assignmentTypeMixed" onclick="selectTaskAssignmentOption('type','mixed')">混合任务</button>
+    </div>
+  </div>
   <div class="merge-bottom-pad"></div>
   <div class="merge-start-bar" id="mergeStartBar">
     <button class="merge-start-btn" id="mergeStartBtn" disabled onclick="startMergeStudy()">选择单词本后开始 →</button>
-    <button class="merge-start-btn secondary teacher-only" id="mergeTodayBtn" disabled onclick="saveMixedLibraryForDay(0)" style="display:none">应用到今天</button>
   </div>
 </div>
 

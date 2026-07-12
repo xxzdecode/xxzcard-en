@@ -102,6 +102,8 @@ function resetStudentRuntimeView() {
   activeTaskDeck = [];
   activeTaskAllCards = [];
   activeTaskReturn = 'home';
+  activeChallengeRecorded = false;
+  challengeAttemptSaving = false;
   studyDeck = [];
   studyIsGlobal = false;
   studyMode = '';

@@ -12,7 +12,7 @@ const TASK_MODES = {
 const TASK_SOURCES = {
   today: {
     async resolve() {
-      const batch = latestVisibleBatch();
+      const batch = getTodayTaskBatch();
       if (!batch) {
         alert('还没有可用的单词卡');
         return null;
@@ -98,6 +98,8 @@ function beginTaskRuntime(task, mode, deck) {
   activeTaskDeck = deck;
   activeTaskAllCards = task.allCards && task.allCards.length >= 4 ? task.allCards : deck;
   activeTaskReturn = task.returnTo || 'home';
+  activeChallengeRecorded = false;
+  challengeAttemptSaving = false;
   if (task.batchId) currentBatchId = String(task.batchId);
 }
 

@@ -2,10 +2,18 @@
 // ══════════════════════════════════════
 async function showMergeSelect() {
   mergeSelected = new Set();
+  taskAssignmentDay = '';
+  taskAssignmentType = '';
   const batches = visibleBatches();
   const list = document.getElementById('mergeList');
   list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-light);font-size:13px">加载中…</div>';
   showScreen('screenMerge');
+  const title = document.querySelector('#screenMerge .topbar-title');
+  const hint = document.querySelector('#screenMerge .topbar + div');
+  const controls = document.getElementById('taskAssignmentControls');
+  if (title) title.textContent = '🔀 合并练习';
+  if (hint) hint.textContent = '选择要合并的单词本（智能抽取 15 张）';
+  if (controls) controls.style.display = 'none';
   const urecMap = {};
   await Promise.all(batches.map(async b => { urecMap[b.id] = await loadUserBatch(b.id); }));
   list.innerHTML = '';
@@ -36,25 +44,11 @@ function toggleMergeItem(id) {
 
 function updateMergeBtn() {
   const btn = document.getElementById('mergeStartBtn');
-  const todayBtn = document.getElementById('mergeTodayBtn');
   const n = mergeSelected.size;
   if (isTeacher()) {
-    if (todayBtn) todayBtn.style.display = '';
-    if (n < 1) {
-      btn.disabled = true;
-      btn.textContent = '至少选择 1 个单词本';
-      if (todayBtn) todayBtn.disabled = true;
-    } else {
-      btn.disabled = false;
-      btn.textContent = `应用到明天（${n} 个）`;
-      if (todayBtn) {
-        todayBtn.disabled = false;
-        todayBtn.textContent = `应用到今天（${n} 个）`;
-      }
-    }
+    updateTaskAssignmentControls();
     return;
   }
-  if (todayBtn) todayBtn.style.display = 'none';
   if (n < 1) { btn.disabled = true; btn.textContent = '至少选 1 个单词本'; }
   else { btn.disabled = false; btn.textContent = `合并 ${n} 个单词本，开始练习 →`; }
 }

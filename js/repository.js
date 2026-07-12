@@ -320,6 +320,7 @@ async function initData() {
   }
   if (!data.pin) data.pin = null;
   if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
+  if (!Array.isArray(data.taskAssignments)) data.taskAssignments = [];
   normalizePhonemeLibrary(data);
   normalizeAppData(data);
   if (sbOnline) syncSupabaseMirrorIfDue(false);

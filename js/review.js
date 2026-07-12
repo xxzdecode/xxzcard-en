@@ -18,7 +18,7 @@ function buildReviewSteps(deck) {
   const pool = deck.slice(0, 20);
   const matchCards = pool.slice(0, 8);
   for (let i = 0; i < matchCards.length; i += 4) {
-    reviewSteps.push({ type: 'match', cards: matchCards.slice(i, i + 4) });
+    reviewSteps.push(getQuestionType('review', 'match').build(matchCards.slice(i, i + 4)));
   }
   addReviewTypeSteps('repeat', pool.slice(8, 12));
   addReviewTypeSteps('blank', pool.slice(12, 15));
@@ -28,7 +28,8 @@ function buildReviewSteps(deck) {
 }
 
 function addReviewTypeSteps(type, cards) {
-  cards.forEach(card => reviewSteps.push({ type, card }));
+  const questionType = getQuestionType('review', type);
+  cards.forEach(card => reviewSteps.push(questionType.build(card, activeTaskAllCards)));
 }
 
 function renderReviewStep() {
@@ -40,35 +41,13 @@ function renderReviewStep() {
   document.getElementById('reviewModeLabel').textContent = activeTask.title + (reviewRound > 1 ? ' · 错题再练' : '');
   document.getElementById('reviewCount').textContent = `${reviewIndex + 1}/${reviewSteps.length}`;
   document.getElementById('reviewFill').style.width = `${((reviewIndex + 1) / reviewSteps.length) * 100}%`;
-  if (step.type === 'match') renderReviewMatch(step);
-  if (step.type === 'repeat') renderReviewRepeat(step.card);
-  if (step.type === 'blank') renderReviewBlank(step.card);
-  if (step.type === 'listen') renderReviewListen(step.card);
-  if (step.type === 'sort') renderReviewSort(step.card);
+  const questionType = getQuestionType('review', step.type);
+  if (!questionType) throw new Error(`未注册的温习题型: ${step.type}`);
+  questionType.render(step);
 }
 
 function reviewCardShell(type, body) {
   document.getElementById('reviewWrap').innerHTML = `<div class="review-card"><span class="review-type">${type}</span>${body}</div>`;
-}
-
-function renderReviewMatch(step) {
-  reviewMatchSelection = null;
-  reviewMatchPairsDone = 0;
-  reviewMatchLocked = false;
-  step.tiles = step.cards.flatMap(c => [
-    { side: 'en', en: getCardWord(c), text: getCardWord(c) },
-    { side: 'zh', en: getCardWord(c), text: getCardMeaning(c) || getCardWord(c) }
-  ]).sort(() => Math.random() - 0.5);
-  reviewCardShell('对对碰', `
-    <div class="match-preview-grid">
-      ${step.cards.map(c => `
-        <div class="match-preview-card">
-          <div class="match-preview-emoji">${c.emoji || '📚'}</div>
-          <div class="match-preview-en">${getCardWord(c)}</div>
-          <div class="match-preview-zh">${getCardMeaning(c)}</div>
-        </div>`).join('')}
-    </div>
-    <button class="review-action secondary" onclick="startReviewMatchPlay()">我记住了</button>`);
 }
 
 function startReviewMatchPlay() {
@@ -115,55 +94,6 @@ function chooseReviewMatch(btn, total) {
   }
 }
 
-function renderReviewRepeat(card) {
-  const word = getCardWord(card);
-  const meaning = getCardMeaning(card);
-  reviewCardShell('跟读', `
-    <div class="review-question">${word}</div>
-    <div class="review-sub">${meaning}</div>
-    <button class="review-action" onclick="speakWord('${escapeJs(word)}')">🔊 播放发音</button>
-    <button class="review-action secondary" onclick="nextReviewStep()">我读完了</button>`);
-  speakWord(word);
-}
-
-function renderReviewBlank(card) {
-  const word = getCardWord(card);
-  const answer = simpleWord(word);
-  const part = makeMissingPart(answer);
-  const options = makeSegmentOptions(part.missing, answer);
-  reviewCardShell('缺字母选择', `
-    <div class="review-spell-word">${part.masked}</div>
-    <div class="review-sub">${getCardMeaning(card)}</div>
-    <div class="review-options">
-      ${options.map(o => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(o)}','${escapeJs(part.missing)}','${escapeJs(word)}')">${o}</button>`).join('')}
-    </div>`);
-}
-
-function renderReviewListen(card) {
-  const word = getCardWord(card);
-  const options = makeWordOptions(card);
-  reviewCardShell('听音选词', `
-    <button class="review-action" onclick="speakWord('${escapeJs(word)}')">🔊 播放</button>
-    <div class="review-options">
-      ${options.map(o => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(o)}','${escapeJs(word)}','${escapeJs(word)}')">${o}</button>`).join('')}
-    </div>`);
-  speakWord(word);
-}
-
-function renderReviewSort(card) {
-  reviewSortPicked = [];
-  const word = getCardWord(card);
-  const letters = simpleWord(word).split('').sort(() => Math.random() - 0.5);
-  reviewCardShell('字母排序', `
-    <div class="review-question">${getCardMeaning(card)}</div>
-    <div class="review-sub">把字母排成正确的英文单词</div>
-    <div class="review-answer-box" id="reviewSortAnswer"></div>
-    <div class="review-letter-row" id="reviewLetterRow">
-      ${letters.map((l, i) => `<button class="review-letter" data-i="${i}" onclick="pickReviewLetter(this,'${escapeJs(l)}')">${l}</button>`).join('')}
-    </div>
-    <button class="review-action" onclick="checkReviewSort('${escapeJs(word)}')">确认</button>`);
-}
-
 function answerReviewChoice(btn, picked, answer, cardEn) {
   const ok = String(picked).toLowerCase() === String(answer).toLowerCase();
   document.querySelectorAll('.review-opt').forEach(b => b.disabled = true);
@@ -177,17 +107,12 @@ function answerReviewChoice(btn, picked, answer, cardEn) {
   }
 }
 
-function pickReviewLetter(btn, letter) {
-  btn.disabled = true;
-  btn.style.opacity = '0.35';
-  reviewSortPicked.push(letter);
-  document.getElementById('reviewSortAnswer').textContent = reviewSortPicked.join('');
-}
-
 function checkReviewSort(cardEn) {
   const answer = simpleWord(cardEn);
-  if (reviewSortPicked.length < answer.length) return;
-  const ok = reviewSortPicked.join('').toLowerCase() === answer.toLowerCase();
+  if (!reviewOrderController || !reviewOrderController.isComplete()) return;
+  const picked = reviewOrderController.value();
+  reviewOrderController.lock();
+  const ok = picked.toLowerCase() === answer.toLowerCase();
   if (ok) {
     nextReviewStep();
   } else {
@@ -304,32 +229,6 @@ function nextWrongReviewCard() {
 
 function finishReviewToSource() {
   finishTaskToSource();
-}
-
-function simpleWord(en) {
-  return String(en || '').split('/')[0].trim().replace(/[^a-zA-Z]/g, '').toLowerCase();
-}
-
-function makeMissingPart(answer) {
-  const len = Math.min(2, Math.max(1, answer.length));
-  const maxStart = Math.max(0, answer.length - len);
-  const start = Math.floor(Math.random() * (maxStart + 1));
-  const missing = answer.slice(start, start + len);
-  return {
-    missing,
-    masked: answer.slice(0, start) + '_'.repeat(missing.length) + answer.slice(start + len)
-  };
-}
-
-function makeSegmentOptions(answer, word) {
-  const pool = ['pp','oo','ee','ai','ch','sh','th','st','ar','or','le','an','in','er'].filter(x => x !== answer);
-  return [answer, ...pool.sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
-}
-
-function makeWordOptions(card) {
-  const word = getCardWord(card);
-  const others = activeTaskAllCards.filter(c => getCardWord(c) !== word).map(getCardWord);
-  return [word, ...others.sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
 }
 
 function escapeJs(s) {

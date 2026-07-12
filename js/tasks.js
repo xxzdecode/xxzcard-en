@@ -42,8 +42,7 @@ async function getTodayCheckInCount() {
   if (isTeacher()) return 0;
   const data = await loadDailyTaskData();
   const today = data[isoDate()] || {};
-  const hasToday = !!(today.todayChallenge && today.todayChallenge.checkedIn)
-    || Object.keys(today).some(k => k.indexOf('batchChallenge_') === 0 && today[k] && today[k].checkedIn);
+  const hasToday = !!(today.todayChallenge && today.todayChallenge.checkedIn);
   const hasMixed = !!(today.mixedChallenge && today.mixedChallenge.checkedIn);
   return Math.min(2, (hasToday ? 1 : 0) + (hasMixed ? 1 : 0));
 }
@@ -62,32 +61,89 @@ async function saveReviewComplete(taskKey) {
 }
 
 async function canStartChallenge(taskKey) {
-  const { entry } = await getTaskEntry(taskKey);
+  const { entry } = await getChallengeTaskEntry(taskKey);
   return (entry.attempts || 0) < 2;
 }
 
+function isLocalBatchChallenge(taskKey) {
+  return String(taskKey || '').indexOf('batchChallenge_') === 0;
+}
+
+function localBatchChallengeKey(taskKey) {
+  return ['wc_batch_challenge_v1', currentUser, isoDate(), taskKey].join('_');
+}
+
+async function getChallengeTaskEntry(taskKey) {
+  if (!isLocalBatchChallenge(taskKey)) return await getTaskEntry(taskKey);
+  const storageKey = localBatchChallengeKey(taskKey);
+  let entry = {};
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    if (saved && typeof saved === 'object' && !Array.isArray(saved)) entry = saved;
+  } catch (e) {
+    console.warn('Invalid local batch challenge record', e);
+  }
+  return { entry, storageKey };
+}
+
+async function saveChallengeTaskEntry(record) {
+  if (!record.storageKey) return await saveDailyTaskData(record.data);
+  try {
+    localStorage.setItem(record.storageKey, JSON.stringify(record.entry));
+    return true;
+  } catch (e) {
+    showStorageError(e);
+    return false;
+  }
+}
+
 async function completeActiveChallenge(correct, total) {
-  if (!activeTask || activeTask.mode !== 'challenge') return;
+  if (!activeTask || activeTask.mode !== 'challenge') return false;
+  if (activeChallengeRecorded) return true;
+  if (challengeAttemptSaving) return false;
+  challengeAttemptSaving = true;
   const score = total > 0 ? Math.round((correct / total) * 100) : 0;
-  const { data, entry } = await getTaskEntry(activeTask.key);
-  entry.attempts = (entry.attempts || 0) + 1;
-  entry.bestScore = Math.max(entry.bestScore || 0, score);
-  entry.checkedIn = true;
-  if (!await saveDailyTaskData(data)) return;
-  await renderCheckInStrip();
+  try {
+    const record = await getChallengeTaskEntry(activeTask.key);
+    record.entry.attempts = (record.entry.attempts || 0) + 1;
+    record.entry.bestScore = Math.max(record.entry.bestScore || 0, score);
+    record.entry.checkedIn = true;
+    if (!await saveChallengeTaskEntry(record)) return false;
+    activeChallengeRecorded = true;
+    if (!record.storageKey) await renderCheckInStrip();
+    return true;
+  } finally {
+    challengeAttemptSaving = false;
+  }
+}
+
+async function confirmExitChallenge() {
+  if (!activeTask || activeTask.mode !== 'challenge') {
+    showScreen('screenHome');
+    await loadHome();
+    return;
+  }
+  if (challengeAttemptSaving) return;
+  if (!confirm('确定要退出吗，退出默认此次挑战机会作废哦~')) return;
+  const saved = await completeActiveChallenge(dqCorrect, dqQuestions.length || 10);
+  if (!saved) return;
+  resetStudentRuntimeView();
+  showScreen('screenHome');
+  await loadHome();
 }
 
 async function updateHomeTaskButtons(batches) {
-  const latest = batches[0];
+  const latest = getTodayTaskBatch();
   const mixed = await getMixedTaskBatches();
-  const mixedLabelBatches = mixed.length > 0 ? getMixedLabelBatches(mixed) : [];
-  const mixedDateText = mixedLabelBatches.length > 0 ? mixedBatchDateSummary(mixedLabelBatches) : '';
+  const mixedNameText = mixed.length > 0 ? mixed.map(batch => batch.name).join('、') : '';
   const todayReview = latest ? await reviewStatus('todayReview', latest.name) : { text: '暂无单词卡', state: '' };
   const todayChallenge = latest ? await challengeStatus('todayChallenge') : { text: '暂无单词卡', state: '' };
-  const mixedReview = mixed.length > 0 ? await reviewStatus('mixedReview', mixedDateText) : { text: '暂无混合词库', state: '' };
+  const mixedReview = mixed.length > 0 ? await reviewStatus('mixedReview', mixedNameText) : { text: '暂无混合词库', state: '' };
   const mixedChallenge = mixed.length > 0 ? await challengeStatus('mixedChallenge') : { text: '暂无混合词库', state: '' };
-  if (mixed.length > 0) mixedReview.text = mixedDateText;
-  if (mixed.length > 0) mixedChallenge.text = mixedDateText;
+  if (latest) todayReview.text = latest.name;
+  if (latest && !todayChallenge.state) todayChallenge.text = latest.name;
+  if (mixed.length > 0) mixedReview.text = mixedNameText;
+  if (mixed.length > 0 && !mixedChallenge.state) mixedChallenge.text = mixedNameText;
   setTaskButton('todayReviewBtn', !!latest, todayReview.text, todayReview.state);
   setTaskButton('todayChallengeBtn', !!latest && todayChallenge.state !== 'locked', todayChallenge.text, todayChallenge.state);
   setTaskButton('mixedReviewBtn', mixed.length > 0, mixedReview.text, mixedReview.state);
@@ -121,7 +177,7 @@ async function reviewStatus(taskKey, defaultText) {
 }
 
 async function challengeStatus(taskKey) {
-  const { entry } = await getTaskEntry(taskKey);
+  const { entry } = await getChallengeTaskEntry(taskKey);
   const attempts = entry.attempts || 0;
   if (attempts >= 2) return { text: `今日最高 ${entry.bestScore || 0} 分`, state: 'locked' };
   if (attempts > 0) return { text: `最高 ${entry.bestScore || 0} 分 · 还可再来 ${2 - attempts} 次`, state: 'done' };
@@ -143,46 +199,33 @@ function latestVisibleBatch() {
   return getVisibleBatchesNewestFirst()[0] || null;
 }
 
-function formatBatchDateLabel(batch) {
-  const name = String(batch && batch.name ? batch.name : '');
-  const nameDate = getLastBatchDateFromText(name);
-  if (nameDate) return batchDateLabelFromISO(nameDate);
-
-  const date = String(batch && batch.date ? batch.date : '').trim();
-  let match = date.match(/^\d{4}[-./](\d{1,2})[-./](\d{1,2})$/);
-  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
-  match = date.match(/^(\d{1,2})[-./](\d{1,2})$/);
-  if (match) return `${match[1].padStart(2, '0')}.${match[2].padStart(2, '0')}`;
-  return '';
+function getTaskAssignment(date) {
+  const assignments = Array.isArray(appData.taskAssignments) ? appData.taskAssignments : [];
+  return [...assignments].reverse().find(item => item && item.date === date) || null;
 }
 
-function mixedBatchDateSummary(batches) {
-  const labels = [];
-  batches.forEach(batch => {
-    const label = formatBatchDateLabel(batch);
-    if (label && !labels.includes(label)) labels.push(label);
-  });
-  return labels.length > 0 ? labels.join('、') : `${batches.length} 组单词卡`;
-}
-
-function getTodayMixedAssignmentBatches() {
-  const assignments = Array.isArray(appData.mixedAssignments) ? appData.mixedAssignments : [];
-  const today = isoDate();
-  const picked = [...assignments].reverse().find(a => a.date === today && Array.isArray(a.batchIds));
-  if (!picked) return [];
-  return picked.batchIds
-    .map(id => appData.batches.find(b => String(b.id) === String(id)))
-    .filter(Boolean);
-}
-
-function getMixedLabelBatches(activeBatches) {
-  const assigned = getTodayMixedAssignmentBatches();
-  return assigned.length > 0 ? assigned : activeBatches;
+function getTodayTaskBatch() {
+  const visible = getVisibleBatchesNewestFirst();
+  const visibleIds = new Set(visible.map(batch => String(batch.id)));
+  const assignment = getTaskAssignment(isoDate());
+  if (assignment && assignment.todayBatchId != null) {
+    const selected = appData.batches.find(batch => String(batch.id) === String(assignment.todayBatchId));
+    if (selected && visibleIds.has(String(selected.id))) return selected;
+  }
+  return visible[0] || null;
 }
 
 async function getMixedTaskBatches() {
   const visible = getVisibleBatchesNewestFirst();
   const visibleIds = new Set(visible.map(b => String(b.id)));
+  const taskAssignment = getTaskAssignment(isoDate());
+  if (taskAssignment && Array.isArray(taskAssignment.mixedBatchIds)) {
+    const selected = taskAssignment.mixedBatchIds
+      .map(id => appData.batches.find(b => String(b.id) === String(id)))
+      .filter(b => b && visibleIds.has(String(b.id)));
+    if (selected.length > 0) return selected;
+    return visible.slice(0, 3);
+  }
   const assignments = Array.isArray(appData.mixedAssignments) ? appData.mixedAssignments : [];
   const today = isoDate();
   const picked = [...assignments].reverse().find(a => a.date === today && Array.isArray(a.batchIds));
@@ -225,7 +268,7 @@ async function prioritizedTaskDeck(cards, limit, batchId) {
 }
 
 async function startTodayReview() {
-  const batch = latestVisibleBatch();
+  const batch = getTodayTaskBatch();
   if (!batch) { alert('还没有可用的单词卡'); return; }
   await startReviewTask({
     key: 'todayReview',
@@ -238,7 +281,7 @@ async function startTodayReview() {
 }
 
 async function startTodayChallenge() {
-  const batch = latestVisibleBatch();
+  const batch = getTodayTaskBatch();
   if (!batch) { alert('还没有可用的单词卡'); return; }
   await startChallengeTask({
     key: 'todayChallenge',
@@ -364,11 +407,13 @@ async function showTeacherMixSelect() {
   if (!isTeacher()) return;
   if (!canWriteCloudData()) return;
   mergeSelected = new Set();
+  taskAssignmentDay = '';
+  taskAssignmentType = '';
   showScreen('screenMerge');
   const title = document.querySelector('#screenMerge .topbar-title');
-  if (title) title.textContent = '🔀 设置混合词库';
+  if (title) title.textContent = '📋 任务词库设置';
   const hint = document.querySelector('#screenMerge .topbar + div');
-  if (hint) hint.textContent = '选择多个单词本，应用到今天或明天的混合温习 / 混合挑战';
+  if (hint) hint.textContent = '先选择单词本，再选择生效日期和任务类型';
   const list = document.getElementById('mergeList');
   list.innerHTML = '';
   getVisibleBatchesNewestFirst().forEach(batch => {
@@ -386,33 +431,75 @@ async function showTeacherMixSelect() {
   });
   const bar = document.getElementById('mergeStartBar');
   const btn = document.getElementById('mergeStartBtn');
-  const todayBtn = document.getElementById('mergeTodayBtn');
+  const controls = document.getElementById('taskAssignmentControls');
   if (bar) bar.style.display = '';
+  if (controls) controls.style.display = '';
   if (btn) {
     btn.disabled = true;
-    btn.textContent = '至少选择 1 个单词本';
-    btn.onclick = () => saveMixedLibraryForDay(1);
+    btn.textContent = '请选择单词本和应用位置';
+    btn.onclick = saveTaskLibraryAssignment;
   }
-  if (todayBtn) {
-    todayBtn.style.display = '';
-    todayBtn.disabled = true;
-    todayBtn.textContent = '应用到今天';
+  updateTaskAssignmentControls();
+}
+
+function selectTaskAssignmentOption(group, value) {
+  if (!isTeacher()) return;
+  if (group === 'day') taskAssignmentDay = value;
+  if (group === 'type') taskAssignmentType = value;
+  updateTaskAssignmentControls();
+}
+
+function updateTaskAssignmentControls() {
+  const optionStates = {
+    assignmentDayToday: taskAssignmentDay === 'today',
+    assignmentDayTomorrow: taskAssignmentDay === 'tomorrow',
+    assignmentTypeToday: taskAssignmentType === 'today',
+    assignmentTypeMixed: taskAssignmentType === 'mixed'
+  };
+  Object.entries(optionStates).forEach(([id, selected]) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('selected', selected);
+  });
+  const btn = document.getElementById('mergeStartBtn');
+  if (!btn || !isTeacher()) return;
+  const count = mergeSelected.size;
+  const tooManyForToday = taskAssignmentType === 'today' && count > 1;
+  const ready = count > 0 && !!taskAssignmentDay && !!taskAssignmentType && !tooManyForToday;
+  btn.disabled = !ready;
+  if (tooManyForToday) {
+    btn.textContent = '今日任务只能选择 1 个单词本';
+  } else if (!taskAssignmentDay || !taskAssignmentType) {
+    btn.textContent = count > 0 ? '请选择应用位置' : '请选择单词本和应用位置';
+  } else if (count < 1) {
+    btn.textContent = '至少选择 1 个单词本';
+  } else {
+    const dayText = taskAssignmentDay === 'today' ? '今天' : '明天';
+    const typeText = taskAssignmentType === 'today' ? '今日任务' : '混合任务';
+    btn.textContent = `应用到${dayText}的${typeText}`;
   }
 }
 
-async function saveMixedLibraryForDay(offsetDays) {
+async function saveTaskLibraryAssignment() {
   const ids = Array.from(mergeSelected);
   if (ids.length < 1) return;
+  if (!taskAssignmentDay || !taskAssignmentType) return;
+  if (taskAssignmentType === 'today' && ids.length !== 1) return;
   if (!canWriteCloudData()) return;
-  if (!Array.isArray(appData.mixedAssignments)) appData.mixedAssignments = [];
-  const offset = Number(offsetDays) === 0 ? 0 : 1;
-  appData.mixedAssignments.push({ date: isoDate(offset), batchIds: ids.map(String), createdAt: Date.now() });
+  if (!Array.isArray(appData.taskAssignments)) appData.taskAssignments = [];
+  const offset = taskAssignmentDay === 'today' ? 0 : 1;
+  const date = isoDate(offset);
+  let assignment = [...appData.taskAssignments].reverse().find(item => item && item.date === date);
+  if (!assignment) {
+    assignment = { date };
+    appData.taskAssignments.push(assignment);
+  }
+  if (taskAssignmentType === 'today') assignment.todayBatchId = String(ids[0]);
+  else assignment.mixedBatchIds = ids.map(String);
+  assignment.updatedAt = Date.now();
   if (!await saveData(appData)) return;
-  alert(offset === 0 ? '已应用到今天的混合词库' : '已应用到明天的混合词库');
+  const dayText = taskAssignmentDay === 'today' ? '今天' : '明天';
+  const typeText = taskAssignmentType === 'today' ? '今日任务' : '混合任务';
+  alert(`已应用到${dayText}的${typeText}`);
   showScreen('screenHome');
   loadHome();
-}
-
-async function saveTomorrowMixedLibrary() {
-  await saveMixedLibraryForDay(1);
 }

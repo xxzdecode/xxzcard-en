@@ -19,6 +19,8 @@ let dqSelectedOpt = null;
 // merge
 let mergeSelected = new Set();
 let mergeSourceBatches = [];
+let taskAssignmentDay = '';
+let taskAssignmentType = '';
 // result context (to know what to retry)
 let resultContext = ''; // 'quiz' | 'daily' | 'merge-daily'
 let resultMergeMode = '';
@@ -27,10 +29,11 @@ let activeTask = null;
 let activeTaskDeck = [];
 let activeTaskAllCards = [];
 let activeTaskReturn = 'home';
+let activeChallengeRecorded = false;
+let challengeAttemptSaving = false;
 let reviewSteps = [], reviewIndex = 0, reviewWrongCards = [], reviewRound = 1;
 let reviewMatchSelection = null, reviewMatchPairsDone = 0;
 let reviewMatchLocked = false;
-let reviewSortPicked = [];
 let reviewWrongIndex = 0;
 let wordListExpanded = true;
 let studentWordCards = [], studentWordIndex = 0;

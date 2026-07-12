@@ -73,7 +73,7 @@ async function loadHome() {
     });
   }
   const mergeEntryBtn = document.getElementById('mergeEntryBtn');
-  mergeEntryBtn.style.display = (isTeacher() && appData.batches.length >= 2) ? 'flex' : 'none';
+  mergeEntryBtn.style.display = (isTeacher() && appData.batches.length >= 1) ? 'flex' : 'none';
 
   if (!isTeacher()) await updateHomeTaskButtons(batches);
 }
