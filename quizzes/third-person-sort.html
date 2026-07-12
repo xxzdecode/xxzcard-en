@@ -2,600 +2,904 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>三单变位分类小游戏（马卡龙版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>第三人称单数动词分类练习</title>
   <style>
     :root {
-      --bg: #fffaf7;
-      --panel: rgba(255,255,255,0.88);
-      --panel-2: #fffefc;
-      --text: #5b5663;
-      --muted: #8d8794;
-      --border: #eedfe7;
-      --pink: #ffd9e6;
-      --pink-deep: #f3a7bf;
-      --purple: #e8dcff;
-      --purple-deep: #b9a4ea;
-      --mint: #d8f4ea;
-      --mint-deep: #8bc6b3;
-      --blue: #dcecff;
-      --blue-deep: #93b6e4;
-      --yellow: #fff2c9;
-      --yellow-deep: #ebc97c;
-      --peach: #ffe4d6;
-      --peach-deep: #eba988;
-      --right: #def7df;
-      --wrong: #ffd7d7;
-      --shadow: 0 14px 36px rgba(215, 183, 196, 0.18);
+      --page-bg: #fff4f7;
+      --panel-bg: #fffdfc;
+      --title: #e88fa3;
+      --mint: #a8d8c8;
+      --mint-deep: #5f9f8c;
+      --mint-soft: #dff3ea;
+      --knowledge: #fff0c9;
+      --knowledge-border: #f1d995;
+      --correct: #d7f3dc;
+      --correct-border: #94cfa0;
+      --wrong: #ffd9d9;
+      --wrong-border: #eba0a0;
+      --selected: #fff0f5;
+      --selected-border: #f3b6c7;
+      --text: #625b63;
+      --muted: #8a7f86;
+      --line: #efdde4;
+      --shadow: 0 10px 28px rgba(220, 170, 180, 0.16);
+      --gap: 12px;
+      --feedback-height: 50px;
+      --tap-min: 44px;
     }
 
     * { box-sizing: border-box; }
 
+    html,
     body {
+      width: 100%;
+      height: 100%;
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-      background:
-        radial-gradient(circle at top left, #ffeef5 0%, transparent 28%),
-        radial-gradient(circle at top right, #eaf5ff 0%, transparent 24%),
-        linear-gradient(180deg, #fffdfb, var(--bg));
+      overflow: hidden;
+      background: var(--page-bg);
       color: var(--text);
-      min-height: 100vh;
-      padding: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
     }
 
-    .app {
-      max-width: 1060px;
-      margin: 0 auto;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
-      margin-bottom: 14px;
-    }
-
-    header.panel {
-      padding: 20px;
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
-      color: #695f77;
-    }
-
-    h2 {
-      margin: 0 0 12px;
-      font-size: 20px;
-      color: #6e647b;
-    }
-
-    .tip {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.65;
-      font-size: 15px;
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 14px;
-      align-items: center;
-    }
+    button { font: inherit; }
 
     button {
-      border: none;
+      min-height: var(--tap-min);
+      border: 0;
       border-radius: 999px;
-      padding: 11px 16px;
+      padding: 9px 16px;
+      color: #fff;
+      background: var(--mint);
       font-weight: 800;
-      font-size: 14px;
       cursor: pointer;
-      color: #675b6f;
-      background: linear-gradient(180deg, #fff8fd, #ffe7f0);
-      box-shadow: 0 6px 14px rgba(225, 173, 195, 0.24);
-      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+      box-shadow: 0 5px 12px rgba(120,183,162,.2);
     }
 
-    button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 9px 18px rgba(225, 173, 195, 0.28);
-    }
+    button:active { transform: translateY(1px) scale(.99); }
 
     button.secondary {
-      background: linear-gradient(180deg, #f7f0ff, #ebe0ff);
+      color: var(--mint-deep);
+      background: var(--mint-soft);
+      box-shadow: none;
     }
 
-    button.warning {
-      background: linear-gradient(180deg, #fff4eb, #ffe3d1);
+    button.ghost {
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--line);
+      box-shadow: none;
     }
 
-    .score {
-      margin-left: auto;
-      padding: 10px 15px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, #f4fffb, #e5faf2);
-      border: 1px solid #d8efe7;
-      color: #5d8b7d;
-      font-weight: 900;
-    }
-
-    .word-bank {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      min-height: 92px;
-      padding: 10px;
-      border: 2px dashed #ecd9e5;
-      border-radius: 20px;
-      background: linear-gradient(180deg, #fffefc, #fff8fb);
-      transition: background .12s ease, border-color .12s ease, transform .12s ease;
-      position: relative;
-    }
-
-    .drop-zone::before {
-      content: "把词卡拖到这里，可以放回词卡区";
-      position: absolute;
-      top: 10px;
-      right: 14px;
+    button.small {
+      min-height: 36px;
+      padding: 6px 11px;
       font-size: 12px;
-      color: #b2a5b4;
-      font-weight: 700;
-      pointer-events: none;
+      box-shadow: none;
     }
 
-    .word-bank.over {
-      background: linear-gradient(180deg, #fffdfd, #fef1f6);
-      border-color: #d8bee6;
-      transform: translateY(-1px);
+    button:focus-visible,
+    .word-card:focus-visible,
+    .bin:focus-visible {
+      outline: 3px solid var(--selected-border);
+      outline-offset: 2px;
     }
 
-    .word {
-      user-select: none;
-      padding: 10px 14px;
-      border-radius: 999px;
-      font-weight: 800;
-      cursor: grab;
-      display: inline-flex;
-      gap: 6px;
-      align-items: center;
-      background: linear-gradient(180deg, #fffaf0, var(--yellow));
-      border: 1px solid #f1deb1;
-      color: #6c5e43;
-      box-shadow: 0 4px 10px rgba(240, 210, 142, 0.18);
-    }
-
-    .word small {
-      font-weight: 700;
-      color: #8b7c5f;
-    }
-
-    .word.selected {
-      outline: 3px solid #cbb6f4;
-      background: linear-gradient(180deg, #faf6ff, #efe5ff);
-    }
-
-    .bins {
+    .practice-app {
+      width: 100vw;
+      height: 100dvh;
+      padding:
+        max(10px, env(safe-area-inset-top))
+        max(10px, env(safe-area-inset-right))
+        max(10px, env(safe-area-inset-bottom))
+        max(10px, env(safe-area-inset-left));
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-rows: auto minmax(0, 1fr) var(--feedback-height);
+      gap: var(--gap);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(255,255,255,.75), transparent 30%),
+        linear-gradient(180deg, #fff7f9 0%, var(--page-bg) 100%);
     }
 
-    .bin {
-      min-height: 200px;
-      border: 2px dashed #e7dce9;
+    .practice-header {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: minmax(210px, auto) minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: rgba(255,253,252,.96);
+      border: 1px solid var(--line);
       border-radius: 22px;
-      padding: 14px;
-      background: var(--panel-2);
-      transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      box-shadow: var(--shadow);
     }
 
-    .bin:nth-child(1) { background: linear-gradient(180deg, #fffdfd, #fff2f6); }
-    .bin:nth-child(2) { background: linear-gradient(180deg, #fffefd, #fff5e9); }
-    .bin:nth-child(3) { background: linear-gradient(180deg, #fcfffd, #eefaf6); }
-    .bin:nth-child(4) { background: linear-gradient(180deg, #fdfdff, #f1ecff); }
+    .title-block { min-width: 0; }
 
-    .bin.over {
-      border-color: #bda4ef;
-      transform: translateY(-1px);
+    h1 {
+      margin: 0;
+      color: var(--title);
+      font-size: clamp(21px, 2.2vw, 30px);
+      line-height: 1.08;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .bin-title {
-      font-size: 17px;
-      font-weight: 900;
-      margin-bottom: 6px;
-      color: #6b6377;
-    }
-
-    .bin-rule {
-      font-size: 13px;
-      line-height: 1.5;
+    .subtitle {
+      margin-top: 4px;
       color: var(--muted);
-      min-height: 42px;
-      margin-bottom: 10px;
+      font-size: clamp(12px, 1.25vw, 15px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .bin-content {
+    .knowledge-strip {
+      min-width: 0;
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      min-height: 98px;
-    }
-
-    .result {
-      margin-top: 12px;
-      padding: 12px 14px;
-      border-radius: 18px;
-      background: #faf7ff;
-      border: 1px solid #ece1fa;
-      color: var(--text);
-      line-height: 1.7;
-      display: none;
-    }
-
-    .result.show { display: block; }
-
-    .correct { background: var(--right) !important; border-color: #9ad6a1 !important; }
-    .incorrect { background: var(--wrong) !important; border-color: #ef9f9f !important; }
-
-    details {
-      border: 1px solid var(--border);
-      border-radius: 18px;
+      align-content: center;
+      gap: 6px;
+      max-height: 72px;
       overflow: hidden;
-      background: linear-gradient(180deg, #fffefe, #fff8fb);
     }
 
-    summary {
-      list-style: none;
-      cursor: pointer;
-      padding: 14px 16px;
-      font-weight: 900;
-      color: #6b6476;
+    .knowledge-chip {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--knowledge);
+      border: 1px solid var(--knowledge-border);
+      color: #7b6843;
+      font-size: clamp(12px, 1.2vw, 15px);
+      font-weight: 700;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .header-actions {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
+      gap: 8px;
+      white-space: nowrap;
     }
 
-    summary::-webkit-details-marker { display: none; }
-
-    .summary-note {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 700;
+    .progress-pill {
+      min-height: var(--tap-min);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 13px;
+      border-radius: 999px;
+      color: var(--mint-deep);
+      background: var(--mint-soft);
+      font-weight: 900;
     }
 
-    .list-grid {
+    .practice-stage {
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--panel-bg);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .sort-layout {
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: minmax(230px, .34fr) minmax(0, .66fr);
       gap: 12px;
-      padding: 0 14px 14px;
-      font-size: 14px;
-      line-height: 1.75;
-    }
-
-    .mini-card {
-      border: 1px solid #efe4eb;
-      background: rgba(255,255,255,0.78);
-      border-radius: 18px;
       padding: 12px;
     }
 
-    .mini-card b {
-      display: inline-block;
-      margin-bottom: 4px;
-      color: #7b6ca7;
+    .word-bank-panel {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
+      padding: 11px;
+      border-radius: 18px;
+      border: 1px dashed #e8cfd9;
+      background: #fff8fb;
+      overflow: hidden;
     }
 
-    @media (max-width: 860px) {
-      .bins { grid-template-columns: 1fr; }
-      .list-grid { grid-template-columns: 1fr; }
-      .score { margin-left: 0; }
+    .section-title {
+      margin: 0;
+      color: #766c74;
+      font-size: clamp(16px, 1.6vw, 20px);
     }
 
-    @media (max-width: 520px) {
-      body { padding: 10px; }
-      .panel { border-radius: 18px; padding: 14px; margin-bottom: 10px; }
-      header.panel { padding: 16px 14px; }
-      h1 { font-size: 23px; line-height: 1.2; }
-      h2 { font-size: 18px; margin-bottom: 10px; }
-      .tip { font-size: 14px; line-height: 1.55; }
-      .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      button { min-height: 42px; padding: 10px 12px; font-size: 13px; }
-      .score {
-        grid-column: 1 / -1;
-        width: 100%;
-        margin-left: 0;
-        text-align: center;
+    .word-bank {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      align-content: stretch;
+    }
+
+    .word-card {
+      min-width: 0;
+      min-height: var(--tap-min);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 7px 9px;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      color: #705f68;
+      background: #f8e9f0;
+      font-size: clamp(14px, 1.45vw, 18px);
+      font-weight: 900;
+      text-align: center;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .word-card small {
+      color: #94828a;
+      font-size: .72em;
+      font-weight: 700;
+    }
+
+    .word-card.selected {
+      background: var(--selected);
+      border-color: var(--selected-border);
+    }
+
+    .word-card.correct {
+      background: var(--correct);
+      border-color: var(--correct-border);
+    }
+
+    .word-card.incorrect {
+      background: var(--wrong);
+      border-color: var(--wrong-border);
+    }
+
+    .bins {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .bin {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 4px;
+      padding: 11px;
+      border: 2px dashed #d6dfda;
+      border-radius: 18px;
+      background: #f7fcfa;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .bin:nth-child(2) { background: #fff9ee; }
+    .bin:nth-child(3) { background: #fff5f8; }
+    .bin:nth-child(4) { background: #f5f1ff; }
+
+    .bin.over,
+    .bin.active-target {
+      border-color: var(--selected-border);
+      box-shadow: inset 0 0 0 2px rgba(243,182,199,.25);
+    }
+
+    .bin-title {
+      color: #5d8175;
+      font-size: clamp(16px, 1.55vw, 20px);
+      font-weight: 900;
+    }
+
+    .bin-rule {
+      min-height: 30px;
+      color: var(--muted);
+      font-size: clamp(11px, 1.05vw, 14px);
+      line-height: 1.25;
+    }
+
+    .bin-content {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(36px, 1fr);
+      align-content: start;
+      gap: 6px;
+      overflow: hidden;
+    }
+
+    .bin-content .word-card {
+      min-height: 36px;
+      padding: 5px 7px;
+      border-radius: 11px;
+      font-size: clamp(12px, 1.18vw, 15px);
+      background: rgba(255,255,255,.78);
+    }
+
+    .feedback-bar {
+      min-width: 0;
+      height: var(--feedback-height);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px 6px 14px;
+      border-radius: 18px;
+      background: #fffdfc;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .feedback-bar.correct {
+      background: var(--correct);
+      border-color: var(--correct-border);
+    }
+
+    .feedback-bar.wrong {
+      background: var(--wrong);
+      border-color: var(--wrong-border);
+    }
+
+    .feedback-icon { font-size: 20px; line-height: 1; }
+
+    .feedback-message { min-width: 0; }
+
+    .feedback-text {
+      min-width: 0;
+      font-size: clamp(13px, 1.3vw, 16px);
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feedback-detail {
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feedback-actions {
+      display: flex;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .rules-dialog {
+      width: min(760px, calc(100vw - 30px));
+      max-height: min(76dvh, 560px);
+      padding: 0;
+      border: 0;
+      border-radius: 22px;
+      color: var(--text);
+      background: var(--panel-bg);
+      box-shadow: 0 20px 60px rgba(120,85,100,.25);
+      overflow: hidden;
+    }
+
+    .rules-dialog::backdrop {
+      background: rgba(90,70,80,.22);
+      backdrop-filter: blur(3px);
+    }
+
+    .rules-dialog header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fff8fb;
+    }
+
+    .rules-dialog h2 { margin: 0; color: var(--title); font-size: 21px; }
+
+    .dialog-body {
+      max-height: calc(min(76dvh, 560px) - 72px);
+      padding: 16px;
+      overflow: auto;
+      line-height: 1.65;
+    }
+
+    .rule-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .rule-card {
+      padding: 11px;
+      border-radius: 15px;
+      background: var(--knowledge);
+      border: 1px solid var(--knowledge-border);
+    }
+
+    .rule-card b { color: #75613e; }
+
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --gap: 7px; --feedback-height: 42px; --tap-min: 38px; }
+
+      .practice-app {
+        padding:
+          max(6px, env(safe-area-inset-top))
+          max(7px, env(safe-area-inset-right))
+          max(6px, env(safe-area-inset-bottom))
+          max(7px, env(safe-area-inset-left));
       }
-      .word-bank { min-height: 76px; gap: 8px; padding: 9px; border-radius: 16px; }
-      .drop-zone::before { display: none; }
-      .word {
-        width: fit-content;
-        max-width: 100%;
-        min-height: 40px;
-        padding: 9px 12px;
-        touch-action: manipulation;
+
+      .practice-header {
+        grid-template-columns: minmax(170px, auto) minmax(0, 1fr) auto;
+        gap: 7px;
+        padding: 6px 8px;
+        border-radius: 16px;
       }
-      .bins { gap: 10px; }
-      .bin { min-height: 146px; border-radius: 18px; padding: 12px; }
-      .bin-rule { min-height: 0; font-size: 12px; margin-bottom: 8px; }
-      .bin-content { min-height: 64px; gap: 7px; }
-      .list-grid { gap: 9px; font-size: 13px; }
-      .mini-card { border-radius: 14px; padding: 10px; }
+
+      .subtitle { display: none; }
+      .knowledge-strip { gap: 4px; max-height: 44px; }
+      .knowledge-chip { min-height: 24px; padding: 3px 7px; font-size: 11px; }
+      .header-actions { gap: 5px; }
+      button, .progress-pill { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+      .sort-layout { grid-template-columns: minmax(190px, .31fr) minmax(0, .69fr); gap: 7px; padding: 7px; }
+      .word-bank-panel, .bin { padding: 7px; border-radius: 14px; }
+      .word-bank, .bins { gap: 5px; }
+      .word-card { min-height: 34px; padding: 4px 6px; border-radius: 10px; font-size: 12px; }
+      .bin { gap: 2px; }
+      .bin-title { font-size: 14px; }
+      .bin-rule { min-height: 22px; font-size: 10px; }
+      .bin-content { gap: 4px; grid-auto-rows: minmax(28px, 1fr); }
+      .bin-content .word-card { min-height: 28px; padding: 3px 5px; font-size: 10px; }
+      .feedback-bar { gap: 6px; padding: 3px 7px 3px 10px; border-radius: 13px; }
+      .feedback-icon { font-size: 16px; }
+      .feedback-text { font-size: 12px; }
+      .feedback-detail { display: none; }
+      button.small { min-height: 32px; padding: 4px 8px; font-size: 11px; }
+    }
+
+    @media (orientation: portrait) and (max-width: 767px) {
+      .practice-app {
+        position: fixed;
+        left: 0;
+        top: 100dvh;
+        width: 100dvh;
+        height: 100vw;
+        transform: rotate(-90deg);
+        transform-origin: top left;
+      }
+
+      .rules-dialog {
+        width: min(760px, calc(100dvh - 28px));
+        max-height: calc(100vw - 24px);
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .practice-app { max-width: 1440px; margin: 0 auto; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="panel">
-      <h1>三单变位分类小游戏</h1>
-      <p class="tip">玩法：先看上面的词卡，把词拖到正确分类里，或者先点词卡再点分类框。分类完成后点“检查答案”。这版把 <b>have → has</b> 和 <b>be → is</b> 都放进“特殊变化”里。</p>
-      <div class="toolbar">
-        <button onclick="newRound()">换一组词</button>
-        <button onclick="checkAnswer()">检查答案</button>
-        <button class="secondary" onclick="showAnswers()">显示答案</button>
-        <button class="warning" onclick="resetCurrent()">重来</button>
-        <div class="score" id="score">得分：0 / 0</div>
+  <div class="practice-app" id="practiceApp">
+    <header class="practice-header">
+      <div class="title-block">
+        <h1>第三人称单数分类</h1>
+        <div class="subtitle">点击词卡，再点击右侧分类区；也可以拖动。</div>
+      </div>
+
+      <div class="knowledge-strip" aria-label="三单变化知识摘要">
+        <span class="knowledge-chip">直接 + s｜大多数动词</span>
+        <span class="knowledge-chip">加 es｜s / x / ch / sh / o</span>
+        <span class="knowledge-chip">y → ies｜辅音字母 + y</span>
+        <span class="knowledge-chip">特殊｜have → has，be → is</span>
+      </div>
+
+      <div class="header-actions">
+        <div class="progress-pill" id="scoreText" aria-live="polite">已分类 0 / 8</div>
+        <button class="secondary" type="button" id="rulesButton">查看规则</button>
+        <button type="button" id="newRoundButton">换一组</button>
       </div>
     </header>
 
-    <section class="panel">
-      <h2>词卡区</h2>
-      <div id="wordBank" class="word-bank drop-zone"></div>
-    </section>
+    <main class="practice-stage" aria-label="第三人称单数分类练习区">
+      <div class="sort-layout">
+        <section class="word-bank-panel" aria-labelledby="wordBankTitle">
+          <h2 class="section-title" id="wordBankTitle">待分类词卡</h2>
+          <div class="word-bank" id="wordBank"></div>
+        </section>
 
-    <section class="panel">
-      <h2>分类区</h2>
-      <div class="bins">
-        <div class="bin" data-type="s">
-          <div class="bin-title">直接 + s</div>
-          <div class="bin-rule">大多数动词直接加 s<br>like → likes / play → plays</div>
-          <div class="bin-content"></div>
-        </div>
-        <div class="bin" data-type="es">
-          <div class="bin-title">加 es</div>
-          <div class="bin-rule">s / x / ch / sh / o 结尾<br>go → goes / watch → watches</div>
-          <div class="bin-content"></div>
-        </div>
-        <div class="bin" data-type="ies">
-          <div class="bin-title">变 y 为 ies</div>
-          <div class="bin-rule">辅音字母 + y 结尾<br>study → studies</div>
-          <div class="bin-content"></div>
-        </div>
-        <div class="bin" data-type="special">
-          <div class="bin-title">特殊变化</div>
-          <div class="bin-rule">have → has<br>be → is（am / are 也归这里）</div>
-          <div class="bin-content"></div>
-        </div>
+        <section class="bins" aria-label="分类区">
+          <div class="bin" tabindex="0" role="button" data-type="s">
+            <div class="bin-title">直接 + s</div>
+            <div class="bin-rule">like → likes<br />play → plays</div>
+            <div class="bin-content"></div>
+          </div>
+          <div class="bin" tabindex="0" role="button" data-type="es">
+            <div class="bin-title">加 es</div>
+            <div class="bin-rule">go → goes<br />watch → watches</div>
+            <div class="bin-content"></div>
+          </div>
+          <div class="bin" tabindex="0" role="button" data-type="ies">
+            <div class="bin-title">y → ies</div>
+            <div class="bin-rule">study → studies<br />try → tries</div>
+            <div class="bin-content"></div>
+          </div>
+          <div class="bin" tabindex="0" role="button" data-type="special">
+            <div class="bin-title">特殊变化</div>
+            <div class="bin-rule">have → has<br />be / am / are → is</div>
+            <div class="bin-content"></div>
+          </div>
+        </section>
       </div>
-      <div id="result" class="result"></div>
-    </section>
+    </main>
 
-    <section class="panel">
-      <details>
-        <summary>
-          <span>常见词清单</span>
-          <span class="summary-note">点击展开 / 收起</span>
-        </summary>
-        <div class="list-grid">
-          <div class="mini-card"><b>直接 + s</b><br>like-likes 喜欢<br>play-plays 玩<br>read-reads 读<br>eat-eats 吃<br>drink-drinks 喝<br>run-runs 跑<br>get-gets 得到<br>want-wants 想要<br>live-lives 居住<br>speak-speaks 说</div>
-          <div class="mini-card"><b>加 es</b><br>go-goes 去<br>do-does 做<br>watch-watches 看<br>wash-washes 洗<br>teach-teaches 教<br>fix-fixes 修理<br>pass-passes 经过<br>miss-misses 想念/错过<br>brush-brushes 刷<br>catch-catches 抓住</div>
-          <div class="mini-card"><b>变 y 为 ies</b><br>study-studies 学习<br>try-tries 尝试<br>fly-flies 飞<br>cry-cries 哭<br>carry-carries 携带<br>worry-worries 担心</div>
-          <div class="mini-card"><b>特殊变化</b><br>have-has 有<br>be-is 是<br>am → is（按三单变化理解）<br>are → is（按三单变化理解）<br>he is / she is / it is</div>
-        </div>
-      </details>
-    </section>
+    <footer class="feedback-bar" id="feedbackBar" aria-live="polite">
+      <span class="feedback-icon" id="feedbackIcon">△</span>
+      <div class="feedback-message">
+        <div class="feedback-text" id="feedbackText">请选择一个词卡，再点击分类区。</div>
+        <div class="feedback-detail" id="feedbackDetail">全部分类后点击“检查答案”。</div>
+      </div>
+      <div class="feedback-actions">
+        <button class="secondary small" type="button" id="resetButton">重来</button>
+        <button class="small" type="button" id="checkButton">检查答案</button>
+      </div>
+    </footer>
   </div>
+
+  <dialog class="rules-dialog" id="rulesDialog">
+    <header>
+      <h2>第三人称单数变化规则</h2>
+      <button class="ghost" type="button" id="closeRulesButton">关闭</button>
+    </header>
+    <div class="dialog-body">
+      <div class="rule-grid">
+        <div class="rule-card"><b>直接 + s</b><br />大多数动词直接加 s：read → reads，help → helps。</div>
+        <div class="rule-card"><b>加 es</b><br />以 s、x、ch、sh、o 结尾：wash → washes，do → does。</div>
+        <div class="rule-card"><b>y → ies</b><br />辅音字母 + y 结尾：study → studies，carry → carries。</div>
+        <div class="rule-card"><b>特殊变化</b><br />have → has；be、am、are 在第三人称单数中用 is。</div>
+      </div>
+      <p><b>提醒：</b>does / doesn’t 后面的动词要用原形，例如：He doesn’t like milk.</p>
+      <button class="secondary" type="button" id="showAnswersButton">显示本组答案</button>
+    </div>
+  </dialog>
 
   <script>
     const words = [
-      { base: 'like', third: 'likes', cn: '喜欢', type: 's' },
-      { base: 'play', third: 'plays', cn: '玩', type: 's' },
-      { base: 'read', third: 'reads', cn: '读', type: 's' },
-      { base: 'eat', third: 'eats', cn: '吃', type: 's' },
-      { base: 'drink', third: 'drinks', cn: '喝', type: 's' },
-      { base: 'run', third: 'runs', cn: '跑', type: 's' },
-      { base: 'get', third: 'gets', cn: '得到', type: 's' },
-      { base: 'want', third: 'wants', cn: '想要', type: 's' },
-      { base: 'live', third: 'lives', cn: '居住', type: 's' },
-      { base: 'speak', third: 'speaks', cn: '说', type: 's' },
-      { base: 'open', third: 'opens', cn: '打开', type: 's' },
-      { base: 'help', third: 'helps', cn: '帮助', type: 's' },
-      { base: 'go', third: 'goes', cn: '去', type: 'es' },
-      { base: 'do', third: 'does', cn: '做', type: 'es' },
-      { base: 'watch', third: 'watches', cn: '看', type: 'es' },
-      { base: 'wash', third: 'washes', cn: '洗', type: 'es' },
-      { base: 'teach', third: 'teaches', cn: '教', type: 'es' },
-      { base: 'fix', third: 'fixes', cn: '修理', type: 'es' },
-      { base: 'pass', third: 'passes', cn: '经过', type: 'es' },
-      { base: 'miss', third: 'misses', cn: '想念/错过', type: 'es' },
-      { base: 'brush', third: 'brushes', cn: '刷', type: 'es' },
-      { base: 'catch', third: 'catches', cn: '抓住', type: 'es' },
-      { base: 'study', third: 'studies', cn: '学习', type: 'ies' },
-      { base: 'try', third: 'tries', cn: '尝试', type: 'ies' },
-      { base: 'fly', third: 'flies', cn: '飞', type: 'ies' },
-      { base: 'cry', third: 'cries', cn: '哭', type: 'ies' },
-      { base: 'carry', third: 'carries', cn: '携带', type: 'ies' },
-      { base: 'worry', third: 'worries', cn: '担心', type: 'ies' },
-      { base: 'have', third: 'has', cn: '有', type: 'special' },
-      { base: 'be', third: 'is', cn: '是', type: 'special' },
-      { base: 'am', third: 'is', cn: '是', type: 'special' },
-      { base: 'are', third: 'is', cn: '是', type: 'special' }
+      { base: "like", third: "likes", cn: "喜欢", type: "s" },
+      { base: "play", third: "plays", cn: "玩", type: "s" },
+      { base: "read", third: "reads", cn: "读", type: "s" },
+      { base: "eat", third: "eats", cn: "吃", type: "s" },
+      { base: "drink", third: "drinks", cn: "喝", type: "s" },
+      { base: "run", third: "runs", cn: "跑", type: "s" },
+      { base: "get", third: "gets", cn: "得到", type: "s" },
+      { base: "want", third: "wants", cn: "想要", type: "s" },
+      { base: "live", third: "lives", cn: "居住", type: "s" },
+      { base: "speak", third: "speaks", cn: "说", type: "s" },
+      { base: "open", third: "opens", cn: "打开", type: "s" },
+      { base: "help", third: "helps", cn: "帮助", type: "s" },
+      { base: "go", third: "goes", cn: "去", type: "es" },
+      { base: "do", third: "does", cn: "做", type: "es" },
+      { base: "watch", third: "watches", cn: "看", type: "es" },
+      { base: "wash", third: "washes", cn: "洗", type: "es" },
+      { base: "teach", third: "teaches", cn: "教", type: "es" },
+      { base: "fix", third: "fixes", cn: "修理", type: "es" },
+      { base: "pass", third: "passes", cn: "经过", type: "es" },
+      { base: "miss", third: "misses", cn: "想念/错过", type: "es" },
+      { base: "brush", third: "brushes", cn: "刷", type: "es" },
+      { base: "catch", third: "catches", cn: "抓住", type: "es" },
+      { base: "study", third: "studies", cn: "学习", type: "ies" },
+      { base: "try", third: "tries", cn: "尝试", type: "ies" },
+      { base: "fly", third: "flies", cn: "飞", type: "ies" },
+      { base: "cry", third: "cries", cn: "哭", type: "ies" },
+      { base: "carry", third: "carries", cn: "携带", type: "ies" },
+      { base: "worry", third: "worries", cn: "担心", type: "ies" },
+      { base: "have", third: "has", cn: "有", type: "special" },
+      { base: "be", third: "is", cn: "是", type: "special" },
+      { base: "am", third: "is", cn: "是", type: "special" },
+      { base: "are", third: "is", cn: "是", type: "special" }
     ];
 
-    let currentWords = [];
-    let selectedCard = null;
+    const state = {
+      currentWords: [],
+      selectedCard: null,
+      draggedCard: null,
+      checked: false
+    };
 
-    function shuffle(arr) {
-      return [...arr].sort(() => Math.random() - 0.5);
+    const wordBank = document.getElementById("wordBank");
+    const scoreText = document.getElementById("scoreText");
+    const feedbackBar = document.getElementById("feedbackBar");
+    const feedbackIcon = document.getElementById("feedbackIcon");
+    const feedbackText = document.getElementById("feedbackText");
+    const feedbackDetail = document.getElementById("feedbackDetail");
+    const rulesDialog = document.getElementById("rulesDialog");
+
+    function shuffle(items) {
+      const result = [...items];
+      for (let i = result.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    }
+
+    function typeName(type) {
+      return {
+        s: "直接 + s",
+        es: "加 es",
+        ies: "y → ies",
+        special: "特殊变化"
+      }[type];
+    }
+
+    function showFeedback(type, message, detail = "") {
+      feedbackBar.classList.remove("correct", "wrong");
+      const config = {
+        neutral: { icon: "△", className: "" },
+        correct: { icon: "✓", className: "correct" },
+        wrong: { icon: "×", className: "wrong" }
+      };
+      const current = config[type] || config.neutral;
+      feedbackIcon.textContent = current.icon;
+      feedbackText.textContent = message;
+      feedbackDetail.textContent = detail;
+      if (current.className) feedbackBar.classList.add(current.className);
+    }
+
+    function updateProgress() {
+      const placed = document.querySelectorAll(".bin-content .word-card").length;
+      scoreText.textContent = state.checked ? scoreText.textContent : `已分类 ${placed} / ${state.currentWords.length}`;
+    }
+
+    function clearSelection() {
+      document.querySelectorAll(".word-card").forEach((card) => card.classList.remove("selected"));
+      document.querySelectorAll(".bin").forEach((bin) => bin.classList.remove("active-target"));
+    }
+
+    function selectCard(card) {
+      clearSelection();
+      state.selectedCard = card;
+      card.classList.add("selected");
+      document.querySelectorAll(".bin").forEach((bin) => bin.classList.add("active-target"));
+      showFeedback("neutral", `已选择：${card.dataset.base}`, "请点击右侧分类区。");
+    }
+
+    function placeCard(card, bin) {
+      if (!card || !bin) return;
+      bin.querySelector(".bin-content").appendChild(card);
+      card.classList.remove("selected", "correct", "incorrect");
+      state.selectedCard = null;
+      state.checked = false;
+      clearSelection();
+      updateProgress();
+      showFeedback("neutral", `${card.dataset.base} 已放入“${typeName(bin.dataset.type)}”。`, "分类完成后统一检查。");
     }
 
     function makeCard(item) {
-      const card = document.createElement('div');
-      card.className = 'word';
+      const card = document.createElement("div");
+      card.className = "word-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
       card.draggable = true;
-      card.dataset.type = item.type;
       card.dataset.base = item.base;
       card.dataset.third = item.third;
       card.dataset.cn = item.cn;
+      card.dataset.type = item.type;
       card.innerHTML = `${item.base} <small>${item.cn}</small>`;
 
-      card.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', item.base);
-        selectedCard = card;
+      const activate = () => selectCard(card);
+      card.addEventListener("click", activate);
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          activate();
+        }
       });
 
-      card.addEventListener('dragend', () => {
-        document.querySelectorAll('.over').forEach(el => el.classList.remove('over'));
+      card.addEventListener("dragstart", (event) => {
+        state.draggedCard = card;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", item.base);
       });
 
-      card.addEventListener('click', () => {
-        document.querySelectorAll('.word').forEach(w => w.classList.remove('selected'));
-        selectedCard = card;
-        card.classList.add('selected');
+      card.addEventListener("dragend", () => {
+        state.draggedCard = null;
+        document.querySelectorAll(".bin").forEach((bin) => bin.classList.remove("over"));
       });
 
       return card;
     }
 
-    function renderWords() {
-      const bank = document.getElementById('wordBank');
-      bank.innerHTML = '';
-      currentWords.forEach(item => bank.appendChild(makeCard(item)));
-      document.querySelectorAll('.bin-content').forEach(c => c.innerHTML = '');
-      const result = document.getElementById('result');
-      result.className = 'result';
-      result.innerHTML = '';
-      updateScore(0, currentWords.length);
+    function setupBins() {
+      document.querySelectorAll(".bin").forEach((bin) => {
+        const activate = () => {
+          if (!state.selectedCard) {
+            showFeedback("wrong", "请先选择一个词卡。", "然后再点击分类区。");
+            return;
+          }
+          placeCard(state.selectedCard, bin);
+        };
+
+        bin.addEventListener("click", (event) => {
+          if (event.target.closest(".word-card")) return;
+          activate();
+        });
+
+        bin.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            activate();
+          }
+        });
+
+        bin.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          bin.classList.add("over");
+        });
+
+        bin.addEventListener("dragleave", () => bin.classList.remove("over"));
+
+        bin.addEventListener("drop", (event) => {
+          event.preventDefault();
+          bin.classList.remove("over");
+          if (state.draggedCard) placeCard(state.draggedCard, bin);
+        });
+      });
+
+      wordBank.addEventListener("dragover", (event) => event.preventDefault());
+      wordBank.addEventListener("drop", (event) => {
+        event.preventDefault();
+        if (state.draggedCard) {
+          wordBank.appendChild(state.draggedCard);
+          state.draggedCard.classList.remove("correct", "incorrect", "selected");
+          state.checked = false;
+          updateProgress();
+          showFeedback("neutral", `${state.draggedCard.dataset.base} 已放回词卡区。`, "可以重新分类。");
+        }
+      });
     }
 
-    function setupBins() {
-      document.querySelectorAll('.bin').forEach(bin => {
-        bin.addEventListener('dragover', e => {
-          e.preventDefault();
-          bin.classList.add('over');
-        });
-        bin.addEventListener('dragleave', () => bin.classList.remove('over'));
-        bin.addEventListener('drop', e => {
-          e.preventDefault();
-          bin.classList.remove('over');
-          if (selectedCard) {
-            bin.querySelector('.bin-content').appendChild(selectedCard);
-            selectedCard.classList.remove('selected');
-            selectedCard = null;
-          }
-        });
-        bin.addEventListener('click', e => {
-          if (selectedCard && !e.target.classList.contains('word')) {
-            bin.querySelector('.bin-content').appendChild(selectedCard);
-            selectedCard.classList.remove('selected');
-            selectedCard = null;
-          }
-        });
-      });
+    function chooseRound() {
+      const selected = [
+        ...shuffle(words.filter((word) => word.type === "s")).slice(0, 2),
+        ...shuffle(words.filter((word) => word.type === "es")).slice(0, 2),
+        ...shuffle(words.filter((word) => word.type === "ies")).slice(0, 2),
+        ...shuffle(words.filter((word) => word.type === "special")).slice(0, 2)
+      ];
+      return shuffle(selected);
+    }
 
-      const bank = document.getElementById('wordBank');
-
-      bank.addEventListener('dragover', e => {
-        e.preventDefault();
-        bank.classList.add('over');
-      });
-
-      bank.addEventListener('dragleave', () => bank.classList.remove('over'));
-
-      bank.addEventListener('drop', e => {
-        e.preventDefault();
-        bank.classList.remove('over');
-        if (selectedCard) {
-          bank.appendChild(selectedCard);
-          selectedCard.classList.remove('selected');
-          selectedCard = null;
-        }
-      });
-
-      bank.addEventListener('click', e => {
-        if (selectedCard && !e.target.classList.contains('word')) {
-          bank.appendChild(selectedCard);
-          selectedCard.classList.remove('selected');
-          selectedCard = null;
-        }
-      });
+    function renderRound(currentWords = state.currentWords) {
+      state.selectedCard = null;
+      state.draggedCard = null;
+      state.checked = false;
+      wordBank.innerHTML = "";
+      document.querySelectorAll(".bin-content").forEach((box) => { box.innerHTML = ""; });
+      currentWords.forEach((item) => wordBank.appendChild(makeCard(item)));
+      scoreText.textContent = `已分类 0 / ${currentWords.length}`;
+      showFeedback("neutral", "请选择一个词卡，再点击分类区。", "全部分类后点击“检查答案”。");
     }
 
     function newRound() {
-      const s = shuffle(words.filter(w => w.type === 's')).slice(0, 5);
-      const es = shuffle(words.filter(w => w.type === 'es')).slice(0, 4);
-      const ies = shuffle(words.filter(w => w.type === 'ies')).slice(0, 3);
-      const special = shuffle(words.filter(w => w.type === 'special')).slice(0, 2);
-      currentWords = shuffle([...s, ...es, ...ies, ...special]);
-      renderWords();
+      state.currentWords = chooseRound();
+      renderRound();
     }
 
     function resetCurrent() {
-      renderWords();
+      renderRound(state.currentWords);
     }
 
-    function checkAnswer() {
+    function checkAnswers() {
       let right = 0;
-      const total = currentWords.length;
+      let unplaced = 0;
       const mistakes = [];
-      document.querySelectorAll('.word').forEach(card => {
-        card.classList.remove('correct', 'incorrect');
-        const parentBin = card.closest('.bin');
+
+      document.querySelectorAll(".word-card").forEach((card) => {
+        card.classList.remove("correct", "incorrect", "selected");
+        const parentBin = card.closest(".bin");
         if (!parentBin) {
-          card.classList.add('incorrect');
-          mistakes.push(`${card.dataset.base} → ${card.dataset.third}：还没分类`);
+          card.classList.add("incorrect");
+          unplaced += 1;
+          mistakes.push(`${card.dataset.base} 还没分类`);
           return;
         }
-        const chosen = parentBin.dataset.type;
-        if (chosen === card.dataset.type) {
-          card.classList.add('correct');
-          right++;
+
+        if (parentBin.dataset.type === card.dataset.type) {
+          card.classList.add("correct");
+          right += 1;
         } else {
-          card.classList.add('incorrect');
-          mistakes.push(`${card.dataset.base} → ${card.dataset.third}：应该放到「${typeName(card.dataset.type)}」`);
+          card.classList.add("incorrect");
+          mistakes.push(`${card.dataset.base} 应放到“${typeName(card.dataset.type)}”`);
         }
       });
-      updateScore(right, total);
-      const result = document.getElementById('result');
-      result.className = 'result show';
-      if (right === total) {
-        result.innerHTML = '全部正确！<br>本组重点：肯定句三单要变，does / doesn’t 后动词用原形。';
-      } else {
-        result.innerHTML = `正确：${right} / ${total}<br>` + mistakes.join('<br>');
+
+      state.checked = true;
+      scoreText.textContent = `得分 ${right} / ${state.currentWords.length}`;
+
+      if (right === state.currentWords.length) {
+        showFeedback("correct", "全部正确！", "肯定句三单要变化，does / doesn’t 后用原形。");
+        return;
       }
+
+      const firstMistake = mistakes[0] || "还有词卡需要调整";
+      const detail = unplaced > 0 ? `还有 ${unplaced} 个词未分类。` : `共需修改 ${state.currentWords.length - right} 个。`;
+      showFeedback("wrong", firstMistake, detail);
     }
 
     function showAnswers() {
-      document.querySelectorAll('.word').forEach(card => {
+      document.querySelectorAll(".word-card").forEach((card) => {
         const target = document.querySelector(`.bin[data-type="${card.dataset.type}"] .bin-content`);
         target.appendChild(card);
-        card.classList.remove('incorrect');
-        card.classList.add('correct');
+        card.classList.remove("incorrect", "selected");
+        card.classList.add("correct");
       });
-      updateScore(currentWords.length, currentWords.length);
-      const result = document.getElementById('result');
-      result.className = 'result show';
-      result.innerHTML = currentWords.map(w => `${w.base} → ${w.third}（${w.cn}）`).join('<br>');
+      state.checked = true;
+      scoreText.textContent = `得分 ${state.currentWords.length} / ${state.currentWords.length}`;
+      showFeedback("correct", "已显示本组答案。", "观察每个动词的结尾变化。");
+      if (rulesDialog.open) rulesDialog.close();
     }
 
-    function updateScore(right, total) {
-      document.getElementById('score').textContent = `得分：${right} / ${total}`;
+    async function tryLandscapeMode() {
+      try {
+        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (_) {}
+
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock("landscape");
+        }
+      } catch (_) {}
     }
 
-    function typeName(type) {
-      return {
-        s: '直接 + s',
-        es: '加 es',
-        ies: '变 y 为 ies',
-        special: '特殊变化'
-      }[type];
-    }
+    document.getElementById("newRoundButton").addEventListener("click", async () => {
+      await tryLandscapeMode();
+      newRound();
+    });
+    document.getElementById("resetButton").addEventListener("click", resetCurrent);
+    document.getElementById("checkButton").addEventListener("click", checkAnswers);
+    document.getElementById("showAnswersButton").addEventListener("click", showAnswers);
+
+    document.getElementById("rulesButton").addEventListener("click", () => {
+      if (typeof rulesDialog.showModal === "function") rulesDialog.showModal();
+      else rulesDialog.setAttribute("open", "");
+    });
+
+    document.getElementById("closeRulesButton").addEventListener("click", () => rulesDialog.close());
+
+    rulesDialog.addEventListener("click", (event) => {
+      if (event.target === rulesDialog) rulesDialog.close();
+    });
 
     setupBins();
     newRound();
