@@ -1,2 +1,9 @@
 .codex-backups/
 backups/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
