@@ -556,6 +556,10 @@ body {
 .dq-type-L { background: #FFF3E0; color: #B85C00; }
 .dq-type-S { background: #FCE4EC; color: #AD1457; }
 .dq-type-O { background: #EDE7F6; color: #4527A0; }
+.dq-type-D { background: #FFF3E0; color: #8B4A00; }
+.dq-type-P { background: #E8F4FD; color: #245E89; }
+.dq-type-K { background: #E8FAF1; color: #276749; }
+.dq-type-R { background: #F3EAFB; color: #61488A; }
 .dq-question { font-size: 15px; font-weight: 700; color: var(--text-dark); line-height: 1.55; margin-bottom: 16px; }
 .dq-sentence { font-size: 16px; color: var(--text-dark); line-height: 1.9; margin-bottom: 16px; font-weight: 600; }
 .dq-blank {
@@ -577,6 +581,19 @@ body {
 }
 .dq-listen-btn:active { transform: scale(0.92); }
 .dq-listen-hint { font-size: 12px; color: var(--text-light); }
+.dq-phonetic, .review-phonetic {
+  margin: 4px 0 18px; color: var(--blue-dark); text-align: center;
+  font-family: "Arial Unicode MS", "Lucida Sans Unicode", "Segoe UI", sans-serif;
+  font-size: clamp(24px, 8vw, 36px); font-weight: 800; line-height: 1.35;
+  overflow-wrap: anywhere; word-break: break-word;
+}
+.dq-collocation, .review-collocation {
+  margin: 8px 0 18px; color: var(--text-dark); text-align: center;
+  font-size: clamp(20px, 6vw, 28px); font-weight: 900; line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.review-cloze { display: inline-block; min-width: 2.8em; color: var(--blue-dark); border-bottom: 2px solid var(--blue); }
+.dq-order-hint { margin: 2px 0 12px; color: var(--text-light); font-size: 13px; text-align: center; }
 /* MCQ options */
 .dq-options { display: flex; flex-direction: column; gap: 9px; }
 .dq-opt {
@@ -608,6 +625,7 @@ body {
 .review-opt.correct { border-color:var(--green); background:#E8FAF1; color:var(--green-dark); }
 .review-opt.wrong { border-color:var(--red); background:var(--red-light); color:var(--red); }
 .review-action { width:100%; height:44px; border-radius:12px; border:none; background:var(--blue); color:#fff; font-size:14px; font-weight:800; font-family:inherit; }
+.review-action:disabled { opacity:.38; pointer-events:none; }
 .review-action.secondary { background:var(--green); }
 .match-preview-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; flex:1; align-content:center; }
 .match-preview-card { min-height:132px; border-radius:18px; background:linear-gradient(145deg,#FFF9EC,#E8F4FD); box-shadow:var(--shadow); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:12px; text-align:center; }
@@ -629,10 +647,30 @@ body {
 .review-answer-letter:hover { background:var(--orange-light); }
 .review-answer-letter:active { transform:scale(.9); }
 .review-answer-letter:disabled { cursor:default; opacity:1; }
+.sequence-answer-box { flex-wrap:wrap; align-content:center; overflow-wrap:anywhere; }
+.sequence-candidate-row .review-letter,
+.sequence-answer-box .review-answer-letter { min-height:44px; height:auto; padding:8px 12px; touch-action:manipulation; }
+.sequence-sentence { min-height:62px; font-size:15px; line-height:1.45; }
+.sequence-sentence .review-answer-letter { font-size:14px; line-height:1.3; overflow-wrap:anywhere; }
+.review-meaning-hint { overflow-wrap:anywhere; }
 .review-spell-word { font-size:34px; font-weight:900; color:var(--blue-dark); text-align:center; letter-spacing:.04em; line-height:1.2; }
 .review-full-word-card { background:var(--white); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; min-height:440px; }
 .review-full-word-card .student-word-emoji { margin:4px auto; }
 .review-answer-note { background:var(--orange-light); color:#8B4A00; border-radius:12px; padding:10px 12px; font-size:14px; font-weight:800; text-align:center; }
+
+@media (min-width:768px) and (orientation:landscape) {
+  .dq-wrap { max-width:560px; }
+  .dq-card { padding:18px 22px; }
+  .review-card { min-height:calc(100dvh - 96px); padding:16px 20px; gap:10px; }
+  .dq-listen-btn { width:62px; height:62px; }
+}
+
+@media (max-width:420px) {
+  .dq-wrap { width:calc(100% - 24px); }
+  .dq-card { padding:18px 14px; }
+  .review-card { padding:16px 12px; }
+  .sequence-candidate-row { gap:6px; }
+}
 
 /* ══════════════════════════════
    SCREEN: MERGE SELECT
