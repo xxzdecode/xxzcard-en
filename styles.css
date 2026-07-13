@@ -388,9 +388,17 @@ body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 /* ══════════════════════════════
    SCREEN: STUDY
 ══════════════════════════════ */
+#screenStudy {
+  position: fixed; inset: 0; z-index: 50;
+  height: 100vh; height: 100dvh;
+  display: none; flex-direction: column; align-items: stretch;
+  overflow: hidden;
+  background: linear-gradient(160deg,#D6EEFB 0%,#EAF6FF 50%,#D8F0E8 100%);
+}
+#screenStudy.active { display: flex; }
 .study-topbar {
   width: 100%; padding: 14px 20px 8px;
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
 }
 .progress-wrap { flex: 1; }
 .progress-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
@@ -399,10 +407,19 @@ body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 .progress-bar-bg { width: 100%; height: 6px; background: var(--sky-mid); border-radius: 10px; overflow: hidden; }
 .progress-bar-fill { height: 100%; background: linear-gradient(90deg,var(--blue),var(--green)); border-radius: 10px; transition: width 0.4s; }
 
-.stage { width: calc(100% - 40px); max-width: 400px; perspective: 1000px; margin: 0 auto; position: relative; user-select: none; }
+.stage-scroll {
+  flex: 1 1 auto; min-height: 0; width: 100%;
+  padding: 6px 0 4px;
+}
+.stage {
+  width: calc(100% - 40px); max-width: 400px; height: 100%; min-height: 0;
+  perspective: 1000px; margin: 0 auto; position: relative; user-select: none;
+  touch-action: pan-y;
+}
 .card-wrapper {
-  width: 100%; min-height: 440px; position: relative;
+  width: 100%; height: 100%; min-height: 0; position: relative;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
   border-radius: var(--radius); cursor: pointer;
 }
@@ -417,12 +434,17 @@ body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 .swipe-overlay.show-no  { background: rgba(240,96,96,0.15);  opacity: 1; border: 3px solid var(--red); }
 
 .card-face {
-  position: absolute; width: 100%; min-height: 440px;
-  border-radius: var(--radius); backface-visibility: hidden;
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow);
+  -webkit-transform-style: preserve-3d;
 }
-.card-front { background: var(--white); }
+.card-face-inner {
+  width: 100%; height: 100%; min-height: 0;
+  border-radius: var(--radius); display: flex; flex-direction: column;
+  overflow: hidden; box-shadow: var(--shadow);
+}
+.card-front-inner, .card-back-inner { background: var(--white); }
 .emoji-zone {
   width: 100%; height: 180px;
   display: flex; align-items: center; justify-content: center;
@@ -438,12 +460,18 @@ body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 .pos-tag { font-size: 12px; color: var(--text-light); background: var(--sky); padding: 3px 12px; border-radius: 10px; }
 .tap-hint { margin-top: 6px; font-size: 12px; color: var(--text-light); }
 
-.card-back { background: var(--white); transform: rotateY(180deg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.back-header { width: 100%; padding: 18px 20px 12px; border-bottom: 1.5px solid var(--sky); display: flex; align-items: center; justify-content: space-between; }
+.card-back { transform: rotateY(180deg); }
+.card-back-inner { overflow: hidden; }
+.back-header { width: 100%; padding: 18px 20px 12px; border-bottom: 1.5px solid var(--sky); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .en-word { font-size: 23px; font-weight: 800; color: var(--blue-dark); }
 .speak-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--sky); border: none; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .speak-btn:active { background: var(--sky-mid); }
-.back-body { padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+.back-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 10px;
+}
+.back-body > * { flex-shrink: 0; }
 .card-section { display: flex; flex-direction: column; gap: 4px; }
 .sec-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-light); margin-bottom: 2px; }
 .meaning-text { font-size: 14px; font-weight: 600; color: var(--text-dark); line-height: 1.5; }
@@ -514,6 +542,12 @@ body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 .word-family-item em { font-style: normal; font-size: 12px; color: var(--text-mid); line-height: 1.45; }
 .legacy-box { opacity: 0.92; }
 
+.study-footer {
+  width: 100%; flex-shrink: 0;
+  padding: 4px 0 max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(184,220,239,0.65);
+}
+
 .swipe-hint { width: calc(100% - 40px); max-width: 400px; margin: 8px auto 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--text-light); }
 .judge-row { width: calc(100% - 40px); max-width: 400px; margin: 10px auto 0; display: flex; gap: 10px; }
 .judge-btn { flex: 1; height: 48px; border-radius: 13px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; box-shadow: var(--shadow); transition: transform 0.15s; }
@@ -528,6 +562,24 @@ body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 .dot.active { background: var(--blue); transform: scale(1.4); }
 .dot.known   { background: var(--green); }
 .dot.unknown { background: var(--red); }
+
+@media (max-height: 700px) {
+  #screenStudy .study-topbar { padding: 8px 16px 5px; }
+  #screenStudy .stage-scroll { padding: 3px 0; }
+  #screenStudy .emoji-zone { height: 112px; font-size: 66px; }
+  #screenStudy .study-footer { padding-top: 2px; }
+  #screenStudy .swipe-hint { margin-top: 4px; }
+  #screenStudy .judge-row { margin-top: 6px; }
+  #screenStudy .flip-btn-row { margin-top: 5px; }
+  #screenStudy .dot-row { margin-top: 6px; }
+}
+
+@media (max-height: 650px) {
+  #screenStudy .emoji-zone { height: 92px; font-size: 56px; }
+  #screenStudy .front-body { padding: 12px 22px 18px; }
+  #screenStudy .judge-btn { height: 44px; }
+  #screenStudy .flip-btn { height: 38px; }
+}
 
 /* ══════════════════════════════
    SCREEN: QUIZ (old spelling)

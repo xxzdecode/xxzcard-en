@@ -34,6 +34,7 @@ function renderStudyCard() {
   document.getElementById('cardEn').textContent = getCardWord(c);
   const bb = document.getElementById('backBody');
   bb.innerHTML = renderEnglishCardBackHtml(c, { includeLegacy: true });
+  bb.scrollTop = 0;
   const total = studyDeck.length;
   document.getElementById('progressCount').textContent = `${studyCurrent+1}/${total}`;
   document.getElementById('progressFill').style.width = `${((studyCurrent+1)/total)*100}%`;
@@ -44,6 +45,7 @@ function setFlipped(v) {
   const w = document.getElementById('cardWrapper');
   v ? w.classList.add('flipped') : w.classList.remove('flipped');
   document.getElementById('flipBtn').textContent = v ? '翻回正面' : '翻面 · 查看释义';
+  if (v) document.getElementById('backBody').scrollTop = 0;
 }
 function toggleFlip() { setFlipped(!studyFlipped); }
 function recForCard(c) {
@@ -124,10 +126,22 @@ document.getElementById('speakBtn').addEventListener('click', e => {
   if ('speechSynthesis' in window) { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=0.9; speechSynthesis.speak(u); }
 });
 const stageEl = document.getElementById('stage');
-stageEl.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; dragging = false; dragX = 0; }, {passive:true});
+let touchStartY = 0;
+let touchDirection = '';
+stageEl.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchDirection = '';
+  dragging = false;
+  dragX = 0;
+}, {passive:true});
 stageEl.addEventListener('touchmove', e => {
   const dx = e.touches[0].clientX - touchStartX;
-  if (Math.abs(dx) > 10) {
+  const dy = e.touches[0].clientY - touchStartY;
+  if (!touchDirection && Math.max(Math.abs(dx), Math.abs(dy)) > 10) {
+    touchDirection = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+  }
+  if (touchDirection === 'horizontal') {
     dragging = true; dragX = dx;
     const w = document.getElementById('cardWrapper');
     const ov = document.getElementById('swipeOverlay');
@@ -147,6 +161,7 @@ stageEl.addEventListener('touchend', () => {
     setTimeout(() => { dragging = false; }, 300);
   }
   dragX = 0;
+  touchDirection = '';
 }, {passive:true});
 
 // ══════════════════════════════════════

@@ -225,33 +225,41 @@
       <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
     </div>
   </div>
-  <div class="stage" id="stage">
-    <div class="swipe-overlay" id="swipeOverlay"></div>
-    <div class="card-wrapper" id="cardWrapper">
-      <div class="card-face card-front">
-        <div class="emoji-zone" id="cardEmoji"></div>
-        <div class="front-body">
-          <div class="zh-word" id="cardZh"></div>
-          <div class="pos-tag" id="cardPos"></div>
-          <div class="tap-hint">👆 点击翻面</div>
+  <div class="stage-scroll">
+    <div class="stage" id="stage">
+      <div class="swipe-overlay" id="swipeOverlay"></div>
+      <div class="card-wrapper" id="cardWrapper">
+        <div class="card-face card-front">
+          <div class="card-face-inner card-front-inner">
+            <div class="emoji-zone" id="cardEmoji"></div>
+            <div class="front-body">
+              <div class="zh-word" id="cardZh"></div>
+              <div class="pos-tag" id="cardPos"></div>
+              <div class="tap-hint">👆 点击翻面</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="card-face card-back">
-        <div class="back-header">
-          <div class="en-word" id="cardEn"></div>
-          <button class="speak-btn" id="speakBtn">🔊</button>
+        <div class="card-face card-back">
+          <div class="card-face-inner card-back-inner">
+            <div class="back-header">
+              <div class="en-word" id="cardEn"></div>
+              <button class="speak-btn" id="speakBtn">🔊</button>
+            </div>
+            <div class="back-body" id="backBody"></div>
+          </div>
         </div>
-        <div class="back-body" id="backBody"></div>
       </div>
     </div>
   </div>
-  <div class="swipe-hint"><span>← 左滑：不认识</span><span>右滑：认识 →</span></div>
-  <div class="judge-row">
-    <button class="judge-btn no" onclick="judge(false)">❌ 不认识</button>
-    <button class="judge-btn yes" onclick="judge(true)">✅ 认识</button>
+  <div class="study-footer">
+    <div class="swipe-hint"><span>← 左滑：不认识</span><span>右滑：认识 →</span></div>
+    <div class="judge-row">
+      <button class="judge-btn no" onclick="judge(false)">❌ 不认识</button>
+      <button class="judge-btn yes" onclick="judge(true)">✅ 认识</button>
+    </div>
+    <div class="flip-btn-row"><button class="flip-btn" id="flipBtn" onclick="toggleFlip()">翻面 · 查看英文</button></div>
+    <div class="dot-row" id="dotRow"></div>
   </div>
-  <div class="flip-btn-row"><button class="flip-btn" id="flipBtn" onclick="toggleFlip()">翻面 · 查看英文</button></div>
-  <div class="dot-row" id="dotRow"></div>
 </div>
 
 <!-- ══ SCREEN: QUIZ (spelling) ══ -->
