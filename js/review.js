@@ -1,18 +1,3 @@
-async function startReviewTask(task) {
-  const deck = await prioritizedTaskDeck(task.deck, 20, task.batchId);
-  if (deck.length === 0) { alert('还没有单词可以温习'); return; }
-  activeTask = {...task, mode: 'review'};
-  activeTaskDeck = deck;
-  activeTaskAllCards = task.allCards && task.allCards.length >= 4 ? task.allCards : deck;
-  activeTaskReturn = task.returnTo || 'home';
-  if (task.batchId) currentBatchId = String(task.batchId);
-  reviewRound = 1;
-  reviewWrongCards = [];
-  buildReviewSteps(deck);
-  showScreen('screenReview');
-  renderReviewStep();
-}
-
 function buildReviewSteps(deck) {
   reviewSteps = [];
   const pool = deck.slice(0, 20);
