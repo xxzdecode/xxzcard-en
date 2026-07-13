@@ -38,13 +38,32 @@
       <span class="task-icon">⭐</span><span class="task-title">混合挑战</span><span class="task-sub" id="mixedChallengeSub">最多 2 次</span>
     </button>
   </div>
-  <div class="home-link-row student-only">
-    <button onclick="openWordCards()">单词卡</button>
-    <span>·</span>
-    <button onclick="openPhonemeTraining()">音标训练</button>
-    <span>·</span>
-    <button onclick="openThemeQuizList()">专项小游戏</button>
-  </div>
+  <nav class="bottom-feature-nav student-only" aria-label="主要功能">
+    <button class="bottom-feature-nav__item" onclick="openWordCards()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3.604 7.197l7.138 -3.109c.997 -.434 2.156 .01 2.586 .991l2.916 6.695c.43 .982 -.03 2.13 -1.028 2.565l-7.138 3.109c-.996 .434 -2.155 -.01 -2.585 -.991l-2.916 -6.695c-.43 -.982 .03 -2.13 1.027 -2.565z" />
+        <path d="M15 4h1a2 2 0 0 1 2 2v10" />
+      </svg>
+      <span>单词卡</span>
+    </button>
+    <button class="bottom-feature-nav__item" onclick="openPhonemeTraining()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 5a3 3 0 0 1 6 0v5a3 3 0 0 1 -6 0z" />
+        <path d="M5 10a7 7 0 0 0 14 0" />
+        <path d="M8 21h8" />
+        <path d="M12 17v4" />
+      </svg>
+      <span>音标训练</span>
+    </button>
+    <button class="bottom-feature-nav__item" onclick="openThemeQuizList()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 12h4m-2 -2v4" />
+        <path d="M15 13h.01m3 -2h.01" />
+        <path d="M17.32 5h-10.64a4 4 0 0 0 -3.94 3.3l-1.22 6.9a3 3 0 0 0 5.1 2.6l1.18 -1.18a2 2 0 0 1 1.42 -.62h5.56a2 2 0 0 1 1.42 .62l1.18 1.18a3 3 0 0 0 5.1 -2.6l-1.22 -6.9a4 4 0 0 0 -3.94 -3.3z" />
+      </svg>
+      <span>专项小游戏</span>
+    </button>
+  </nav>
   <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">📋 任务词库设置</button>
   <div style="height:12px" class="teacher-only"></div>
   <button class="add-batch-btn teacher-only" style="width:calc(100% - 40px);max-width:400px" onclick="showNewBatch()">＋ 新建单词本</button>
@@ -84,7 +103,7 @@
   </div>
   <div class="practice-book">
     <div class="practice-book-title">小游戏目录</div>
-    <div class="practice-page-grid" id="themeQuizList"></div>
+    <div class="game-directory" id="themeQuizList"></div>
   </div>
 </div>
 

@@ -6,7 +6,11 @@ const CHALLENGE_TYPE_LABELS = {
   C: 'C 型 · 选中文',
   L: 'L 型 · 听力辨词',
   S: 'S 型 · 拼写',
-  O: 'O 型 · 字母排序'
+  O: 'O 型 · 字母排序',
+  D: 'D 型 · 听音拼写',
+  P: 'P 型 · 音标选词',
+  K: 'K 型 · 搭配补全',
+  R: 'R 型 · 句子排序'
 };
 
 const CHALLENGE_TYPE_CLASSES = {
@@ -15,7 +19,11 @@ const CHALLENGE_TYPE_CLASSES = {
   C: 'dq-type-C',
   L: 'dq-type-L',
   S: 'dq-type-S',
-  O: 'dq-type-O'
+  O: 'dq-type-O',
+  D: 'dq-type-D',
+  P: 'dq-type-P',
+  K: 'dq-type-K',
+  R: 'dq-type-R'
 };
 
 function simpleWord(en) {
@@ -23,7 +31,8 @@ function simpleWord(en) {
 }
 
 function makeMissingPart(answer) {
-  const len = Math.min(2, Math.max(1, answer.length));
+  if (answer.length < 2) return null;
+  const len = answer.length >= 5 && Math.random() < 0.5 ? 2 : 1;
   const maxStart = Math.max(0, answer.length - len);
   const start = Math.floor(Math.random() * (maxStart + 1));
   const missing = answer.slice(start, start + len);
@@ -34,8 +43,166 @@ function makeMissingPart(answer) {
 }
 
 function makeSegmentOptions(answer) {
-  const pool = ['pp','oo','ee','ai','ch','sh','th','st','ar','or','le','an','in','er'].filter(x => x !== answer);
-  return [answer, ...pool.sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5);
+  const normalized = String(answer || '').toLowerCase();
+  const commonPool = [
+    'a','e','i','o','u','b','c','d','f','g','h','l','m','n','p','r','s','t',
+    'pp','oo','ee','ai','ch','sh','th','st','ar','or','le','an','in','er'
+  ];
+  const generalPool = [
+    'j','k','q','v','w','x','y','z','ea','oa','ou','ow','ck','ng','ph','wh','qu','ll','ss','tt','nd','nt'
+  ];
+  const options = [normalized];
+
+  function addCandidate(candidate) {
+    if (options.length < 4 && /^[a-z]+$/.test(candidate) && candidate.length === normalized.length && !options.includes(candidate)) {
+      options.push(candidate);
+    }
+  }
+
+  commonPool.filter(item => item.length === normalized.length).sort(() => Math.random() - 0.5).forEach(addCandidate);
+  generalPool.filter(item => item.length === normalized.length).sort(() => Math.random() - 0.5).forEach(addCandidate);
+
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+  let attempts = 0;
+  while (options.length < 4 && attempts < 40) {
+    let candidate = '';
+    for (let i = 0; i < normalized.length; i++) {
+      candidate += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    addCandidate(candidate);
+    attempts++;
+  }
+
+  // Deterministic fallback guarantees completion after the bounded random attempts.
+  let counter = 0;
+  while (options.length < 4) {
+    let value = counter++;
+    let candidate = '';
+    for (let i = 0; i < normalized.length; i++) {
+      candidate = alphabet[value % alphabet.length] + candidate;
+      value = Math.floor(value / alphabet.length);
+    }
+    addCandidate(candidate);
+  }
+  return options.sort(() => Math.random() - 0.5);
+}
+
+function getEnglishExamples(card, word) {
+  if (!card || !Array.isArray(card.collocations)) return [];
+  return card.collocations.reduce((examples, item, sourceIndex) => {
+    if (!item || typeof item !== 'object') return examples;
+    const rawExample = typeof item.example === 'string' ? item.example.trim() : '';
+    if (!rawExample) return examples;
+    const exactSeparatorIndex = rawExample.indexOf(' / ');
+    const separatorIndex = exactSeparatorIndex >= 0 ? exactSeparatorIndex : rawExample.indexOf('/');
+    const sentence = (separatorIndex >= 0 ? rawExample.slice(0, separatorIndex) : rawExample).trim();
+    if (!sentence) return examples;
+    examples.push({ sentence, clozeSpan: findClozeSpan(sentence, word), sourceIndex });
+    return examples;
+  }, []);
+}
+
+function getUsableCollocations(card, word = getCardWord(card)) {
+  if (!card || !Array.isArray(card.collocations)) return [];
+  const target = String(word || '').split('/')[0].trim();
+  if (!target) return [];
+  return card.collocations.reduce((items, item, sourceIndex) => {
+    const phrase = item && typeof item.phrase === 'string' ? item.phrase.trim().replace(/\s+/g, ' ') : '';
+    if (!phrase) return items;
+    const span = findClozeSpan(phrase, target);
+    if (!span || !(span.prefix + span.suffix).trim()) return items;
+    items.push({
+      phrase,
+      target: span.matched,
+      prefix: span.prefix,
+      suffix: span.suffix,
+      sourceIndex
+    });
+    return items;
+  }, []);
+}
+
+function getCardPhonetic(card) {
+  return card && typeof card.phonetic === 'string' ? card.phonetic.trim() : '';
+}
+
+function shuffled(items) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+function makeUniqueWordOptions(answerCard, allCards, count, options = {}) {
+  const answer = String(getCardWord(answerCard) || '').trim();
+  if (!answer || !Array.isArray(allCards) || count < 1) return null;
+  const answerKey = answer.toLocaleLowerCase();
+  const excluded = new Set((options.excludeWords || []).map(word => String(word).toLocaleLowerCase()));
+  const seen = new Set([answerKey]);
+  const preferred = [];
+  const fallback = [];
+  const answerPos = String(answerCard.pos || '').trim().toLocaleLowerCase();
+
+  allCards.forEach(card => {
+    const word = String(getCardWord(card) || '').trim();
+    const key = word.toLocaleLowerCase();
+    if (!word || seen.has(key) || excluded.has(key)) return;
+    if (options.filterCandidate && !options.filterCandidate(card, word)) return;
+    seen.add(key);
+    const samePos = answerPos && String(card.pos || '').trim().toLocaleLowerCase() === answerPos;
+    (options.preferSamePos && samePos ? preferred : fallback).push(word);
+  });
+
+  const distractors = [...shuffled(preferred), ...shuffled(fallback)].slice(0, count - 1);
+  return distractors.length === count - 1 ? shuffled([answer, ...distractors]) : null;
+}
+
+function getSentenceTokens(sentence) {
+  const normalized = String(sentence || '').trim().replace(/\s+/g, ' ');
+  if (!normalized || !/[A-Za-z]/.test(normalized)) return [];
+  return normalized.split(' ');
+}
+
+function normalizeSentenceAnswer(sentence) {
+  const normalized = String(sentence || '').trim().replace(/\s+/g, ' ');
+  return normalized.replace(/[A-Za-z]/, letter => letter.toLocaleLowerCase());
+}
+
+function makeIndexedSequence(values) {
+  return values.map((text, sourceIndex) => ({ text, sourceIndex }));
+}
+
+function shuffleSequenceAwayFromOriginal(items) {
+  if (items.length < 2) return [...items];
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const result = shuffled(items);
+    if (result.some((item, index) => item.sourceIndex !== items[index].sourceIndex)) return result;
+  }
+  return [...items.slice(1), items[0]];
+}
+
+function makeSentencePhraseBlocks(sentence) {
+  const tokens = getSentenceTokens(sentence);
+  if (tokens.length < 3 || tokens.length > 10) return null;
+  const blockCount = Math.min(6, Math.max(3, Math.ceil(tokens.length / 2)));
+  const blocks = [];
+  let cursor = 0;
+  for (let i = 0; i < blockCount; i++) {
+    const remainingTokens = tokens.length - cursor;
+    const remainingBlocks = blockCount - i;
+    const size = Math.ceil(remainingTokens / remainingBlocks);
+    blocks.push(tokens.slice(cursor, cursor + size).join(' '));
+    cursor += size;
+  }
+  return blocks;
+}
+
+function visibleCollocationWords(collocation) {
+  return ((collocation.prefix || '') + ' ' + (collocation.suffix || ''))
+    .toLocaleLowerCase()
+    .match(/[a-z]+(?:['’\-][a-z]+)*/g) || [];
 }
 
 function makeWordOptions(card) {
@@ -48,13 +215,16 @@ function makeQuestionContext(card, allCards, questionSet = 'task-challenge') {
   const word = getCardWord(card);
   const others = allCards.filter(c => getCardWord(c) !== word);
   const wrong3 = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
+  const usableExamples = getEnglishExamples(card, word).filter(example => example.clozeSpan);
+  const selectedExample = usableExamples[Math.floor(Math.random() * usableExamples.length)] || null;
   return {
     card,
     allCards,
     wrong3,
     word,
     meaning: getCardMeaning(card),
-    clozeSpan: card.ex ? findClozeSpan(card.ex, word) : null,
+    clozeSpan: selectedExample ? selectedExample.clozeSpan : null,
+    exampleSource: selectedExample,
     questionSet
   };
 }
@@ -65,6 +235,7 @@ function makeQuestionFromRegistry(card, allCards, typeIds, questionSet = 'task-c
     const type = ChallengeQuestionTypes[id];
     return type && (!type.isAvailable || type.isAvailable(context));
   });
+  if (available.length === 0) return null;
   const picked = available[Math.floor(Math.random() * available.length)];
   return ChallengeQuestionTypes[picked].build(context);
 }
@@ -240,6 +411,7 @@ const ChallengeQuestionTypes = {
     applyResult: applyChoiceResult
   },
   S: {
+    isAvailable: context => simpleWord(context.word).length >= 2,
     build(context) {
       return {
         questionSet: context.questionSet,
@@ -271,6 +443,7 @@ const ChallengeQuestionTypes = {
     applyResult: applySpellingResult
   },
   O: {
+    isAvailable: context => simpleWord(context.word).length >= 2,
     build(context) {
       const answer = simpleWord(context.word);
       return {
@@ -310,15 +483,169 @@ const ChallengeQuestionTypes = {
       if (challengeOrderController) challengeOrderController.lock();
       applyQuestionResult(q, result.correct);
     }
+  },
+  D: {
+    isAvailable: context => simpleWord(context.word).length >= 2,
+    build(context) {
+      const answer = simpleWord(context.word);
+      const letters = shuffleSequenceAwayFromOriginal(makeIndexedSequence(answer.split('')));
+      return {
+        questionSet: context.questionSet,
+        type: 'D',
+        answer,
+        letters,
+        card: context.card
+      };
+    },
+    render(q) {
+      return `
+        ${questionBadge(q)}
+        <div class="dq-listen-zone">
+          <button class="dq-listen-btn" onclick="speakWord('${escapeJs(getCardWord(q.card))}')" aria-label="播放发音">🔊</button>
+          <div class="dq-listen-hint">听发音，把字母拼成单词</div>
+        </div>
+        <div class="review-answer-box sequence-answer-box" id="dqOrderAnswer"></div>
+        <div class="review-letter-row sequence-candidate-row" id="dqOrderLetters"></div>
+        ${questionChrome()}`;
+    },
+    setup(q) {
+      challengeOrderController = createSequenceOrderController({
+        answerBoxId: 'dqOrderAnswer',
+        candidateRowId: 'dqOrderLetters',
+        confirmButtonId: 'dqConfirmBtn',
+        items: q.letters,
+        expectedLength: q.letters.length,
+        joinWith: ''
+      });
+      speakWord(getCardWord(q.card));
+    },
+    grade(q) {
+      if (!challengeOrderController || !challengeOrderController.isComplete()) return { ready: false };
+      return { ready: true, correct: challengeOrderController.value().toLocaleLowerCase() === q.answer };
+    },
+    applyResult(q, result) {
+      challengeOrderController.lock();
+      applyQuestionResult(q, result.correct);
+    }
+  },
+  P: {
+    isAvailable(context) {
+      return !!getCardPhonetic(context.card) && !!makeUniqueWordOptions(context.card, context.allCards, 4, { preferSamePos: true });
+    },
+    build(context) {
+      return {
+        questionSet: context.questionSet,
+        type: 'P',
+        question: getCardPhonetic(context.card),
+        answer: context.word,
+        options: makeUniqueWordOptions(context.card, context.allCards, 4, { preferSamePos: true }),
+        card: context.card
+      };
+    },
+    render(q) {
+      return `${questionBadge(q)}<div class="dq-phonetic">${escapeHtml(q.question)}</div><div class="dq-options" id="dqOptions"></div>${questionChrome()}`;
+    },
+    setup: renderChoiceOptions,
+    grade: gradeChoiceQuestion,
+    applyResult: applyChoiceResult
+  },
+  K: {
+    isAvailable(context) {
+      return getUsableCollocations(context.card, context.word).some(collocation =>
+        !!makeUniqueWordOptions(context.card, context.allCards, 4, {
+          preferSamePos: true,
+          excludeWords: visibleCollocationWords(collocation)
+        })
+      );
+    },
+    build(context) {
+      const usable = getUsableCollocations(context.card, context.word)
+        .map(collocation => ({
+          collocation,
+          options: makeUniqueWordOptions(context.card, context.allCards, 4, {
+            preferSamePos: true,
+            excludeWords: visibleCollocationWords(collocation)
+          })
+        }))
+        .filter(item => item.options)
+        .sort((a, b) => a.collocation.phrase.length - b.collocation.phrase.length);
+      const selected = usable[Math.floor(Math.random() * Math.min(usable.length, 3))];
+      return {
+        questionSet: context.questionSet,
+        type: 'K',
+        prefix: selected.collocation.prefix,
+        suffix: selected.collocation.suffix,
+        answer: context.word,
+        options: selected.options,
+        card: context.card
+      };
+    },
+    render(q) {
+      return `${questionBadge(q)}<div class="dq-collocation">${escapeHtml(q.prefix)}<span class="dq-blank" id="dqBlank">___</span>${escapeHtml(q.suffix)}</div><div class="dq-options" id="dqOptions"></div>${questionChrome()}`;
+    },
+    setup: renderChoiceOptions,
+    grade: gradeChoiceQuestion,
+    applyResult: applyChoiceResult
+  },
+  R: {
+    isAvailable(context) {
+      return getEnglishExamples(context.card, context.word).some(example => {
+        const count = getSentenceTokens(example.sentence).length;
+        return count >= 4 && count <= 10;
+      });
+    },
+    build(context) {
+      const examples = getEnglishExamples(context.card, context.word).filter(example => {
+        const count = getSentenceTokens(example.sentence).length;
+        return count >= 4 && count <= 10;
+      });
+      const selected = examples[Math.floor(Math.random() * examples.length)];
+      const items = makeIndexedSequence(getSentenceTokens(selected.sentence));
+      return {
+        questionSet: context.questionSet,
+        type: 'R',
+        answer: selected.sentence,
+        tokens: shuffleSequenceAwayFromOriginal(items),
+        card: context.card
+      };
+    },
+    render(q) {
+      return `
+        ${questionBadge(q)}
+        <div class="dq-order-hint">点击词块，组成正确句子</div>
+        <div class="review-answer-box sequence-answer-box sequence-sentence" id="dqOrderAnswer"></div>
+        <div class="review-letter-row sequence-candidate-row" id="dqOrderLetters"></div>
+        ${questionChrome()}`;
+    },
+    setup(q) {
+      challengeOrderController = createSequenceOrderController({
+        answerBoxId: 'dqOrderAnswer',
+        candidateRowId: 'dqOrderLetters',
+        confirmButtonId: 'dqConfirmBtn',
+        items: q.tokens,
+        expectedLength: q.tokens.length,
+        joinWith: ' '
+      });
+    },
+    grade(q) {
+      if (!challengeOrderController || !challengeOrderController.isComplete()) return { ready: false };
+      return { ready: true, correct: normalizeSentenceAnswer(challengeOrderController.value()) === normalizeSentenceAnswer(q.answer) };
+    },
+    applyResult(q, result) {
+      challengeOrderController.lock();
+      applyQuestionResult(q, result.correct);
+    }
   }
 };
 
 let challengeOrderController = null;
 let reviewOrderController = null;
+let reviewSequenceAnswer = '';
+let reviewSequenceIsSentence = false;
 
-function createLetterOrderController(config) {
+function createSequenceOrderController(config) {
   const answerBox = document.getElementById(config.answerBoxId);
-  const letterRow = document.getElementById(config.letterRowId);
+  const candidateRow = document.getElementById(config.candidateRowId);
   const confirmButton = config.confirmButtonId ? document.getElementById(config.confirmButtonId) : null;
   const picked = [];
   let locked = false;
@@ -329,8 +656,8 @@ function createLetterOrderController(config) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'review-answer-letter';
-      button.textContent = item.letter;
-      button.setAttribute('aria-label', `撤回字母 ${item.letter}`);
+      button.textContent = item.text;
+      button.setAttribute('aria-label', `撤回 ${item.text}`);
       button.disabled = locked;
       button.addEventListener('click', () => {
         if (locked) return;
@@ -340,38 +667,65 @@ function createLetterOrderController(config) {
       answerBox.appendChild(button);
     });
 
-    letterRow.querySelectorAll('.review-letter').forEach(button => {
+    candidateRow.querySelectorAll('.review-letter').forEach(button => {
       const used = picked.some(item => item.sourceIndex === Number(button.dataset.i));
       button.disabled = locked || used;
       button.style.opacity = used ? '0.35' : '';
     });
-    if (confirmButton) confirmButton.disabled = locked || picked.length !== config.answerLength;
+    if (confirmButton) confirmButton.disabled = locked || picked.length !== config.expectedLength;
   }
 
-  config.letters.forEach((letter, sourceIndex) => {
+  config.items.forEach(item => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'review-letter';
-    button.dataset.i = String(sourceIndex);
-    button.textContent = letter;
+    button.dataset.i = String(item.sourceIndex);
+    button.textContent = item.text;
     button.addEventListener('click', () => {
-      if (locked || picked.some(item => item.sourceIndex === sourceIndex)) return;
-      picked.push({ letter, sourceIndex });
+      if (locked || picked.some(pickedItem => pickedItem.sourceIndex === item.sourceIndex)) return;
+      picked.push({ ...item });
       render();
     });
-    letterRow.appendChild(button);
+    candidateRow.appendChild(button);
   });
   render();
 
   return {
-    value: () => picked.map(item => item.letter).join(''),
-    isComplete: () => picked.length === config.answerLength,
+    value: () => picked.map(item => item.text).join(config.joinWith || ''),
+    isComplete: () => picked.length === config.expectedLength,
     items: () => picked.map(item => ({ ...item })),
     lock() {
       locked = true;
       render();
     }
   };
+}
+
+function createLetterOrderController(config) {
+  return createSequenceOrderController({
+    answerBoxId: config.answerBoxId,
+    candidateRowId: config.letterRowId,
+    confirmButtonId: config.confirmButtonId,
+    items: makeIndexedSequence(config.letters),
+    expectedLength: config.answerLength,
+    joinWith: ''
+  });
+}
+
+function checkReviewSequence() {
+  if (!reviewOrderController || !reviewOrderController.isComplete()) return;
+  const picked = reviewOrderController.value();
+  const correct = reviewSequenceIsSentence
+    ? normalizeSentenceAnswer(picked) === normalizeSentenceAnswer(reviewSequenceAnswer)
+    : picked.toLocaleLowerCase() === reviewSequenceAnswer.toLocaleLowerCase();
+  reviewOrderController.lock();
+  if (correct) {
+    nextReviewStep();
+    return;
+  }
+  const step = reviewSteps[reviewIndex];
+  addReviewWrong(step.card);
+  showReviewCorrection(step.card);
 }
 
 const ReviewQuestionTypes = {
@@ -415,10 +769,11 @@ const ReviewQuestionTypes = {
     }
   },
   blank: {
+    isAvailable: card => simpleWord(getCardWord(card)).length >= 2,
     build(card) {
       const answer = simpleWord(getCardWord(card));
       const part = makeMissingPart(answer);
-      return { type: 'blank', card, part, options: makeSegmentOptions(part.missing, answer) };
+      return { type: 'blank', card, part, options: makeSegmentOptions(part.missing) };
     },
     render(step) {
       const word = getCardWord(step.card);
@@ -459,6 +814,129 @@ const ReviewQuestionTypes = {
         letterRowId: 'reviewLetterRow',
         letters: step.letters,
         answerLength: simpleWord(word).length
+      });
+    }
+  },
+  dictation: {
+    isAvailable: card => simpleWord(getCardWord(card)).length >= 2,
+    build(card) {
+      const answer = simpleWord(getCardWord(card));
+      return {
+        type: 'dictation',
+        card,
+        answer,
+        letters: shuffleSequenceAwayFromOriginal(makeIndexedSequence(answer.split('')))
+      };
+    },
+    render(step) {
+      const word = getCardWord(step.card);
+      reviewCardShell('听音拼写', `
+        <button class="review-action" onclick="speakWord('${escapeJs(word)}')">🔊 播放发音</button>
+        <div class="review-question review-meaning-hint">${escapeHtml(getCardMeaning(step.card))}</div>
+        <div class="review-sub">点击字母，拼出听到的单词</div>
+        <div class="review-answer-box sequence-answer-box" id="reviewSequenceAnswer"></div>
+        <div class="review-letter-row sequence-candidate-row" id="reviewSequenceCandidates"></div>
+        <button class="review-action" id="reviewSequenceConfirm" onclick="checkReviewSequence()">确认</button>`);
+      reviewSequenceAnswer = step.answer;
+      reviewSequenceIsSentence = false;
+      reviewOrderController = createSequenceOrderController({
+        answerBoxId: 'reviewSequenceAnswer',
+        candidateRowId: 'reviewSequenceCandidates',
+        confirmButtonId: 'reviewSequenceConfirm',
+        items: step.letters,
+        expectedLength: step.letters.length,
+        joinWith: ''
+      });
+      speakWord(word);
+    }
+  },
+  phonetic: {
+    isAvailable(card, allCards) {
+      return !!getCardPhonetic(card) && !!makeUniqueWordOptions(card, allCards, 3, { preferSamePos: true });
+    },
+    build(card, allCards) {
+      return {
+        type: 'phonetic',
+        card,
+        phonetic: getCardPhonetic(card),
+        options: makeUniqueWordOptions(card, allCards, 3, { preferSamePos: true })
+      };
+    },
+    render(step) {
+      const word = getCardWord(step.card);
+      reviewCardShell('音标选词', `
+        <div class="review-phonetic">${escapeHtml(step.phonetic)}</div>
+        <div class="review-options">
+          ${step.options.map(option => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(option)}','${escapeJs(word)}','${escapeJs(word)}')">${escapeHtml(option)}</button>`).join('')}
+        </div>`);
+    }
+  },
+  collocation: {
+    isAvailable(card, allCards) {
+      return getUsableCollocations(card).some(collocation =>
+        !!makeUniqueWordOptions(card, allCards, 3, {
+          preferSamePos: true,
+          excludeWords: visibleCollocationWords(collocation)
+        })
+      );
+    },
+    build(card, allCards) {
+      const usable = getUsableCollocations(card)
+        .map(collocation => ({
+          collocation,
+          options: makeUniqueWordOptions(card, allCards, 3, {
+            preferSamePos: true,
+            excludeWords: visibleCollocationWords(collocation)
+          })
+        }))
+        .filter(item => item.options)
+        .sort((a, b) => a.collocation.phrase.length - b.collocation.phrase.length);
+      const selected = usable[Math.floor(Math.random() * Math.min(usable.length, 3))];
+      return { type: 'collocation', card, ...selected };
+    },
+    render(step) {
+      const word = getCardWord(step.card);
+      reviewCardShell('搭配补全', `
+        <div class="review-collocation">${escapeHtml(step.collocation.prefix)}<span class="review-cloze">___</span>${escapeHtml(step.collocation.suffix)}</div>
+        <div class="review-sub">${escapeHtml(getCardMeaning(step.card))}</div>
+        <div class="review-options">
+          ${step.options.map(option => `<button class="review-opt" onclick="answerReviewChoice(this,'${escapeJs(option)}','${escapeJs(word)}','${escapeJs(word)}')">${escapeHtml(option)}</button>`).join('')}
+        </div>`);
+    }
+  },
+  sentenceOrder: {
+    isAvailable(card) {
+      return getEnglishExamples(card, getCardWord(card)).some(example => !!makeSentencePhraseBlocks(example.sentence));
+    },
+    build(card) {
+      const examples = getEnglishExamples(card, getCardWord(card))
+        .map(example => ({ example, blocks: makeSentencePhraseBlocks(example.sentence) }))
+        .filter(item => item.blocks)
+        .sort((a, b) => getSentenceTokens(a.example.sentence).length - getSentenceTokens(b.example.sentence).length);
+      const selected = examples[Math.floor(Math.random() * Math.min(examples.length, 3))];
+      const items = makeIndexedSequence(selected.blocks);
+      return {
+        type: 'sentenceOrder',
+        card,
+        answer: selected.example.sentence,
+        blocks: shuffleSequenceAwayFromOriginal(items)
+      };
+    },
+    render(step) {
+      reviewCardShell('句子排序', `
+        <div class="review-sub">点击短语块，组成正确句子</div>
+        <div class="review-answer-box sequence-answer-box sequence-sentence" id="reviewSequenceAnswer"></div>
+        <div class="review-letter-row sequence-candidate-row" id="reviewSequenceCandidates"></div>
+        <button class="review-action" id="reviewSequenceConfirm" onclick="checkReviewSequence()">确认</button>`);
+      reviewSequenceAnswer = step.answer;
+      reviewSequenceIsSentence = true;
+      reviewOrderController = createSequenceOrderController({
+        answerBoxId: 'reviewSequenceAnswer',
+        candidateRowId: 'reviewSequenceCandidates',
+        confirmButtonId: 'reviewSequenceConfirm',
+        items: step.blocks,
+        expectedLength: step.blocks.length,
+        joinWith: ' '
       });
     }
   }

@@ -14,7 +14,11 @@ function buildReviewSteps(deck) {
 
 function addReviewTypeSteps(type, cards) {
   const questionType = getQuestionType('review', type);
-  cards.forEach(card => reviewSteps.push(questionType.build(card, activeTaskAllCards)));
+  cards.forEach(card => {
+    if (!questionType.isAvailable || questionType.isAvailable(card, activeTaskAllCards)) {
+      reviewSteps.push(questionType.build(card, activeTaskAllCards));
+    }
+  });
 }
 
 function renderReviewStep() {

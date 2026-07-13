@@ -127,10 +127,16 @@ async function startChallengeTask(task) {
     alert('还没有单词可以挑战');
     return;
   }
+  const allCards = task.allCards && task.allCards.length >= 4 ? task.allCards : deck;
+  const questions = deck.map(card => makeTaskChallengeQuestion(card, allCards)).filter(Boolean);
+  if (questions.length === 0) {
+    alert('这些单词暂时没有可用题型，请更换词卡后再试。');
+    return;
+  }
   beginTaskRuntime(task, 'challenge', deck);
   if (task.batchId) currentUserRec = await loadUserBatch(currentBatchId);
   resultContext = 'task-challenge';
-  dqQuestions = deck.map(card => makeTaskChallengeQuestion(card, activeTaskAllCards));
+  dqQuestions = questions;
   dqIndex = 0;
   dqCorrect = 0;
   dqWrongList = [];

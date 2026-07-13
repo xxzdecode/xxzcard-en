@@ -5,28 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>特殊疑问词配对练习</title>
   <style>
-    :root {
+:root {
       --page-bg: #fff4f7;
       --panel-bg: #fffdfc;
       --title: #e88fa3;
       --mint: #a8d8c8;
       --mint-deep: #5f9f8c;
       --mint-soft: #dff3ea;
-      --knowledge: #fff0c9;
-      --knowledge-border: #f1d995;
+      --knowledge: #ffe9d6;
+      --knowledge-border: #f0c79a;
       --correct: #d7f3dc;
       --correct-border: #94cfa0;
-      --wrong: #ffd9d9;
-      --wrong-border: #eba0a0;
+      --wrong: #ffe0d9;
+      --wrong-border: #eaa693;
       --selected: #fff0f5;
       --selected-border: #f3b6c7;
-      --question-bg: #f8e9f0;
-      --answer-bg: #eef8f4;
       --text: #625b63;
       --muted: #8a7f86;
       --line: #efdde4;
       --shadow: 0 10px 28px rgba(220, 170, 180, 0.16);
-      --gap: 12px;
+
+      --target-1-bg: #eaf1fb;
+      --target-1-border: #c7dcf3;
+      --target-2-bg: #fff3c2;
+      --target-2-border: #e8c765;
+      --target-3-bg: #ddf5f1;
+      --target-3-border: #7fc4bb;
+      --target-4-bg: #f6f1f7;
+      --target-4-border: #e2d3e4;
+
+      --page-gap: 12px;
+      --header-radius: 22px;
+      --stage-radius: 24px;
       --feedback-height: 48px;
       --tap-min: 44px;
     }
@@ -46,7 +56,10 @@
       touch-action: manipulation;
     }
 
-    button { font: inherit; }
+    button,
+    input,
+    select,
+    textarea { font: inherit; }
 
     button {
       min-height: var(--tap-min);
@@ -58,6 +71,7 @@
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 5px 12px rgba(120, 183, 162, 0.2);
+      transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
     }
 
     button:active { transform: translateY(1px) scale(0.99); }
@@ -75,10 +89,10 @@
       box-shadow: none;
     }
 
-    button:focus-visible,
-    .match-card:focus-visible {
-      outline: 3px solid var(--selected-border);
-      outline-offset: 2px;
+    button[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
     }
 
     .practice-app {
@@ -91,42 +105,38 @@
         max(10px, env(safe-area-inset-left));
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) var(--feedback-height);
-      gap: var(--gap);
+      gap: var(--page-gap);
       overflow: hidden;
       background:
-        radial-gradient(circle at 10% 0%, rgba(255,255,255,.75), transparent 30%),
+        radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.72), transparent 30%),
         linear-gradient(180deg, #fff7f9 0%, var(--page-bg) 100%);
     }
 
     .practice-header {
       min-width: 0;
       display: grid;
-      grid-template-columns: minmax(190px, auto) minmax(0, 1fr) auto;
+      grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
       align-items: center;
       gap: 12px;
       padding: 10px 12px;
-      background: rgba(255,253,252,.96);
+      background: rgba(255, 253, 252, 0.96);
       border: 1px solid var(--line);
-      border-radius: 22px;
+      border-radius: var(--header-radius);
       box-shadow: var(--shadow);
     }
 
-    .title-block { min-width: 0; }
-
-    h1 {
-      margin: 0;
-      color: var(--title);
-      font-size: clamp(21px, 2.2vw, 30px);
-      line-height: 1.08;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .title-block {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      height: 100%;
     }
 
-    .subtitle {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: clamp(12px, 1.25vw, 15px);
+    .title-block h1 {
+      margin: 0;
+      color: var(--title);
+      font-size: clamp(23px, 2.4vw, 32px);
+      line-height: 1.08;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -151,7 +161,7 @@
       background: var(--knowledge);
       border: 1px solid var(--knowledge-border);
       color: #7b6843;
-      font-size: clamp(12px, 1.2vw, 15px);
+      font-size: clamp(12px, 1.25vw, 15px);
       font-weight: 700;
       line-height: 1.15;
       white-space: nowrap;
@@ -181,93 +191,11 @@
       min-width: 0;
       min-height: 0;
       overflow: hidden;
+      position: relative;
       background: var(--panel-bg);
       border: 1px solid var(--line);
-      border-radius: 24px;
+      border-radius: var(--stage-radius);
       box-shadow: var(--shadow);
-      padding: 12px;
-    }
-
-    .match-layout {
-      width: 100%;
-      height: 100%;
-      min-width: 0;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .match-column {
-      min-width: 0;
-      min-height: 0;
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
-      gap: 8px;
-      padding: 10px;
-      border-radius: 18px;
-      border: 1px dashed #e8cfd9;
-      background: #fff8fb;
-      overflow: hidden;
-    }
-
-    .match-column.answers {
-      border-color: #cfe5dc;
-      background: #f7fcfa;
-    }
-
-    .column-title {
-      margin: 0;
-      text-align: center;
-      color: #70676f;
-      font-size: clamp(16px, 1.6vw, 20px);
-    }
-
-    .card-list {
-      min-width: 0;
-      min-height: 0;
-      display: grid;
-      grid-template-rows: repeat(6, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .match-card {
-      min-width: 0;
-      min-height: var(--tap-min);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 7px 12px;
-      border: 2px solid transparent;
-      border-radius: 15px;
-      background: var(--question-bg);
-      color: #705f68;
-      font-size: clamp(14px, 1.5vw, 19px);
-      font-weight: 800;
-      line-height: 1.22;
-      text-align: center;
-      overflow-wrap: anywhere;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .answers .match-card { background: var(--answer-bg); }
-
-    .match-card.selected {
-      background: var(--selected);
-      border-color: var(--selected-border);
-    }
-
-    .match-card.done {
-      color: #47745e;
-      background: var(--correct);
-      border-color: var(--correct-border);
-      cursor: default;
-    }
-
-    .match-card.wrong {
-      background: var(--wrong);
-      border-color: var(--wrong-border);
     }
 
     .feedback-bar {
@@ -279,20 +207,11 @@
       gap: 10px;
       padding: 7px 14px;
       border-radius: 18px;
+      color: var(--text);
       background: #fffdfc;
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
       overflow: hidden;
-    }
-
-    .feedback-bar.correct {
-      background: var(--correct);
-      border-color: var(--correct-border);
-    }
-
-    .feedback-bar.wrong {
-      background: var(--wrong);
-      border-color: var(--wrong-border);
     }
 
     .feedback-icon { font-size: 20px; line-height: 1; }
@@ -310,6 +229,18 @@
       color: var(--muted);
       font-size: 13px;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feedback-bar.correct {
+      background: var(--correct);
+      border-color: var(--correct-border);
+    }
+
+    .feedback-bar.wrong {
+      background: var(--wrong);
+      border-color: var(--wrong-border);
     }
 
     .rules-dialog {
@@ -320,12 +251,12 @@
       border-radius: 22px;
       color: var(--text);
       background: var(--panel-bg);
-      box-shadow: 0 20px 60px rgba(120,85,100,.25);
+      box-shadow: 0 20px 60px rgba(120, 85, 100, 0.25);
       overflow: hidden;
     }
 
     .rules-dialog::backdrop {
-      background: rgba(90,70,80,.22);
+      background: rgba(90, 70, 80, 0.22);
       backdrop-filter: blur(3px);
     }
 
@@ -339,60 +270,17 @@
       background: #fff8fb;
     }
 
-    .rules-dialog h2 { margin: 0; color: var(--title); font-size: 21px; }
+    .rules-dialog h2 {
+      margin: 0;
+      color: var(--title);
+      font-size: 21px;
+    }
 
     .dialog-body {
       max-height: calc(min(70dvh, 520px) - 72px);
       padding: 16px;
       overflow: auto;
-      line-height: 1.75;
-    }
-
-    .rule-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px 18px;
-    }
-
-    .rule-grid div {
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: var(--knowledge);
-    }
-
-    @media (orientation: landscape) and (max-height: 520px) {
-      :root { --gap: 7px; --feedback-height: 40px; --tap-min: 38px; }
-
-      .practice-app {
-        padding:
-          max(6px, env(safe-area-inset-top))
-          max(7px, env(safe-area-inset-right))
-          max(6px, env(safe-area-inset-bottom))
-          max(7px, env(safe-area-inset-left));
-      }
-
-      .practice-header {
-        grid-template-columns: minmax(150px, auto) minmax(0, 1fr) auto;
-        gap: 7px;
-        padding: 6px 8px;
-        border-radius: 16px;
-      }
-
-      .subtitle { display: none; }
-      .knowledge-strip { gap: 4px; max-height: 44px; }
-      .knowledge-chip { min-height: 24px; padding: 3px 7px; font-size: 11px; }
-      .header-actions { gap: 5px; }
-      button, .progress-pill { min-height: 36px; padding: 6px 10px; font-size: 12px; }
-      .practice-stage { padding: 7px; border-radius: 18px; }
-      .match-layout { gap: 7px; }
-      .match-column { gap: 5px; padding: 7px; border-radius: 14px; }
-      .card-list { gap: 5px; }
-      .match-card { min-height: 34px; padding: 4px 7px; border-radius: 11px; font-size: 12px; }
-      .column-title { font-size: 14px; }
-      .feedback-bar { gap: 6px; padding: 4px 10px; border-radius: 13px; }
-      .feedback-icon { font-size: 16px; }
-      .feedback-text { font-size: 12px; }
-      .feedback-detail { display: none; }
+      line-height: 1.7;
     }
 
     @media (orientation: portrait) and (max-width: 767px) {
@@ -413,20 +301,175 @@
     }
 
     @media (min-width: 1280px) {
-      .practice-app { max-width: 1440px; margin: 0 auto; }
+      .practice-app {
+        max-width: 1440px;
+        margin: 0 auto;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition: none !important; animation: none !important; }
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+
+    :root {
+      --question-card: #f8e9f0;
+      --answer-card: rgba(255, 255, 255, 0.82);
+    }
+
+    button:focus-visible,
+    .match-card:focus-visible {
+      outline: 3px solid var(--selected-border);
+      outline-offset: 2px;
+    }
+
+    .practice-stage { padding: 12px; }
+
+    .match-layout {
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .match-column {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
+      padding: 10px;
+      border-radius: 18px;
+      border: 2px dashed var(--target-1-border);
+      background: var(--target-1-bg);
+      overflow: hidden;
+    }
+
+    .match-column.answers {
+      border-color: var(--target-3-border);
+      background: var(--target-3-bg);
+    }
+
+    .column-title {
+      margin: 0;
+      text-align: center;
+      color: var(--text);
+      font-size: clamp(16px, 1.6vw, 20px);
+    }
+
+    .card-list {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .match-card {
+      min-width: 0;
+      min-height: var(--tap-min);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 12px;
+      border: 2px solid transparent;
+      border-radius: 15px;
+      background: var(--question-card);
+      color: #705f68;
+      font-size: clamp(14px, 1.5vw, 19px);
+      font-weight: 800;
+      line-height: 1.22;
+      text-align: center;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .answers .match-card { background: var(--answer-card); }
+
+    .match-card.selected {
+      background: var(--selected);
+      border-color: var(--selected-border);
+    }
+
+    .match-card.done {
+      color: #47745e;
+      background: var(--correct);
+      border-color: var(--correct-border);
+      cursor: default;
+    }
+
+    .match-card.wrong {
+      background: var(--wrong);
+      border-color: var(--wrong-border);
+    }
+
+    .rule-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 18px;
+    }
+
+    .rule-grid div {
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: var(--knowledge);
+      border: 1px solid var(--knowledge-border);
+    }
+
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root {
+        --page-gap: 7px;
+        --feedback-height: 40px;
+        --header-radius: 16px;
+        --stage-radius: 18px;
+        --tap-min: 38px;
+      }
+
+      .practice-app {
+        padding:
+          max(6px, env(safe-area-inset-top))
+          max(7px, env(safe-area-inset-right))
+          max(6px, env(safe-area-inset-bottom))
+          max(7px, env(safe-area-inset-left));
+      }
+
+      .practice-header {
+        grid-template-columns: minmax(145px, auto) minmax(0, 1fr) auto;
+        gap: 7px;
+        padding: 6px 8px;
+      }
+
+      .knowledge-strip { gap: 4px; max-height: 44px; }
+      .knowledge-chip { min-height: 24px; padding: 3px 7px; font-size: 11px; }
+      .header-actions { gap: 5px; }
+      button, .progress-pill { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+      .practice-stage { padding: 7px; }
+      .match-layout { gap: 7px; }
+      .match-column { gap: 5px; padding: 7px; border-radius: 14px; }
+      .card-list { gap: 5px; }
+      .match-card { min-height: 34px; padding: 4px 7px; border-radius: 11px; font-size: 12px; }
+      .column-title { font-size: 14px; }
+      .feedback-bar { gap: 6px; padding: 4px 10px; border-radius: 13px; }
+      .feedback-icon { font-size: 16px; }
+      .feedback-text { font-size: 12px; }
+      .feedback-detail { display: none; }
     }
   </style>
 </head>
 <body>
-  <div class="practice-app" id="practiceApp">
+  <div class="practice-app" id="practiceApp" data-layout="landscape-practice">
     <header class="practice-header">
       <div class="title-block">
         <h1>特殊疑问词配对</h1>
-        <div class="subtitle">点击左边问句，再点击右边合适的回答。</div>
       </div>
 
       <div class="knowledge-strip" aria-label="特殊疑问词知识摘要">

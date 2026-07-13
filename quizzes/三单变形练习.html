@@ -5,27 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>第三人称单数动词分类练习</title>
   <style>
-    :root {
+:root {
       --page-bg: #fff4f7;
       --panel-bg: #fffdfc;
       --title: #e88fa3;
       --mint: #a8d8c8;
       --mint-deep: #5f9f8c;
       --mint-soft: #dff3ea;
-      --knowledge: #fff0c9;
-      --knowledge-border: #f1d995;
+      --knowledge: #ffe9d6;
+      --knowledge-border: #f0c79a;
       --correct: #d7f3dc;
       --correct-border: #94cfa0;
-      --wrong: #ffd9d9;
-      --wrong-border: #eba0a0;
+      --wrong: #ffe0d9;
+      --wrong-border: #eaa693;
       --selected: #fff0f5;
       --selected-border: #f3b6c7;
       --text: #625b63;
       --muted: #8a7f86;
       --line: #efdde4;
       --shadow: 0 10px 28px rgba(220, 170, 180, 0.16);
-      --gap: 12px;
-      --feedback-height: 50px;
+
+      --target-1-bg: #eaf1fb;
+      --target-1-border: #c7dcf3;
+      --target-2-bg: #fff3c2;
+      --target-2-border: #e8c765;
+      --target-3-bg: #ddf5f1;
+      --target-3-border: #7fc4bb;
+      --target-4-bg: #f6f1f7;
+      --target-4-border: #e2d3e4;
+
+      --page-gap: 12px;
+      --header-radius: 22px;
+      --stage-radius: 24px;
+      --feedback-height: 48px;
       --tap-min: 44px;
     }
 
@@ -44,7 +56,10 @@
       touch-action: manipulation;
     }
 
-    button { font: inherit; }
+    button,
+    input,
+    select,
+    textarea { font: inherit; }
 
     button {
       min-height: var(--tap-min);
@@ -55,10 +70,11 @@
       background: var(--mint);
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 5px 12px rgba(120,183,162,.2);
+      box-shadow: 0 5px 12px rgba(120, 183, 162, 0.2);
+      transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
     }
 
-    button:active { transform: translateY(1px) scale(.99); }
+    button:active { transform: translateY(1px) scale(0.99); }
 
     button.secondary {
       color: var(--mint-deep);
@@ -73,18 +89,10 @@
       box-shadow: none;
     }
 
-    button.small {
-      min-height: 36px;
-      padding: 6px 11px;
-      font-size: 12px;
-      box-shadow: none;
-    }
-
-    button:focus-visible,
-    .word-card:focus-visible,
-    .bin:focus-visible {
-      outline: 3px solid var(--selected-border);
-      outline-offset: 2px;
+    button[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
     }
 
     .practice-app {
@@ -97,42 +105,38 @@
         max(10px, env(safe-area-inset-left));
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) var(--feedback-height);
-      gap: var(--gap);
+      gap: var(--page-gap);
       overflow: hidden;
       background:
-        radial-gradient(circle at 10% 0%, rgba(255,255,255,.75), transparent 30%),
+        radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.72), transparent 30%),
         linear-gradient(180deg, #fff7f9 0%, var(--page-bg) 100%);
     }
 
     .practice-header {
       min-width: 0;
       display: grid;
-      grid-template-columns: minmax(210px, auto) minmax(0, 1fr) auto;
+      grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
       align-items: center;
       gap: 12px;
       padding: 10px 12px;
-      background: rgba(255,253,252,.96);
+      background: rgba(255, 253, 252, 0.96);
       border: 1px solid var(--line);
-      border-radius: 22px;
+      border-radius: var(--header-radius);
       box-shadow: var(--shadow);
     }
 
-    .title-block { min-width: 0; }
-
-    h1 {
-      margin: 0;
-      color: var(--title);
-      font-size: clamp(21px, 2.2vw, 30px);
-      line-height: 1.08;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .title-block {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      height: 100%;
     }
 
-    .subtitle {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: clamp(12px, 1.25vw, 15px);
+    .title-block h1 {
+      margin: 0;
+      color: var(--title);
+      font-size: clamp(23px, 2.4vw, 32px);
+      line-height: 1.08;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -157,7 +161,7 @@
       background: var(--knowledge);
       border: 1px solid var(--knowledge-border);
       color: #7b6843;
-      font-size: clamp(12px, 1.2vw, 15px);
+      font-size: clamp(12px, 1.25vw, 15px);
       font-weight: 700;
       line-height: 1.15;
       white-space: nowrap;
@@ -187,10 +191,144 @@
       min-width: 0;
       min-height: 0;
       overflow: hidden;
+      position: relative;
       background: var(--panel-bg);
       border: 1px solid var(--line);
-      border-radius: 24px;
+      border-radius: var(--stage-radius);
       box-shadow: var(--shadow);
+    }
+
+    .feedback-bar {
+      min-width: 0;
+      height: var(--feedback-height);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 14px;
+      border-radius: 18px;
+      color: var(--text);
+      background: #fffdfc;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .feedback-icon { font-size: 20px; line-height: 1; }
+
+    .feedback-text {
+      min-width: 0;
+      font-size: clamp(13px, 1.35vw, 16px);
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feedback-detail {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feedback-bar.correct {
+      background: var(--correct);
+      border-color: var(--correct-border);
+    }
+
+    .feedback-bar.wrong {
+      background: var(--wrong);
+      border-color: var(--wrong-border);
+    }
+
+    .rules-dialog {
+      width: min(680px, calc(100vw - 30px));
+      max-height: min(70dvh, 520px);
+      padding: 0;
+      border: 0;
+      border-radius: 22px;
+      color: var(--text);
+      background: var(--panel-bg);
+      box-shadow: 0 20px 60px rgba(120, 85, 100, 0.25);
+      overflow: hidden;
+    }
+
+    .rules-dialog::backdrop {
+      background: rgba(90, 70, 80, 0.22);
+      backdrop-filter: blur(3px);
+    }
+
+    .rules-dialog header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fff8fb;
+    }
+
+    .rules-dialog h2 {
+      margin: 0;
+      color: var(--title);
+      font-size: 21px;
+    }
+
+    .dialog-body {
+      max-height: calc(min(70dvh, 520px) - 72px);
+      padding: 16px;
+      overflow: auto;
+      line-height: 1.7;
+    }
+
+    @media (orientation: portrait) and (max-width: 767px) {
+      .practice-app {
+        position: fixed;
+        left: 0;
+        top: 100dvh;
+        width: 100dvh;
+        height: 100vw;
+        transform: rotate(-90deg);
+        transform-origin: top left;
+      }
+
+      .rules-dialog {
+        width: min(680px, calc(100dvh - 28px));
+        max-height: calc(100vw - 24px);
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .practice-app {
+        max-width: 1440px;
+        margin: 0 auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+
+    button.small {
+      min-height: 36px;
+      padding: 6px 11px;
+      font-size: 12px;
+      box-shadow: none;
+    }
+
+    button:focus-visible,
+    .word-card:focus-visible,
+    .bin:focus-visible {
+      outline: 3px solid var(--selected-border);
+      outline-offset: 2px;
     }
 
     .sort-layout {
@@ -199,7 +337,7 @@
       min-width: 0;
       min-height: 0;
       display: grid;
-      grid-template-columns: minmax(230px, .34fr) minmax(0, .66fr);
+      grid-template-columns: minmax(220px, 0.34fr) minmax(0, 0.66fr);
       gap: 12px;
       padding: 12px;
     }
@@ -210,7 +348,7 @@
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
       gap: 8px;
-      padding: 11px;
+      padding: 12px;
       border-radius: 18px;
       border: 1px dashed #e8cfd9;
       background: #fff8fb;
@@ -240,9 +378,9 @@
       align-items: center;
       justify-content: center;
       gap: 5px;
-      padding: 7px 9px;
+      padding: 8px 10px;
       border: 2px solid transparent;
-      border-radius: 14px;
+      border-radius: 15px;
       color: #705f68;
       background: #f8e9f0;
       font-size: clamp(14px, 1.45vw, 18px);
@@ -255,7 +393,7 @@
 
     .word-card small {
       color: #94828a;
-      font-size: .72em;
+      font-size: 0.72em;
       font-weight: 700;
     }
 
@@ -288,36 +426,47 @@
       min-height: 0;
       display: grid;
       grid-template-rows: auto auto minmax(0, 1fr);
-      gap: 4px;
-      padding: 11px;
-      border: 2px dashed #d6dfda;
+      gap: 6px;
+      padding: 12px;
+      border: 2px dashed var(--target-1-border);
       border-radius: 18px;
-      background: #f7fcfa;
+      background: var(--target-1-bg);
       overflow: hidden;
       cursor: pointer;
     }
 
-    .bin:nth-child(2) { background: #fff9ee; }
-    .bin:nth-child(3) { background: #fff5f8; }
-    .bin:nth-child(4) { background: #f5f1ff; }
+    .bin:nth-child(2) {
+      background: var(--target-2-bg);
+      border-color: var(--target-2-border);
+    }
+
+    .bin:nth-child(3) {
+      background: var(--target-3-bg);
+      border-color: var(--target-3-border);
+    }
+
+    .bin:nth-child(4) {
+      background: var(--target-4-bg);
+      border-color: var(--target-4-border);
+    }
 
     .bin.over,
     .bin.active-target {
       border-color: var(--selected-border);
-      box-shadow: inset 0 0 0 2px rgba(243,182,199,.25);
+      box-shadow: inset 0 0 0 2px rgba(243, 182, 199, 0.25);
     }
 
     .bin-title {
-      color: #5d8175;
-      font-size: clamp(16px, 1.55vw, 20px);
+      color: var(--text);
+      font-size: clamp(16px, 1.6vw, 20px);
       font-weight: 900;
     }
 
     .bin-rule {
       min-height: 30px;
       color: var(--muted);
-      font-size: clamp(11px, 1.05vw, 14px);
-      line-height: 1.25;
+      font-size: clamp(11px, 1.1vw, 14px);
+      line-height: 1.4;
     }
 
     .bin-content {
@@ -336,55 +485,12 @@
       padding: 5px 7px;
       border-radius: 11px;
       font-size: clamp(12px, 1.18vw, 15px);
-      background: rgba(255,255,255,.78);
+      background: rgba(255, 255, 255, 0.82);
     }
-
-    .feedback-bar {
-      min-width: 0;
-      height: var(--feedback-height);
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 10px 6px 14px;
-      border-radius: 18px;
-      background: #fffdfc;
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .feedback-bar.correct {
-      background: var(--correct);
-      border-color: var(--correct-border);
-    }
-
-    .feedback-bar.wrong {
-      background: var(--wrong);
-      border-color: var(--wrong-border);
-    }
-
-    .feedback-icon { font-size: 20px; line-height: 1; }
 
     .feedback-message { min-width: 0; }
 
-    .feedback-text {
-      min-width: 0;
-      font-size: clamp(13px, 1.3vw, 16px);
-      font-weight: 800;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .feedback-detail {
-      margin-top: 1px;
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .feedback-detail { margin-top: 1px; font-size: 12px; }
 
     .feedback-actions {
       display: flex;
@@ -392,41 +498,8 @@
       white-space: nowrap;
     }
 
-    .rules-dialog {
-      width: min(760px, calc(100vw - 30px));
-      max-height: min(76dvh, 560px);
-      padding: 0;
-      border: 0;
-      border-radius: 22px;
-      color: var(--text);
-      background: var(--panel-bg);
-      box-shadow: 0 20px 60px rgba(120,85,100,.25);
-      overflow: hidden;
-    }
-
-    .rules-dialog::backdrop {
-      background: rgba(90,70,80,.22);
-      backdrop-filter: blur(3px);
-    }
-
-    .rules-dialog header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-      background: #fff8fb;
-    }
-
-    .rules-dialog h2 { margin: 0; color: var(--title); font-size: 21px; }
-
-    .dialog-body {
-      max-height: calc(min(76dvh, 560px) - 72px);
-      padding: 16px;
-      overflow: auto;
-      line-height: 1.65;
-    }
+    .rules-dialog { width: min(760px, calc(100vw - 30px)); max-height: min(76dvh, 560px); }
+    .rules-dialog .dialog-body { max-height: calc(min(76dvh, 560px) - 72px); }
 
     .rule-grid {
       display: grid;
@@ -444,7 +517,13 @@
     .rule-card b { color: #75613e; }
 
     @media (orientation: landscape) and (max-height: 520px) {
-      :root { --gap: 7px; --feedback-height: 42px; --tap-min: 38px; }
+      :root {
+        --page-gap: 7px;
+        --feedback-height: 40px;
+        --header-radius: 16px;
+        --stage-radius: 18px;
+        --tap-min: 38px;
+      }
 
       .practice-app {
         padding:
@@ -455,65 +534,54 @@
       }
 
       .practice-header {
-        grid-template-columns: minmax(170px, auto) minmax(0, 1fr) auto;
+        grid-template-columns: minmax(145px, auto) minmax(0, 1fr) auto;
         gap: 7px;
         padding: 6px 8px;
-        border-radius: 16px;
       }
 
-      .subtitle { display: none; }
       .knowledge-strip { gap: 4px; max-height: 44px; }
       .knowledge-chip { min-height: 24px; padding: 3px 7px; font-size: 11px; }
       .header-actions { gap: 5px; }
       button, .progress-pill { min-height: 36px; padding: 6px 10px; font-size: 12px; }
-      .sort-layout { grid-template-columns: minmax(190px, .31fr) minmax(0, .69fr); gap: 7px; padding: 7px; }
-      .word-bank-panel, .bin { padding: 7px; border-radius: 14px; }
-      .word-bank, .bins { gap: 5px; }
-      .word-card { min-height: 34px; padding: 4px 6px; border-radius: 10px; font-size: 12px; }
+
+      .sort-layout {
+        grid-template-columns: minmax(185px, 0.32fr) minmax(0, 0.68fr);
+        gap: 7px;
+        padding: 7px;
+      }
+
+      .word-bank-panel,
+      .bin { padding: 8px; border-radius: 14px; }
+
+      .word-bank,
+      .bins { gap: 5px; }
+
+      .word-card { min-height: 34px; padding: 5px 7px; border-radius: 11px; font-size: 12px; }
       .bin { gap: 2px; }
       .bin-title { font-size: 14px; }
       .bin-rule { min-height: 22px; font-size: 10px; }
       .bin-content { gap: 4px; grid-auto-rows: minmax(28px, 1fr); }
       .bin-content .word-card { min-height: 28px; padding: 3px 5px; font-size: 10px; }
-      .feedback-bar { gap: 6px; padding: 3px 7px 3px 10px; border-radius: 13px; }
+      .feedback-bar { gap: 6px; padding: 4px 10px; border-radius: 13px; }
       .feedback-icon { font-size: 16px; }
       .feedback-text { font-size: 12px; }
       .feedback-detail { display: none; }
       button.small { min-height: 32px; padding: 4px 8px; font-size: 11px; }
     }
-
     @media (orientation: portrait) and (max-width: 767px) {
-      .practice-app {
-        position: fixed;
-        left: 0;
-        top: 100dvh;
-        width: 100dvh;
-        height: 100vw;
-        transform: rotate(-90deg);
-        transform-origin: top left;
-      }
-
       .rules-dialog {
         width: min(760px, calc(100dvh - 28px));
         max-height: calc(100vw - 24px);
       }
     }
 
-    @media (min-width: 1280px) {
-      .practice-app { max-width: 1440px; margin: 0 auto; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition: none !important; animation: none !important; }
-    }
   </style>
 </head>
 <body>
-  <div class="practice-app" id="practiceApp">
+  <div class="practice-app" id="practiceApp" data-layout="landscape-practice">
     <header class="practice-header">
       <div class="title-block">
         <h1>第三人称单数分类</h1>
-        <div class="subtitle">点击词卡，再点击右侧分类区；也可以拖动。</div>
       </div>
 
       <div class="knowledge-strip" aria-label="三单变化知识摘要">

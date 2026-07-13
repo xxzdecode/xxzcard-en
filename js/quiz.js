@@ -1,21 +1,27 @@
 // SPELLING TILE HELPERS (used by daily quiz type S)
 // ══════════════════════════════════════
 function buildSpellingPuzzle(en) {
-  const answer = en.toLowerCase().split('/')[0].trim();
+  const answer = simpleWord(en);
   const letters = answer.split('');
-  const blankCount = Math.min(2, Math.max(1, letters.length));
-  const maxStart = Math.max(0, letters.length - blankCount);
-  const blankStart = Math.floor(Math.random() * (maxStart + 1));
-  const blankIndices = new Set(Array.from({ length: blankCount }, (_, i) => blankStart + i));
+  const blankCount = letters.length === 2 ? 1 : letters.length <= 4 ? 2 : Math.ceil(letters.length / 2);
+  const startParity = letters.length % 2 === 0 && Math.random() < 0.5 ? 1 : 0;
+  const spreadIndices = [];
+  for (let i = startParity; i < letters.length && spreadIndices.length < blankCount; i += 2) spreadIndices.push(i);
+  for (let i = 1 - startParity; i < letters.length && spreadIndices.length < blankCount; i += 2) spreadIndices.push(i);
+  const blankIndices = new Set(spreadIndices.sort((a, b) => a - b));
   const slots = letters.map((l, i) => blankIndices.has(i) ? null : l);
   const blankLetters = [...blankIndices].map(i => letters[i]);
   const extra = 'aeiourstlndcmphbgwy'.split('');
   const pool = [...blankLetters];
   let attempts = 0;
-  while (pool.length < Math.min(blankLetters.length + 2, 10) && attempts < 30) {
+  while (pool.length < blankLetters.length + 2 && attempts < 30) {
     const r = extra[Math.floor(Math.random() * extra.length)];
     if (!pool.includes(r) || pool.filter(x=>x===r).length < blankLetters.filter(x=>x===r).length + 1) pool.push(r);
     attempts++;
+  }
+  for (const letter of extra) {
+    if (pool.length >= blankLetters.length + 2) break;
+    if (pool.filter(x => x === letter).length <= blankLetters.filter(x => x === letter).length) pool.push(letter);
   }
   const choices = pool.sort(() => Math.random()-0.5);
   return { slots, slotAnswers: letters, choices };
@@ -113,12 +119,28 @@ function makeDailyQuestion(card, allCards) {
 
 function shuffle4(arr) { return [...arr].sort(() => Math.random()-0.5); }
 
+let britishVoiceCache = null;
+
+function refreshBritishVoiceCache() {
+  if (!('speechSynthesis' in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  britishVoiceCache = voices.find(voice => String(voice.lang || '').toLocaleLowerCase().startsWith('en-gb')) || null;
+}
+
+if ('speechSynthesis' in window) {
+  refreshBritishVoiceCache();
+  window.speechSynthesis.addEventListener('voiceschanged', refreshBritishVoiceCache);
+}
+
 function speakWord(text) {
   if (!('speechSynthesis' in window)) { alert('当前设备不支持语音朗读'); return; }
-  speechSynthesis.cancel();
+  window.speechSynthesis.cancel();
+  if (!britishVoiceCache) refreshBritishVoiceCache();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US'; u.rate = 0.9;
-  speechSynthesis.speak(u);
+  u.lang = 'en-GB';
+  u.rate = 0.9;
+  if (britishVoiceCache) u.voice = britishVoiceCache;
+  window.speechSynthesis.speak(u);
 }
 
 async function startDailyQuiz() {
@@ -128,7 +150,8 @@ async function startDailyQuiz() {
   const pool = buildDailyPool(batch.cards, currentUserRec);
   if (pool.length === 0) { alert('还没有单词可以测验哦！'); return; }
   const allCards = batch.cards;
-  dqQuestions = pool.map(card => makeDailyQuestion(card, allCards));
+  dqQuestions = pool.map(card => makeDailyQuestion(card, allCards)).filter(Boolean);
+  if (dqQuestions.length === 0) { alert('这些单词暂时没有可用题型，请更换词卡后再试。'); return; }
   dqIndex = 0; dqCorrect = 0; dqWrongList = []; dqSelectedOpt = null;
   showScreen('screenDailyQuiz'); renderDQQuestion();
 }

@@ -78,15 +78,15 @@ const PHONEME_INFO = {
   '/e/': { spellings: ['ea', 'e'] },
   '/æ/': { spellings: ['a'] },
   '/ʌ/': { spellings: ['ou', 'u', 'o'] },
-  '/ɒ/': { spellings: ['wa', 'o'] },
+  '/ɒ/': { spellings: ['wha', 'wa', 'o'] },
   '/ʊ/': { spellings: ['oul', 'oo', 'u'] },
   '/ə/': { spellings: ['er', 'or', 'ar', 'a', 'e', 'o'] },
 
   // 长元音
-  '/iː/': { spellings: ['eer', 'ere', 'ee', 'ea', 'ie', 'ey', 'e', 'y'] },
+  '/iː/': { spellings: ['eer', 'ere', 'ee', 'ea', 'ie', 'ey', 'e', 'y', 'i'] },
   '/ɑː/': { spellings: ['ar', 'a'] },
   '/ɔː/': { spellings: ['oor', 'our', 'or', 'aw', 'au', 'al'] },
-  '/uː/': { spellings: ['oo', 'ue', 'ew', 'ou', 'u'] },
+  '/uː/': { spellings: ['oo', 'ue', 'ew', 'ou', 'u', 'o'] },
   '/ɜː/': { spellings: ['ear', 'eer', 'ir', 'ur', 'er'] },
 
   // 双元音
@@ -95,8 +95,8 @@ const PHONEME_INFO = {
   '/ɔɪ/': { spellings: ['oi', 'oy'] },
   '/aʊ/': { spellings: ['ou', 'ow'] },
   '/əʊ/': { spellings: ['oa', 'ow', 'oe', 'o'] },
-  '/ɪə/': { spellings: ['ear', 'eer', 'ere'] },
-  '/eə/': { spellings: ['air', 'are', 'ear'] },
+  '/ɪə/': { spellings: ['ear', 'eer', 'ere', 'ea'] },
+  '/eə/': { spellings: ['air', 'are', 'ear', 'ere'] },
   '/ʊə/': { spellings: ['ure', 'oor'] },
 
   // 辅音
@@ -104,26 +104,26 @@ const PHONEME_INFO = {
   '/b/': { spellings: ['bb', 'b'] },
   '/t/': { spellings: ['tt', 'ed', 't'] },
   '/d/': { spellings: ['dd', 'ed', 'd'] },
-  '/k/': { spellings: ['ck', 'ch', 'k', 'c'] },
+  '/k/': { spellings: ['ck', 'ch', 'qu', 'k', 'c', 'x'] },
   '/ɡ/': { spellings: ['gg', 'gu', 'g'] },
   '/f/': { spellings: ['ph', 'ff', 'f'] },
-  '/v/': { spellings: ['ve', 'v'] },
+  '/v/': { spellings: ['ve', 'v', 'f'] },
   '/θ/': { spellings: ['th'] },
   '/ð/': { spellings: ['th'] },
   '/s/': { spellings: ['ss', 'ce', 'ci', 'c', 's'] },
   '/z/': { spellings: ['zz', 'se', 's', 'z'] },
-  '/ʃ/': { spellings: ['sh', 'ch', 'ti', 'ci'] },
+  '/ʃ/': { spellings: ['sh', 'ch', 'ti', 'ci', 's'] },
   '/ʒ/': { spellings: ['s'] },
   '/h/': { spellings: ['wh', 'h'] },
-  '/tʃ/': { spellings: ['tch', 'ch'] },
+  '/tʃ/': { spellings: ['ture', 'tch', 'ch'] },
   '/dʒ/': { spellings: ['dge', 'dg', 'ge', 'j', 'g'] },
   '/m/': { spellings: ['mm', 'mb', 'm'] },
   '/n/': { spellings: ['kn', 'nn', 'n'] },
   '/ŋ/': { spellings: ['ng', 'n'] },
   '/l/': { spellings: ['ll', 'le', 'l'] },
   '/r/': { spellings: ['wr', 'rr', 'r'] },
-  '/j/': { spellings: ['y'] },
-  '/w/': { spellings: ['wh', 'w'] }
+  '/j/': { spellings: ['y', 'u'] },
+  '/w/': { spellings: ['wh', 'qu', 'w'] }
 };
 
 const PHONEME_INVENTORY = [
@@ -233,9 +233,6 @@ function normalizePhoneticText(value) {
     .trim();
   text = text
     .replace(/oʊ/g, 'əʊ')
-    .replace(/ɪr/g, 'ɪə')
-    .replace(/er/g, 'eə')
-    .replace(/ʊr/g, 'ʊə')
     .replace(/o/g, 'əʊ');
   return text;
 }
@@ -722,6 +719,24 @@ function groupWordsBySpelling(symbol, words) {
 
     const group = groups.find(g => g.spelling === best);
     if (group) group.words.push({ ...item, spelling: best });
+  });
+
+  groups.forEach(group => {
+    const target = group.spelling.toLowerCase();
+    group.words.sort((a, b) => {
+      const wordA = getCardWord(a.card).toLowerCase();
+      const wordB = getCardWord(b.card).toLowerCase();
+      const positionDiff = wordA.indexOf(target) - wordB.indexOf(target);
+      if (positionDiff) return positionDiff;
+      const lengthDiff = wordA.length - wordB.length;
+      if (lengthDiff) return lengthDiff;
+      return wordA < wordB ? -1 : wordA > wordB ? 1 : 0;
+    });
+  });
+  other.words.sort((a, b) => {
+    const wordA = getCardWord(a.card).toLowerCase();
+    const wordB = getCardWord(b.card).toLowerCase();
+    return wordA < wordB ? -1 : wordA > wordB ? 1 : 0;
   });
 
   const filled = groups.filter(group => group.words.length);
