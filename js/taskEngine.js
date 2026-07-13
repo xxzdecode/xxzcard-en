@@ -1,6 +1,7 @@
 const TASK_MODES = {
   review: {
-    limit: 20,
+    cardPoolLimit: REVIEW_CARD_POOL_LIMIT,
+    stepLimit: REVIEW_STEP_LIMIT,
     start: task => startReviewTask(task)
   },
   challenge: {
@@ -104,7 +105,7 @@ function beginTaskRuntime(task, mode, deck) {
 }
 
 async function startReviewTask(task) {
-  const deck = await prioritizedTaskDeck(task.deck, TASK_MODES.review.limit, task.batchId);
+  const deck = await prioritizedTaskDeck(task.deck, TASK_MODES.review.cardPoolLimit, task.batchId);
   if (deck.length === 0) {
     alert('还没有单词可以温习');
     return;
@@ -112,7 +113,21 @@ async function startReviewTask(task) {
   beginTaskRuntime(task, 'review', deck);
   reviewRound = 1;
   reviewWrongCards = [];
-  buildReviewSteps(deck);
+  const steps = buildReviewSteps(deck);
+  if (steps.length !== TASK_MODES.review.stepLimit) {
+    console.error('[review-plan] 无法生成完整温习计划', {
+      expected: TASK_MODES.review.stepLimit,
+      actual: steps.length,
+      types: steps.map(step => ({
+        requestedType: step.requestedType,
+        type: step.type,
+        fallbackFrom: step.fallbackFrom || null
+      }))
+    });
+    reviewSteps = [];
+    alert('这些单词暂时无法生成完整的温习计划，请补充词卡内容后再试。');
+    return;
+  }
   showScreen('screenReview');
   renderReviewStep();
 }
@@ -127,13 +142,19 @@ async function startChallengeTask(task) {
     alert('还没有单词可以挑战');
     return;
   }
-  const allCards = task.allCards && task.allCards.length >= 4 ? task.allCards : deck;
-  const questions = deck.map(card => makeTaskChallengeQuestion(card, allCards)).filter(Boolean);
-  if (questions.length === 0) {
-    alert('这些单词暂时没有可用题型，请更换词卡后再试。');
+  beginTaskRuntime(task, 'challenge', deck);
+  const questions = buildChallengePlan(deck, activeTaskAllCards, 'task-challenge');
+  if (questions.length !== TASK_MODES.challenge.limit || questions.some(question => !question)) {
+    console.error('[challenge-plan] 无法生成完整挑战计划', {
+      expected: TASK_MODES.challenge.limit,
+      actual: questions.length
+    });
+    activeTask = null;
+    activeTaskDeck = [];
+    activeTaskAllCards = [];
+    alert('这些单词暂时无法生成完整的 10 题挑战，请补充词卡内容后再试。');
     return;
   }
-  beginTaskRuntime(task, 'challenge', deck);
   if (task.batchId) currentUserRec = await loadUserBatch(currentBatchId);
   resultContext = 'task-challenge';
   dqQuestions = questions;

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Challenge layout test</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="screen active" id="screenDailyQuiz">
+    <div class="study-topbar">
+      <button class="back-btn" type="button">←</button>
+      <div class="progress-wrap">
+        <div class="progress-row">
+          <span class="mode-label">🏁 挑战布局测试</span>
+          <span class="progress-count" id="dqCount">1/10</span>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="dqFill"></div></div>
+      </div>
+    </div>
+    <div class="dq-wrap" id="dqWrap"></div>
+  </div>
+
+  <script src="../js/state.js"></script>
+  <script src="../js/utils.js"></script>
+  <script>
+    function getCardWord(card) { return card && card.en || ''; }
+    function getCardMeaning(card) { return card && card.zh || ''; }
+    function escapeHtml(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+    function escapeJs(value) { return String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+  </script>
+  <script src="../js/quiz.js"></script>
+  <script src="../js/questionTypes.js"></script>
+  <script>
+    const words = ['apple', 'bridge', 'candle', 'dragon', 'eagle', 'flower', 'garden', 'harbor', 'island', 'jungle'];
+    const cards = words.map((word, index) => ({
+      en: word,
+      zh: `这是用于检查手机和 iPad 横屏换行效果的较长中文释义 ${index + 1}`,
+      phonetic: `/${word}/`,
+      pos: 'n.',
+      collocations: [{
+        phrase: `learn ${word} with patient daily practice`,
+        example: `We learn ${word} with patient practice every day / 测试例句`
+      }]
+    }));
+    speakWord = () => {};
+    dqQuestions = buildChallengePlan(cards, cards);
+    window.challengeLayoutReport = [];
+    CHALLENGE_TYPE_IDS.forEach(typeId => {
+      dqIndex = dqQuestions.findIndex(question => question.actualType === typeId);
+      renderDQQuestion();
+      const card = document.querySelector('.dq-card');
+      window.challengeLayoutReport.push({
+        type: typeId,
+        viewportWidth: document.documentElement.clientWidth,
+        pageScrollWidth: document.documentElement.scrollWidth,
+        wrapClientWidth: document.getElementById('dqWrap').clientWidth,
+        wrapScrollWidth: document.getElementById('dqWrap').scrollWidth,
+        cardRight: card ? Math.ceil(card.getBoundingClientRect().right) : null
+      });
+    });
+    document.body.dataset.layoutReport = JSON.stringify(window.challengeLayoutReport);
+    dqIndex = 0;
+    renderDQQuestion();
+    window.challengeLayoutReportReady = true;
+  </script>
+</body>
+</html>

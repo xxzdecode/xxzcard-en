@@ -575,12 +575,13 @@
   </dialog>
 
   <script>
-    const words = [
+    const FIXED_WORDS = [
       { base: "rain", result: "rainy", meaning: "多雨的", category: "direct" },
       { base: "wind", result: "windy", meaning: "多风的", category: "direct" },
       { base: "cloud", result: "cloudy", meaning: "多云的", category: "direct" },
       { base: "snow", result: "snowy", meaning: "多雪的", category: "direct" },
       { base: "luck", result: "lucky", meaning: "幸运的", category: "direct" },
+      { base: "mess", result: "messy", meaning: "凌乱的", category: "direct" },
       { base: "noise", result: "noisy", meaning: "吵闹的", category: "drop-e" },
       { base: "ice", result: "icy", meaning: "冰冷的", category: "drop-e" },
       { base: "spice", result: "spicy", meaning: "辛辣的", category: "drop-e" },
@@ -589,11 +590,11 @@
       { base: "sun", result: "sunny", meaning: "晴朗的", category: "double" },
       { base: "fun", result: "funny", meaning: "好笑的", category: "double" },
       { base: "fog", result: "foggy", meaning: "有雾的", category: "double" },
-      { base: "mud", result: "muddy", meaning: "泥泞的", category: "double" },
-      { base: "spot", result: "spotty", meaning: "有斑点的", category: "double" }
+      { base: "mud", result: "muddy", meaning: "泥泞的", category: "double" }
     ];
 
-    const state = { rounds: [], roundIndex: 0, selectedCard: null, completed: 0, attempts: 0, locked: false };
+    let words = [...FIXED_WORDS];
+    const state = { rounds: [], roundIndex: 0, selectedCard: null, completed: 0, attempts: 0, locked: false, lastRoundBases: new Set() };
     const wordBank = document.getElementById("wordBank");
     const progressText = document.getElementById("progressText");
     const newRoundButton = document.getElementById("newRoundButton");
@@ -611,6 +612,60 @@
       }
       return result;
     }
+
+    function isSingleWord(value) {
+      return /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(String(value || "").trim());
+    }
+
+    function classifyYForm(base, result) {
+      if (result === `${base}y`) return "direct";
+      if (base.endsWith("e") && result === `${base.slice(0, -1)}y`) return "drop-e";
+      const last = base.slice(-1);
+      if (last && !/[aeiou]/.test(last) && !base.endsWith(last + last) && result === `${base}${last}y`) return "double";
+      return "";
+    }
+
+    function parseLibraryYAdjective(card) {
+      const resultWord = String(card && card.word || "").toLowerCase().trim();
+      if (!isSingleWord(resultWord)) return null;
+      const morphology = Array.isArray(card.morphology) ? card.morphology : [];
+      const item = morphology.find((entry) => String(entry && entry.part || "").replace(/\s+/g, "") === "-y" && String(entry.knowledgeKey || "").trim() === "suffix-adjective");
+      if (!item) return null;
+      const match = String(item.meaning || "").match(/([A-Za-z]+(?:'[A-Za-z]+)?)\s*(?:→|⇒|->)\s*([A-Za-z]+(?:'[A-Za-z]+)?)/);
+      if (!match) return null;
+      const base = match[1].toLowerCase();
+      const result = match[2].toLowerCase();
+      if (!isSingleWord(base) || !isSingleWord(result) || result !== resultWord) return null;
+      const category = classifyYForm(base, result);
+      return category ? { base, result, meaning: String(card.meaning || "").trim(), category } : null;
+    }
+
+    function mergeLibraryWords(cards) {
+      const merged = new Map(FIXED_WORDS.map((item) => [item.base, { ...item }]));
+      (Array.isArray(cards) ? cards : []).map(parseLibraryYAdjective).filter(Boolean).forEach((item) => {
+        const fixed = merged.get(item.base);
+        merged.set(item.base, { ...item, meaning: item.meaning || (fixed && fixed.meaning) || "" });
+      });
+      words = [...merged.values()];
+    }
+
+    function isAllowedParentOrigin(origin) {
+      if (window.location.protocol === "file:") return origin === "null";
+      return origin === window.location.origin;
+    }
+
+    function requestPracticeLibrary() {
+      try {
+        window.parent.postMessage({ type: "practice-data-request", quizId: "y-adjective-sort" }, window.location.protocol === "file:" ? "*" : window.location.origin);
+      } catch (_) {}
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.source !== window.parent || !isAllowedParentOrigin(event.origin)) return;
+      const message = event.data;
+      if (!message || message.type !== "practice-library" || message.version !== 1 || message.quizId !== "y-adjective-sort") return;
+      mergeLibraryWords(message.cards);
+    });
 
 
     const feedbackBar = document.getElementById("feedbackBar");
@@ -641,19 +696,22 @@
 
 
     function buildRounds() {
-      const direct = shuffle(words.filter((item) => item.category === "direct"));
-      const dropE = shuffle(words.filter((item) => item.category === "drop-e"));
-      const double = shuffle(words.filter((item) => item.category === "double"));
-      state.rounds = [
-        shuffle([...direct.slice(0, 3), ...dropE.slice(0, 3), ...double.slice(0, 3)]),
-        shuffle([...direct.slice(3), ...dropE.slice(3), ...double.slice(3)])
-      ];
+      const perCategory = window.innerHeight <= 520 ? 2 : 3;
+      const round = ["direct", "drop-e", "double"].flatMap((category) => {
+        const pool = words.filter((item) => item.category === category);
+        const fresh = shuffle(pool.filter((item) => !state.lastRoundBases.has(item.base)));
+        const fallback = shuffle(pool.filter((item) => state.lastRoundBases.has(item.base)));
+        return [...fresh, ...fallback].slice(0, perCategory);
+      });
+      state.lastRoundBases = new Set(round.map((item) => item.base));
+      state.rounds = [shuffle(round)];
+      state.roundIndex = 0;
     }
 
     function currentRound() { return state.rounds[state.roundIndex]; }
 
     function updateProgress() {
-      progressText.textContent = `第 ${state.roundIndex + 1} 组 · ${state.completed} / ${currentRound().length}`;
+      progressText.textContent = `已完成 ${state.completed} / ${currentRound().length}`;
     }
 
     function clearSelection() {
@@ -709,7 +767,7 @@
       state.locked = true;
       state.attempts += 1;
       const card = state.selectedCard;
-      const item = words.find((word) => word.base === card.dataset.base);
+      const item = currentRound().find((word) => word.base === card.dataset.base);
       const chosen = categoryElement.dataset.category;
 
       if (item.category === chosen) {
@@ -721,7 +779,7 @@
         document.querySelectorAll(".category").forEach((category) => category.classList.remove("active-target"));
         updateProgress();
         if (state.completed === currentRound().length) {
-          newRoundButton.textContent = state.roundIndex === state.rounds.length - 1 ? "回到第 1 组" : "下一组";
+          newRoundButton.textContent = "换一组";
           showFeedback("correct", "本组全部分类完成！", `共尝试 ${state.attempts} 次，点击“${newRoundButton.textContent}”继续。`);
         } else {
           showFeedback("correct", `正确：${item.base} → ${item.result}`, `还剩 ${currentRound().length - state.completed} 个；尝试 ${state.attempts} 次。`);
@@ -750,7 +808,7 @@
     });
 
     function nextRound() {
-      state.roundIndex = (state.roundIndex + 1) % state.rounds.length;
+      buildRounds();
       renderRound();
     }
 
@@ -759,6 +817,7 @@
 
     buildRounds();
     renderRound();
+    requestPracticeLibrary();
   </script>
 </body>
 </html>

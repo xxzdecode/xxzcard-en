@@ -114,6 +114,7 @@ function findClozeSpan(ex, en) {
 }
 
 function makeDailyQuestion(card, allCards) {
+  // Legacy single-question helper. Full quiz entry points use buildChallengePlan().
   return makeQuestion('challenge', card, allCards, CHALLENGE_TYPE_IDS, 'daily');
 }
 
@@ -129,7 +130,11 @@ function refreshBritishVoiceCache() {
 
 if ('speechSynthesis' in window) {
   refreshBritishVoiceCache();
-  window.speechSynthesis.addEventListener('voiceschanged', refreshBritishVoiceCache);
+  if (typeof window.speechSynthesis.addEventListener === 'function') {
+    window.speechSynthesis.addEventListener('voiceschanged', refreshBritishVoiceCache);
+  } else {
+    window.speechSynthesis.onvoiceschanged = refreshBritishVoiceCache;
+  }
 }
 
 function speakWord(text) {
@@ -144,16 +149,30 @@ function speakWord(text) {
 }
 
 async function startDailyQuiz() {
-  resultContext = 'daily';
+  // Legacy entry retained for result-page retries; there is no direct UI button.
   const batch = getCurrentBatch();
   currentUserRec = await loadUserBatch(currentBatchId);
   const pool = buildDailyPool(batch.cards, currentUserRec);
   if (pool.length === 0) { alert('还没有单词可以测验哦！'); return; }
-  const allCards = batch.cards;
-  dqQuestions = pool.map(card => makeDailyQuestion(card, allCards)).filter(Boolean);
-  if (dqQuestions.length === 0) { alert('这些单词暂时没有可用题型，请更换词卡后再试。'); return; }
+  startPlannedDailyQuiz(pool, batch.cards, 'daily');
+}
+
+function startPlannedDailyQuiz(deck, allCards, context) {
+  const questions = buildChallengePlan(deck, allCards, 'daily');
+  if (questions.length !== CHALLENGE_TYPE_IDS.length || questions.some(question => !question)) {
+    console.error('[challenge-plan] 旧测验入口无法生成完整计划', {
+      context,
+      expected: CHALLENGE_TYPE_IDS.length,
+      actual: questions.length
+    });
+    alert('这些单词暂时无法生成完整的 10 题测验，请补充词卡内容后再试。');
+    return false;
+  }
+  resultContext = context;
+  dqQuestions = questions;
   dqIndex = 0; dqCorrect = 0; dqWrongList = []; dqSelectedOpt = null;
   showScreen('screenDailyQuiz'); renderDQQuestion();
+  return true;
 }
 
 function renderDQQuestion() {

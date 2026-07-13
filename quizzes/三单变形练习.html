@@ -661,7 +661,7 @@
   </dialog>
 
   <script>
-    const words = [
+    const FIXED_WORDS = [
       { base: "like", third: "likes", cn: "喜欢", type: "s" },
       { base: "play", third: "plays", cn: "玩", type: "s" },
       { base: "read", third: "reads", cn: "读", type: "s" },
@@ -696,11 +696,14 @@
       { base: "are", third: "is", cn: "是", type: "special" }
     ];
 
+    let words = [...FIXED_WORDS];
+
     const state = {
       currentWords: [],
       selectedCard: null,
       draggedCard: null,
-      checked: false
+      checked: false,
+      lastRoundBases: new Set()
     };
 
     const wordBank = document.getElementById("wordBank");
@@ -719,6 +722,70 @@
       }
       return result;
     }
+
+    function isSingleWord(value) {
+      return /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(String(value || "").trim());
+    }
+
+    function hasVerbPartOfSpeech(value) {
+      const text = String(value || "").toLowerCase().trim();
+      if (text.includes("动词")) return true;
+      return text.split(/[\s/;,；，|]+/).filter(Boolean).some((token) => token === "v" || token === "v.");
+    }
+
+    function lastArrowPart(value) {
+      const parts = String(value || "").split(/\s*(?:→|⇒|->)\s*/).map((part) => part.trim()).filter(Boolean);
+      return parts.length ? parts[parts.length - 1].toLowerCase() : "";
+    }
+
+    function regularThirdPerson(base) {
+      if (base === "have") return { third: "has", type: "special" };
+      if (base === "be") return { third: "is", type: "special" };
+      if (/[^aeiou]y$/.test(base)) return { third: `${base.slice(0, -1)}ies`, type: "ies" };
+      if (/(?:s|x|z|ch|sh|o)$/.test(base)) return { third: `${base}es`, type: "es" };
+      return { third: `${base}s`, type: "s" };
+    }
+
+    function parseLibraryVerb(card) {
+      const base = String(card && card.word || "").toLowerCase().trim();
+      const excluded = new Set(["am", "is", "are", "was", "were", "been", "being", "has", "had", "does", "did", "done", "went", "gone", "fell", "born", "can", "could", "may", "might", "must", "will", "would", "shall", "should"]);
+      if (!isSingleWord(base) || excluded.has(base) || !hasVerbPartOfSpeech(card && card.pos)) return null;
+
+      const irregular = (Array.isArray(card.irregularForms) ? card.irregularForms : [])
+        .find((item) => String(item && item.label || "").trim() === "三单");
+      const regular = regularThirdPerson(base);
+      let third = irregular ? lastArrowPart(irregular.form) : regular.third;
+      if (!isSingleWord(third) || third === base) return null;
+      const type = irregular && third !== regular.third ? "special" : regular.type;
+      return { base, third, cn: String(card.meaning || "").trim(), type };
+    }
+
+    function mergeLibraryWords(cards) {
+      const merged = new Map(FIXED_WORDS.map((item) => [item.base, { ...item }]));
+      (Array.isArray(cards) ? cards : []).map(parseLibraryVerb).filter(Boolean).forEach((item) => {
+        const fixed = merged.get(item.base);
+        merged.set(item.base, { ...item, cn: item.cn || (fixed && fixed.cn) || "" });
+      });
+      words = [...merged.values()];
+    }
+
+    function isAllowedParentOrigin(origin) {
+      if (window.location.protocol === "file:") return origin === "null";
+      return origin === window.location.origin;
+    }
+
+    function requestPracticeLibrary() {
+      try {
+        window.parent.postMessage({ type: "practice-data-request", quizId: "third-person-sort" }, window.location.protocol === "file:" ? "*" : window.location.origin);
+      } catch (_) {}
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.source !== window.parent || !isAllowedParentOrigin(event.origin)) return;
+      const message = event.data;
+      if (!message || message.type !== "practice-library" || message.version !== 1 || message.quizId !== "third-person-sort") return;
+      mergeLibraryWords(message.cards);
+    });
 
     function typeName(type) {
       return {
@@ -857,12 +924,13 @@
     }
 
     function chooseRound() {
-      const selected = [
-        ...shuffle(words.filter((word) => word.type === "s")).slice(0, 2),
-        ...shuffle(words.filter((word) => word.type === "es")).slice(0, 2),
-        ...shuffle(words.filter((word) => word.type === "ies")).slice(0, 2),
-        ...shuffle(words.filter((word) => word.type === "special")).slice(0, 2)
-      ];
+      const selected = ["s", "es", "ies", "special"].flatMap((type) => {
+        const pool = words.filter((word) => word.type === type);
+        const fresh = shuffle(pool.filter((word) => !state.lastRoundBases.has(word.base)));
+        const fallback = shuffle(pool.filter((word) => state.lastRoundBases.has(word.base)));
+        return [...fresh, ...fallback].slice(0, 2);
+      });
+      state.lastRoundBases = new Set(selected.map((item) => item.base));
       return shuffle(selected);
     }
 
@@ -971,6 +1039,7 @@
 
     setupBins();
     newRound();
+    requestPracticeLibrary();
   </script>
 </body>
 </html>

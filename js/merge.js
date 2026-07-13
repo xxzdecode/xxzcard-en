@@ -124,15 +124,11 @@ async function startMergeMode(mode, e) {
 
 function startMergeDailyQuiz(e) {
   if (e) e.stopPropagation();
-  resultContext = 'merge-daily';
   document.getElementById('mergeStartBar').style.display = '';
   const deck = window._mergeDeck;
   // build all cards pool from all selected batches
   const allCards = mergeSourceBatches.flatMap(b => b.cards);
-  // For merge daily, use deck as the question cards
-  dqQuestions = deck.map(card => makeDailyQuestion(card, allCards.length > 4 ? allCards : deck));
-  dqIndex = 0; dqCorrect = 0; dqWrongList = []; dqSelectedOpt = null;
-  showScreen('screenDailyQuiz'); renderDQQuestion();
+  startPlannedDailyQuiz(deck, allCards.length > 4 ? allCards : deck, 'merge-daily');
 }
 
 // ══════════════════════════════════════

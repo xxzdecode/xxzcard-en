@@ -178,9 +178,7 @@ async function startGlobalDailyQuiz() {
   const recs = await loadAllVisibleRecs(batches);
   const pool = buildGlobalDailyPool(batches, recs);
   if (pool.length === 0) { alert('还没有单词可以测验哦！'); return; }
-  studyIsGlobal = false; resultContext = 'global-daily';
+  studyIsGlobal = false;
   const allCards = batches.flatMap(b => b.cards);
-  dqQuestions = pool.map(card => makeDailyQuestion(card, allCards.length > 4 ? allCards : pool));
-  dqIndex = 0; dqCorrect = 0; dqWrongList = []; dqSelectedOpt = null;
-  showScreen('screenDailyQuiz'); renderDQQuestion();
+  startPlannedDailyQuiz(pool, allCards.length > 4 ? allCards : pool, 'global-daily');
 }

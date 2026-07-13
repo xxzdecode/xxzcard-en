@@ -72,6 +72,19 @@ const PHONEME_GROUPS = [
   }
 ];
 
+const PHONEME_GROUP_THEMES = {
+  '短元音': 'mint',
+  '长元音': 'rose',
+  '双元音': 'apricot',
+  '爆破音': 'blue',
+  '摩擦音': 'violet',
+  '破擦音': 'peach',
+  '鼻音': 'teal',
+  '近音': 'mauve'
+};
+
+const PHONEME_DETAIL_THEMES = ['mint', 'rose', 'apricot', 'violet'];
+
 const PHONEME_INFO = {
   // 短元音
   '/ɪ/': { spellings: ['ui', 'y', 'i'] },
@@ -400,12 +413,15 @@ function renderDictionaryExampleHtml(example, currentWord) {
 
 function renderBasicMeaningHtml(card) {
   normalizeEnglishCard(card);
-  const meta = [card.pos, card.phonetic].filter(Boolean);
+  const meta = [
+    card.pos ? escapeHtml(card.pos) : '',
+    card.phonetic ? `<span class="card-phonetic">${escapeHtml(card.phonetic)}</span>` : ''
+  ].filter(Boolean);
   return `
     <section class="card-section basic-meaning">
       <div class="sec-label">释义</div>
       <div class="meaning-text">${escapeHtml(getCardMeaning(card)).replace(/\n/g,'<br>')}</div>
-      ${meta.length ? `<div class="meaning-meta">${meta.map(escapeHtml).join(' · ')}</div>` : ''}
+      ${meta.length ? `<div class="meaning-meta">${meta.join(' · ')}</div>` : ''}
     </section>`;
 }
 
@@ -811,17 +827,23 @@ function renderPhonemeTraining() {
 
     if (!phonemes.length) return '';
 
+    const theme = PHONEME_GROUP_THEMES[group.title] || 'neutral';
     return `
-      <div class="phoneme-home-row">
-        <div class="phoneme-home-category">${escapeHtml(group.title)}</div>
+      <section class="phoneme-home-row phoneme-theme-${theme}" aria-label="${escapeHtml(group.title)}">
+        <h2 class="phoneme-home-category">${escapeHtml(group.title)}</h2>
         <div class="phoneme-home-buttons">
           ${phonemes.map(symbol => `
-            <button class="phoneme-home-btn" onclick="openPhonemeDetail('${escapeJs(symbol)}')">
+            <button
+              type="button"
+              class="phoneme-home-btn"
+              aria-label="查看音标 ${escapeHtml(symbol)} 的常见拼写和例词"
+              onclick="openPhonemeDetail('${escapeJs(symbol)}')"
+            >
               ${escapeHtml(symbol)}
             </button>
           `).join('')}
         </div>
-      </div>
+      </section>
     `;
   }).filter(Boolean).join('');
 
@@ -843,7 +865,7 @@ function openPhonemeDetail(symbol) {
   if (!spellingGroups.length) {
     list.innerHTML = `
       <div class="phoneme-detail-card">
-        <div class="phoneme-detail-symbol">${escapeHtml(normalizedSymbol)}</div>
+        <div class="phoneme-detail-hint">常见拼写与例词</div>
         <div class="phoneme-empty">还没有匹配到例词</div>
       </div>
     `;
@@ -852,29 +874,47 @@ function openPhonemeDetail(symbol) {
 
   list.innerHTML = `
     <div class="phoneme-detail-card">
-      <div class="phoneme-detail-symbol">${escapeHtml(normalizedSymbol)}</div>
-      <div class="phoneme-detail-hint">常见拼写和我们见过的词</div>
+      <div class="phoneme-detail-hint">常见拼写与例词</div>
 
       <div class="phoneme-spelling-table">
-        ${spellingGroups.map(group => `
-          <div class="phoneme-spelling-row">
-            <div class="phoneme-spelling-cell">${escapeHtml(group.spelling)}</div>
+        ${spellingGroups.map((group, groupIndex) => {
+          const isOther = group.spelling === '其他';
+          const theme = isOther ? 'neutral' : PHONEME_DETAIL_THEMES[groupIndex % PHONEME_DETAIL_THEMES.length];
+          const headingId = `phoneme-spelling-${groupIndex}`;
+          return `
+          <section class="phoneme-spelling-row phoneme-theme-${theme}" aria-labelledby="${headingId}">
+            <h2 class="phoneme-spelling-cell" id="${headingId}">${escapeHtml(group.spelling)}</h2>
             <div class="phoneme-word-chip-list">
-              ${group.words.map(({ card, spelling, batch, cardIdx }) => `
+              ${group.words.map(({ card, spelling, batch, cardIdx }) => {
+                const word = getCardWord(card);
+                const meaning = getCardMeaning(card);
+                const ariaLabel = meaning
+                  ? `播放 ${word} 的发音，意思是 ${meaning}`
+                  : `播放 ${word} 的发音`;
+                return `
                 <button
+                  type="button"
                   class="phoneme-word-chip"
                   data-batch="${escapeHtml(batch.id)}"
                   data-idx="${cardIdx}"
-                  onclick="speakEnglish('${escapeJs(getCardWord(card))}')"
+                  aria-label="${escapeHtml(ariaLabel)}"
+                  onclick="speakEnglish('${escapeJs(word)}')"
                 >
-                  <span class="phoneme-word-en">${renderHighlightedWord(getCardWord(card), spelling)}</span>
-                  <span class="phoneme-word-zh">${escapeHtml(getCardMeaning(card))}</span>
-                  <span class="phoneme-sound">🔊</span>
+                  <span class="phoneme-word-copy">
+                    <span class="phoneme-word-en">${renderHighlightedWord(word, spelling)}</span>
+                    ${meaning ? `<span class="phoneme-word-zh">${escapeHtml(meaning)}</span>` : ''}
+                  </span>
+                  <span class="phoneme-sound" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M11 5 6.8 8.5H3.5v7h3.3L11 19V5Z"></path>
+                      <path d="M15 9a4 4 0 0 1 0 6M17.8 6.5a7.5 7.5 0 0 1 0 11"></path>
+                    </svg>
+                  </span>
                 </button>
-              `).join('')}
+              `; }).join('')}
             </div>
-          </div>
-        `).join('')}
+          </section>
+        `; }).join('')}
       </div>
     </div>
   `;

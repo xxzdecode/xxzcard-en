@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>比较级和最高级分类练习</title>
+  <style>
+    :root {
+      --page: #fff4f7;
+      --panel: #fffdfc;
+      --pink: #e88fa3;
+      --mint: #a8d8c8;
+      --mint-deep: #5f9f8c;
+      --mint-soft: #dff3ea;
+      --yellow: #fff1cc;
+      --yellow-border: #efd49a;
+      --line: #efdde4;
+      --text: #625b63;
+      --muted: #8a7f86;
+      --correct: #d7f3dc;
+      --wrong: #ffe0d9;
+      --shadow: 0 10px 28px rgba(220, 170, 180, 0.16);
+      --feedback-height: 50px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      color: var(--text); background: var(--page);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%; touch-action: manipulation;
+    }
+    button { min-height: 40px; padding: 7px 13px; border: 0; border-radius: 999px; color: #fff; background: var(--mint); font: inherit; font-weight: 800; cursor: pointer; }
+    button.secondary { color: var(--mint-deep); background: var(--mint-soft); }
+    button.ghost { color: var(--muted); background: transparent; border: 1px solid var(--line); }
+    button.small { min-height: 34px; padding: 5px 10px; font-size: 12px; }
+    button:active { transform: translateY(1px); }
+
+    .app {
+      width: 100vw; height: 100dvh; overflow: hidden;
+      display: grid; grid-template-rows: auto minmax(0, 1fr) var(--feedback-height); gap: 10px;
+      padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      background: radial-gradient(circle at 10% 0%, rgba(255,255,255,.75), transparent 30%), linear-gradient(#fff8fa, var(--page));
+    }
+    .header {
+      min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+      padding: 9px 11px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,253,252,.96); box-shadow: var(--shadow);
+    }
+    h1 { margin: 0; color: var(--pink); font-size: clamp(20px, 2.1vw, 29px); white-space: nowrap; }
+    .knowledge { min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; max-height: 62px; overflow: hidden; }
+    .chip { padding: 4px 8px; border: 1px solid var(--yellow-border); border-radius: 999px; color: #7b6843; background: var(--yellow); font-size: clamp(10px, 1vw, 13px); font-weight: 700; white-space: nowrap; }
+    .actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .progress { min-height: 40px; display: inline-flex; align-items: center; padding: 7px 11px; border-radius: 999px; color: var(--mint-deep); background: var(--mint-soft); font-weight: 900; }
+
+    .stage { min-width: 0; min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); }
+    .layout { width: 100%; height: 100%; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(190px, .28fr) minmax(0, .72fr); gap: 10px; padding: 10px; }
+    .bank-panel { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 7px; padding: 10px; border: 1px dashed #e8cfd9; border-radius: 17px; background: #fff8fb; overflow: hidden; }
+    .section-title { margin: 0; font-size: clamp(15px, 1.4vw, 19px); }
+    .bank { min-width: 0; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(40px, 1fr); gap: 7px; }
+    .word { min-width: 0; min-height: 40px; display: grid; place-items: center; padding: 6px; border: 2px solid transparent; border-radius: 13px; color: #705f68; background: #f8e9f0; font-size: clamp(14px, 1.35vw, 18px); font-weight: 900; overflow-wrap: anywhere; }
+    .word.selected { border-color: #f3b6c7; background: #fff0f5; }
+    .word.wrong, .category.wrong { border-color: #eaa693; background: var(--wrong); animation: shake .28s linear; }
+
+    .categories { min-width: 0; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .category { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 3px; padding: 8px; border: 2px dashed #c7dcf3; border-radius: 15px; background: #edf4fc; overflow: hidden; cursor: pointer; }
+    .category:nth-child(2), .category:nth-child(5) { border-color: #e8c765; background: #fff6d7; }
+    .category:nth-child(3), .category:nth-child(6) { border-color: #98d0c6; background: #e4f6f2; }
+    .category.active { box-shadow: inset 0 0 0 2px rgba(243,182,199,.28); }
+    .category h2 { margin: 0; font-size: clamp(12px, 1.15vw, 16px); line-height: 1.15; text-align: center; }
+    .example { color: var(--muted); font-size: clamp(9px, .85vw, 12px); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .answers { min-width: 0; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+    .answer { width: 100%; padding: 5px; border: 1px solid rgba(130,160,148,.28); border-radius: 9px; color: #47745e; background: rgba(255,255,255,.82); font-size: clamp(10px, .9vw, 13px); font-weight: 900; text-align: center; overflow-wrap: anywhere; }
+    .answer small { display: block; margin-top: 2px; color: var(--muted); font-size: .8em; }
+
+    .feedback { height: var(--feedback-height); min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 5px 10px 5px 13px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+    .feedback.correct { background: var(--correct); border-color: #94cfa0; }
+    .feedback.wrong { background: var(--wrong); border-color: #eaa693; }
+    .feedback-icon { font-size: 19px; }
+    .feedback-text { font-size: clamp(12px, 1.2vw, 15px); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feedback-detail { margin-top: 1px; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    dialog { width: min(760px, calc(100vw - 28px)); max-height: 76dvh; padding: 0; border: 0; border-radius: 20px; color: var(--text); background: var(--panel); box-shadow: 0 20px 60px rgba(120,85,100,.25); overflow: hidden; }
+    dialog::backdrop { background: rgba(90,70,80,.22); backdrop-filter: blur(3px); }
+    dialog header { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px; border-bottom: 1px solid var(--line); }
+    dialog h2 { margin: 0; color: var(--pink); font-size: 20px; }
+    .rules { max-height: calc(76dvh - 68px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px; overflow: auto; }
+    .rule { padding: 10px; border: 1px solid var(--yellow-border); border-radius: 13px; background: var(--yellow); line-height: 1.5; }
+
+    @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --feedback-height: 40px; }
+      .app { gap: 6px; padding: 5px 7px; }
+      .header { gap: 6px; padding: 5px 7px; border-radius: 14px; }
+      h1 { font-size: 17px; }
+      .knowledge { max-height: 39px; gap: 3px; }
+      .chip { padding: 2px 5px; font-size: 9px; }
+      button, .progress { min-height: 32px; padding: 4px 8px; font-size: 11px; }
+      .stage { border-radius: 16px; }
+      .layout { grid-template-columns: minmax(160px, .26fr) minmax(0, .74fr); gap: 5px; padding: 5px; }
+      .bank-panel, .category { padding: 5px; border-radius: 11px; }
+      .bank { gap: 4px; grid-auto-rows: minmax(30px, 1fr); }
+      .word { min-height: 30px; padding: 3px; border-radius: 8px; font-size: 11px; }
+      .categories { gap: 4px; }
+      .category { gap: 1px; }
+      .category h2 { font-size: 10px; }
+      .example { font-size: 8px; }
+      .answer { padding: 2px; font-size: 8px; }
+      .feedback { gap: 5px; padding: 3px 7px; border-radius: 11px; }
+      .feedback-detail { display: none; }
+    }
+    @media (orientation: portrait) and (max-width: 767px) {
+      .app { position: fixed; left: 0; top: 100dvh; width: 100dvh; height: 100vw; transform: rotate(-90deg); transform-origin: top left; }
+      dialog { width: min(760px, calc(100dvh - 28px)); max-height: calc(100vw - 22px); }
+    }
+    @media (min-width: 1280px) { .app { max-width: 1440px; margin: 0 auto; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>比较级和最高级分类</h1>
+      <div class="knowledge" aria-label="六种变化规则">
+        <span class="chip">直接 + er / est</span><span class="chip">e 结尾 + r / st</span>
+        <span class="chip">y → ier / iest</span><span class="chip">双写辅音</span>
+        <span class="chip">more / most</span><span class="chip">特殊变化</span>
+      </div>
+      <div class="actions">
+        <span class="progress" id="progress">已完成 0 / 6</span>
+        <button class="secondary" id="rulesButton" type="button">查看规则</button>
+        <button id="newRoundButton" type="button">换一组</button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="layout">
+        <section class="bank-panel">
+          <h2 class="section-title">形容词原级</h2>
+          <div class="bank" id="wordBank"></div>
+        </section>
+        <section class="categories" aria-label="比较级和最高级分类区">
+          <article class="category" data-category="direct" tabindex="0" role="button"><h2>直接加 -er / -est</h2><div class="example">small → smaller → smallest</div><div class="answers"></div></article>
+          <article class="category" data-category="ending-e" tabindex="0" role="button"><h2>e 结尾：-r / -st</h2><div class="example">large → larger → largest</div><div class="answers"></div></article>
+          <article class="category" data-category="y-to-i" tabindex="0" role="button"><h2>y → ier / iest</h2><div class="example">happy → happier → happiest</div><div class="answers"></div></article>
+          <article class="category" data-category="double" tabindex="0" role="button"><h2>双写辅音 + er / est</h2><div class="example">big → bigger → biggest</div><div class="answers"></div></article>
+          <article class="category" data-category="more-most" tabindex="0" role="button"><h2>more / most</h2><div class="example">beautiful → more beautiful → most beautiful</div><div class="answers"></div></article>
+          <article class="category" data-category="special" tabindex="0" role="button"><h2>特殊变化</h2><div class="example">good → better → best</div><div class="answers"></div></article>
+        </section>
+      </div>
+    </main>
+
+    <footer class="feedback" id="feedback" aria-live="polite">
+      <span class="feedback-icon" id="feedbackIcon">△</span>
+      <div><div class="feedback-text" id="feedbackText">请先选择一个形容词。</div><div class="feedback-detail" id="feedbackDetail">再点击对应的变化分类。</div></div>
+      <button class="secondary small" id="resetButton" type="button">重新开始</button>
+    </footer>
+  </div>
+
+  <dialog id="rulesDialog">
+    <header><h2>比较级和最高级变化规则</h2><button class="ghost" id="closeRulesButton" type="button">关闭</button></header>
+    <div class="rules">
+      <div class="rule"><b>直接加 -er / -est</b><br />small → smaller → smallest</div>
+      <div class="rule"><b>e 结尾加 -r / -st</b><br />large → larger → largest</div>
+      <div class="rule"><b>辅音 + y：y 变 i</b><br />happy → happier → happiest</div>
+      <div class="rule"><b>双写末尾辅音</b><br />big → bigger → biggest</div>
+      <div class="rule"><b>前面加 more / most</b><br />beautiful → more beautiful → most beautiful</div>
+      <div class="rule"><b>特殊变化要单独记</b><br />good → better → best</div>
+    </div>
+  </dialog>
+
+  <script>
+    const FIXED_WORDS = [
+      { base: "small", comparative: "smaller", superlative: "smallest", meaning: "小的", category: "direct" },
+      { base: "tall", comparative: "taller", superlative: "tallest", meaning: "高的", category: "direct" },
+      { base: "long", comparative: "longer", superlative: "longest", meaning: "长的", category: "direct" },
+      { base: "short", comparative: "shorter", superlative: "shortest", meaning: "短的", category: "direct" },
+      { base: "young", comparative: "younger", superlative: "youngest", meaning: "年轻的", category: "direct" },
+      { base: "cold", comparative: "colder", superlative: "coldest", meaning: "冷的", category: "direct" },
+      { base: "fast", comparative: "faster", superlative: "fastest", meaning: "快的", category: "direct" },
+      { base: "large", comparative: "larger", superlative: "largest", meaning: "大的", category: "ending-e" },
+      { base: "nice", comparative: "nicer", superlative: "nicest", meaning: "友好的", category: "ending-e" },
+      { base: "cute", comparative: "cuter", superlative: "cutest", meaning: "可爱的", category: "ending-e" },
+      { base: "wide", comparative: "wider", superlative: "widest", meaning: "宽的", category: "ending-e" },
+      { base: "safe", comparative: "safer", superlative: "safest", meaning: "安全的", category: "ending-e" },
+      { base: "happy", comparative: "happier", superlative: "happiest", meaning: "开心的", category: "y-to-i" },
+      { base: "easy", comparative: "easier", superlative: "easiest", meaning: "容易的", category: "y-to-i" },
+      { base: "busy", comparative: "busier", superlative: "busiest", meaning: "忙的", category: "y-to-i" },
+      { base: "funny", comparative: "funnier", superlative: "funniest", meaning: "好笑的", category: "y-to-i" },
+      { base: "heavy", comparative: "heavier", superlative: "heaviest", meaning: "重的", category: "y-to-i" },
+      { base: "pretty", comparative: "prettier", superlative: "prettiest", meaning: "漂亮的", category: "y-to-i" },
+      { base: "big", comparative: "bigger", superlative: "biggest", meaning: "大的", category: "double" },
+      { base: "hot", comparative: "hotter", superlative: "hottest", meaning: "热的", category: "double" },
+      { base: "thin", comparative: "thinner", superlative: "thinnest", meaning: "瘦的", category: "double" },
+      { base: "fat", comparative: "fatter", superlative: "fattest", meaning: "胖的", category: "double" },
+      { base: "sad", comparative: "sadder", superlative: "saddest", meaning: "难过的", category: "double" },
+      { base: "wet", comparative: "wetter", superlative: "wettest", meaning: "湿的", category: "double" },
+      { base: "beautiful", comparative: "more beautiful", superlative: "most beautiful", meaning: "漂亮的", category: "more-most" },
+      { base: "expensive", comparative: "more expensive", superlative: "most expensive", meaning: "昂贵的", category: "more-most" },
+      { base: "interesting", comparative: "more interesting", superlative: "most interesting", meaning: "有趣的", category: "more-most" },
+      { base: "difficult", comparative: "more difficult", superlative: "most difficult", meaning: "困难的", category: "more-most" },
+      { base: "careful", comparative: "more careful", superlative: "most careful", meaning: "仔细的", category: "more-most" },
+      { base: "important", comparative: "more important", superlative: "most important", meaning: "重要的", category: "more-most" },
+      { base: "boring", comparative: "more boring", superlative: "most boring", meaning: "无聊的", category: "more-most" },
+      { base: "good", comparative: "better", superlative: "best", meaning: "好的", category: "special" },
+      { base: "bad", comparative: "worse", superlative: "worst", meaning: "坏的", category: "special" },
+      { base: "many", comparative: "more", superlative: "most", meaning: "许多的", category: "special" },
+      { base: "much", comparative: "more", superlative: "most", meaning: "许多的", category: "special" },
+      { base: "little", comparative: "less", superlative: "least", meaning: "少的", category: "special" }
+    ];
+
+    let words = [...FIXED_WORDS];
+    const state = { current: [], selected: null, completed: 0, attempts: 0, locked: false, lastRoundBases: new Set() };
+    const wordBank = document.getElementById("wordBank");
+    const progress = document.getElementById("progress");
+    const feedback = document.getElementById("feedback");
+    const feedbackIcon = document.getElementById("feedbackIcon");
+    const feedbackText = document.getElementById("feedbackText");
+    const feedbackDetail = document.getElementById("feedbackDetail");
+    const rulesDialog = document.getElementById("rulesDialog");
+
+    function shuffle(items) {
+      const result = [...items];
+      for (let i = result.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    }
+
+    function isSingleWord(value) { return /^[A-Za-z]+(?:'[A-Za-z]+)?$/.test(String(value || "").trim()); }
+    function isForm(value) { return /^(?:(?:more|most) )?[A-Za-z]+(?:'[A-Za-z]+)?$/.test(String(value || "").trim()); }
+    function arrowParts(value) { return String(value || "").split(/\s*(?:→|⇒|->)\s*/).map((part) => part.trim()).filter(Boolean); }
+    function finalWord(value) { const match = String(value || "").match(/([A-Za-z]+(?:'[A-Za-z]+)?)\s*$/); return match ? match[1].toLowerCase() : ""; }
+
+    function classify(base, comparative, superlative) {
+      if (base.endsWith("e") && comparative === `${base}r` && superlative === `${base}st`) return "ending-e";
+      if (/[^aeiou]y$/.test(base) && comparative === `${base.slice(0, -1)}ier` && superlative === `${base.slice(0, -1)}iest`) return "y-to-i";
+      const last = base.slice(-1);
+      if (last && !/[aeiou]/.test(last) && !base.endsWith(last + last) && comparative === `${base}${last}er` && superlative === `${base}${last}est`) return "double";
+      if (comparative === `${base}er` && superlative === `${base}est`) return "direct";
+      if (comparative === `more ${base}` && superlative === `most ${base}`) return "more-most";
+      return "special";
+    }
+
+    function parseMorphology(card) {
+      const item = (Array.isArray(card.morphology) ? card.morphology : []).find((entry) => String(entry && entry.knowledgeKey || "").trim() === "suffix-comparison");
+      if (!item) return null;
+      const parts = arrowParts(item.meaning);
+      if (parts.length !== 3) return null;
+      return { base: finalWord(parts[0]), comparative: parts[1].toLowerCase(), superlative: parts[2].toLowerCase() };
+    }
+
+    function parseIrregular(card) {
+      const forms = Array.isArray(card.irregularForms) ? card.irregularForms : [];
+      const comparativeItem = forms.find((item) => String(item && item.label || "").trim() === "比较级");
+      const superlativeItem = forms.find((item) => String(item && item.label || "").trim() === "最高级");
+      if (!comparativeItem || !superlativeItem) return null;
+      const comparativeParts = arrowParts(comparativeItem.form);
+      const superlativeParts = arrowParts(superlativeItem.form);
+      return {
+        base: String(card.word || "").toLowerCase().trim(),
+        comparative: String(comparativeParts[comparativeParts.length - 1] || "").toLowerCase(),
+        superlative: String(superlativeParts[superlativeParts.length - 1] || "").toLowerCase()
+      };
+    }
+
+    function parseLibraryComparison(card) {
+      if (!card || !isSingleWord(card.word)) return null;
+      const cardWord = String(card.word).toLowerCase().trim();
+      const parsed = [parseMorphology(card), parseIrregular(card)].filter(Boolean).find((candidate) => (
+        candidate.base === cardWord && isSingleWord(candidate.base) && isForm(candidate.comparative) && isForm(candidate.superlative)
+      ));
+      if (!parsed) return null;
+      return { ...parsed, meaning: String(card.meaning || "").trim(), category: classify(parsed.base, parsed.comparative, parsed.superlative) };
+    }
+
+    function mergeLibraryWords(cards) {
+      const merged = new Map(FIXED_WORDS.map((item) => [item.base, { ...item }]));
+      (Array.isArray(cards) ? cards : []).map(parseLibraryComparison).filter(Boolean).forEach((item) => {
+        const fixed = merged.get(item.base);
+        merged.set(item.base, { ...item, meaning: item.meaning || (fixed && fixed.meaning) || "" });
+      });
+      words = [...merged.values()];
+    }
+
+    function chooseRound() {
+      const round = ["direct", "ending-e", "y-to-i", "double", "more-most", "special"].flatMap((category) => {
+        const pool = words.filter((item) => item.category === category);
+        const fresh = shuffle(pool.filter((item) => !state.lastRoundBases.has(item.base)));
+        const fallback = shuffle(pool.filter((item) => state.lastRoundBases.has(item.base)));
+        return [...fresh, ...fallback].slice(0, 1);
+      });
+      state.lastRoundBases = new Set(round.map((item) => item.base));
+      return shuffle(round);
+    }
+
+    function showFeedback(type, message, detail) {
+      feedback.classList.remove("correct", "wrong");
+      feedbackIcon.textContent = type === "correct" ? "✓" : type === "wrong" ? "×" : "△";
+      feedbackText.textContent = message;
+      feedbackDetail.textContent = detail || "";
+      if (type === "correct" || type === "wrong") feedback.classList.add(type);
+    }
+
+    function clearSelection() {
+      if (state.selected) state.selected.classList.remove("selected");
+      state.selected = null;
+      document.querySelectorAll(".category").forEach((category) => category.classList.remove("active"));
+    }
+
+    function renderRound(useNewWords) {
+      if (useNewWords) state.current = chooseRound();
+      state.completed = 0; state.attempts = 0; state.locked = false;
+      clearSelection(); wordBank.innerHTML = "";
+      document.querySelectorAll(".answers").forEach((box) => { box.innerHTML = ""; });
+      state.current.forEach((item) => {
+        const button = document.createElement("button");
+        button.type = "button"; button.className = "word"; button.textContent = item.base; button.dataset.base = item.base;
+        button.addEventListener("click", () => selectWord(button));
+        wordBank.appendChild(button);
+      });
+      progress.textContent = `已完成 0 / ${state.current.length}`;
+      showFeedback("neutral", "请先选择一个形容词。", "再点击对应的变化分类。");
+    }
+
+    function selectWord(card) {
+      if (state.locked) return;
+      clearSelection(); state.selected = card; card.classList.add("selected");
+      document.querySelectorAll(".category").forEach((category) => category.classList.add("active"));
+      showFeedback("neutral", `已选择：${card.dataset.base}`, "请选择右侧分类。");
+    }
+
+    function chooseCategory(category) {
+      if (state.locked) return;
+      if (!state.selected) { showFeedback("wrong", "请先选择一个形容词。", "然后再点击分类区。"); return; }
+      const card = state.selected;
+      const item = state.current.find((entry) => entry.base === card.dataset.base);
+      state.attempts += 1;
+      if (item.category !== category.dataset.category) {
+        state.locked = true; card.classList.add("wrong"); category.classList.add("wrong");
+        showFeedback("wrong", "分类不正确，可以继续尝试。", `${item.base} 的词尾变化再看一看。`);
+        window.setTimeout(() => { card.classList.remove("wrong"); category.classList.remove("wrong"); state.locked = false; }, 480);
+        return;
+      }
+      const answer = document.createElement("div");
+      answer.className = "answer"; answer.innerHTML = `${item.base} → ${item.comparative} → ${item.superlative}<small>${item.meaning}</small>`;
+      category.querySelector(".answers").appendChild(answer); card.remove(); clearSelection(); state.completed += 1;
+      progress.textContent = `已完成 ${state.completed} / ${state.current.length}`;
+      showFeedback("correct", `正确：${item.base} → ${item.comparative} → ${item.superlative}`, state.completed === state.current.length ? "本组完成，点击“换一组”继续。" : `还剩 ${state.current.length - state.completed} 个。`);
+    }
+
+    document.querySelectorAll(".category").forEach((category) => {
+      category.addEventListener("click", () => chooseCategory(category));
+      category.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseCategory(category); } });
+    });
+    document.getElementById("newRoundButton").addEventListener("click", () => renderRound(true));
+    document.getElementById("resetButton").addEventListener("click", () => renderRound(false));
+    document.getElementById("rulesButton").addEventListener("click", () => rulesDialog.showModal());
+    document.getElementById("closeRulesButton").addEventListener("click", () => rulesDialog.close());
+    rulesDialog.addEventListener("click", (event) => { if (event.target === rulesDialog) rulesDialog.close(); });
+
+    function isAllowedParentOrigin(origin) { return window.location.protocol === "file:" ? origin === "null" : origin === window.location.origin; }
+    window.addEventListener("message", (event) => {
+      if (event.source !== window.parent || !isAllowedParentOrigin(event.origin)) return;
+      const message = event.data;
+      if (!message || message.type !== "practice-library" || message.version !== 1 || message.quizId !== "comparison-sort") return;
+      mergeLibraryWords(message.cards);
+    });
+    try { window.parent.postMessage({ type: "practice-data-request", quizId: "comparison-sort" }, window.location.protocol === "file:" ? "*" : window.location.origin); } catch (_) {}
+    renderRound(true);
+  </script>
+</body>
+</html>

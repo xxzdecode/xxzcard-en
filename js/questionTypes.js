@@ -1,4 +1,19 @@
-const CHALLENGE_TYPE_IDS = ['A', 'B', 'C', 'L', 'S', 'O'];
+const CHALLENGE_TYPE_IDS = ['A', 'B', 'C', 'L', 'S', 'O', 'D', 'P', 'K', 'R'];
+
+const CHALLENGE_ASSIGNMENT_PRIORITY = ['R', 'K', 'A', 'P', 'D', 'S', 'O', 'L', 'B', 'C'];
+
+const CHALLENGE_TYPE_FALLBACKS = {
+  A: ['K', 'R', 'B'],
+  K: ['A', 'R', 'B'],
+  R: ['K', 'A', 'O'],
+  P: ['L', 'B'],
+  D: ['S', 'O', 'L'],
+  S: ['O', 'D'],
+  O: ['S', 'D'],
+  L: ['P', 'B'],
+  B: ['C'],
+  C: ['B']
+};
 
 const CHALLENGE_TYPE_LABELS = {
   A: 'A 型 · 例句填空',
@@ -27,7 +42,8 @@ const CHALLENGE_TYPE_CLASSES = {
 };
 
 function simpleWord(en) {
-  return String(en || '').split('/')[0].trim().replace(/[^a-zA-Z]/g, '').toLowerCase();
+  const word = String(en || '').split('/')[0].trim().toLowerCase();
+  return /^[a-z]+$/.test(word) ? word : '';
 }
 
 function makeMissingPart(answer) {
@@ -159,6 +175,21 @@ function makeUniqueWordOptions(answerCard, allCards, count, options = {}) {
   return distractors.length === count - 1 ? shuffled([answer, ...distractors]) : null;
 }
 
+function makeUniqueMeaningOptions(answerCard, allCards, count) {
+  const answer = String(getCardMeaning(answerCard) || '').trim();
+  if (!answer || !Array.isArray(allCards) || count < 1) return null;
+  const seen = new Set([answer.toLocaleLowerCase()]);
+  const distractors = [];
+  shuffled(allCards).forEach(card => {
+    const meaning = String(getCardMeaning(card) || '').trim();
+    const key = meaning.toLocaleLowerCase();
+    if (!meaning || seen.has(key) || distractors.length >= count - 1) return;
+    seen.add(key);
+    distractors.push(meaning);
+  });
+  return distractors.length === count - 1 ? shuffled([answer, ...distractors]) : null;
+}
+
 function getSentenceTokens(sentence) {
   const normalized = String(sentence || '').trim().replace(/\s+/g, ' ');
   if (!normalized || !/[A-Za-z]/.test(normalized)) return [];
@@ -178,7 +209,7 @@ function shuffleSequenceAwayFromOriginal(items) {
   if (items.length < 2) return [...items];
   for (let attempt = 0; attempt < 8; attempt++) {
     const result = shuffled(items);
-    if (result.some((item, index) => item.sourceIndex !== items[index].sourceIndex)) return result;
+    if (result.some((item, index) => item.text !== items[index].text)) return result;
   }
   return [...items.slice(1), items[0]];
 }
@@ -242,6 +273,152 @@ function makeQuestionFromRegistry(card, allCards, typeIds, questionSet = 'task-c
 
 function makeTaskChallengeQuestion(card, allCards) {
   return makeQuestion('challenge', card, allCards, CHALLENGE_TYPE_IDS, 'task-challenge');
+}
+
+function challengeTypeIsAvailable(typeId, context) {
+  const type = ChallengeQuestionTypes[typeId];
+  return !!type && (!type.isAvailable || type.isAvailable(context));
+}
+
+function buildChallengeCandidateMatrix(deck, allCards, questionSet) {
+  return Object.fromEntries(CHALLENGE_TYPE_IDS.map(typeId => [
+    typeId,
+    deck.reduce((candidates, card, cardIndex) => {
+      const context = makeQuestionContext(card, allCards, questionSet);
+      if (challengeTypeIsAvailable(typeId, context)) candidates.push({ card, cardIndex, context });
+      return candidates;
+    }, [])
+  ]));
+}
+
+function chooseChallengeActualTypes(candidateMatrix) {
+  const typesAlreadyRepresented = new Set(
+    CHALLENGE_TYPE_IDS.filter(typeId => candidateMatrix[typeId].length > 0)
+  );
+  return CHALLENGE_TYPE_IDS.map((requestedType, requestedIndex) => {
+    if (candidateMatrix[requestedType].length > 0) {
+      return { requestedType, actualType: requestedType, requestedIndex };
+    }
+    const preferred = [
+      ...(CHALLENGE_TYPE_FALLBACKS[requestedType] || []),
+      ...CHALLENGE_ASSIGNMENT_PRIORITY
+    ].filter((typeId, index, values) => values.indexOf(typeId) === index && candidateMatrix[typeId].length > 0);
+    const actualType = preferred.find(typeId => !typesAlreadyRepresented.has(typeId)) || preferred[0] || null;
+    if (actualType) typesAlreadyRepresented.add(actualType);
+    return { requestedType, actualType, requestedIndex };
+  });
+}
+
+function assignChallengeCards(assignments, candidateMatrix) {
+  const cardOwners = new Map();
+  const assignedCards = new Map();
+  const constrainedFirst = [...assignments].sort((left, right) => {
+    const leftCount = left.actualType ? candidateMatrix[left.actualType].length : 0;
+    const rightCount = right.actualType ? candidateMatrix[right.actualType].length : 0;
+    if (leftCount !== rightCount) return leftCount - rightCount;
+    const leftPriority = CHALLENGE_ASSIGNMENT_PRIORITY.indexOf(left.requestedType);
+    const rightPriority = CHALLENGE_ASSIGNMENT_PRIORITY.indexOf(right.requestedType);
+    return leftPriority - rightPriority;
+  });
+
+  function tryAssign(assignment, visitedAssignments, visitedCards) {
+    if (!assignment.actualType || visitedAssignments.has(assignment.requestedIndex)) return false;
+    visitedAssignments.add(assignment.requestedIndex);
+    for (const candidate of candidateMatrix[assignment.actualType]) {
+      if (visitedCards.has(candidate.cardIndex)) continue;
+      visitedCards.add(candidate.cardIndex);
+      const owner = cardOwners.get(candidate.cardIndex);
+      if (!owner || tryAssign(owner, visitedAssignments, visitedCards)) {
+        cardOwners.set(candidate.cardIndex, assignment);
+        assignedCards.set(assignment.requestedIndex, candidate);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  constrainedFirst.forEach(assignment => tryAssign(assignment, new Set(), new Set()));
+
+  const useCounts = new Map();
+  assignedCards.forEach(candidate => useCounts.set(candidate.cardIndex, (useCounts.get(candidate.cardIndex) || 0) + 1));
+  constrainedFirst.forEach(assignment => {
+    if (assignedCards.has(assignment.requestedIndex) || !assignment.actualType) return;
+    const candidate = [...candidateMatrix[assignment.actualType]].sort((left, right) => {
+      const useDifference = (useCounts.get(left.cardIndex) || 0) - (useCounts.get(right.cardIndex) || 0);
+      return useDifference || left.cardIndex - right.cardIndex;
+    })[0];
+    if (!candidate) return;
+    assignedCards.set(assignment.requestedIndex, candidate);
+    useCounts.set(candidate.cardIndex, (useCounts.get(candidate.cardIndex) || 0) + 1);
+  });
+  return assignedCards;
+}
+
+function countAdjacentChallengeCards(questions) {
+  let count = 0;
+  for (let index = 1; index < questions.length; index++) {
+    if (questions[index - 1].card === questions[index].card) count++;
+  }
+  return count;
+}
+
+function shuffleChallengeQuestions(questions) {
+  let best = [...questions];
+  let bestAdjacent = Number.POSITIVE_INFINITY;
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const candidate = shuffled(questions);
+    const adjacent = countAdjacentChallengeCards(candidate);
+    if (adjacent < bestAdjacent) {
+      best = candidate;
+      bestAdjacent = adjacent;
+      if (adjacent === 0) break;
+    }
+  }
+  return best;
+}
+
+function buildChallengePlan(deck, allCards, questionSet = 'task-challenge') {
+  const prioritizedDeck = Array.isArray(deck) ? deck.filter(Boolean) : [];
+  const optionPool = Array.isArray(allCards) && allCards.length ? allCards.filter(Boolean) : prioritizedDeck;
+  if (prioritizedDeck.length === 0 || optionPool.length === 0) return [];
+
+  const candidateMatrix = buildChallengeCandidateMatrix(prioritizedDeck, optionPool, questionSet);
+  const assignments = chooseChallengeActualTypes(candidateMatrix);
+  const assignedCards = assignChallengeCards(assignments, candidateMatrix);
+  const questions = [];
+
+  for (const assignment of assignments) {
+    const candidate = assignedCards.get(assignment.requestedIndex);
+    const type = assignment.actualType && ChallengeQuestionTypes[assignment.actualType];
+    if (!candidate || !type) {
+      console.error('[challenge-plan] 找不到安全题型或卡片', assignment);
+      return [];
+    }
+    let question;
+    try {
+      question = type.build(candidate.context);
+    } catch (error) {
+      console.error('[challenge-plan] 题目构建失败', { assignment, card: candidate.card, error });
+      return [];
+    }
+    if (!question || question.type !== assignment.actualType || !question.card) {
+      console.error('[challenge-plan] 题目对象不完整', { assignment, question });
+      return [];
+    }
+    questions.push({
+      ...question,
+      requestedType: assignment.requestedType,
+      actualType: assignment.actualType,
+      fallbackFrom: assignment.requestedType === assignment.actualType ? null : assignment.requestedType
+    });
+  }
+
+  if (questions.length !== CHALLENGE_TYPE_IDS.length) return [];
+  const finalQuestions = shuffleChallengeQuestions(questions);
+  console.info('[challenge-plan] 显示顺序：' + finalQuestions
+    .map(question => `${question.actualType}(${getCardWord(question.card)})`)
+    .join(' → '));
+  return finalQuestions;
 }
 
 function questionBadge(q) {
@@ -321,9 +498,9 @@ function applyQuestionResult(q, correct) {
 
 const ChallengeQuestionTypes = {
   A: {
-    isAvailable: context => !!context.clozeSpan,
+    isAvailable: context => !!context.clozeSpan && !!makeUniqueWordOptions(context.card, context.allCards, 4),
     build(context) {
-      const options = shuffle4([context.word, ...context.wrong3.map(getCardWord)]);
+      const options = makeUniqueWordOptions(context.card, context.allCards, 4);
       return {
         questionSet: context.questionSet,
         type: 'A',
@@ -347,13 +524,14 @@ const ChallengeQuestionTypes = {
     applyResult: applyChoiceResult
   },
   B: {
+    isAvailable: context => !!String(context.word || '').trim() && !!makeUniqueWordOptions(context.card, context.allCards, 4),
     build(context) {
       return {
         questionSet: context.questionSet,
         type: 'B',
         question: context.meaning + (context.card.pos ? `（${context.card.pos}）` : ''),
         answer: context.word,
-        options: shuffle4([context.word, ...context.wrong3.map(getCardWord)]),
+        options: makeUniqueWordOptions(context.card, context.allCards, 4),
         card: context.card
       };
     },
@@ -365,13 +543,14 @@ const ChallengeQuestionTypes = {
     applyResult: applyChoiceResult
   },
   C: {
+    isAvailable: context => !!String(context.meaning || '').trim() && !!makeUniqueMeaningOptions(context.card, context.allCards, 4),
     build(context) {
       return {
         questionSet: context.questionSet,
         type: 'C',
         question: context.word,
         answer: context.meaning,
-        options: shuffle4([context.meaning, ...context.wrong3.map(getCardMeaning)]),
+        options: makeUniqueMeaningOptions(context.card, context.allCards, 4),
         card: context.card
       };
     },
@@ -383,13 +562,14 @@ const ChallengeQuestionTypes = {
     applyResult: applyChoiceResult
   },
   L: {
+    isAvailable: context => !!String(context.word || '').trim() && !!makeUniqueWordOptions(context.card, context.allCards, 4),
     build(context) {
       return {
         questionSet: context.questionSet,
         type: 'L',
         question: context.word,
         answer: context.word,
-        options: shuffle4([context.word, ...context.wrong3.map(getCardWord)]),
+        options: makeUniqueWordOptions(context.card, context.allCards, 4),
         card: context.card
       };
     },
@@ -757,6 +937,7 @@ const ReviewQuestionTypes = {
     }
   },
   repeat: {
+    isAvailable: card => !!String(getCardWord(card) || '').trim(),
     build: card => ({ type: 'repeat', card }),
     render(step) {
       const word = getCardWord(step.card);
@@ -786,7 +967,13 @@ const ReviewQuestionTypes = {
     }
   },
   listen: {
-    build: card => ({ type: 'listen', card, options: makeWordOptions(card) }),
+    isAvailable(card, allCards) {
+      return !!String(getCardWord(card) || '').trim() && !!makeUniqueWordOptions(card, allCards, 4);
+    },
+    build(card, allCards) {
+      const options = makeUniqueWordOptions(card, allCards, 4);
+      return options ? { type: 'listen', card, options } : null;
+    },
     render(step) {
       const word = getCardWord(step.card);
       reviewCardShell('听音选词', `
@@ -798,6 +985,7 @@ const ReviewQuestionTypes = {
     }
   },
   sort: {
+    isAvailable: card => simpleWord(getCardWord(card)).length >= 2,
     build(card) {
       return { type: 'sort', card, letters: simpleWord(getCardWord(card)).split('').sort(() => Math.random() - 0.5) };
     },
