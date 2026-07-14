@@ -12,7 +12,9 @@ async function confirmRename() {
   const batch = getCurrentBatch(); batch.name = val;
   if (!await saveData(appData)) return;
   document.getElementById('detailTitle').textContent = val;
-  closeAllModals(); loadHome();
+  closeAllModals();
+  if (isTeacher()) refreshTeacherWordCards();
+  else loadHome();
 }
 
 // ══════════════════════════════════════

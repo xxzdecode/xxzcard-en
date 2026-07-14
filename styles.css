@@ -73,6 +73,11 @@ body {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
   color: #8C6FCB;
 }
+.teacher-home-nav {
+  width: calc(100% - 40px); max-width: 400px; margin: 18px auto 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  color: #8C6FCB;
+}
 .bottom-feature-nav__item {
   position: relative; min-width: 0; min-height: 56px; padding: 8px 4px;
   border: none; background: transparent; color: inherit; font-family: inherit;
@@ -155,9 +160,19 @@ body {
 .theme-quiz-frame {
   width: 100%; height: auto; min-height: 0; flex: 1 1 auto; border: none; background: #fffaf7;
 }
+.courseware-empty {
+  grid-column: 1 / -1; padding: 36px 16px; text-align: center;
+  color: var(--text-light); font-size: 13px;
+}
+.courseware-frame {
+  width: 100%; height: auto; min-height: 0; flex: 1 1 auto; border: none; background: #fff;
+}
 body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
+body.courseware-open { padding-bottom: 0; overflow: hidden; }
 #screenThemeQuizPlayer { height: 100dvh; min-height: 0; align-items: stretch; overflow: hidden; }
 #screenThemeQuizPlayer > .topbar { flex: 0 0 auto; }
+#screenCoursewarePlayer { height: 100dvh; min-height: 0; align-items: stretch; overflow: hidden; }
+#screenCoursewarePlayer > .topbar { flex: 0 0 auto; }
 
 @media (min-width: 768px) and (orientation: landscape) {
   .practice-book { width: calc(100% - 48px); }
@@ -201,6 +216,12 @@ body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 .word-dedupe-entry-btn {
   background: linear-gradient(135deg, #E5F5FB, #E4F5EE);
 }
+.teacher-word-tools {
+  width: calc(100% - 40px); max-width: 400px; margin: 6px auto 14px;
+  display: flex; flex-direction: column; align-items: stretch;
+}
+.teacher-word-tools .merge-entry-btn,
+.teacher-word-tools .add-batch-btn { width: 100%; max-width: none; }
 
 .word-dedupe-frame {
   width: 100%; height: auto; min-height: 0; flex: 1 1 auto;
@@ -1057,6 +1078,8 @@ body.word-dedupe-open { padding-bottom: 0; overflow: hidden; }
 body:not(.is-teacher) .teacher-only { display: none !important; }
 .teacher-only { display: none; }
 body.is-teacher .teacher-only { display: flex; }
+.teacher-home-nav.teacher-only { display: none; }
+body.is-teacher .teacher-home-nav.teacher-only { display: grid; }
 .student-only { display: flex; }
 body.is-teacher .student-only { display: none; }
 .task-grid.student-only,

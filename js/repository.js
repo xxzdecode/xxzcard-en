@@ -245,6 +245,8 @@ async function ensureMainCanSave(data) {
     setMainSnapshot(appData);
     const home = document.getElementById('screenHome');
     if (home && home.classList.contains('active')) loadHome();
+    const teacherCards = document.getElementById('screenTeacherWordCards');
+    if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
     throw storageError('MAIN_CONFLICT', 'main changed remotely');
   }
   if (remote) {
@@ -534,6 +536,8 @@ setInterval(async () => {
     syncSupabaseMirrorIfDue(false);
     const home = document.getElementById('screenHome');
     if (home && home.classList.contains('active')) loadHome();
+    const teacherCards = document.getElementById('screenTeacherWordCards');
+    if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
     return;
   }
   const fresh = await loadData();
@@ -543,6 +547,8 @@ setInterval(async () => {
   setMainSnapshot(appData);
   const home = document.getElementById('screenHome');
   if (home && home.classList.contains('active')) loadHome();
+  const teacherCards = document.getElementById('screenTeacherWordCards');
+  if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
 }, 30000);
 
 scheduleDailySupabaseMirror();

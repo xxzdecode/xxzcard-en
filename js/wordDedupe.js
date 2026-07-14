@@ -17,6 +17,5 @@ function openWordDedupe() {
 
 async function closeWordDedupe() {
   document.body.classList.remove('word-dedupe-open');
-  showScreen('screenHome');
-  await loadHome();
+  await openTeacherWordCards();
 }

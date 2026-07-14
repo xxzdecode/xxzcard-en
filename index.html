@@ -64,12 +64,57 @@
       <span>专项小游戏</span>
     </button>
   </nav>
-  <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">📋 任务词库设置</button>
-  <button class="merge-entry-btn word-dedupe-entry-btn teacher-only" id="wordDedupeEntryBtn" onclick="openWordDedupe()">🔍 单词去重</button>
-  <div style="height:12px" class="teacher-only"></div>
-  <button class="add-batch-btn teacher-only" style="width:calc(100% - 40px);max-width:400px" onclick="showNewBatch()">＋ 新建单词本</button>
-  <div style="height:12px" class="teacher-only"></div>
-  <div class="batch-list teacher-only" id="batchList"></div>
+  <nav class="teacher-home-nav teacher-only" aria-label="老师主要功能">
+    <button class="bottom-feature-nav__item" onclick="openTeacherWordCards()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3.604 7.197l7.138 -3.109c.997 -.434 2.156 .01 2.586 .991l2.916 6.695c.43 .982 -.03 2.13 -1.028 2.565l-7.138 3.109c-.996 .434 -2.155 -.01 -2.585 -.991l-2.916 -6.695c-.43 -.982 .03 -2.13 1.027 -2.565z" />
+        <path d="M15 4h1a2 2 0 0 1 2 2v10" />
+      </svg>
+      <span>单词卡</span>
+    </button>
+    <button class="bottom-feature-nav__item" onclick="openCoursewareList()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+        <path d="M4 5.5v15M8 7h8M8 11h6" />
+      </svg>
+      <span>课件</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ══ SCREEN: TEACHER WORD CARDS ══ -->
+<div class="screen" id="screenTeacherWordCards">
+  <div class="topbar">
+    <button class="back-btn" onclick="returnToTeacherHome()">←</button>
+    <span class="topbar-title">单词卡</span>
+  </div>
+  <div class="teacher-word-tools">
+    <button class="merge-entry-btn" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">📋 任务词库设置</button>
+    <button class="merge-entry-btn word-dedupe-entry-btn" id="wordDedupeEntryBtn" onclick="openWordDedupe()">🔍 单词去重</button>
+    <button class="add-batch-btn" onclick="showNewBatch()">＋ 新建单词本</button>
+  </div>
+  <div class="batch-list" id="batchList"></div>
+</div>
+
+<!-- ══ SCREEN: COURSEWARE INDEX ══ -->
+<div class="screen" id="screenCourseware">
+  <div class="topbar">
+    <button class="back-btn" onclick="returnToTeacherHome()">←</button>
+    <span class="topbar-title">课件</span>
+  </div>
+  <div class="practice-book">
+    <div class="practice-book-title">课件目录</div>
+    <div class="game-directory" id="coursewareList"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: COURSEWARE PLAYER ══ -->
+<div class="screen" id="screenCoursewarePlayer">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeCourseware()">←</button>
+    <span class="topbar-title" id="coursewareTitle">课件</span>
+  </div>
+  <iframe class="courseware-frame" id="coursewareFrame" title="课件"></iframe>
 </div>
 
 <!-- ══ SCREEN: STUDENT WORD CARDS ══ -->
@@ -120,7 +165,7 @@
 <!-- ══ SCREEN: NEW BATCH ══ -->
 <div class="screen" id="screenNewBatch">
   <div class="topbar">
-    <button class="back-btn" onclick="showScreen('screenHome')">←</button>
+    <button class="back-btn" onclick="closeBatchImport()">←</button>
     <span class="topbar-title">新建单词本</span>
   </div>
   <div class="panel">
@@ -158,7 +203,7 @@
 <!-- ══ SCREEN: BATCH DETAIL ══ -->
 <div class="screen" id="screenDetail">
   <div class="topbar">
-    <button class="back-btn" onclick="showScreen('screenHome');loadHome()">←</button>
+    <button class="back-btn" onclick="closeBatchDetail()">←</button>
     <span class="topbar-title" id="detailTitle" onclick="onTitleTap()">单词卡</span>
     <button class="detail-edit-btn teacher-only" id="editPanelToggle" onclick="toggleEditPanel()">✏️</button>
   </div>
@@ -289,7 +334,7 @@
 <!-- ══ SCREEN: MERGE SELECT ══ -->
 <div class="screen" id="screenMerge">
   <div class="topbar">
-    <button class="back-btn" onclick="showScreen('screenHome')">←</button>
+    <button class="back-btn" onclick="closeMergeSelect()">←</button>
     <span class="topbar-title">🔀 合并练习</span>
   </div>
   <div style="width:calc(100% - 40px);max-width:400px;font-size:13px;color:var(--text-mid);margin-bottom:10px">
@@ -467,6 +512,7 @@
 <script src="js/auth.js"></script>
 <script src="js/home.js"></script>
 <script src="js/themeQuizzes.js"></script>
+<script src="js/courseware.js"></script>
 <script src="js/batch.js"></script>
 <script src="js/import.js"></script>
 <script src="js/tasks.js"></script>

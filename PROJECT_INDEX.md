@@ -16,7 +16,9 @@
 
 `index.html` 中的主要 screen：
 
-- `screenHome`：首页、用户切换、今日/混合任务入口、单词卡、音标训练、专项小游戏、老师入口。
+- `screenHome`：首页、用户切换、学生今日/混合任务与三个学习入口，以及老师端“单词卡 / 课件”两个主入口。
+- `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。
+- `screenCourseware` / `screenCoursewarePlayer`：老师端课件目录与独立 iframe 播放页。
 - `screenWordCards`：学生单词卡列表和单词卡查看。
 - `screenPhonemeTraining`：音标训练。
 - `screenThemeQuizzes`：专项小游戏列表。
@@ -49,6 +51,7 @@
 - `js/study.js`：普通学习卡片翻面、认识/不认识判断、滑动动画。
 - `js/merge.js`：多个单词本合并练习、智能抽取、混合模式菜单和结果。
 - `js/themeQuizzes.js`：专项小游戏注册表和 iframe 打开/关闭逻辑。
+- `js/courseware.js`：独立课件清单、老师课件目录渲染和 iframe 播放器开关逻辑。
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
 
@@ -96,17 +99,18 @@
 6. `js/auth.js`
 7. `js/home.js`
 8. `js/themeQuizzes.js`
-9. `js/batch.js`
-10. `js/import.js`
-11. `js/tasks.js`
-12. `js/review.js`
-13. `js/study.js`
-14. `js/quiz.js`
-15. `js/questionTypes.js`
-16. `js/taskEngine.js`
-17. `js/merge.js`
-18. `js/wordDedupe.js`
-19. `js/main.js`
+9. `js/courseware.js`
+10. `js/batch.js`
+11. `js/import.js`
+12. `js/tasks.js`
+13. `js/review.js`
+14. `js/study.js`
+15. `js/quiz.js`
+16. `js/questionTypes.js`
+17. `js/taskEngine.js`
+18. `js/merge.js`
+19. `js/wordDedupe.js`
+20. `js/main.js`
 
 ## 6. 常见任务应该先看哪些文件
 
@@ -123,6 +127,7 @@
 - 看单词卡背面、词典字段、搜索、词族/搭配/例句：先看 `js/dictionary.js`。
 - 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
+- 看老师课件目录和播放器：先看 `js/courseware.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
 - 看项目想法和边界：先看 `IDEAS.md`。

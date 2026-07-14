@@ -399,6 +399,5 @@ async function saveTaskLibraryAssignment() {
   const dayText = taskAssignmentDay === 'today' ? '今天' : '明天';
   const typeText = taskAssignmentType === 'today' ? '今日任务' : '混合任务';
   alert(`已应用到${dayText}的${typeText}`);
-  showScreen('screenHome');
-  loadHome();
+  openTeacherWordCards();
 }

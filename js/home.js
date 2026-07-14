@@ -34,26 +34,33 @@ async function loadHome() {
   updateUserBar();
   if (currentUser === 'teacher') document.body.classList.add('is-teacher');
   else document.body.classList.remove('is-teacher');
-  if (!isTeacher()) renderCheckInStrip();
+  if (isTeacher()) return;
 
+  renderCheckInStrip();
+  const batches = getVisibleBatchesNewestFirst();
+  await updateHomeTaskButtons(batches);
+}
+
+async function refreshTeacherWordCards() {
+  if (!isTeacher()) return;
   const list = document.getElementById('batchList');
+  if (!list) return;
   list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-light);font-size:13px">加载中…</div>';
   const batches = getVisibleBatchesNewestFirst();
-  // load all user recs in parallel
   const urecMap = {};
   await Promise.all(batches.map(async b => { urecMap[b.id] = await loadUserBatch(b.id); }));
 
   list.innerHTML = '';
   if (batches.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-emoji">${isTeacher()?'📭':'🔒'}</div><p>${isTeacher()?'还没有单词本<br>点上方按钮新建一个吧':'暂无推送的单词卡<br>等老师推送后就可以学习啦'}</p></div>`;
+    list.innerHTML = '<div class="empty-state"><div class="empty-emoji">📭</div><p>还没有单词本<br>点上方按钮新建一个吧</p></div>';
   } else {
     batches.forEach(batch => {
       const urec = urecMap[batch.id] || {known:[],unknown:[]};
       const item = document.createElement('div');
       item.className = 'batch-item';
-      const delBtn = isTeacher() ? `<button class="batch-delete" onclick="event.stopPropagation();deleteBatch('${batch.id}')">🗑</button>` : '';
+      const delBtn = `<button class="batch-delete" onclick="event.stopPropagation();deleteBatch('${batch.id}')">🗑</button>`;
       let pushTagsHTML = '';
-      if (isTeacher() && batch.sharedWith && batch.sharedWith.length > 0) {
+      if (batch.sharedWith && batch.sharedWith.length > 0) {
         pushTagsHTML = '<div class="push-tags">'
           + (batch.sharedWith.includes('sister') ? '<span class="push-tag sister">👧姐姐</span>' : '')
           + (batch.sharedWith.includes('brother') ? '<span class="push-tag brother">👦弟弟</span>' : '')
@@ -73,9 +80,51 @@ async function loadHome() {
     });
   }
   const mergeEntryBtn = document.getElementById('mergeEntryBtn');
-  mergeEntryBtn.style.display = (isTeacher() && appData.batches.length >= 1) ? 'flex' : 'none';
+  if (mergeEntryBtn) mergeEntryBtn.style.display = appData.batches.length >= 1 ? 'flex' : 'none';
+}
 
-  if (!isTeacher()) await updateHomeTaskButtons(batches);
+async function openTeacherWordCards() {
+  if (!isTeacher()) return;
+  showScreen('screenTeacherWordCards');
+  await refreshTeacherWordCards();
+}
+
+function returnToTeacherHome() {
+  if (!isTeacher()) return;
+  showScreen('screenHome');
+  loadHome();
+}
+
+function closeBatchDetail() {
+  if (isTeacher()) {
+    openTeacherWordCards();
+    return;
+  }
+  showScreen('screenHome');
+  loadHome();
+}
+
+async function closeBatchImport() {
+  if (importMode === 'add' && currentBatchId) {
+    await loadDetail();
+    showScreen('screenDetail');
+    return;
+  }
+  if (isTeacher()) {
+    openTeacherWordCards();
+    return;
+  }
+  showScreen('screenHome');
+  loadHome();
+}
+
+function closeMergeSelect() {
+  if (isTeacher()) {
+    openTeacherWordCards();
+    return;
+  }
+  showScreen('screenHome');
+  loadHome();
 }
 
 async function deleteBatch(id) {
@@ -83,7 +132,8 @@ async function deleteBatch(id) {
   if (!confirm('确定删除这个单词本吗？')) return;
   appData.batches = appData.batches.filter(b => String(b.id) !== String(id));
   if (!await saveData(appData)) return;
-  loadHome();
+  if (isTeacher()) refreshTeacherWordCards();
+  else loadHome();
 }
 
 async function openBatch(id) {
