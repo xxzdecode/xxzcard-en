@@ -65,6 +65,7 @@
     </button>
   </nav>
   <button class="merge-entry-btn teacher-only" id="mergeEntryBtn" onclick="showTeacherMixSelect()" style="display:none">📋 任务词库设置</button>
+  <button class="merge-entry-btn word-dedupe-entry-btn teacher-only" id="wordDedupeEntryBtn" onclick="openWordDedupe()">🔍 单词去重</button>
   <div style="height:12px" class="teacher-only"></div>
   <button class="add-batch-btn teacher-only" style="width:calc(100% - 40px);max-width:400px" onclick="showNewBatch()">＋ 新建单词本</button>
   <div style="height:12px" class="teacher-only"></div>
@@ -131,21 +132,19 @@
       <label class="form-label">粘贴单词内容</label>
       <div class="format-hint">
         <p>
-          每个单词用空行隔开，必填 <code>en</code> 和 <code>zh</code>，其余可省略：<br><br>
-          <code>en: wind</code><br>
-          <code>zh: 风</code><br>
+          每个单词用空行隔开，11 个字段必须完整并按以下顺序填写；数组字段使用单行合法 JSON：<br><br>
+          <code>word: wind</code><br>
+          <code>meaning: 风</code><br>
           <code>pos: 名词</code><br>
           <code>phonetic: /wɪnd/</code><br>
           <code>emoji: 🌬️</code><br>
-          <code>ex: The wind blows. / 风吹着。</code><br>
-          <code>note: 📌 搭配说明</code><br>
-          <code>tip: 💡 小典故</code><br>
-          <code>synonyms: breeze; air</code><br>
-          <code>collocations: strong wind|The strong wind broke the window. / 大风打破了窗户。</code><br>
-          <code>morphology: [{"part":"un-","meaning":"不","knowledgeKey":"prefix-negative"},{"part":"happy","meaning":"开心"}]</code><br>
+          <code>morphology: [{"part":"wind","meaning":"风"}]</code><br>
+          <code>collocations: [{"phrase":"strong wind","example":"The strong wind broke the window. / 大风打破了窗户。"}]</code><br>
           <code>irregularForms: [{"label":"过去式","form":"fell"}]</code><br>
-          <code>phonemes: /ɪ/; /æ/</code><br><br>
-          也可以直接粘贴标准 JSON 数组。
+          <code>synonyms: ["breeze","air"]</code><br>
+          <code>wordFamily: []</code><br>
+          <code>tip: 💡 小典故</code><br><br>
+          不支持外层 JSON、JSONL 或旧版字段格式。
         </p>
       </div>
       <textarea class="form-textarea" id="newBatchText" placeholder="在这里粘贴单词内容…" rows="10"></textarea>
@@ -262,6 +261,15 @@
   </div>
 </div>
 
+<!-- ══ SCREEN: WORD DEDUPE ══ -->
+<div class="screen" id="screenWordDedupe">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeWordDedupe()">←</button>
+    <span class="topbar-title">单词去重</span>
+  </div>
+  <iframe class="word-dedupe-frame" id="wordDedupeFrame" title="单词去重" src="about:blank"></iframe>
+</div>
+
 <!-- ══ SCREEN: QUIZ (spelling) ══ -->
 <!-- ══ SCREEN: DAILY QUIZ ══ -->
 <div class="screen" id="screenDailyQuiz">
@@ -370,21 +378,17 @@
       <button class="editor-nav-btn" id="editPrevBtn" onclick="editNav(-1)">← 上一个</button>
       <button class="editor-nav-btn" id="editNextBtn" onclick="editNav(1)">下一个 →</button>
     </div>
-    <div class="editor-field"><label>英文 en（必填）</label><input id="ef-en" maxlength="60"></div>
-    <div class="editor-field"><label>中文 zh（必填）</label><input id="ef-zh" maxlength="60"></div>
+    <div class="editor-field"><label>英文 word（必填）</label><input id="ef-word" maxlength="60"></div>
+    <div class="editor-field"><label>中文 meaning（必填）</label><input id="ef-meaning" maxlength="60"></div>
     <div class="editor-field"><label>词性 pos</label><input id="ef-pos" maxlength="20"></div>
     <div class="editor-field"><label>音标 phonetic</label><input id="ef-phonetic" maxlength="40"></div>
     <div class="editor-field"><label>emoji</label><input id="ef-emoji" maxlength="10"></div>
-    <div class="editor-field"><label>例句 ex（英文 / 中文）</label><textarea id="ef-ex"></textarea></div>
-    <div class="editor-field"><label>note 📌</label><textarea id="ef-note"></textarea></div>
-    <div class="editor-field"><label>tip 💡</label><textarea id="ef-tip"></textarea></div>
     <div class="editor-field"><label>词根词缀 morphology（JSON，可带 knowledgeKey）</label><textarea id="ef-morphology"></textarea></div>
-    <div class="editor-field"><label>同义词 synonyms（用 ; 分隔）</label><textarea id="ef-synonyms"></textarea></div>
-    <div class="editor-field"><label>固定搭配 collocations（短语|例句；每行一条）</label><textarea id="ef-collocations"></textarea></div>
-    <div class="editor-field"><label>更多例句 examples（每行一条，英文 / 中文）</label><textarea id="ef-examples"></textarea></div>
+    <div class="editor-field"><label>固定搭配 collocations（JSON）</label><textarea id="ef-collocations"></textarea></div>
     <div class="editor-field"><label>特殊形式 irregularForms（JSON）</label><textarea id="ef-irregularForms"></textarea></div>
+    <div class="editor-field"><label>同义词 synonyms（JSON）</label><textarea id="ef-synonyms"></textarea></div>
     <div class="editor-field"><label>词族 wordFamily（JSON）</label><textarea id="ef-wordFamily"></textarea></div>
-    <div class="editor-field"><label>音标 phonemes（用 ; 分隔，如 /ɪ/; /æ/）</label><textarea id="ef-phonemes"></textarea></div>
+    <div class="editor-field"><label>tip 💡</label><textarea id="ef-tip"></textarea></div>
     <div class="editor-actions">
       <button class="editor-delete-btn" onclick="deleteCard()">🗑 删除</button>
       <button class="editor-save-btn" onclick="saveCardEdit()">✅ 保存</button>
@@ -472,6 +476,7 @@
 <script src="js/questionTypes.js"></script>
 <script src="js/taskEngine.js"></script>
 <script src="js/merge.js"></script>
+<script src="js/wordDedupe.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

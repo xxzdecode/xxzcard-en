@@ -103,16 +103,14 @@ function sanitizePracticeCard(card) {
   if (!card || typeof card !== 'object') return null;
   const clone = {
     word: typeof card.word === 'string' ? card.word : '',
-    en: typeof card.en === 'string' ? card.en : '',
     meaning: typeof card.meaning === 'string' ? card.meaning : '',
-    zh: typeof card.zh === 'string' ? card.zh : '',
     pos: typeof card.pos === 'string' ? card.pos : '',
     morphology: cleanPracticeMorphology(card.morphology),
     irregularForms: cleanPracticeIrregularForms(card.irregularForms)
   };
   const normalized = typeof normalizeEnglishCard === 'function' ? normalizeEnglishCard(clone) : clone;
-  const word = typeof getCardWord === 'function' ? getCardWord(normalized) : (normalized.word || normalized.en);
-  const meaning = typeof getCardMeaning === 'function' ? getCardMeaning(normalized) : (normalized.meaning || normalized.zh);
+  const word = typeof getCardWord === 'function' ? getCardWord(normalized) : normalized.word;
+  const meaning = typeof getCardMeaning === 'function' ? getCardMeaning(normalized) : normalized.meaning;
   const key = typeof normalizeWord === 'function' ? normalizeWord(word) : String(word || '').toLowerCase().trim();
   if (!key) return null;
   return {

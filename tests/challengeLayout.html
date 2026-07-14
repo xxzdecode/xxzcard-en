@@ -24,8 +24,8 @@
   <script src="../js/state.js"></script>
   <script src="../js/utils.js"></script>
   <script>
-    function getCardWord(card) { return card && card.en || ''; }
-    function getCardMeaning(card) { return card && card.zh || ''; }
+    function getCardWord(card) { return card && card.word || ''; }
+    function getCardMeaning(card) { return card && card.meaning || ''; }
     function escapeHtml(value) {
       return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -38,8 +38,8 @@
   <script>
     const words = ['apple', 'bridge', 'candle', 'dragon', 'eagle', 'flower', 'garden', 'harbor', 'island', 'jungle'];
     const cards = words.map((word, index) => ({
-      en: word,
-      zh: `这是用于检查手机和 iPad 横屏换行效果的较长中文释义 ${index + 1}`,
+      word,
+      meaning: `这是用于检查手机和 iPad 横屏换行效果的较长中文释义 ${index + 1}`,
       phonetic: `/${word}/`,
       pos: 'n.',
       collocations: [{

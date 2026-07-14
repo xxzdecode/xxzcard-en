@@ -159,6 +159,10 @@ function showStorageError(err) {
     alert('\u4e91\u7aef\u6570\u636e\u521a\u521a\u88ab\u5176\u4ed6\u8bbe\u5907\u66f4\u65b0\u4e86\u3002\u4e3a\u4e86\u907f\u514d\u8986\u76d6\u65b0\u5185\u5bb9\uff0c\u5df2\u505c\u6b62\u672c\u6b21\u4fdd\u5b58\u5e76\u5237\u65b0\u4e3a\u4e91\u7aef\u7248\u672c\u3002');
     return;
   }
+  if (err && err.code === 'INVALID_CARD_DATA') {
+    alert('检测到包含旧字段或缺少 word / meaning 的单词卡，已阻止保存。请先通过单独的数据清理任务处理历史数据。');
+    return;
+  }
   alert('\u4fdd\u5b58\u5931\u8d25\uff1a\u6ca1\u6709\u5199\u5165\u4e91\u7aef\u3002\u8bf7\u786e\u8ba4\u7f51\u7edc\u6b63\u5e38\u540e\u518d\u8bd5\u3002');
 }
 
@@ -254,6 +258,9 @@ async function saveData(data) {
   try {
     if (!canWriteCloudData()) return false;
     normalizeAppData(data);
+    if (findInvalidEnglishCard(data)) {
+      throw storageError('INVALID_CARD_DATA', 'invalid card data');
+    }
     await ensureMainCanSave(data);
     await sbSet('main', data);
     setMainSnapshot(data);
@@ -492,9 +499,22 @@ function normalizeAppData(data) {
   let changed = false;
   data.batches.forEach(batch => {
     if (normalizeBatch(batch)) changed = true;
-    (batch.cards || []).forEach(card => normalizeCardDictionary(card));
+    (batch.cards || []).forEach(card => {
+      if (isCurrentEnglishCard(card)) normalizeCardDictionary(card);
+      else console.warn('Skipped unsupported English card data in batch', batch.id || batch.name || 'unknown');
+    });
   });
   return changed;
+}
+
+function findInvalidEnglishCard(data) {
+  if (!data || !Array.isArray(data.batches)) return null;
+  for (const batch of data.batches) {
+    for (const card of (batch.cards || [])) {
+      if (!isCurrentEnglishCard(card)) return { batch, card };
+    }
+  }
+  return null;
 }
 
 // 轮询同步：每30秒自动拉一次最新数据（学生端看到老师更新）

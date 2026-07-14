@@ -248,12 +248,12 @@ async function prioritizedTaskDeck(cards, limit, batchId) {
   const unknownSet = new Set();
   if (batchId) {
     const rec = await loadUserBatch(String(batchId));
-    rec.unknown.forEach(en => unknownSet.add(en));
+    rec.unknown.forEach(word => unknownSet.add(word));
   } else {
     const ids = [...new Set(source.map(c => c._batchId).filter(Boolean).map(String))];
     await Promise.all(ids.map(async id => {
       const rec = await loadUserBatch(id);
-      rec.unknown.forEach(en => unknownSet.add(en));
+      rec.unknown.forEach(word => unknownSet.add(word));
     }));
   }
   const wrong = source.filter(c => unknownSet.has(getCardWord(c))).sort(() => Math.random() - 0.5);
@@ -290,13 +290,14 @@ function renderStudentWordCard() {
   normalizeCardDictionary(card);
   const word = getCardWord(card);
   const meaning = getCardMeaning(card);
-  const ex = card.ex ? `<div class="student-word-ex">${card.ex}</div>` : '';
+  const example = (card.collocations || []).map(item => item && item.example).find(Boolean) || '';
+  const exampleHtml = example ? `<div class="student-word-ex">${escapeHtml(example)}</div>` : '';
   document.getElementById('studentWordCard').innerHTML = `
     <div class="student-word-emoji">${card.emoji || '📚'}</div>
     <div class="student-word-en">${escapeHtml(word)}</div>
     <div class="student-word-zh">${escapeHtml(meaning)}</div>
     <button class="student-word-speak" onclick="speakWord('${escapeJs(word)}')">🔊</button>
-    ${ex}`;
+    ${exampleHtml}`;
   document.getElementById('studentWordPrevBtn').disabled = studentWordIndex <= 0;
   document.getElementById('studentWordNextBtn').disabled = studentWordIndex >= studentWordCards.length - 1;
 }

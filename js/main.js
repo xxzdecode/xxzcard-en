@@ -11,6 +11,7 @@ Object.assign(window, {
   startReviewMatchPlay, nextWrongReviewCard,
   openStudentWordCard, studentWordNav, showTeacherMixSelect, selectTaskAssignmentOption,
   openThemeQuizList, openThemeQuiz, closeThemeQuiz,
+  openWordDedupe, closeWordDedupe,
   openWordCards, openPhonemeTraining, speakEnglish,
   showRename, confirmRename, onTitleTap, showSync, confirmSync, showPush, togglePush,
   toggleEditPanel, showWordSelector, openCardEditor, editNav, saveCardEdit, deleteCard,

@@ -33,7 +33,7 @@ function renderStudyCard() {
   document.getElementById('cardPos').textContent = c.pos || '';
   document.getElementById('cardEn').textContent = getCardWord(c);
   const bb = document.getElementById('backBody');
-  bb.innerHTML = renderEnglishCardBackHtml(c, { includeLegacy: true });
+  bb.innerHTML = renderEnglishCardBackHtml(c);
   bb.scrollTop = 0;
   const total = studyDeck.length;
   document.getElementById('progressCount').textContent = `${studyCurrent+1}/${total}`;
@@ -68,21 +68,21 @@ function buildDots() {
 async function judge(known) {
   if (!canWriteCloudData()) return;
   const c = studyDeck[studyCurrent];
-  const en = getCardWord(c);
+  const word = getCardWord(c);
   if (studyIsGlobal && c._batchId) {
     const bId = String(c._batchId);
     if (!globalUserRecs[bId]) globalUserRecs[bId] = await loadUserBatch(bId);
     const rec = globalUserRecs[bId];
-    if (known) { if (!rec.known.includes(en)) rec.known.push(en); rec.unknown = rec.unknown.filter(x=>x!==en); }
-    else { if (!rec.unknown.includes(en)) rec.unknown.push(en); rec.known = rec.known.filter(x=>x!==en); }
+    if (known) { if (!rec.known.includes(word)) rec.known.push(word); rec.unknown = rec.unknown.filter(x=>x!==word); }
+    else { if (!rec.unknown.includes(word)) rec.unknown.push(word); rec.known = rec.known.filter(x=>x!==word); }
     if (!await saveUserBatch(bId, rec)) return;
   } else {
     if (known) {
-      if (!currentUserRec.known.includes(en)) currentUserRec.known.push(en);
-      currentUserRec.unknown = currentUserRec.unknown.filter(x=>x!==en);
+      if (!currentUserRec.known.includes(word)) currentUserRec.known.push(word);
+      currentUserRec.unknown = currentUserRec.unknown.filter(x=>x!==word);
     } else {
-      if (!currentUserRec.unknown.includes(en)) currentUserRec.unknown.push(en);
-      currentUserRec.known = currentUserRec.known.filter(x=>x!==en);
+      if (!currentUserRec.unknown.includes(word)) currentUserRec.unknown.push(word);
+      currentUserRec.known = currentUserRec.known.filter(x=>x!==word);
     }
     if (!await saveUserRec()) return;
   }

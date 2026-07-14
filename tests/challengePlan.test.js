@@ -11,8 +11,8 @@ const context = vm.createContext({
     info(message) { summaries.push(message); },
     error(...args) { planErrors.push(args); }
   },
-  getCardWord: card => card && card.en || '',
-  getCardMeaning: card => card && card.zh || '',
+  getCardWord: card => card && card.word || '',
+  getCardMeaning: card => card && card.meaning || '',
   findClozeSpan(text, word) {
     const sentence = String(text || '').split('/')[0].trim();
     const target = String(word || '').split('/')[0].trim();
@@ -49,8 +49,8 @@ const words = ['apple', 'bridge', 'candle', 'dragon', 'eagle', 'flower', 'garden
 
 function makeCards(count = 10, options = {}) {
   return words.slice(0, count).map((word, index) => ({
-    en: word,
-    zh: `释义${index + 1}`,
+    word,
+    meaning: `释义${index + 1}`,
     phonetic: options.noPhonetic ? '' : `/${word}/`,
     pos: 'n.',
     collocations: options.noCollocations ? [] : [{
@@ -109,17 +109,17 @@ assert.ok(smallPool.every(question => !['A', 'B', 'C', 'L', 'P', 'K'].includes(q
   'three cards: choice types without four unique options must be replaced');
 
 const illegalCards = [
-  { en: '', zh: '空', phonetic: '', collocations: [] },
-  { en: '-', zh: '横线', phonetic: '', collocations: [] },
-  { en: 'ice cream', zh: '冰淇淋', phonetic: '', collocations: [] },
+  { word: '', meaning: '空', phonetic: '', collocations: [] },
+  { word: '-', meaning: '横线', phonetic: '', collocations: [] },
+  { word: 'ice cream', meaning: '冰淇淋', phonetic: '', collocations: [] },
   ...makeCards(7)
 ];
 const illegalPlan = build(illegalCards);
 assertComplete(illegalPlan, 'illegal spellings');
 assert.ok(illegalPlan.filter(question => ['D', 'S', 'O'].includes(question.actualType))
-  .every(question => /^[a-z]+$/.test(question.card.en)), 'illegal spellings: simple-word types used an invalid card');
+  .every(question => /^[a-z]+$/.test(question.card.word)), 'illegal spellings: simple-word types used an invalid card');
 
-const unusable = build([{ en: '', zh: '', phonetic: '', collocations: [] }]);
+const unusable = build([{ word: '', meaning: '', phonetic: '', collocations: [] }]);
 assert.deepEqual(Array.from(unusable), [], 'no usable data: should stop without placeholder questions');
 assert.ok(planErrors.length > 0, 'no usable data: should emit a diagnostic error');
 
@@ -135,11 +135,11 @@ assert.match(mergeSource, /startPlannedDailyQuiz\(deck,[\s\S]*'merge-daily'\)/);
 assert.match(quizSource, /completeActiveChallenge\(dqCorrect, dqQuestions\.length\)/);
 
 console.log(JSON.stringify({
-  complete: complete.map(question => `${question.actualType}(${question.card.en})`),
+  complete: complete.map(question => `${question.actualType}(${question.card.word})`),
   noCollocations: noCollocations.map(question => `${question.requestedType}->${question.actualType}`),
   noPhonetic: noPhonetic.map(question => `${question.requestedType}->${question.actualType}`),
-  threeCards: smallPool.map(question => `${question.requestedType}->${question.actualType}(${question.card.en})`),
-  illegalSpellings: illegalPlan.map(question => `${question.actualType}(${question.card.en})`),
+  threeCards: smallPool.map(question => `${question.requestedType}->${question.actualType}(${question.card.word})`),
+  illegalSpellings: illegalPlan.map(question => `${question.actualType}(${question.card.word})`),
   noUsableQuestions: unusable.length
 }, null, 2));
 console.log('challengePlan tests passed');

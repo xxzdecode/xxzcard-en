@@ -41,8 +41,8 @@ const CHALLENGE_TYPE_CLASSES = {
   R: 'dq-type-R'
 };
 
-function simpleWord(en) {
-  const word = String(en || '').split('/')[0].trim().toLowerCase();
+function simpleWord(value) {
+  const word = String(value || '').split('/')[0].trim().toLowerCase();
   return /^[a-z]+$/.test(word) ? word : '';
 }
 
@@ -915,8 +915,8 @@ const ReviewQuestionTypes = {
         type: 'match',
         cards,
         tiles: cards.flatMap(card => [
-          { side: 'en', en: getCardWord(card), text: getCardWord(card) },
-          { side: 'zh', en: getCardWord(card), text: getCardMeaning(card) || getCardWord(card) }
+          { side: 'word', pairKey: getCardWord(card), text: getCardWord(card) },
+          { side: 'meaning', pairKey: getCardWord(card), text: getCardMeaning(card) || getCardWord(card) }
         ]).sort(() => Math.random() - 0.5)
       };
     },

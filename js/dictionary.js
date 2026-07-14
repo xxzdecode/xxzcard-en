@@ -164,13 +164,11 @@ function normalizeWord(value) {
 }
 
 function getCardWord(card) {
-  const word = String((card && card.word) || '').trim();
-  return word || String((card && card.en) || '').trim();
+  return String((card && card.word) || '').trim();
 }
 
 function getCardMeaning(card) {
-  const meaning = String((card && card.meaning) || '').trim();
-  return meaning || String((card && card.zh) || '').trim();
+  return String((card && card.meaning) || '').trim();
 }
 
 function getCardKey(card) {
@@ -284,14 +282,7 @@ function extractPhonemesFromPhonetic(phonetic) {
 
 function getCardTrainingPhonemes(card) {
   normalizeCardDictionary(card);
-
-  const fromField = Array.isArray(card.phonemes)
-    ? card.phonemes.map(normalizePhoneme).filter(Boolean)
-    : [];
-
-  const fromPhonetic = extractPhonemesFromPhonetic(card.phonetic);
-
-  return [...new Set([...fromField, ...fromPhonetic])];
+  return extractPhonemesFromPhonetic(card.phonetic);
 }
 
 function parseArrayField(value) {
@@ -308,28 +299,49 @@ function normalizeCardDictionary(card) {
   return normalizeEnglishCard(card);
 }
 
+const ENGLISH_CARD_FIELDS = [
+  'word', 'meaning', 'pos', 'phonetic', 'emoji', 'morphology',
+  'collocations', 'irregularForms', 'synonyms', 'wordFamily', 'tip'
+];
+const LEGACY_ENGLISH_CARD_FIELDS = ['en', 'zh', 'ex', 'note'];
+
+function hasLegacyEnglishCardFields(card) {
+  return !!card && typeof card === 'object'
+    && LEGACY_ENGLISH_CARD_FIELDS.some(field => Object.prototype.hasOwnProperty.call(card, field));
+}
+
+function isCurrentEnglishCard(card) {
+  if (!card || typeof card !== 'object' || hasLegacyEnglishCardFields(card)) return false;
+  if (!Object.keys(card).every(field => ENGLISH_CARD_FIELDS.includes(field))) return false;
+  if (!getCardWord(card) || !getCardMeaning(card)) return false;
+  const stringFields = ['word', 'meaning', 'pos', 'phonetic', 'emoji', 'tip'];
+  const arrayFields = ['morphology', 'collocations', 'irregularForms', 'synonyms', 'wordFamily'];
+  return stringFields.every(field => card[field] == null || typeof card[field] === 'string')
+    && arrayFields.every(field => card[field] == null || Array.isArray(card[field]));
+}
+
+function makeCurrentEnglishCard(card) {
+  if (!isCurrentEnglishCard(card)) return null;
+  return {
+    word: getCardWord(card),
+    meaning: getCardMeaning(card),
+    pos: typeof card.pos === 'string' ? card.pos : '',
+    phonetic: typeof card.phonetic === 'string' ? card.phonetic : '',
+    emoji: typeof card.emoji === 'string' ? card.emoji : '',
+    morphology: parseArrayField(card.morphology),
+    collocations: Array.isArray(card.collocations) ? card.collocations : [],
+    irregularForms: parseArrayField(card.irregularForms),
+    synonyms: Array.isArray(card.synonyms) ? card.synonyms : [],
+    wordFamily: Array.isArray(card.wordFamily) ? card.wordFamily : [],
+    tip: typeof card.tip === 'string' ? card.tip : ''
+  };
+}
+
 function normalizeEnglishCard(card) {
-  if (!card) return card;
-  const word = getCardWord(card);
-  const meaning = getCardMeaning(card);
-  card.word = word;
-  card.en = word;
-  card.meaning = meaning;
-  card.zh = meaning;
-  card.pos = typeof card.pos === 'string' ? card.pos : '';
-  card.phonetic = typeof card.phonetic === 'string' ? card.phonetic : (typeof card.ph === 'string' ? card.ph : '');
-  card.emoji = typeof card.emoji === 'string' ? card.emoji : '';
-  card.tip = typeof card.tip === 'string' ? card.tip : '';
-  card.morphology = parseArrayField(card.morphology);
-  if (!Array.isArray(card.synonyms)) card.synonyms = parseListField(card.synonyms);
-  if (!Array.isArray(card.collocations)) card.collocations = parsePairsField(card.collocations);
-  if (!Array.isArray(card.examples)) card.examples = parseListField(card.examples);
-  card.irregularForms = parseArrayField(card.irregularForms);
-  if (!Array.isArray(card.wordFamily)) card.wordFamily = parseWordFamilyField(card.wordFamily);
-  if (!Array.isArray(card.phonemes)) card.phonemes = parsePhonemeField(card.phonemes);
-  else card.phonemes = parsePhonemeField(card.phonemes);
-  if (!Array.isArray(card.morphology)) card.morphology = [];
-  if (!Array.isArray(card.irregularForms)) card.irregularForms = [];
+  const normalized = makeCurrentEnglishCard(card);
+  if (!normalized) return card;
+  Object.keys(card).forEach(key => delete card[key]);
+  Object.assign(card, normalized);
   return card;
 }
 
@@ -443,12 +455,12 @@ function renderMorphologyHtml(card) {
 
 function renderSynonymLabel(item) {
   if (typeof item === 'string') return { word: item, meaning: '' };
-  return { word: item.word || item.en || '', meaning: item.meaning || item.zh || '' };
+  return { word: item.word || '', meaning: item.meaning || '' };
 }
 
 function renderWordFamilyLabel(item) {
   if (typeof item === 'string') return { word: item, pos: '', meaning: '' };
-  return { word: item.word || item.en || '', pos: item.pos || '', meaning: item.meaning || item.zh || '' };
+  return { word: item.word || '', pos: item.pos || '', meaning: item.meaning || '' };
 }
 
 function renderMoreContentHtml(card) {
@@ -501,18 +513,6 @@ function renderMoreContentHtml(card) {
   return `<details class="more-details" open><summary>📚 更多内容</summary><div class="more-content">${body}</div></details>`;
 }
 
-function renderLegacyContentHtml(card) {
-  normalizeEnglishCard(card);
-  let html = '';
-  if (card.note) {
-    html += `<div class="note-box legacy-box"><div class="note-text">${escapeHtml(card.note).replace(/\n/g,'<br>')}</div></div>`;
-  }
-  if (card.ex) {
-    html += `<div class="legacy-box"><div class="sec-label">旧例句</div>${renderDictionaryExampleHtml(card.ex, getCardWord(card))}</div>`;
-  }
-  return html;
-}
-
 function renderEnglishCardBackHtml(card, options) {
   normalizeEnglishCard(card);
   const opts = options || {};
@@ -520,7 +520,6 @@ function renderEnglishCardBackHtml(card, options) {
     renderBasicMeaningHtml(card),
     renderMorphologyHtml(card),
     renderMoreContentHtml(card),
-    opts.includeLegacy ? renderLegacyContentHtml(card) : '',
     opts.answerNote ? `<div class="review-answer-note">正确答案：${escapeHtml(getCardWord(card))} / ${escapeHtml(getCardMeaning(card))}</div>` : ''
   ].filter(Boolean).join('');
 }
@@ -529,7 +528,6 @@ function renderDictionaryHtml(card) {
   normalizeCardDictionary(card);
   const synonyms = card.synonyms || [];
   const collocations = card.collocations || [];
-  const examples = card.examples || [];
   const irregularForms = card.irregularForms || [];
   let html = '';
 
@@ -555,16 +553,10 @@ function renderDictionaryHtml(card) {
     html += '</div></div>';
   }
 
-  if (examples.length) {
-    html += '<div><div class="sec-label">更多例句</div><div class="extra-example-list">';
-    examples.forEach(example => { html += renderDictionaryExampleHtml(example, getCardWord(card)); });
-    html += '</div></div>';
-  }
-
   if (irregularForms.length) {
     html += '<div><div class="sec-label">特殊形式</div><div class="irregular-list">';
     irregularForms.forEach(item => {
-      html += `<div class="irregular-item"><span>${escapeHtml(item.label || item.type || '形式')}</span><strong>${escapeHtml(item.form || item.meaning || '')}</strong>${item.note ? `<em>${escapeHtml(item.note)}</em>` : ''}</div>`;
+      html += `<div class="irregular-item"><span>${escapeHtml(item.label || item.type || '形式')}</span><strong>${escapeHtml(item.form || item.meaning || '')}</strong></div>`;
     });
     html += '</div></div>';
   }
@@ -598,16 +590,14 @@ function doDictionarySearch(query) {
     (batch.cards || []).forEach((card, idx) => {
       normalizeCardDictionary(card);
       const haystack = [
-        getCardWord(card), card.word, card.en, getCardMeaning(card), card.zh, card.meaning, card.pos, card.phonetic, card.note, card.tip, card.ex,
+        getCardWord(card), card.word, getCardMeaning(card), card.meaning, card.pos, card.phonetic, card.tip,
         ...(card.synonyms || []).map(x => typeof x === 'string' ? x : `${x.word || ''} ${x.meaning || ''}`),
         ...(card.wordFamily || []).map(x => typeof x === 'string' ? x : `${x.word || ''} ${x.meaning || ''}`),
         ...(card.collocations || []).map(x => `${x.phrase} ${x.example || ''}`),
-        ...(card.examples || []),
-        ...(card.irregularForms || []).map(x => `${x.label || ''} ${x.type || ''} ${x.form || ''} ${x.meaning || ''} ${x.note || ''}`),
-        ...(card.phonemes || [])
+        ...(card.irregularForms || []).map(x => `${x.label || ''} ${x.type || ''} ${x.form || ''} ${x.meaning || ''}`)
       ].join(' ').toLowerCase();
-      const en = getCardKey(card);
-      const score = en.startsWith(q) ? 0 : en.includes(q) ? 1 : haystack.includes(q) ? 2 : 99;
+      const cardKey = getCardKey(card);
+      const score = cardKey.startsWith(q) ? 0 : cardKey.includes(q) ? 1 : haystack.includes(q) ? 2 : 99;
       if (score < 99) hits.push({ batch, card, idx, score });
     });
   });

@@ -169,7 +169,7 @@ function startReviewMatchPlay() {
     <div class="review-sub">翻开两张，找到英文和中文朋友</div>
     <div class="review-memory-grid" id="reviewMatchGrid">
       ${step.tiles.map((t, i) => `
-        <button class="memory-card" data-i="${i}" data-side="${t.side}" data-en="${escapeAttr(t.en)}" data-text="${escapeAttr(t.text)}">
+        <button class="memory-card" data-i="${i}" data-side="${t.side}" data-pair-key="${escapeAttr(t.pairKey)}" data-text="${escapeAttr(t.text)}">
           <span class="memory-face memory-back">?</span>
           <span class="memory-face memory-front">${t.text}</span>
         </button>`).join('')}
@@ -187,7 +187,7 @@ function chooseReviewMatch(btn, total) {
   reviewMatchLocked = true;
   const first = reviewMatchSelection;
   reviewMatchSelection = null;
-  const ok = first.dataset.en === btn.dataset.en && first.dataset.side !== btn.dataset.side;
+  const ok = first.dataset.pairKey === btn.dataset.pairKey && first.dataset.side !== btn.dataset.side;
   if (ok) {
     first.classList.add('done');
     btn.classList.add('done');
@@ -214,7 +214,7 @@ function answerReviewChoice(btn, picked, answer, cardEn) {
   if (ok) {
     setTimeout(nextReviewStep, 260);
   } else {
-    const card = activeTaskAllCards.find(c => getCardWord(c) === cardEn) || { en: cardEn, zh: '' };
+    const card = activeTaskAllCards.find(c => getCardWord(c) === cardEn) || { word: cardEn, meaning: '' };
     addReviewWrong(card);
     setTimeout(() => showReviewCorrection(card), 260);
   }
@@ -229,7 +229,7 @@ function checkReviewSort(cardEn) {
   if (ok) {
     nextReviewStep();
   } else {
-    const card = activeTaskAllCards.find(c => getCardWord(c) === cardEn) || { en: cardEn, zh: '' };
+    const card = activeTaskAllCards.find(c => getCardWord(c) === cardEn) || { word: cardEn, meaning: '' };
     addReviewWrong(card);
     showReviewCorrection(card);
   }
@@ -257,16 +257,8 @@ function renderWordBackHtml(card) {
       <button class="speak-btn" onclick="speakWord('${escapeJs(word)}')">🔊</button>
     </div>
     <div class="back-body">
-      ${renderEnglishCardBackHtml(card, { includeLegacy: true, answerNote: true })}
+      ${renderEnglishCardBackHtml(card, { answerNote: true })}
     </div>`;
-}
-
-function renderExampleHtml(ex) {
-  const parts = String(ex).split('/').map(s => s.trim());
-  if (parts.length >= 2) {
-    return `<div><div class="sec-label">例句</div><div class="example-box"><div class="example-en">${parts.slice(0,-1).join(' / ')}</div><div class="example-zh">${parts[parts.length-1]}</div></div></div>`;
-  }
-  return `<div><div class="sec-label">例句</div><div class="example-box"><div class="example-en">${ex}</div></div></div>`;
 }
 
 function addReviewWrong(card) {

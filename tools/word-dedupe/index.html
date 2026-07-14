@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase 单词去重工具</title>
+  <style>
+    :root {
+      --bg: #f4fafc;
+      --panel: #ffffff;
+      --panel-soft: #edf7f5;
+      --text: #2d3a4a;
+      --muted: #687a88;
+      --line: #dce9ed;
+      --brand: #4a90c4;
+      --brand-dark: #3577a7;
+      --warn: #aa6a22;
+      --warn-bg: #fff6e7;
+      --dup: #9a4b58;
+      --dup-bg: #fff0f2;
+      --new: #2d7b5f;
+      --new-bg: #edf8f2;
+      --shadow: 0 10px 28px rgba(74, 144, 196, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    main {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 max(40px, env(safe-area-inset-bottom));
+    }
+
+    header { margin-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 38px); line-height: 1.15; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 15px; }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      box-shadow: var(--shadow); padding: 18px; margin-bottom: 16px;
+    }
+    .status-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .stat { background: var(--panel-soft); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; }
+    .stat-label { color: var(--muted); display: block; font-size: 12px; margin-bottom: 6px; }
+    .stat-value { display: block; font-size: 18px; font-weight: 750; overflow-wrap: anywhere; }
+    .status-message { margin: 12px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+    label { display: block; font-weight: 700; margin-bottom: 8px; }
+    textarea {
+      width: 100%; min-height: 190px; resize: vertical; border: 1px solid var(--line);
+      border-radius: 8px; padding: 13px; color: var(--text); background: #fbfdfb;
+      font: inherit; outline: none;
+    }
+    textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(74, 144, 196, 0.16); }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    button {
+      border: 0; border-radius: 8px; min-height: 44px; padding: 0 16px; font: inherit;
+      font-weight: 750; cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    button:active { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; opacity: 0.58; transform: none; }
+    .primary { background: var(--brand); color: #fff; box-shadow: 0 8px 18px rgba(53, 119, 167, 0.22); }
+    .primary:hover:not(:disabled) { background: var(--brand-dark); }
+    .secondary { background: #e7f0f3; color: var(--text); }
+    .result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .result-card { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); min-width: 0; }
+    .result-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 14px; border-bottom: 1px solid var(--line); }
+    .result-title { margin: 0; font-size: 16px; }
+    .count { min-width: 34px; padding: 3px 8px; border-radius: 999px; text-align: center; font-weight: 750; font-size: 13px; }
+    .manual .result-head, .manual .count { background: var(--warn-bg); color: var(--warn); }
+    .duplicate .result-head, .duplicate .count { background: var(--dup-bg); color: var(--dup); }
+    .fresh .result-head, .fresh .count { background: var(--new-bg); color: var(--new); }
+    .result-body { padding: 12px; min-height: 160px; }
+    .word-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .word-chip { max-width: 100%; border-radius: 999px; background: #f2f6f3; border: 1px solid var(--line); padding: 5px 9px; font-size: 13px; overflow-wrap: anywhere; }
+    .word-chip small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .empty { margin: 0; color: var(--muted); font-size: 13px; }
+    .copy-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .copy-note { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
+    body.embedded main { padding-top: 18px; }
+    body.embedded header { margin-bottom: 14px; }
+    body.embedded h1 { font-size: clamp(22px, 3vw, 30px); }
+
+    @media (max-width: 820px) {
+      main { width: min(100% - 24px, 680px); padding-top: 20px; }
+      .status-grid, .result-grid { grid-template-columns: 1fr; }
+      .panel { padding: 14px; }
+      .actions button, .copy-row button { flex: 1 1 140px; }
+    }
+
+    @media (max-width: 420px) {
+      main { width: calc(100% - 20px); padding-top: 14px; }
+      .copy-row { align-items: stretch; flex-direction: column; }
+      .copy-row button { width: 100%; }
+      textarea { min-height: 160px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Supabase 单词去重工具</h1>
+      <p class="subtitle">只读查询正式词库，输出新词；不会生成卡片，也不会写入数据库。</p>
+    </header>
+
+    <section class="panel" aria-label="Supabase 状态">
+      <div class="status-grid">
+        <div class="stat"><span class="stat-label">连接状态</span><span class="stat-value" id="connectionStatus">未连接</span></div>
+        <div class="stat"><span class="stat-label">读取单词</span><span class="stat-value" id="wordCount">0</span></div>
+        <div class="stat"><span class="stat-label">读取页数</span><span class="stat-value" id="pageCount">0</span></div>
+      </div>
+      <p class="status-message" id="statusMessage">点击“开始检查”后会先从 Supabase 读取正式词库。</p>
+    </section>
+
+    <section class="panel" aria-label="输入区域">
+      <label for="wordInput">输入要检查的单词</label>
+      <textarea id="wordInput" placeholder="apple book chair&#10;apple, book, chair&#10;/apple / book / chair"></textarea>
+      <div class="actions">
+        <button class="primary" id="checkBtn" type="button">开始检查</button>
+        <button class="secondary" id="clearBtn" type="button">清空</button>
+      </div>
+    </section>
+
+    <section class="result-grid" aria-label="检查结果">
+      <article class="result-card manual">
+        <div class="result-head"><h2 class="result-title">需要人工确认</h2><span class="count" id="manualCount">0</span></div>
+        <div class="result-body" id="manualList"><p class="empty">暂无</p></div>
+      </article>
+      <article class="result-card duplicate">
+        <div class="result-head"><h2 class="result-title">重复词</h2><span class="count" id="duplicateCount">0</span></div>
+        <div class="result-body" id="duplicateList"><p class="empty">暂无</p></div>
+      </article>
+      <article class="result-card fresh">
+        <div class="result-head"><h2 class="result-title">新词</h2><span class="count" id="newCount">0</span></div>
+        <div class="result-body">
+          <div class="copy-row">
+            <p class="copy-note" id="copyNote">每行一个，便于继续生成卡片。</p>
+            <button class="secondary" id="copyBtn" type="button" disabled>复制新词</button>
+          </div>
+          <div id="newList"><p class="empty">暂无</p></div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    if (new URLSearchParams(window.location.search).get('embedded') === '1') {
+      document.body.classList.add('embedded');
+    }
+
+    const SB_URL = 'https://pnwxpuwsoprfehdvnlik.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBud3hwdXdzb3ByZmVoZHZubGlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTE5MjIsImV4cCI6MjA5NjgyNzkyMn0.aDdixCpy7l4NR3zK-WyOCvBmFLmZ7pbP8Pg4w8WYClg';
+    const PAGE_SIZE = 500;
+
+    const state = { existingWords: new Map(), loaded: false, newWords: [] };
+    const els = {
+      connectionStatus: document.getElementById('connectionStatus'),
+      wordCount: document.getElementById('wordCount'),
+      pageCount: document.getElementById('pageCount'),
+      statusMessage: document.getElementById('statusMessage'),
+      wordInput: document.getElementById('wordInput'),
+      checkBtn: document.getElementById('checkBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      copyBtn: document.getElementById('copyBtn'),
+      copyNote: document.getElementById('copyNote'),
+      manualCount: document.getElementById('manualCount'),
+      duplicateCount: document.getElementById('duplicateCount'),
+      newCount: document.getElementById('newCount'),
+      manualList: document.getElementById('manualList'),
+      duplicateList: document.getElementById('duplicateList'),
+      newList: document.getElementById('newList')
+    };
+
+    function setStatus(status, message) {
+      els.connectionStatus.textContent = status;
+      els.statusMessage.textContent = message;
+    }
+
+    function normalizeWord(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^[^a-z]+|[^a-z]+$/g, '')
+        .replace(/['’]/g, "'");
+    }
+
+    function displayWord(value) {
+      const cleaned = String(value || '').trim().replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, '');
+      return cleaned.toLowerCase();
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function fetchKvStorePage(from, to) {
+      const url = `${SB_URL}/rest/v1/kv_store?select=key,value&key=eq.main`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Range: `${from}-${to}` }
+      });
+      if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
+      return response.json();
+    }
+
+    async function readAllKvRows() {
+      const rows = [];
+      let page = 0;
+      while (true) {
+        const from = page * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        const chunk = await fetchKvStorePage(from, to);
+        rows.push(...chunk);
+        page += 1;
+        els.pageCount.textContent = String(page);
+        setStatus('读取中', `已读取 ${rows.length} 行 Supabase 数据，正在提取单词。`);
+        if (chunk.length < PAGE_SIZE) break;
+      }
+      return rows;
+    }
+
+    function collectWords(rows) {
+      const words = new Map();
+      rows.forEach(row => {
+        const batches = row && row.value && Array.isArray(row.value.batches) ? row.value.batches : [];
+        batches.forEach(batch => {
+          const cards = Array.isArray(batch.cards) ? batch.cards : [];
+          cards.forEach(card => {
+            const raw = String((card && (card.word || card.en)) || '').trim();
+            const key = normalizeWord(raw);
+            if (key && !words.has(key)) words.set(key, raw);
+          });
+        });
+      });
+      return words;
+    }
+
+    async function ensureWordsLoaded() {
+      if (state.loaded) return;
+      setStatus('连接中', '正在连接 Supabase，只进行只读查询。');
+      els.checkBtn.disabled = true;
+      const rows = await readAllKvRows();
+      state.existingWords = collectWords(rows);
+      state.loaded = true;
+      els.wordCount.textContent = String(state.existingWords.size);
+      setStatus('已连接', `已从 Supabase 正式词库读取 ${state.existingWords.size} 个单词。`);
+      els.checkBtn.disabled = false;
+    }
+
+    function splitInput(text) {
+      const pieces = [];
+      const lines = String(text || '').split(/\r?\n/);
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const plainWords = trimmed.match(/^[A-Za-z]+(?:\s+[A-Za-z]+)+$/);
+        if (plainWords) {
+          const words = trimmed.split(/\s+/);
+          if (words.length === 2) {
+            pieces.push(trimmed);
+            return;
+          }
+        }
+        if (/^[A-Za-z]\s+[A-Za-z](?:\s+[A-Za-z])*$/.test(trimmed)) {
+          pieces.push(trimmed);
+          return;
+        }
+        trimmed.split(/[\s,，、;；/\\|]+/).map(item => item.trim()).filter(Boolean).forEach(item => pieces.push(item));
+      });
+      return pieces;
+    }
+
+    function needsManual(raw) {
+      const text = String(raw || '').trim();
+      const stripped = text.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '');
+      const normalized = normalizeWord(text);
+      if (!stripped || !normalized) return '无法可靠提取英文单词';
+      if (/[@#$%^&*_+=<>~`]/.test(text)) return '含异常字符';
+      if (normalized === 'gless') return '疑似异常拼写';
+      if (/\d/.test(stripped)) return '含数字';
+      if (/\s/.test(stripped)) return /^[A-Za-z](?:\s+[A-Za-z])+$/.test(stripped) ? '多个字母疑似被拆开' : '输入词组';
+      if (/[^A-Za-z'’-]/.test(stripped)) return '含异常字符';
+      if (!/[aeiouy]/i.test(stripped) && stripped.length > 2) return '疑似异常拼写';
+      if (/^[A-Za-z]{1,2}$/.test(stripped)) return '长度过短';
+      if (stripped.length > 24) return '拼写长度明显异常';
+      if (/([a-z])\1{3,}/i.test(stripped)) return '疑似粘连或异常重复字母';
+      return '';
+    }
+
+    function uniqueByWord(items) {
+      const seen = new Set();
+      return items.filter(item => {
+        const key = item.key || normalizeWord(item.word || item.raw);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function classifyInput(text) {
+      const manual = [];
+      const duplicate = [];
+      const fresh = [];
+      splitInput(text).forEach(raw => {
+        const reason = needsManual(raw);
+        if (reason) {
+          manual.push({ raw, reason });
+          return;
+        }
+        const word = displayWord(raw);
+        const key = normalizeWord(word);
+        if (state.existingWords.has(key)) duplicate.push({ word, key });
+        else fresh.push({ word, key });
+      });
+      return { manual, duplicate: uniqueByWord(duplicate), fresh: uniqueByWord(fresh) };
+    }
+
+    function renderList(element, items, renderItem) {
+      if (!items.length) {
+        element.innerHTML = '<p class="empty">暂无</p>';
+        return;
+      }
+      element.innerHTML = `<ul class="word-list">${items.map(renderItem).join('')}</ul>`;
+    }
+
+    function renderResults(result) {
+      els.manualCount.textContent = String(result.manual.length);
+      els.duplicateCount.textContent = String(result.duplicate.length);
+      els.newCount.textContent = String(result.fresh.length);
+      state.newWords = result.fresh.map(item => item.word);
+      els.copyBtn.disabled = state.newWords.length === 0;
+      els.copyNote.textContent = state.newWords.length ? '每行一个，便于继续生成卡片。' : '没有可复制的新词。';
+      renderList(els.manualList, result.manual, item => `<li class="word-chip">${escapeHtml(item.raw)}<small>${escapeHtml(item.reason)}</small></li>`);
+      renderList(els.duplicateList, result.duplicate, item => `<li class="word-chip">${escapeHtml(item.word)}</li>`);
+      renderList(els.newList, result.fresh, item => `<li class="word-chip">${escapeHtml(item.word)}</li>`);
+    }
+
+    async function checkWords() {
+      try {
+        await ensureWordsLoaded();
+        const result = classifyInput(els.wordInput.value);
+        renderResults(result);
+        setStatus('检查完成', `人工确认 ${result.manual.length} 个，重复 ${result.duplicate.length} 个，新词 ${result.fresh.length} 个。`);
+      } catch (error) {
+        els.checkBtn.disabled = false;
+        setStatus('连接失败', error.message || '无法连接 Supabase');
+      }
+    }
+
+    async function copyNewWords() {
+      if (!state.newWords.length) return;
+      const text = state.newWords.join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        els.copyNote.textContent = `已复制 ${state.newWords.length} 个新词。`;
+      } catch (error) {
+        const area = document.createElement('textarea');
+        area.value = text;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+        els.copyNote.textContent = `已复制 ${state.newWords.length} 个新词。`;
+      }
+    }
+
+    function clearAll() {
+      els.wordInput.value = '';
+      renderResults({ manual: [], duplicate: [], fresh: [] });
+      setStatus(
+        state.loaded ? '已连接' : '未连接',
+        state.loaded ? `已读取 ${state.existingWords.size} 个单词，可继续检查。` : '点击“开始检查”后会先从 Supabase 读取正式词库。'
+      );
+    }
+
+    els.checkBtn.addEventListener('click', checkWords);
+    els.clearBtn.addEventListener('click', clearAll);
+    els.copyBtn.addEventListener('click', copyNewWords);
+  </script>
+</body>
+</html>

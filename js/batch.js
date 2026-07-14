@@ -55,23 +55,17 @@ function updateEditNav() {
 }
 function fillEditorForm(card) {
   normalizeCardDictionary(card);
-  document.getElementById('ef-en').value = getCardWord(card);
-  document.getElementById('ef-zh').value = getCardMeaning(card);
+  document.getElementById('ef-word').value = getCardWord(card);
+  document.getElementById('ef-meaning').value = getCardMeaning(card);
   document.getElementById('ef-pos').value = card.pos || '';
   document.getElementById('ef-phonetic').value = card.phonetic || '';
   document.getElementById('ef-emoji').value = card.emoji || '';
-  document.getElementById('ef-ex').value = card.ex || '';
-  document.getElementById('ef-note').value = card.note || '';
   document.getElementById('ef-tip').value = card.tip || '';
   document.getElementById('ef-morphology').value = (card.morphology && card.morphology.length) ? JSON.stringify(card.morphology, null, 2) : '';
-  document.getElementById('ef-synonyms').value = (card.synonyms || []).some(x => typeof x === 'object')
-    ? JSON.stringify(card.synonyms, null, 2)
-    : (card.synonyms || []).join('; ');
-  document.getElementById('ef-collocations').value = (card.collocations || []).map(c => `${c.phrase || ''}${c.example ? '|' + c.example : ''}`).join('\n');
-  document.getElementById('ef-examples').value = (card.examples || []).join('\n');
+  document.getElementById('ef-synonyms').value = (card.synonyms && card.synonyms.length) ? JSON.stringify(card.synonyms, null, 2) : '';
+  document.getElementById('ef-collocations').value = (card.collocations && card.collocations.length) ? JSON.stringify(card.collocations, null, 2) : '';
   document.getElementById('ef-irregularForms').value = (card.irregularForms && card.irregularForms.length) ? JSON.stringify(card.irregularForms, null, 2) : '';
   document.getElementById('ef-wordFamily').value = (card.wordFamily && card.wordFamily.length) ? JSON.stringify(card.wordFamily, null, 2) : '';
-  document.getElementById('ef-phonemes').value = (card.phonemes || []).join('; ');
 }
 function openCardEditor(idx) {
   const batch = getCurrentBatch(); if (!batch) return;
@@ -92,33 +86,42 @@ async function editNav(dir) {
 async function saveCardEdit(silent) {
   const batch = getCurrentBatch(); if (!batch || editingIdx < 0) return;
   if (!canWriteCloudData()) return false;
-  const en = document.getElementById('ef-en').value.trim();
-  const zh = document.getElementById('ef-zh').value.trim();
-  if (!en || !zh) { if (!silent) alert('英文和中文为必填项'); return; }
-  const duplicate = batch.cards.some((card, idx) => idx !== editingIdx && getCardKey(card) === normalizeWord(en));
-  if (duplicate && !silent && !confirm(`「${en}」已经在这个单词本里了。仍然保存吗？`)) return;
+  const word = document.getElementById('ef-word').value.trim();
+  const meaning = document.getElementById('ef-meaning').value.trim();
+  if (!word || !meaning) { if (!silent) alert('word 和 meaning 为必填项'); return; }
+  const duplicate = batch.cards.some((card, idx) => idx !== editingIdx && getCardKey(card) === normalizeWord(word));
+  if (duplicate && !silent && !confirm(`「${word}」已经在这个单词本里了。仍然保存吗？`)) return;
+  let arrays;
+  try {
+    arrays = Object.fromEntries([
+      ['morphology', '词根词缀'],
+      ['collocations', '固定搭配'],
+      ['irregularForms', '特殊形式'],
+      ['synonyms', '同义词'],
+      ['wordFamily', '词族']
+    ].map(([field, label]) => {
+      const raw = document.getElementById('ef-' + field).value.trim();
+      const value = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(value)) throw new Error(label + '必须是 JSON 数组');
+      return [field, value];
+    }));
+  } catch (e) {
+    if (!silent) alert(e.message || '数组字段格式错误');
+    return false;
+  }
   const updated = {
-    en, zh,
-    word: en,
-    meaning: zh,
+    word,
+    meaning,
     pos: document.getElementById('ef-pos').value.trim(),
     phonetic: document.getElementById('ef-phonetic').value.trim(),
     emoji: document.getElementById('ef-emoji').value.trim(),
-    ex: document.getElementById('ef-ex').value.trim(),
-    note: document.getElementById('ef-note').value.trim(),
-    tip: document.getElementById('ef-tip').value.trim(),
-    morphology: parseJsonField(document.getElementById('ef-morphology').value.trim(), []),
-    synonyms: parseListField(document.getElementById('ef-synonyms').value.trim()),
-    collocations: parsePairsField(document.getElementById('ef-collocations').value.trim()),
-    examples: parseListField(document.getElementById('ef-examples').value.trim()),
-    irregularForms: parseJsonField(document.getElementById('ef-irregularForms').value.trim(), []),
-    wordFamily: parseWordFamilyField(document.getElementById('ef-wordFamily').value.trim()),
-    phonemes: parsePhonemeField(document.getElementById('ef-phonemes').value.trim()),
+    morphology: arrays.morphology,
+    collocations: arrays.collocations,
+    irregularForms: arrays.irregularForms,
+    synonyms: arrays.synonyms,
+    wordFamily: arrays.wordFamily,
+    tip: document.getElementById('ef-tip').value.trim()
   };
-  Object.keys(updated).forEach(k => {
-    if (Array.isArray(updated[k]) && updated[k].length === 0) delete updated[k];
-    else if (!updated[k]) delete updated[k];
-  });
   batch.cards[editingIdx] = updated;
   if (!await saveData(appData)) return false;
   if (!silent) { closeAllModals(); await loadDetail(); }

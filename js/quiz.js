@@ -1,7 +1,7 @@
 // SPELLING TILE HELPERS (used by daily quiz type S)
 // ══════════════════════════════════════
-function buildSpellingPuzzle(en) {
-  const answer = simpleWord(en);
+function buildSpellingPuzzle(word) {
+  const answer = simpleWord(word);
   const letters = answer.split('');
   const blankCount = letters.length === 2 ? 1 : letters.length <= 4 ? 2 : Math.ceil(letters.length / 2);
   const startParity = letters.length % 2 === 0 && Math.random() < 0.5 ? 1 : 0;
@@ -103,10 +103,10 @@ function buildDailyPool(cards, urec) {
 }
 
 // find the word's position in the example sentence to build a true cloze (prefix/suffix split)
-function findClozeSpan(ex, en) {
-  if (!ex || !en) return null;
-  const sentence = ex.split('/')[0].trim();
-  const regex = new RegExp('\\b' + en.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
+function findClozeSpan(example, word) {
+  if (!example || !word) return null;
+  const sentence = example.split('/')[0].trim();
+  const regex = new RegExp('\\b' + word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b', 'i');
   const m = sentence.match(regex);
   if (!m) return null;
   const start = m.index, end = start + m[0].length;

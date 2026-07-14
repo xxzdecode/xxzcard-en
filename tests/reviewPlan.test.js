@@ -11,8 +11,8 @@ const context = vm.createContext({
   clearTimeout,
   window: { speechSynthesis: { cancel() {} } },
   document: {},
-  getCardWord: card => card && card.en || '',
-  getCardMeaning: card => card && card.zh || '',
+  getCardWord: card => card && card.word || '',
+  getCardMeaning: card => card && card.meaning || '',
   findClozeSpan(text, word) {
     const source = String(text || '');
     const target = String(word || '').split('/')[0].trim();
@@ -42,8 +42,8 @@ const words = [
 
 function makeCards(count, options = {}) {
   return words.slice(0, count).map((word, index) => ({
-    en: word,
-    zh: `释义${index + 1}`,
+    word,
+    meaning: `释义${index + 1}`,
     phonetic: options.noPhonetic ? '' : `/${word}/`,
     pos: 'n.',
     collocations: options.noCollocations ? [] : [{

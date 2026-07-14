@@ -21,6 +21,7 @@
 - `screenPhonemeTraining`：音标训练。
 - `screenThemeQuizzes`：专项小游戏列表。
 - `screenThemeQuizPlayer`：专项小游戏 iframe 播放页。
+- `screenWordDedupe`：老师端单词去重工具 iframe 页面。
 - `screenNewBatch`：新建或追加导入单词。
 - `screenDetail`：单个单词本详情、编辑、同步、推送、批次任务。
 - `screenReview`：温习任务。
@@ -48,6 +49,8 @@
 - `js/study.js`：普通学习卡片翻面、认识/不认识判断、滑动动画。
 - `js/merge.js`：多个单词本合并练习、智能抽取、混合模式菜单和结果。
 - `js/themeQuizzes.js`：专项小游戏注册表和 iframe 打开/关闭逻辑。
+- `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
+- `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
 
 ## 4. 数据流相关文件
 
@@ -102,7 +105,8 @@
 15. `js/questionTypes.js`
 16. `js/taskEngine.js`
 17. `js/merge.js`
-18. `js/main.js`
+18. `js/wordDedupe.js`
+19. `js/main.js`
 
 ## 6. 常见任务应该先看哪些文件
 
@@ -119,6 +123,7 @@
 - 看单词卡背面、词典字段、搜索、词族/搭配/例句：先看 `js/dictionary.js`。
 - 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
+- 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
 - 看项目想法和边界：先看 `IDEAS.md`。
 

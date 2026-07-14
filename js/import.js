@@ -41,39 +41,98 @@ function showImportMore() {
 // ══════════════════════════════════════
 // PARSE
 // ══════════════════════════════════════
+const IMPORT_CARD_FIELDS = [
+  'word', 'meaning', 'pos', 'phonetic', 'emoji', 'morphology',
+  'collocations', 'irregularForms', 'synonyms', 'wordFamily', 'tip'
+];
+const IMPORT_ARRAY_FIELDS = new Set(['morphology', 'collocations', 'irregularForms', 'synonyms', 'wordFamily']);
+const LEGACY_IMPORT_FIELD_HELP = {
+  en: 'en → word',
+  zh: 'zh → meaning',
+  ex: 'ex 没有一对一替代字段，请按当前 collocations 结构重新整理',
+  note: 'note 没有一对一替代字段，请按内容重新判断所属字段'
+};
+
 function parseCards(text) {
   const trimmed = text.trim();
-  if (!trimmed) return [];
-  const parsed = parseJsonField(trimmed, null);
-  if (parsed && (Array.isArray(parsed) || typeof parsed === 'object')) {
-    const rawCards = Array.isArray(parsed) ? parsed : [parsed];
-    return rawCards
-      .filter(card => card && typeof card === 'object')
-      .map(card => normalizeEnglishCard(card))
-      .filter(card => getCardWord(card) && getCardMeaning(card));
+  if (!trimmed) return { cards: [], errors: ['请输入单词卡内容'] };
+  if (/^[\[{]/.test(trimmed)) {
+    return { cards: [], errors: ['不支持外层 JSON 数组、JSON 对象或 JSONL；请使用逐行 key: value 格式'] };
   }
   const blocks = trimmed.split(/\n\s*\n/);
   const cards = [];
-  blocks.forEach(block => {
+  const errors = [];
+  blocks.forEach((block, blockIndex) => {
     const lines = block.trim().split('\n');
-    const card = {};
-    lines.forEach(line => {
-      const m = line.match(/^(\w+)\s*:\s*(.+)$/);
-      if (m) card[m[1].trim().toLowerCase()] = m[2].trim();
+    const rawCard = {};
+    const keys = [];
+    const cardLabel = `第 ${blockIndex + 1} 张卡`;
+    lines.forEach((line, lineIndex) => {
+      const m = line.match(/^([A-Za-z][A-Za-z0-9]*)\s*:\s*(.*)$/);
+      if (!m) {
+        errors.push(`${cardLabel}第 ${lineIndex + 1} 行格式错误，应为 key: value`);
+        return;
+      }
+      const key = m[1];
+      if (Object.prototype.hasOwnProperty.call(rawCard, key)) {
+        errors.push(`${cardLabel}字段 ${key} 重复`);
+        return;
+      }
+      keys.push(key);
+      rawCard[key] = m[2].trim();
     });
-    const normalized = normalizeEnglishCard(card);
-    if (getCardWord(normalized) && getCardMeaning(normalized)) cards.push(normalized);
+
+    const legacyFields = keys.filter(key => Object.prototype.hasOwnProperty.call(LEGACY_IMPORT_FIELD_HELP, key));
+    if (legacyFields.length) {
+      errors.push(`${cardLabel}包含不支持的旧字段：${legacyFields.join('、')}。${legacyFields.map(key => LEGACY_IMPORT_FIELD_HELP[key]).join('；')}`);
+      return;
+    }
+
+    const unknownFields = keys.filter(key => !IMPORT_CARD_FIELDS.includes(key));
+    if (unknownFields.length) {
+      errors.push(`${cardLabel}包含不支持的字段：${unknownFields.join('、')}`);
+      return;
+    }
+
+    if (keys.length !== IMPORT_CARD_FIELDS.length || keys.some((key, index) => key !== IMPORT_CARD_FIELDS[index])) {
+      errors.push(`${cardLabel}字段必须完整并按固定顺序排列：${IMPORT_CARD_FIELDS.join(' → ')}`);
+      return;
+    }
+    if (!rawCard.word || !rawCard.meaning) {
+      errors.push(`${cardLabel}的 word 和 meaning 为必填字段`);
+      return;
+    }
+
+    const card = {};
+    let arrayError = false;
+    IMPORT_CARD_FIELDS.forEach(field => {
+      if (!IMPORT_ARRAY_FIELDS.has(field)) {
+        card[field] = rawCard[field];
+        return;
+      }
+      try {
+        const value = JSON.parse(rawCard[field]);
+        if (!Array.isArray(value)) throw new Error('not array');
+        card[field] = value;
+      } catch (e) {
+        errors.push(`${cardLabel}的 ${field} 必须是单行合法 JSON 数组`);
+        arrayError = true;
+      }
+    });
+    if (!arrayError) cards.push(normalizeEnglishCard(card));
   });
-  return cards;
+  return errors.length ? { cards: [], errors } : { cards, errors: [] };
 }
 function previewParse() {
   const text = document.getElementById('newBatchText').value;
-  const cards = parseCards(text);
+  const result = parseCards(text);
+  const cards = result.cards;
   const preview = document.getElementById('parsePreview');
   const confirmBtn = document.getElementById('confirmImportBtn');
-  if (cards.length === 0) {
+  pendingCards = [];
+  if (result.errors.length || cards.length === 0) {
     preview.style.display = 'block';
-    preview.innerHTML = '<p style="color:#F06060">❌ 没有解析到单词，请检查格式</p>';
+    preview.innerHTML = `<p style="color:#F06060">❌ 导入格式不符合要求<br><span style="font-size:12px">${result.errors.map(escapeHtml).join('<br>')}</span></p>`;
     confirmBtn.style.display = 'none'; return;
   }
   const duplicates = findDuplicateCards(cards);
