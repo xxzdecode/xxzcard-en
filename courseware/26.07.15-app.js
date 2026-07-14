@@ -45,7 +45,7 @@ function render(){
   progressPill.textContent=`${index+1} / ${questions.length}`;
   prevBtn.disabled=index===0;
   nextBtn.textContent=index===questions.length-1?"完成 →":"下一题 →";
-  controlNote.textContent=st.correct?"本题已完成，可以继续下一题。":"完成操作后点击“检查”;
+  controlNote.textContent=st.correct?"本题已完成，可以继续下一题。":"完成操作后点击“检查”";
   checkBtn.disabled=st.correct;
   renderJumpbar();
 
