@@ -1,7 +1,16 @@
 // TEACHER COURSEWARE
 // Add a standalone HTML file and one item here to publish future courseware.
 // Required fields: id, title, description, icon, tone, path.
-const COURSEWARE_ITEMS = [];
+const COURSEWARE_ITEMS = [
+  {
+    id: 'sentence-structure-2026-07-15',
+    title: '26.07.15',
+    description: '句子骨架、句型判断、句型转换与扩句练习',
+    icon: 'screen',
+    tone: 'purple',
+    path: 'courseware/26.07.15.html'
+  }
+];
 
 const COURSEWARE_ICONS = {
   book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15M8 7h8M8 11h6"/>',
