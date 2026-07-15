@@ -79,7 +79,84 @@
       </svg>
       <span>课件</span>
     </button>
+    <button class="bottom-feature-nav__item" onclick="openVocabularyReviewList()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+        <path d="M8 9h8M8 13h5M16.5 15.5l1 1 2 -2" />
+      </svg>
+      <span>生词巩固</span>
+    </button>
   </nav>
+</div>
+
+<!-- ══ SCREEN: VOCABULARY REVIEW LIST ══ -->
+<div class="screen" id="screenVocabularyReviewList">
+  <div class="topbar">
+    <button class="back-btn" onclick="returnToTeacherHome()">←</button>
+    <span class="topbar-title">生词巩固</span>
+  </div>
+  <section class="vocabulary-review-list-panel" aria-labelledby="vocabularyReviewListTitle">
+    <div class="vocabulary-review-list-heading">
+      <h1 id="vocabularyReviewListTitle">生词巩固</h1>
+      <span id="vocabularyReviewCount">14 个共用词</span>
+    </div>
+    <div class="vocabulary-review-word-list" id="vocabularyReviewWordList"></div>
+    <button class="vocabulary-review-start-btn" type="button" onclick="startVocabularyReview(0)">开始刷词</button>
+  </section>
+</div>
+
+<!-- ══ SCREEN: VOCABULARY REVIEW PLAYER ══ -->
+<div class="screen" id="screenVocabularyReviewPlayer">
+  <header class="vocabulary-review-player-topbar">
+    <div class="vocabulary-review-player-title">
+      <button class="back-btn" onclick="closeVocabularyReviewPlayer()" aria-label="返回生词列表">←</button>
+      <span>生词巩固</span>
+    </div>
+    <div class="vocabulary-review-progress" id="vocabularyReviewProgress">1 / 14</div>
+    <div class="vocabulary-review-modes" role="group" aria-label="刷词模式">
+      <button class="vocabulary-review-mode active" type="button" data-vocabulary-review-mode="learn" aria-pressed="true" onclick="setVocabularyReviewMode('learn')">认识一下</button>
+      <button class="vocabulary-review-mode" type="button" data-vocabulary-review-mode="quiz" aria-pressed="false" onclick="setVocabularyReviewMode('quiz')">考考你</button>
+    </div>
+  </header>
+
+  <main class="vocabulary-review-stage">
+    <button class="vocabulary-review-nav vocabulary-review-nav--prev" type="button" onclick="changeVocabularyReviewWord(-1)" aria-label="上一个词">
+      <span class="vocabulary-review-nav-arrow">←</span>
+      <span class="vocabulary-review-nav-label">上一个</span>
+    </button>
+
+    <article class="vocabulary-review-card" id="vocabularyReviewCard" aria-live="polite">
+      <div class="vocabulary-review-face vocabulary-review-full-face" id="vocabularyReviewFullFace">
+        <div class="vocabulary-review-visual">
+          <img id="vocabularyReviewImage" alt="" hidden>
+          <span class="vocabulary-review-placeholder" id="vocabularyReviewImageFallback" aria-hidden="true">✨</span>
+        </div>
+        <div class="vocabulary-review-info">
+          <div class="vocabulary-review-word-row">
+            <h1 id="vocabularyReviewWord">line</h1>
+            <button class="vocabulary-review-sound" type="button" onclick="speakVocabularyReviewWord()" aria-label="播放发音">🔊</button>
+          </div>
+          <div class="vocabulary-review-meta">
+            <span class="vocabulary-review-phonetic" id="vocabularyReviewPhonetic">/laɪn/</span>
+            <span class="vocabulary-review-dot" aria-hidden="true">·</span>
+            <span class="vocabulary-review-meaning" id="vocabularyReviewMeaning">线；排队</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="vocabulary-review-face vocabulary-review-quiz-face" id="vocabularyReviewQuizFace" type="button" aria-label="显示当前单词答案" aria-hidden="true">
+        <span class="vocabulary-review-visual vocabulary-review-visual--quiz">
+          <img id="vocabularyReviewQuizImage" alt="" hidden>
+          <span class="vocabulary-review-placeholder" id="vocabularyReviewQuizFallback" aria-hidden="true">✨</span>
+        </span>
+      </button>
+    </article>
+
+    <button class="vocabulary-review-nav vocabulary-review-nav--next" type="button" onclick="changeVocabularyReviewWord(1)" aria-label="下一个词">
+      <span class="vocabulary-review-nav-arrow">→</span>
+      <span class="vocabulary-review-nav-label">下一个</span>
+    </button>
+  </main>
 </div>
 
 <!-- ══ SCREEN: TEACHER WORD CARDS ══ -->
@@ -524,6 +601,8 @@
 <script src="js/taskEngine.js"></script>
 <script src="js/merge.js"></script>
 <script src="js/wordDedupe.js"></script>
+<script src="js/vocabularyReviewData.js"></script>
+<script src="js/vocabularyReview.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
