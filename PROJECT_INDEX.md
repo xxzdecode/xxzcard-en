@@ -10,7 +10,6 @@
 
 - `index.html`：主页面入口，包含所有主要 screen 容器、弹窗、按钮绑定和脚本加载顺序。
 - `styles.css`：全局样式、首页、任务按钮、单词卡、复习/挑战、弹窗、老师/学生视图等样式。
-- `preview-special-practice.html`：专项练习预览页面。
 - `quizzes/third-person-sort.html`：独立专项小游戏页面，当前由主应用通过 iframe 打开。
 - `js/main.js`：把函数暴露到 `window`，供 `index.html` 内联事件使用；同时执行应用初始化。
 
@@ -52,8 +51,10 @@
 - `js/merge.js`：多个单词本合并练习、智能抽取、混合模式菜单和结果。
 - `js/themeQuizzes.js`：专项小游戏注册表和 iframe 打开/关闭逻辑。
 - `js/courseware.js`：独立课件清单、老师课件目录渲染和 iframe 播放器开关逻辑。
+- `js/courseware-data.js`：由课件上传脚本维护的课件目录数据。
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
+- `scripts/add-courseware.mjs`：课件上传预演和登记脚本；详细触发流程由 `xxzdecode/xxz-tools` 的 `english-project/README.md` 维护。
 
 ## 4. 数据流相关文件
 
@@ -71,21 +72,18 @@
 - `js/home.js`：根据 appData、用户记录和任务状态渲染首页。
 - `js/dictionary.js`：对卡片字段做标准化和展示层解析。
 
-数据目录 / 文档：
+课件目录：
 
-- `doc/英语单词卡生成与导入规则书.md`：英语单词卡生成和导入规则说明。
-- `doc/english_word_card_examples.json`：英语单词卡示例数据。
-- `exports/word-cards-raw-2026-07-07.json`：导出的原始单词卡数据。
-- `exports/word-cards-readable-2026-07-07.txt`：可读版导出。
-- `exports/word-cards-summary-2026-07-07.txt`：导出摘要。
+- `courseware/`：已发布课件文件。
+- `js/courseware-data.js`：课件目录数据，由 `scripts/add-courseware.mjs` 更新。
 
 ## 5. 配置 / 构建相关文件
 
 - `index.html`：静态页面入口，同时定义脚本加载顺序。
 - `styles.css`：全局样式入口。
 - `js/config.js`：运行时配置和默认数据。
+- `scripts/add-courseware.mjs`：无构建系统下的独立 Node.js 维护脚本。
 - `.gitignore`：Git 忽略规则文件。
-- `IDEAS.md`：项目后续想法记录。
 
 当前项目目录中没有看到 `package.json`、打包配置或测试配置；项目形态更接近直接由浏览器加载的静态 HTML/CSS/JS。
 
@@ -99,24 +97,25 @@
 6. `js/auth.js`
 7. `js/home.js`
 8. `js/themeQuizzes.js`
-9. `js/courseware.js`
-10. `js/batch.js`
-11. `js/import.js`
-12. `js/tasks.js`
-13. `js/review.js`
-14. `js/study.js`
-15. `js/quiz.js`
-16. `js/questionTypes.js`
-17. `js/taskEngine.js`
-18. `js/merge.js`
-19. `js/wordDedupe.js`
-20. `js/main.js`
+9. `js/courseware-data.js`
+10. `js/courseware.js`
+11. `js/batch.js`
+12. `js/import.js`
+13. `js/tasks.js`
+14. `js/review.js`
+15. `js/study.js`
+16. `js/quiz.js`
+17. `js/questionTypes.js`
+18. `js/taskEngine.js`
+19. `js/merge.js`
+20. `js/wordDedupe.js`
+21. `js/main.js`
 
 ## 6. 常见任务应该先看哪些文件
 
 - 看项目整体入口和页面结构：先看 `index.html`，再看 `js/main.js`。
 - 看首页显示、用户入口、批次列表：先看 `js/home.js`，再看 `js/utils.js`、`styles.css`。
-- 看老师新建/导入单词本：先看 `js/import.js`，再看 `js/repository.js`、`doc/英语单词卡生成与导入规则书.md`。
+- 看老师新建/导入单词本：先看 `js/import.js`，再看 `js/repository.js`。
 - 看单词本详情、编辑、推送给学生：先看 `js/batch.js`，再看 `js/repository.js`。
 - 看 Supabase / 本地缓存 / 离线逻辑：先看 `js/config.js`、`js/repository.js`、`js/state.js`。
 - 看批次日期、批次名称、排序相关：先看 `js/repository.js`、`js/tasks.js`。
@@ -127,10 +126,9 @@
 - 看单词卡背面、词典字段、搜索、词族/搭配/例句：先看 `js/dictionary.js`。
 - 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
-- 看老师课件目录和播放器：先看 `js/courseware.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`。
+- 看老师课件目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；课件上传脚本任务再看 `scripts/add-courseware.mjs`。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
-- 看项目想法和边界：先看 `IDEAS.md`。
 
 ## 7. 不要随便动的地方
 
@@ -142,5 +140,4 @@
 - `js/dictionary.js` 中的卡片字段标准化逻辑；它连接旧字段、新字段和展示层。
 - `js/tasks.js`、`js/taskEngine.js`、`js/review.js`、`js/quiz.js`、`js/questionTypes.js` 之间的任务/题型协作关系。
 - `js/themeQuizzes.js` 中的专项小游戏注册表；主页面入口依赖这里决定可打开的独立练习页。
-- `exports/` 里的导出数据文件；它们看起来是数据产物，修改前应确认用途。
-- `doc/英语单词卡生成与导入规则书.md`；这是导入格式和生成规则的来源文档。
+- `courseware/` 与 `js/courseware-data.js`；只在有效的待上传说明和脚本预演通过后更新。
