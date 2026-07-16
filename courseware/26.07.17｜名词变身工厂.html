@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>名词变身工厂｜随堂练习</title>
+  <style>
+    :root{
+      --page:#fff4f7;--panel:#fffdfc;--pink:#e88fa3;--pink-soft:#fff0f5;
+      --mint:#a8d8c8;--mint-dark:#5f9f8c;--mint-soft:#dff3ea;
+      --yellow:#fff0c9;--yellow-border:#ebcf8e;--blue:#eaf1fb;--blue-border:#c7dcf3;
+      --purple:#f2ebf8;--purple-border:#d8c7e8;--peach:#ffe9d6;--peach-border:#f0c79a;
+      --text:#625b63;--muted:#8a7f86;--line:#efdde4;
+      --ok:#d7f3dc;--ok-border:#94cfa0;--bad:#ffe0d9;--bad-border:#eaa693;
+      --shadow:0 10px 28px rgba(220,170,180,.16);--tap:44px;
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--page);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Arial,sans-serif;
+      -webkit-text-size-adjust:100%;touch-action:manipulation}
+    button{font:inherit;min-height:var(--tap);border:0;border-radius:999px;padding:9px 16px;font-weight:800;cursor:pointer;
+      color:#fff;background:var(--mint);box-shadow:0 5px 12px rgba(120,183,162,.2);transition:.12s}
+    button:active{transform:translateY(1px) scale(.99)}
+    button:focus-visible,.option:focus-visible,.word-card:focus-visible,.category:focus-visible{outline:3px solid #f3b6c7;outline-offset:2px}
+    button.secondary{color:var(--mint-dark);background:var(--mint-soft);box-shadow:none}
+    button.ghost{color:var(--muted);background:transparent;border:1px solid var(--line);box-shadow:none}
+    button[disabled]{opacity:.42;cursor:not-allowed;transform:none}
+
+    .practice-app{width:100vw;height:100dvh;display:grid;grid-template-rows:auto auto minmax(0,1fr) 48px auto;gap:9px;
+      padding:max(9px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+      overflow:hidden;background:radial-gradient(circle at 8% 0%,rgba(255,255,255,.8),transparent 30%),linear-gradient(180deg,#fff8fa,var(--page))}
+    .topbar,.stage-head,.playground,.result-strip,.footer-controls{background:rgba(255,253,252,.97);border:1px solid var(--line);box-shadow:var(--shadow)}
+    .topbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 12px;border-radius:20px}
+    .brand{display:flex;align-items:center;gap:9px;min-width:0}.brand-icon{font-size:30px}.brand h1{margin:0;color:var(--pink);font-size:clamp(21px,2.3vw,30px);white-space:nowrap}
+    .knowledge{min-width:0;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-height:64px;overflow:hidden}
+    .chip{display:inline-flex;align-items:center;min-height:28px;padding:4px 9px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-border);font-size:clamp(11px,1.1vw,14px);font-weight:800;white-space:nowrap;color:#7b6843}
+    .top-actions{display:flex;gap:7px;align-items:center}.progress{display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap);padding:8px 12px;border-radius:999px;background:var(--mint-soft);color:var(--mint-dark);font-weight:900;white-space:nowrap}
+
+    .stage-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px 13px;border-radius:17px}
+    .phase-badge{padding:6px 11px;border-radius:999px;background:var(--purple);border:1px solid var(--purple-border);color:#725e86;font-weight:900;white-space:nowrap}
+    .instruction{font-size:clamp(16px,1.65vw,21px);font-weight:900;text-align:center;overflow-wrap:anywhere}.question-number{color:var(--muted);font-weight:800;white-space:nowrap}
+
+    .playground{min-width:0;min-height:0;overflow:hidden;border-radius:22px;padding:12px;position:relative}
+    .question-layout{width:100%;height:100%;min-width:0;min-height:0;display:grid;grid-template-columns:minmax(230px,.34fr) minmax(0,.66fr);gap:12px}
+    .prompt-panel,.answer-panel{min-width:0;min-height:0;border-radius:18px;padding:13px;overflow:hidden}
+    .prompt-panel{background:#fff8fb;border:1px dashed #e8cfd9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+    .answer-panel{background:#fff;border:1px solid #f2e7eb;display:flex;flex-direction:column;justify-content:center;gap:10px}
+    .big-emoji{font-size:clamp(54px,7vw,88px);line-height:1}.main-word{font-size:clamp(34px,4.2vw,58px);font-weight:950;color:#715e68;line-height:1.05;overflow-wrap:anywhere}.sub-note{color:var(--muted);font-size:clamp(13px,1.3vw,16px);font-weight:700;line-height:1.45}
+    .section-label{margin:0;color:#766c74;font-size:clamp(15px,1.45vw,19px);font-weight:900;text-align:center}
+
+    .option-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;min-height:0}.option-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.option-grid.five{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .option-grid.five .option:nth-child(4),.option-grid.five .option:nth-child(5){grid-column:auto}
+    .option,.word-card,.category{min-width:0;min-height:var(--tap);display:flex;align-items:center;justify-content:center;padding:11px 10px;border-radius:15px;border:2px solid transparent;background:#f8e9f0;color:#705f68;font-weight:900;text-align:center;overflow-wrap:anywhere;cursor:pointer;user-select:none}
+    .option small{display:block;color:var(--muted);font-size:.78em;margin-top:3px;font-weight:700}.option.selected,.word-card.selected{background:var(--pink-soft);border-color:#f3b6c7}.option.correct-mark{background:var(--ok);border-color:var(--ok-border)}.option.wrong-mark{background:var(--bad);border-color:var(--bad-border)}
+    .word-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;max-width:700px}.word-card{font-size:clamp(18px,2vw,26px);gap:8px}.word-card .mini{font-size:1.15em}
+
+    .classify-layout{display:grid;grid-template-columns:minmax(240px,.38fr) minmax(0,.62fr);gap:12px;width:100%;height:100%}.source-box{display:grid;grid-template-rows:auto minmax(0,1fr);gap:9px;padding:12px;border-radius:17px;background:#fff8fb;border:1px dashed #e8cfd9}.source-box .word-grid{align-self:stretch}.category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:10px}.category{display:grid;grid-template-rows:auto minmax(0,1fr);align-items:start;justify-items:center;gap:8px;background:var(--blue);border-color:var(--blue-border)}.category:nth-child(2){background:var(--yellow);border-color:var(--yellow-border)}.category:nth-child(3){background:#ddf5f1;border-color:#7fc4bb}.category:nth-child(4){background:var(--purple);border-color:var(--purple-border)}.category-title{font-size:clamp(17px,1.7vw,22px);font-weight:950}.placed-list{width:100%;display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center;gap:6px}.placed-item{padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.85);font-weight:850;font-size:clamp(12px,1.2vw,15px)}.word-card.placed{opacity:.38}
+
+    .sentence-wrap{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}.source-sentence{font-size:clamp(25px,3vw,42px);font-weight:950;color:#6e5e66;padding:12px 18px;border-radius:16px;background:var(--peach);border:1px solid var(--peach-border)}.arrow{font-size:25px;color:var(--mint-dark);font-weight:950}.sentence-slots{display:grid;grid-template-columns:repeat(3,minmax(145px,1fr));gap:11px;width:min(900px,100%)}.slot{padding:10px;border-radius:16px;background:#fff8fb;border:1px solid var(--line)}.slot-title{text-align:center;color:var(--muted);font-size:13px;font-weight:850;margin-bottom:7px}.slot-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.slot .option{padding:9px 7px;font-size:clamp(16px,1.7vw,21px)}
+
+    .result-strip{height:48px;border-radius:16px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;padding:7px 13px;overflow:hidden}.result-strip.correct{background:var(--ok);border-color:var(--ok-border)}.result-strip.wrong{background:var(--bad);border-color:var(--bad-border)}.result-icon{font-size:20px}.result-text{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.result-detail{color:var(--muted);font-size:13px;white-space:nowrap}
+    .footer-controls{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 11px;border-radius:18px}.footer-left,.footer-right{display:flex;gap:8px}.footer-center{display:flex;justify-content:center;gap:8px}.footer-controls button{min-width:104px}
+
+    dialog{border:0;padding:0;border-radius:22px;color:var(--text);background:var(--panel);box-shadow:0 22px 65px rgba(90,70,80,.28)}dialog::backdrop{background:rgba(90,70,80,.22);backdrop-filter:blur(3px)}
+    .dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;background:#fff8fb;border-bottom:1px solid var(--line)}.dialog-head h2{margin:0;color:var(--pink)}.dialog-body{padding:16px;max-height:65dvh;overflow:auto;line-height:1.65}.rules-dialog{width:min(760px,calc(100vw - 28px))}.rule-table{width:100%;border-collapse:collapse}.rule-table th,.rule-table td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:center}.rule-table th{background:var(--mint-soft);color:var(--mint-dark)}
+    .completion{width:min(650px,calc(100vw - 28px));text-align:center}.completion .dialog-body{padding:24px}.completion-icon{font-size:62px}.completion h2{font-size:32px;margin:5px 0;color:var(--pink)}.summary-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:16px 0;text-align:left}.summary-item{padding:9px 11px;border-radius:13px;background:var(--mint-soft);font-weight:850}.stats{padding:10px;border-radius:13px;background:var(--yellow);font-weight:850;margin:12px 0}.completion-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+
+    @media (orientation:landscape) and (max-height:540px){
+      :root{--tap:36px}.practice-app{grid-template-rows:auto auto minmax(0,1fr) 40px auto;gap:6px;padding:6px 7px}.topbar{padding:5px 8px;border-radius:15px}.brand-icon{font-size:23px}.brand h1{font-size:20px}.knowledge{gap:3px;max-height:40px}.chip{min-height:22px;padding:2px 6px;font-size:10px}.top-actions{gap:4px}.progress,button{min-height:34px;padding:5px 9px;font-size:12px}.stage-head{padding:5px 9px;border-radius:13px}.phase-badge{padding:4px 8px;font-size:12px}.instruction{font-size:15px}.question-number{font-size:12px}.playground{padding:7px;border-radius:16px}.question-layout,.classify-layout{gap:7px}.prompt-panel,.answer-panel,.source-box{padding:8px;border-radius:13px}.big-emoji{font-size:44px}.main-word{font-size:30px}.sub-note{font-size:11px}.option-grid,.word-grid,.category-grid{gap:5px}.option,.word-card,.category{min-height:34px;padding:6px;border-radius:11px;font-size:12px}.category-title{font-size:14px}.placed-item{padding:3px 6px;font-size:10px}.sentence-wrap{gap:7px}.source-sentence{font-size:22px;padding:7px 12px}.arrow{font-size:18px}.sentence-slots{gap:6px}.slot{padding:6px;border-radius:11px}.slot-title{font-size:10px;margin-bottom:4px}.slot-options{gap:4px}.slot .option{font-size:13px;padding:5px}.result-strip{height:40px;padding:4px 10px;border-radius:12px}.result-text{font-size:12px}.result-detail{display:none}.footer-controls{padding:5px 7px;border-radius:13px}.footer-controls button{min-width:78px}
+    }
+    @media (orientation:portrait) and (max-width:767px){.practice-app{position:fixed;left:0;top:100dvh;width:100dvh;height:100vw;transform:rotate(-90deg);transform-origin:top left}}
+    @media (max-width:850px) and (orientation:landscape){.brand h1{font-size:19px}.brand-icon{display:none}.knowledge .chip:nth-child(5){display:none}.question-layout{grid-template-columns:minmax(180px,.32fr) minmax(0,.68fr)}}
+    @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon">🏭</span><h1>名词变身工厂</h1></div>
+      <div class="knowledge" aria-label="知识摘要">
+        <span class="chip">一般：+s</span><span class="chip">s/x/sh/ch：+es</span><span class="chip">辅音+y：y→ies</span><span class="chip">元音+y：+s</span><span class="chip">特殊变化：单独记</span>
+      </div>
+      <div class="top-actions"><span class="progress" id="progressText">1 / 14</span><button class="secondary" id="rulesButton">查看规则</button></div>
+    </header>
+
+    <section class="stage-head">
+      <span class="phase-badge" id="phaseBadge">原料检验站</span>
+      <div class="instruction" id="instruction">下面哪些是名词？</div>
+      <span class="question-number" id="questionNumber">第 1 题</span>
+    </section>
+
+    <main class="playground" id="playground" aria-live="polite"></main>
+
+    <section class="result-strip" id="resultStrip" aria-live="polite">
+      <span class="result-icon" id="resultIcon">△</span><span class="result-text" id="resultText">点击完成作答，再检查答案。</span><span class="result-detail" id="resultDetail">答错后可以继续修改。</span>
+    </section>
+
+    <footer class="footer-controls">
+      <div class="footer-left"><button class="ghost" id="prevButton">上一题</button></div>
+      <div class="footer-center"><button id="checkButton">检查答案</button><button class="secondary" id="answerButton">显示答案</button></div>
+      <div class="footer-right"><button id="nextButton" disabled>下一题</button></div>
+    </footer>
+  </div>
+
+  <dialog class="rules-dialog" id="rulesDialog">
+    <div class="dialog-head"><h2>名词复数规则</h2><button class="ghost" id="closeRules">关闭</button></div>
+    <div class="dialog-body">
+      <table class="rule-table">
+        <tr><th>情况</th><th>变化</th><th>例子</th></tr>
+        <tr><td>一般情况</td><td>直接加 -s</td><td>book → books</td></tr>
+        <tr><td>s / x / sh / ch 结尾</td><td>加 -es</td><td>box → boxes</td></tr>
+        <tr><td>辅音字母 + y</td><td>y 变 i，再加 -es</td><td>baby → babies</td></tr>
+        <tr><td>元音字母 + y</td><td>保留 y，直接加 -s</td><td>boy → boys</td></tr>
+        <tr><td>特殊变化</td><td>单独记忆</td><td>child → children</td></tr>
+        <tr><td>单复数同形</td><td>拼写不变</td><td>sheep → sheep</td></tr>
+      </table>
+      <p><strong>句子一起变：</strong>This → These，He → They，is → are，名词也要变成复数。</p>
+    </div>
+  </dialog>
+
+  <dialog class="completion" id="completionDialog">
+    <div class="dialog-body">
+      <div class="completion-icon">🎉</div><h2>名词变身成功！</h2>
+      <div class="summary-list">
+        <div class="summary-item">✓ 找出名词</div><div class="summary-item">✓ 判断单数和复数</div>
+        <div class="summary-item">✓ 选择复数规则</div><div class="summary-item">✓ 完成名词变形</div>
+        <div class="summary-item" style="grid-column:1/-1">✓ 同时调整代词和 be 动词</div>
+      </div>
+      <div class="stats" id="completionStats"></div>
+      <div class="completion-actions"><button id="retryButton">再练一次</button><button class="secondary" id="reviewButton">查看错题</button><button class="ghost" id="backButton">返回老师页</button></div>
+    </div>
+  </dialog>
+
+  <script>
+    const machineOptions = [
+      {id:'s',label:'普通机',note:'一般情况 +s'},
+      {id:'es',label:'特别机',note:'s/x/sh/ch +es'},
+      {id:'ies',label:'y 换轨机',note:'辅音+y，y→ies'},
+      {id:'vowelY',label:'y 保留机',note:'元音+y，直接+s'},
+      {id:'irregular',label:'特殊通道',note:'特殊变化单独记'}
+    ];
+
+    const questions = [
+      {type:'multi',phase:'原料检验站',instruction:'下面哪些是名词？可以多选。',emoji:'🔎',word:'找出名词',note:'名词是人、动物、地点或东西的名称。',options:[['teacher','👩‍🏫'],['run','🏃'],['happy','😊'],['school','🏫']],answer:['teacher','school'],correct:'找到了！teacher 是人的名称，school 是地点的名称。',hints:['名词是在给人、动物、地点或东西起名字。','run 表示动作，happy 表示状态。']},
+      {type:'classify',phase:'原料检验站',instruction:'把名词放进正确的区域。',cards:[['teacher','👩‍🏫'],['panda','🐼'],['park','🌳'],['book','📘']],categories:[['person','人'],['animal','动物'],['place','地点'],['thing','东西']],answer:{teacher:'person',panda:'animal',park:'place',book:'thing'},correct:'原料登记完成！四个名词都分类正确。',hints:['想一想：它是在说人、动物、地点，还是东西？','每张词卡只能进入一个最合适的区域。']},
+      {type:'machine',phase:'规则分流站',instruction:'book 应该进入哪台变身机器？',emoji:'📘',word:'book',answer:'s',result:'book → books',correct:'对啦！一般情况直接加 -s。',hints:['看看单词结尾，它没有特殊结尾。','一般情况使用普通机，直接加 -s。']},
+      {type:'machine',phase:'规则分流站',instruction:'box 应该进入哪台变身机器？',emoji:'📦',word:'box',answer:'es',result:'box → boxes',correct:'找到了！box 以 x 结尾，要加 -es。',hints:['再看看最后一个字母。','x 结尾通常加 -es。']},
+      {type:'machine',phase:'规则分流站',instruction:'watch 应该进入哪台变身机器？',emoji:'⌚',word:'watch',answer:'es',result:'watch → watches',correct:'正确！watch 以 ch 结尾，要加 -es。',hints:['不要只看最后一个字母，看看最后两个字母。','ch 是需要加 -es 的结尾。']},
+      {type:'machine',phase:'规则分流站',instruction:'baby 应该进入哪台变身机器？',emoji:'👶',word:'baby',answer:'ies',result:'baby → babies',correct:'很棒！y 前面是辅音字母 b，所以 y 变 i，再加 -es。',hints:['看看 y 前面的字母是元音还是辅音。','b 是辅音字母，要使用 y→ies。']},
+      {type:'machine',phase:'规则分流站',instruction:'boy 应该进入哪台变身机器？',emoji:'👦',word:'boy',answer:'vowelY',result:'boy → boys',correct:'对啦！y 前面是元音字母 o，所以保留 y，直接加 -s。',hints:['baby 和 boy 都以 y 结尾，但 y 前面的字母不同。','o 是元音字母，y 不需要变化。']},
+      {type:'machine',phase:'规则分流站',instruction:'child 应该进入哪台变身机器？',emoji:'🧒',word:'child',answer:'irregular',result:'child → children',correct:'找到特殊通道！child 的复数是 children。',hints:['这个词不能按照普通词尾规则变化。','child 属于需要单独记忆的特殊变化。']},
+      {type:'choice',phase:'成品装配站',instruction:'选择 cat 的正确复数。',emoji:'🐱',word:'cat → ?',options:['cats','cates','caties'],answer:'cats',correct:'正确！一般情况直接加 -s：cat → cats。',hints:['cat 没有需要加 -es 或改变 y 的结尾。','保留完整的 cat，后面只加一个字母。']},
+      {type:'choice',phase:'成品装配站',instruction:'选择 bus 的正确复数。',emoji:'🚌',word:'bus → ?',options:['buss','buses','busies'],answer:'buses',correct:'对啦！bus 以 s 结尾，要加 -es。',hints:['看看 bus 的最后一个字母。','s 结尾要加 -es。']},
+      {type:'choice',phase:'成品装配站',instruction:'选择 city 的正确复数。',emoji:'🏙️',word:'city → ?',options:['citys','cities','cityes'],answer:'cities',correct:'很好！y 前面是辅音字母 t，所以 city → cities。',hints:['看看 y 前面的字母。','t 是辅音字母，要去掉 y，再加 ies。']},
+      {type:'choice',phase:'成品装配站',instruction:'选择 sheep 的正确复数。',emoji:'🐑',word:'sheep → ?',options:['sheeps','sheep','sheepes'],answer:'sheep',correct:'找到了！sheep 的单数和复数形式相同。',hints:['有些特殊名词变成多个时，拼写不会改变。','sheep 属于单复数同形。']},
+      {type:'sentence',phase:'句子总装站',instruction:'把单数句变成复数句。',source:'This is a dog.',groups:[['This','These'],['is','are'],['dog','dogs']],labels:['指示词','be 动词','名词'],answer:['These','are','dogs'],result:'These are dogs.',correct:'全部一起变对了：These are dogs.',hints:['句子变成复数时，三个位置都要一起检查。','不止一个：These + are + dogs。']},
+      {type:'sentence',phase:'句子总装站',instruction:'把单数句变成复数句。',source:'He is a boy.',groups:[['He','They'],['is','are'],['boy','boys']],labels:['代词','be 动词','名词'],answer:['They','are','boys'],result:'They are boys.',correct:'总装成功：They are boys.',hints:['先确定主语是一个人还是多个人。','多人：They + are + boys。']}
+    ];
+
+    const state = {index:0, answers:questions.map(q=>q.type==='classify'?{}:q.type==='sentence'?[null,null,null]:q.type==='multi'?[]:null), attempts:Array(questions.length).fill(0), solved:Array(questions.length).fill(false), revealed:Array(questions.length).fill(false)};
+    const $ = id => document.getElementById(id);
+    const playground=$('playground'), resultStrip=$('resultStrip'), resultIcon=$('resultIcon'), resultText=$('resultText'), resultDetail=$('resultDetail');
+
+    function showFeedback(type,message,detail=''){
+      resultStrip.classList.remove('correct','wrong');
+      const map={neutral:['△',''],correct:['✓','correct'],wrong:['×','wrong']}; const [icon,cls]=map[type]||map.neutral;
+      resultIcon.textContent=icon; resultText.textContent=message; resultDetail.textContent=detail; if(cls)resultStrip.classList.add(cls);
+    }
+    function optionEl(label,id,selected,note=''){
+      const el=document.createElement('div'); el.className='option'+(selected?' selected':''); el.tabIndex=0; el.role='button'; el.dataset.value=id; el.innerHTML=`<span>${label}${note?`<small>${note}</small>`:''}</span>`; return el;
+    }
+    function activate(el,fn){el.addEventListener('click',fn);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn();}})}
+
+    function render(){
+      const q=questions[state.index]; $('phaseBadge').textContent=q.phase; $('instruction').textContent=q.instruction; $('questionNumber').textContent=`第 ${state.index+1} 题`; $('progressText').textContent=`${state.index+1} / ${questions.length}`;
+      playground.innerHTML='';
+      if(q.type==='multi') renderMulti(q); else if(q.type==='classify') renderClassify(q); else if(q.type==='machine') renderMachine(q); else if(q.type==='choice') renderChoice(q); else renderSentence(q);
+      $('prevButton').disabled=state.index===0; $('nextButton').disabled=!(state.solved[state.index]||state.revealed[state.index]); $('nextButton').textContent=state.index===questions.length-1?'完成':'下一题';
+      if(state.solved[state.index]) showFeedback('correct',q.correct,q.result||'可以进入下一题。');
+      else if(state.revealed[state.index]) showFeedback('neutral',`答案：${answerText(q)}`,'这题会进入错题回顾。');
+      else showFeedback('neutral','点击完成作答，再检查答案。','答错后可以继续修改。');
+    }
+
+    function renderPrompt(q){const p=document.createElement('section');p.className='prompt-panel';p.innerHTML=`<div class="big-emoji">${q.emoji||'🏭'}</div><div class="main-word">${q.word||''}</div><div class="sub-note">${q.note||'选择正确答案后，点击“检查答案”。'}</div>`;return p}
+    function renderMulti(q){
+      const wrap=document.createElement('div');wrap.className='question-layout';wrap.appendChild(renderPrompt(q));const a=document.createElement('section');a.className='answer-panel';a.innerHTML='<h2 class="section-label">点击所有名词</h2>';const grid=document.createElement('div');grid.className='word-grid';
+      q.options.forEach(([word,emoji])=>{const selected=state.answers[state.index].includes(word);const el=document.createElement('div');el.className='word-card'+(selected?' selected':'');el.tabIndex=0;el.role='button';el.innerHTML=`<span class="mini">${emoji}</span>${word}`;activate(el,()=>{let arr=state.answers[state.index];state.answers[state.index]=arr.includes(word)?arr.filter(x=>x!==word):[...arr,word];render();});grid.appendChild(el)});a.appendChild(grid);wrap.appendChild(a);playground.appendChild(wrap);
+    }
+    function renderClassify(q){
+      const wrap=document.createElement('div');wrap.className='classify-layout';const source=document.createElement('section');source.className='source-box';source.innerHTML='<h2 class="section-label">先点词卡，再点分类区</h2>';const wg=document.createElement('div');wg.className='word-grid';let selected=state._selectedCard;
+      q.cards.forEach(([word,emoji])=>{const placed=state.answers[state.index][word];const el=document.createElement('div');el.className='word-card'+(selected===word?' selected':'')+(placed?' placed':'');el.tabIndex=0;el.role='button';el.innerHTML=`<span class="mini">${emoji}</span>${word}`;activate(el,()=>{state._selectedCard=word;render();});wg.appendChild(el)});source.appendChild(wg);wrap.appendChild(source);
+      const cg=document.createElement('section');cg.className='category-grid';q.categories.forEach(([id,label])=>{const box=document.createElement('div');box.className='category';box.tabIndex=0;box.role='button';box.innerHTML=`<div class="category-title">${label}</div><div class="placed-list"></div>`;const list=box.querySelector('.placed-list');Object.entries(state.answers[state.index]).filter(([,v])=>v===id).forEach(([w])=>{const s=document.createElement('span');s.className='placed-item';s.textContent=w;list.appendChild(s)});activate(box,()=>{if(!state._selectedCard){showFeedback('wrong','请先选择一张词卡。');return;}state.answers[state.index][state._selectedCard]=id;state._selectedCard=null;render();});cg.appendChild(box)});wrap.appendChild(cg);playground.appendChild(wrap);
+    }
+    function renderMachine(q){
+      const wrap=document.createElement('div');wrap.className='question-layout';wrap.appendChild(renderPrompt(q));const a=document.createElement('section');a.className='answer-panel';a.innerHTML='<h2 class="section-label">选择一台变身机器</h2>';const grid=document.createElement('div');grid.className='option-grid five';machineOptions.forEach(m=>{const el=optionEl(m.label,m.id,state.answers[state.index]===m.id,m.note);activate(el,()=>{state.answers[state.index]=m.id;render();});grid.appendChild(el)});a.appendChild(grid);wrap.appendChild(a);playground.appendChild(wrap);
+    }
+    function renderChoice(q){
+      const wrap=document.createElement('div');wrap.className='question-layout';wrap.appendChild(renderPrompt(q));const a=document.createElement('section');a.className='answer-panel';a.innerHTML='<h2 class="section-label">选择正确成品</h2>';const grid=document.createElement('div');grid.className='option-grid three';q.options.forEach(v=>{const el=optionEl(v,v,state.answers[state.index]===v);activate(el,()=>{state.answers[state.index]=v;render();});grid.appendChild(el)});a.appendChild(grid);wrap.appendChild(a);playground.appendChild(wrap);
+    }
+    function renderSentence(q){
+      const wrap=document.createElement('div');wrap.className='sentence-wrap';wrap.innerHTML=`<div class="source-sentence">${q.source}</div><div class="arrow">↓ 变成复数 ↓</div>`;const slots=document.createElement('div');slots.className='sentence-slots';q.groups.forEach((g,gi)=>{const slot=document.createElement('div');slot.className='slot';slot.innerHTML=`<div class="slot-title">${q.labels[gi]}</div>`;const opts=document.createElement('div');opts.className='slot-options';g.forEach(v=>{const el=optionEl(v,v,state.answers[state.index][gi]===v);activate(el,()=>{state.answers[state.index][gi]=v;render();});opts.appendChild(el)});slot.appendChild(opts);slots.appendChild(slot)});wrap.appendChild(slots);playground.appendChild(wrap);
+    }
+
+    function isComplete(q,ans){if(q.type==='multi')return ans.length>0;if(q.type==='classify')return Object.keys(ans).length===q.cards.length;if(q.type==='sentence')return ans.every(Boolean);return !!ans}
+    function isCorrect(q,ans){
+      if(q.type==='multi')return ans.length===q.answer.length&&q.answer.every(x=>ans.includes(x));
+      if(q.type==='classify')return Object.entries(q.answer).every(([k,v])=>ans[k]===v);
+      if(q.type==='sentence')return q.answer.every((v,i)=>ans[i]===v);
+      return ans===q.answer;
+    }
+    function answerText(q){if(q.type==='multi')return q.answer.join('、');if(q.type==='classify')return Object.entries(q.answer).map(([k,v])=>`${k}→${q.categories.find(x=>x[0]===v)[1]}`).join('；');if(q.type==='sentence')return q.result;return q.result||q.answer}
+    function fillAnswer(q){if(q.type==='multi')state.answers[state.index]=[...q.answer];else if(q.type==='classify')state.answers[state.index]={...q.answer};else if(q.type==='sentence')state.answers[state.index]=[...q.answer];else state.answers[state.index]=q.answer}
+
+    $('checkButton').addEventListener('click',()=>{
+      const q=questions[state.index],ans=state.answers[state.index];if(!isComplete(q,ans)){showFeedback('wrong','还没有完成作答。','请先把需要选择的位置完成。');return;}
+      if(isCorrect(q,ans)){state.solved[state.index]=true;$('nextButton').disabled=false;render();if(q.result)showFeedback('correct',q.correct,q.result);}
+      else{state.attempts[state.index]++;const hint=q.hints[Math.min(state.attempts[state.index]-1,q.hints.length-1)];showFeedback('wrong','还不对，再检查一次。',hint);}
+    });
+    $('answerButton').addEventListener('click',()=>{const q=questions[state.index];state.revealed[state.index]=true;fillAnswer(q);state._selectedCard=null;render();showFeedback('neutral',`答案：${answerText(q)}`,'可以按正确答案再看一遍。');});
+    $('prevButton').addEventListener('click',()=>{if(state.index>0){state.index--;state._selectedCard=null;render();}});
+    $('nextButton').addEventListener('click',()=>{if(!(state.solved[state.index]||state.revealed[state.index]))return;if(state.index===questions.length-1){openCompletion();}else{state.index++;state._selectedCard=null;render();}});
+
+    function openCompletion(){const wrong=state.attempts.filter((n,i)=>n>0||state.revealed[i]).length;const firstTry=state.solved.filter((s,i)=>s&&state.attempts[i]===0&&!state.revealed[i]).length;$('completionStats').textContent=`一次答对 ${firstTry} 题｜需要回顾 ${wrong} 题`;$('reviewButton').disabled=wrong===0;$('completionDialog').showModal();}
+    $('retryButton').addEventListener('click',()=>{state.index=0;state.answers=questions.map(q=>q.type==='classify'?{}:q.type==='sentence'?[null,null,null]:q.type==='multi'?[]:null);state.attempts.fill(0);state.solved.fill(false);state.revealed.fill(false);state._selectedCard=null;$('completionDialog').close();render();});
+    $('reviewButton').addEventListener('click',()=>{const i=questions.findIndex((q,idx)=>state.attempts[idx]>0||state.revealed[idx]);if(i>=0){state.index=i;$('completionDialog').close();render();}});
+    $('backButton').addEventListener('click',()=>{if(history.length>1)history.back();else $('completionDialog').close();});
+    $('rulesButton').addEventListener('click',()=>$('rulesDialog').showModal());$('closeRules').addEventListener('click',()=>$('rulesDialog').close());
+    $('rulesDialog').addEventListener('click',e=>{if(e.target===$('rulesDialog'))$('rulesDialog').close();});
+    $('completionDialog').addEventListener('cancel',e=>e.preventDefault());
+
+    render();
+  </script>
+</body>
+</html>
