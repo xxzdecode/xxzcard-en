@@ -1,4 +1,4 @@
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v1';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v2';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
@@ -75,8 +75,19 @@ self.addEventListener('fetch', event => {
     && requestUrl.pathname.startsWith(new URL('./', self.location.href).pathname);
   if (!isCachedAsset && !isAppNavigation) return;
 
+  const cacheKey = isAppNavigation
+    ? new URL('./index.html', self.location.href).href
+    : event.request;
   event.respondWith(
-    caches.match(isAppNavigation ? './index.html' : event.request)
-      .then(response => response || fetch(event.request))
+    fetch(event.request, { cache: 'no-cache' })
+      .then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(VOCABULARY_REVIEW_CACHE)
+            .then(cache => cache.put(cacheKey, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(cacheKey))
   );
 });
