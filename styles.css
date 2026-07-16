@@ -601,16 +601,16 @@ body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
 .grammar-challenge-entry.student-only {
   width: calc(100% - 40px); max-width: 400px; min-height: 78px; margin: 10px auto 0;
   padding: 12px 15px; border: none; border-radius: 16px;
-  background: linear-gradient(135deg,#DDF8F4 0%,#C8F1EA 100%); color: #25776D;
-  box-shadow: var(--shadow); font-family: inherit; cursor: pointer;
+  background: linear-gradient(135deg,#F4E8DA 0%,#E9D5C1 100%); color: #765640;
+  box-shadow: 0 8px 28px rgba(126,88,57,.12); font-family: inherit; cursor: pointer;
   display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; gap: 10px;
   text-align: center; touch-action: manipulation; transition: transform .15s;
 }
 .grammar-challenge-entry:active { transform: scale(.98); }
-.grammar-challenge-entry:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.grammar-challenge-entry:focus-visible { outline: 2px solid #A67A5B; outline-offset: 2px; }
 .grammar-challenge-entry__icon {
   width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
-  background: rgba(255,255,255,.72); color: #2E9184;
+  background: rgba(255,250,244,.76); color: #956B4E;
 }
 .grammar-challenge-entry__icon svg { width: 24px; height: 24px; }
 .grammar-challenge-entry__title { min-width: 0; font-size: 16px; font-weight: 800; text-align: center; }
