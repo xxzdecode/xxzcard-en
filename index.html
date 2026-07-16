@@ -32,6 +32,15 @@
       <span class="task-icon">🔁</span><span class="task-title">混合单词</span><span class="task-sub">老师混合词库</span>
     </button>
   </div>
+  <button class="grammar-challenge-entry student-only" type="button" onclick="openGrammarChallengeList()">
+    <span class="grammar-challenge-entry__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 5h14M8 5v4.5a4 4 0 0 0 8 0V5M7 19h10M12 13.5V19" />
+      </svg>
+    </span>
+    <span class="grammar-challenge-entry__title">语法挑战</span>
+    <span class="grammar-challenge-entry__arrow" aria-hidden="true">›</span>
+  </button>
   <nav class="bottom-feature-nav student-only" aria-label="主要功能">
     <button class="bottom-feature-nav__item" onclick="openWordCards()">
       <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -81,6 +90,27 @@
       <span>生词巩固</span>
     </button>
   </nav>
+</div>
+
+<!-- ══ SCREEN: GRAMMAR CHALLENGE INDEX ══ -->
+<div class="screen" id="screenGrammarChallenges">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeGrammarChallengeList()">←</button>
+    <span class="topbar-title">语法挑战</span>
+  </div>
+  <div class="grammar-challenge-book">
+    <div class="practice-book-title">挑战目录</div>
+    <div class="grammar-challenge-directory" id="grammarChallengeList"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: GRAMMAR CHALLENGE PLAYER ══ -->
+<div class="screen" id="screenGrammarChallengePlayer">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeGrammarChallenge()">←</button>
+    <span class="topbar-title" id="grammarChallengeTitle">语法挑战</span>
+  </div>
+  <iframe class="grammar-challenge-frame" id="grammarChallengeFrame" title="语法挑战"></iframe>
 </div>
 
 <!-- ══ SCREEN: VOCABULARY REVIEW LIST ══ -->
@@ -596,6 +626,8 @@
 <script src="js/dictionary.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/home.js"></script>
+<script src="grammar-challenge/data/catalog.js"></script>
+<script src="js/grammarChallenges.js"></script>
 <script src="js/themeQuizzes.js"></script>
 <script src="js/courseware-data.js"></script>
 <script src="js/courseware.js"></script>

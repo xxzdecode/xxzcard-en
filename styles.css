@@ -167,12 +167,33 @@ body {
 .courseware-frame {
   width: 100%; height: auto; min-height: 0; flex: 1 1 auto; border: none; background: #fff;
 }
+.grammar-challenge-book {
+  width: calc(100% - 32px); max-width: 880px; margin-top: 6px; padding: 14px 0 24px;
+}
+.grammar-challenge-directory { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
+.grammar-challenge-list-entry {
+  width: 100%; min-width: 0; min-height: 78px; padding: 13px 15px;
+  border: none; border-radius: 16px; background: rgba(255,255,255,.76); color: var(--text-dark);
+  box-shadow: 0 4px 18px rgba(101,80,140,.08); font-family: inherit; cursor: pointer;
+  display: grid; grid-template-columns: minmax(100px, auto) minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  text-align: left; touch-action: manipulation;
+}
+.grammar-challenge-list-entry:active { background: rgba(255,255,255,.55); }
+.grammar-challenge-list-entry:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.grammar-challenge-list-entry__date { color: #7658B5; font-size: 13px; font-weight: 800; letter-spacing: .03em; }
+.grammar-challenge-list-entry__title { min-width: 0; overflow-wrap: anywhere; font-size: 15px; font-weight: 700; }
+.grammar-challenge-list-entry__arrow { color: #8C6FCB; font-size: 27px; line-height: 1; }
+.grammar-challenge-empty { padding: 34px 16px; color: var(--text-light); text-align: center; }
+.grammar-challenge-frame { width: 100%; height: auto; min-height: 0; flex: 1 1 auto; border: none; background: #f7f3ff; }
 body.theme-quiz-open { padding-bottom: 0; overflow: hidden; }
 body.courseware-open { padding-bottom: 0; overflow: hidden; }
+body.grammar-challenge-open { padding-bottom: 0; overflow: hidden; }
 #screenThemeQuizPlayer { height: 100dvh; min-height: 0; align-items: stretch; overflow: hidden; }
 #screenThemeQuizPlayer > .topbar { flex: 0 0 auto; }
 #screenCoursewarePlayer { height: 100dvh; min-height: 0; align-items: stretch; overflow: hidden; }
 #screenCoursewarePlayer > .topbar { flex: 0 0 auto; }
+#screenGrammarChallengePlayer { height: 100dvh; min-height: 0; align-items: stretch; overflow: hidden; }
+#screenGrammarChallengePlayer > .topbar { flex: 0 0 auto; }
 
 @media (min-width: 768px) and (orientation: landscape) {
   .practice-book { width: calc(100% - 48px); }
@@ -180,6 +201,15 @@ body.courseware-open { padding-bottom: 0; overflow: hidden; }
   .game-entry { min-height: 70px; padding: 10px 13px; }
   .game-entry__icon { width: 46px; height: 46px; border-radius: 12px; }
   .game-entry__icon svg { width: 20px; height: 20px; }
+  .grammar-challenge-book { width: calc(100% - 48px); }
+  .grammar-challenge-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+
+@media (max-width: 480px) {
+  .grammar-challenge-list-entry { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; }
+  .grammar-challenge-list-entry__date { grid-column: 1; }
+  .grammar-challenge-list-entry__title { grid-column: 1; }
+  .grammar-challenge-list-entry__arrow { grid-column: 2; grid-row: 1 / span 2; }
 }
 
 .batch-list {
@@ -568,6 +598,23 @@ body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
 .task-icon { font-size: 26px; line-height: 1; }
 .task-title { font-size: 15px; font-weight: 800; }
 .task-sub { font-size: 11px; font-weight: 600; opacity: 0.72; text-align: center; line-height: 1.3; }
+.grammar-challenge-entry.student-only {
+  width: calc(100% - 40px); max-width: 400px; min-height: 78px; margin: 10px auto 0;
+  padding: 12px 15px; border: none; border-radius: 16px;
+  background: linear-gradient(135deg,#F0EBFF 0%,#E4E9FF 100%); color: #5B3FA0;
+  box-shadow: var(--shadow); font-family: inherit; cursor: pointer;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px;
+  text-align: left; touch-action: manipulation; transition: transform .15s;
+}
+.grammar-challenge-entry:active { transform: scale(.98); }
+.grammar-challenge-entry:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.grammar-challenge-entry__icon {
+  width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
+  background: rgba(255,255,255,.72); color: #7658B5;
+}
+.grammar-challenge-entry__icon svg { width: 24px; height: 24px; }
+.grammar-challenge-entry__title { min-width: 0; font-size: 16px; font-weight: 800; }
+.grammar-challenge-entry__arrow { font-size: 27px; font-weight: 400; opacity: .7; }
 .word-task-menu-grid { margin-top: 18px; }
 .detail-task-row {
   width: calc(100% - 40px);

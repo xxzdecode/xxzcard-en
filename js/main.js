@@ -11,6 +11,7 @@ Object.assign(window, {
   startBatchReview, startBatchChallenge, finishReviewToSource, confirmExitChallenge,
   startReviewMatchPlay, nextWrongReviewCard,
   openStudentWordCard, studentWordNav, showTeacherMixSelect, selectTaskAssignmentOption,
+  openGrammarChallengeList, closeGrammarChallengeList, openGrammarChallenge, closeGrammarChallenge,
   openThemeQuizList, openThemeQuiz, closeThemeQuiz,
   openTeacherWordCards, returnToTeacherHome, closeBatchDetail, closeBatchImport, closeMergeSelect,
   openCoursewareList, openCourseware, closeCourseware,

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f0ff">
+  <title>语法挑战</title>
+  <link rel="stylesheet" href="./css/challenge.css">
+</head>
+<body>
+  <div class="shell" id="app" aria-live="polite">
+    <section class="screen loading-screen" id="loadingScreen">
+      <p>正在打开语法挑战…</p>
+    </section>
+
+    <section class="screen challenge-screen" id="challengeScreen" hidden>
+      <header class="topbar">
+        <button class="icon-button" id="exitChallengeButton" type="button" aria-label="返回语法挑战目录">←</button>
+        <div class="title-group">
+          <strong id="challengeTitle"></strong>
+          <span id="challengeDate"></span>
+        </div>
+        <span class="question-position" id="questionPosition"></span>
+      </header>
+
+      <main class="question-card">
+        <div class="question-header">
+          <div class="question-meta">
+            <span id="sectionName"></span>
+            <span id="questionCount"></span>
+          </div>
+          <p class="practice-tip" id="practiceTip"></p>
+          <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+          <nav class="dot-scroller" id="questionDots" aria-label="题目导航，可左右滑动"></nav>
+        </div>
+        <div class="question-content" id="questionContent"></div>
+      </main>
+
+      <footer class="question-actions">
+        <button class="button button-quiet" id="previousButton" type="button">上一题</button>
+        <button class="flag-button" id="flagButton" type="button">☆ 标记不确定</button>
+        <button class="button button-primary" id="nextButton" type="button">下一题</button>
+      </footer>
+    </section>
+
+    <section class="screen summary-screen" id="reviewScreen" hidden>
+      <main class="summary-card">
+        <div class="summary-heading">
+          <div>
+            <p class="summary-kicker">语法挑战</p>
+            <h1>提交前检查</h1>
+            <p>还没有判分。点小圆点可以回到对应题目继续修改。</p>
+          </div>
+          <button class="button button-quiet" id="backToQuestionButton" type="button">返回作答</button>
+        </div>
+        <div class="status-grid">
+          <div class="status-card"><strong id="answeredCount">0</strong><span>已完成</span></div>
+          <div class="status-card"><strong id="unansweredCount">0</strong><span>未完成</span></div>
+          <div class="status-card"><strong id="flaggedCount">0</strong><span>不确定</span></div>
+        </div>
+        <div class="review-dots">
+          <p>左右滑动查看全部题目</p>
+          <nav class="dot-scroller" id="reviewDots" aria-label="提交前题目导航，可左右滑动"></nav>
+        </div>
+        <p class="missing-message" id="missingMessage" role="status"></p>
+        <div class="summary-actions">
+          <button class="button button-secondary" id="continueButton" type="button">继续检查</button>
+          <button class="button button-primary" id="submitButton" type="button">确认提交</button>
+        </div>
+      </main>
+    </section>
+
+    <section class="screen summary-screen" id="resultScreen" hidden>
+      <main class="summary-card result-card">
+        <section class="result-hero">
+          <div class="score-ring" id="scoreRing"><div><strong id="scoreText">0</strong><span>分</span></div></div>
+          <div class="result-copy">
+            <p class="summary-kicker">挑战完成</p>
+            <h1 id="resultTitle"></h1>
+            <p id="resultMessage"></p>
+            <div class="result-meta"><span id="correctMeta"></span><span id="accuracyMeta"></span></div>
+          </div>
+        </section>
+        <section class="result-section">
+          <h2>知识点表现</h2>
+          <div class="skill-grid" id="skillGrid"></div>
+        </section>
+        <section class="result-section">
+          <h2>错题复盘</h2>
+          <div class="wrong-list" id="wrongList"></div>
+        </section>
+        <div class="summary-actions result-actions">
+          <button class="button button-secondary" id="retryButton" type="button">再练一次</button>
+          <button class="button button-quiet" id="directoryButton" type="button">返回目录</button>
+          <button class="button button-primary" id="homeButton" type="button">返回首页</button>
+        </div>
+      </main>
+    </section>
+
+    <section class="screen error-screen" id="errorScreen" hidden>
+      <main class="summary-card error-card">
+        <p class="summary-kicker">语法挑战</p>
+        <h1>练习没有找到</h1>
+        <p class="error-message" id="errorMessage"></p>
+        <button class="button button-primary" id="errorDirectoryButton" type="button">返回目录</button>
+      </main>
+    </section>
+  </div>
+  <script src="./data/catalog.js"></script>
+  <script src="./js/challenge-shell.js"></script>
+</body>
+</html>
