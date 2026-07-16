@@ -134,20 +134,12 @@ async function confirmExitChallenge() {
 
 async function updateHomeTaskButtons(batches) {
   const latest = getTodayTaskBatch();
-  const mixed = await getMixedTaskBatches();
-  const mixedNameText = mixed.length > 0 ? mixed.map(batch => batch.name).join('、') : '';
   const todayReview = latest ? await reviewStatus('todayReview', latest.name) : { text: '暂无单词卡', state: '' };
   const todayChallenge = latest ? await challengeStatus('todayChallenge') : { text: '暂无单词卡', state: '' };
-  const mixedReview = mixed.length > 0 ? await reviewStatus('mixedReview', mixedNameText) : { text: '暂无混合词库', state: '' };
-  const mixedChallenge = mixed.length > 0 ? await challengeStatus('mixedChallenge') : { text: '暂无混合词库', state: '' };
   if (latest) todayReview.text = latest.name;
   if (latest && !todayChallenge.state) todayChallenge.text = latest.name;
-  if (mixed.length > 0) mixedReview.text = mixedNameText;
-  if (mixed.length > 0 && !mixedChallenge.state) mixedChallenge.text = mixedNameText;
   setTaskButton('todayReviewBtn', !!latest, todayReview.text, todayReview.state);
   setTaskButton('todayChallengeBtn', !!latest && todayChallenge.state !== 'locked', todayChallenge.text, todayChallenge.state);
-  setTaskButton('mixedReviewBtn', mixed.length > 0, mixedReview.text, mixedReview.state);
-  setTaskButton('mixedChallengeBtn', mixed.length > 0 && mixedChallenge.state !== 'locked', mixedChallenge.text, mixedChallenge.state);
 }
 
 async function updateDetailChallengeStatus(batchId) {

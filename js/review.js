@@ -290,10 +290,19 @@ async function finishReviewRound() {
     renderWrongReviewStart();
     return;
   }
-  if (!await saveReviewComplete(activeTask.key)) return;
+  await completeReviewTask('今天的温习已经完成。');
+}
+
+async function completeReviewTask(message) {
+  const completedTaskKey = activeTask && activeTask.key;
+  if (!completedTaskKey || !await saveReviewComplete(completedTaskKey)) return;
+  if (completedTaskKey === 'todayReview') {
+    await startTodayChallenge();
+    if (activeTask && activeTask.key === 'todayChallenge' && activeTask.mode === 'challenge') return;
+  }
   reviewCardShell('温习完成', `
     <div class="review-question">完成啦！</div>
-    <div class="review-sub">今天的温习已经完成。</div>
+    <div class="review-sub">${message}</div>
     <button class="review-action secondary" onclick="finishReviewToSource()">返回</button>`);
 }
 
@@ -308,13 +317,7 @@ function renderWrongReviewCard() {
   const card = reviewWrongCards[reviewWrongIndex];
   if (!card) {
     reviewWrongCards = [];
-    saveReviewComplete(activeTask.key).then(saved => {
-      if (!saved) return;
-      reviewCardShell('温习完成', `
-        <div class="review-question">完成啦！</div>
-        <div class="review-sub">错题也回顾完了。</div>
-        <button class="review-action secondary" onclick="finishReviewToSource()">返回</button>`);
-    });
+    completeReviewTask('错题也回顾完了。');
     return;
   }
   document.getElementById('reviewCount').textContent = `${reviewWrongIndex + 1}/${reviewWrongCards.length}`;

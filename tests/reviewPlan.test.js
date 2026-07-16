@@ -4,7 +4,9 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
+const indexSource = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const taskEngineSource = fs.readFileSync(path.join(root, 'js/taskEngine.js'), 'utf8');
+const reviewSource = fs.readFileSync(path.join(root, 'js/review.js'), 'utf8');
 const context = vm.createContext({
   console,
   setTimeout,
@@ -110,9 +112,26 @@ for (const size of [1, 3, 8]) {
 }
 
 assert.match(taskEngineSource, /startTodayReview\(\)[\s\S]*startTask\(\{ source: 'today', mode: 'review' \}\)/);
+assert.match(taskEngineSource, /startTodayChallenge\(\)[\s\S]*startTask\(\{ source: 'today', mode: 'challenge' \}\)/);
 assert.match(taskEngineSource, /startMixedReview\(\)[\s\S]*startTask\(\{ source: 'mixed', mode: 'review' \}\)/);
 assert.match(taskEngineSource, /startBatchReview\(batchId\)[\s\S]*startTask\(\{ source: 'batch', mode: 'review', batchId \}\)/);
 assert.match(taskEngineSource, /async function startReviewTask[\s\S]*buildReviewSteps\(deck\)/);
+const homeQuickActions = indexSource.match(/<div class="task-grid student-only" id="homeQuickActions">([\s\S]*?)<\/div>/)[1];
+assert.equal((homeQuickActions.match(/<button /g) || []).length, 2, 'home should expose two word task entries');
+assert.match(homeQuickActions, /onclick="startTodayReview\(\)"[\s\S]*今日单词/);
+assert.match(homeQuickActions, /onclick="startTodayChallenge\(\)"[\s\S]*混合单词/);
+assert.doesNotMatch(homeQuickActions, /mixedReviewBtn|mixedChallengeBtn|今日温习|今日挑战/);
+assert.match(reviewSource, /completedTaskKey === 'todayReview'[\s\S]*await startTodayChallenge\(\)/);
+
+let todayChallengeStarts = 0;
+context.activeTask = { key: 'todayReview', mode: 'review' };
+context.saveReviewComplete = async taskKey => taskKey === 'todayReview';
+context.startTodayChallenge = async () => {
+  todayChallengeStarts++;
+  context.activeTask = { key: 'todayChallenge', mode: 'challenge' };
+};
+context.reviewCardShell = () => assert.fail('successful today review should continue directly to challenge');
+const todayReviewTransition = vm.runInContext("completeReviewTask('今天的温习已经完成。')", context);
 
 const sequences = {
   complete: types(complete),
@@ -122,4 +141,10 @@ const sequences = {
 };
 
 console.log(JSON.stringify(sequences, null, 2));
-console.log('reviewPlan tests passed');
+todayReviewTransition.then(() => {
+  assert.equal(todayChallengeStarts, 1, 'today review should start the existing today challenge once');
+  console.log('reviewPlan tests passed');
+}).catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
