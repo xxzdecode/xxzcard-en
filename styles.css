@@ -560,11 +560,15 @@ body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
 .task-btn.challenge { background: linear-gradient(135deg,#FFF9EC,#FFF0C8); color: #7A4F00; }
 .task-btn.mixed.review { background: linear-gradient(135deg,#E0F7FA,#E8F5E9); color: #1A6B5A; }
 .task-btn.mixed.challenge { background: var(--purple-light); color: #5B3FA0; }
-#todayReviewBtn,
+#todayWordBtn,
 #btnBatchReview { background: linear-gradient(135deg,#FFE6F0,#FFC8DC); color: #8A1F4C; }
+#screenWordTaskMenu[data-source="today"] #wordTaskReviewBtn { background: linear-gradient(135deg,#FFE6F0,#FFC8DC); color: #8A1F4C; }
+#screenWordTaskMenu[data-source="mixed"] #wordTaskReviewBtn { background: linear-gradient(135deg,#E0F7FA,#E8F5E9); color: #1A6B5A; }
+#screenWordTaskMenu[data-source="mixed"] #wordTaskChallengeBtn { background: var(--purple-light); color: #5B3FA0; }
 .task-icon { font-size: 26px; line-height: 1; }
 .task-title { font-size: 15px; font-weight: 800; }
 .task-sub { font-size: 11px; font-weight: 600; opacity: 0.72; text-align: center; line-height: 1.3; }
+.word-task-menu-grid { margin-top: 18px; }
 .detail-task-row {
   width: calc(100% - 40px);
   max-width: 400px;

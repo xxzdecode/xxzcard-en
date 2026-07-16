@@ -127,19 +127,53 @@ async function confirmExitChallenge() {
   if (!confirm('确定要退出吗，退出默认此次挑战机会作废哦~')) return;
   const saved = await completeActiveChallenge(dqCorrect, dqQuestions.length || 10);
   if (!saved) return;
+  const returnTo = activeTaskReturn;
   resetStudentRuntimeView();
-  showScreen('screenHome');
-  await loadHome();
+  if (returnTo === 'wordTaskMenu') await openWordTaskMenu(wordTaskMenuSource);
+  else {
+    showScreen('screenHome');
+    await loadHome();
+  }
 }
 
 async function updateHomeTaskButtons(batches) {
   const latest = getTodayTaskBatch();
-  const todayReview = latest ? await reviewStatus('todayReview', latest.name) : { text: '暂无单词卡', state: '' };
-  const todayChallenge = latest ? await challengeStatus('todayChallenge') : { text: '暂无单词卡', state: '' };
-  if (latest) todayReview.text = latest.name;
-  if (latest && !todayChallenge.state) todayChallenge.text = latest.name;
-  setTaskButton('todayReviewBtn', !!latest, todayReview.text, todayReview.state);
-  setTaskButton('todayChallengeBtn', !!latest && todayChallenge.state !== 'locked', todayChallenge.text, todayChallenge.state);
+  const mixed = await getMixedTaskBatches();
+  const mixedNameText = mixed.length > 0 ? mixed.map(batch => batch.name).join('、') : '暂无混合词库';
+  setTaskButton('todayWordBtn', !!latest, latest ? latest.name : '暂无单词卡', '');
+  setTaskButton('mixedWordBtn', mixed.length > 0, mixedNameText, '');
+}
+
+async function updateWordTaskMenuButtons(source) {
+  const isToday = source === 'today';
+  const screen = document.getElementById('screenWordTaskMenu');
+  const title = document.getElementById('wordTaskMenuTitle');
+  const reviewTitle = document.getElementById('wordTaskReviewTitle');
+  const challengeTitle = document.getElementById('wordTaskChallengeTitle');
+  screen.dataset.source = source;
+  title.textContent = isToday ? '今日单词' : '混合单词';
+  reviewTitle.textContent = isToday ? '今日温习' : '混合温习';
+  challengeTitle.textContent = isToday ? '今日挑战' : '混合挑战';
+
+  if (isToday) {
+    const latest = getTodayTaskBatch();
+    const review = latest ? await reviewStatus('todayReview', latest.name) : { text: '暂无单词卡', state: '' };
+    const challenge = latest ? await challengeStatus('todayChallenge') : { text: '暂无单词卡', state: '' };
+    if (latest) review.text = latest.name;
+    if (latest && !challenge.state) challenge.text = latest.name;
+    setTaskButton('wordTaskReviewBtn', !!latest, review.text, review.state);
+    setTaskButton('wordTaskChallengeBtn', !!latest && challenge.state !== 'locked', challenge.text, challenge.state);
+    return;
+  }
+
+  const mixed = await getMixedTaskBatches();
+  const mixedNameText = mixed.length > 0 ? mixed.map(batch => batch.name).join('、') : '';
+  const review = mixed.length > 0 ? await reviewStatus('mixedReview', mixedNameText) : { text: '暂无混合词库', state: '' };
+  const challenge = mixed.length > 0 ? await challengeStatus('mixedChallenge') : { text: '暂无混合词库', state: '' };
+  if (mixed.length > 0) review.text = mixedNameText;
+  if (mixed.length > 0 && !challenge.state) challenge.text = mixedNameText;
+  setTaskButton('wordTaskReviewBtn', mixed.length > 0, review.text, review.state);
+  setTaskButton('wordTaskChallengeBtn', mixed.length > 0 && challenge.state !== 'locked', challenge.text, challenge.state);
 }
 
 async function updateDetailChallengeStatus(batchId) {
@@ -261,6 +295,7 @@ async function prioritizedTaskDeck(cards, limit, batchId) {
 
 function finishTaskToSource() {
   if (activeTaskReturn === 'detail' && currentBatchId) goDetail();
+  else if (activeTaskReturn === 'wordTaskMenu') openWordTaskMenu(wordTaskMenuSource);
   else { showScreen('screenHome'); loadHome(); }
 }
 

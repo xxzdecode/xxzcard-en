@@ -25,11 +25,11 @@
   </div>
   <div style="height:8px"></div>
   <div class="task-grid student-only" id="homeQuickActions">
-    <button class="task-btn review" id="todayReviewBtn" onclick="startTodayReview()" disabled>
-      <span class="task-icon">📖</span><span class="task-title">今日单词</span><span class="task-sub" id="todayReviewSub">最新单词卡</span>
+    <button class="task-btn review" id="todayWordBtn" onclick="openWordTaskMenu('today')" disabled>
+      <span class="task-icon">📖</span><span class="task-title">今日单词</span><span class="task-sub">最新单词卡</span>
     </button>
-    <button class="task-btn challenge" id="todayChallengeBtn" onclick="startTodayChallenge()" disabled>
-      <span class="task-icon">🏁</span><span class="task-title">混合单词</span><span class="task-sub" id="todayChallengeSub">最多 2 次</span>
+    <button class="task-btn mixed challenge" id="mixedWordBtn" onclick="openWordTaskMenu('mixed')" disabled>
+      <span class="task-icon">🔁</span><span class="task-title">混合单词</span><span class="task-sub">老师混合词库</span>
     </button>
   </div>
   <nav class="bottom-feature-nav student-only" aria-label="主要功能">
@@ -184,6 +184,22 @@
     <span class="topbar-title" id="coursewareTitle">随堂练习</span>
   </div>
   <iframe class="courseware-frame" id="coursewareFrame" title="随堂练习"></iframe>
+</div>
+
+<!-- ══ SCREEN: WORD TASK MENU ══ -->
+<div class="screen" id="screenWordTaskMenu" data-source="today">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeWordTaskMenu()">←</button>
+    <span class="topbar-title" id="wordTaskMenuTitle">今日单词</span>
+  </div>
+  <div class="task-grid word-task-menu-grid" id="wordTaskMenuActions">
+    <button class="task-btn review" id="wordTaskReviewBtn" onclick="startWordTaskMenuReview()" disabled>
+      <span class="task-icon">📖</span><span class="task-title" id="wordTaskReviewTitle">今日温习</span><span class="task-sub">最新单词卡</span>
+    </button>
+    <button class="task-btn challenge" id="wordTaskChallengeBtn" onclick="startWordTaskMenuChallenge()" disabled>
+      <span class="task-icon">🏁</span><span class="task-title" id="wordTaskChallengeTitle">今日挑战</span><span class="task-sub">最多 2 次</span>
+    </button>
+  </div>
 </div>
 
 <!-- ══ SCREEN: STUDENT WORD CARDS ══ -->

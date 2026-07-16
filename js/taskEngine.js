@@ -71,6 +71,8 @@ const TASK_TITLES = {
   }
 };
 
+let wordTaskMenuSource = 'today';
+
 function taskKeyFor(source, mode, batchId) {
   if (source === 'today') return mode === 'review' ? 'todayReview' : 'todayChallenge';
   if (source === 'mixed') return mode === 'review' ? 'mixedReview' : 'mixedChallenge';
@@ -88,7 +90,7 @@ async function startTask(options) {
     title: TASK_TITLES[options.mode][options.source],
     deck: resolved.deck,
     allCards: resolved.allCards,
-    returnTo: resolved.returnTo,
+    returnTo: options.returnTo || resolved.returnTo,
     batchId: resolved.batchId
   };
   await mode.start(task);
@@ -182,6 +184,26 @@ async function startMixedReview() {
 
 async function startMixedChallenge() {
   await startTask({ source: 'mixed', mode: 'challenge' });
+}
+
+async function openWordTaskMenu(source) {
+  if (source !== 'today' && source !== 'mixed') return;
+  wordTaskMenuSource = source;
+  showScreen('screenWordTaskMenu');
+  await updateWordTaskMenuButtons(source);
+}
+
+function closeWordTaskMenu() {
+  showScreen('screenHome');
+  loadHome();
+}
+
+async function startWordTaskMenuReview() {
+  await startTask({ source: wordTaskMenuSource, mode: 'review', returnTo: 'wordTaskMenu' });
+}
+
+async function startWordTaskMenuChallenge() {
+  await startTask({ source: wordTaskMenuSource, mode: 'challenge', returnTo: 'wordTaskMenu' });
 }
 
 async function startBatchReview(batchId) {

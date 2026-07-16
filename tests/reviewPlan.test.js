@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const indexSource = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const taskEngineSource = fs.readFileSync(path.join(root, 'js/taskEngine.js'), 'utf8');
-const reviewSource = fs.readFileSync(path.join(root, 'js/review.js'), 'utf8');
+const tasksSource = fs.readFileSync(path.join(root, 'js/tasks.js'), 'utf8');
 const context = vm.createContext({
   console,
   setTimeout,
@@ -118,20 +118,16 @@ assert.match(taskEngineSource, /startBatchReview\(batchId\)[\s\S]*startTask\(\{ 
 assert.match(taskEngineSource, /async function startReviewTask[\s\S]*buildReviewSteps\(deck\)/);
 const homeQuickActions = indexSource.match(/<div class="task-grid student-only" id="homeQuickActions">([\s\S]*?)<\/div>/)[1];
 assert.equal((homeQuickActions.match(/<button /g) || []).length, 2, 'home should expose two word task entries');
-assert.match(homeQuickActions, /onclick="startTodayReview\(\)"[\s\S]*今日单词/);
-assert.match(homeQuickActions, /onclick="startTodayChallenge\(\)"[\s\S]*混合单词/);
+assert.match(homeQuickActions, /onclick="openWordTaskMenu\('today'\)"[\s\S]*今日单词/);
+assert.match(homeQuickActions, /onclick="openWordTaskMenu\('mixed'\)"[\s\S]*混合单词/);
 assert.doesNotMatch(homeQuickActions, /mixedReviewBtn|mixedChallengeBtn|今日温习|今日挑战/);
-assert.match(reviewSource, /completedTaskKey === 'todayReview'[\s\S]*await startTodayChallenge\(\)/);
-
-let todayChallengeStarts = 0;
-context.activeTask = { key: 'todayReview', mode: 'review' };
-context.saveReviewComplete = async taskKey => taskKey === 'todayReview';
-context.startTodayChallenge = async () => {
-  todayChallengeStarts++;
-  context.activeTask = { key: 'todayChallenge', mode: 'challenge' };
-};
-context.reviewCardShell = () => assert.fail('successful today review should continue directly to challenge');
-const todayReviewTransition = vm.runInContext("completeReviewTask('今天的温习已经完成。')", context);
+const wordTaskMenu = indexSource.match(/<div class="screen" id="screenWordTaskMenu"[\s\S]*?<\/div>\s*<\/div>/)[0];
+assert.equal((wordTaskMenu.match(/<button /g) || []).length, 3, 'word task screen should contain back, review, and challenge buttons');
+assert.match(wordTaskMenu, /onclick="startWordTaskMenuReview\(\)"[\s\S]*今日温习/);
+assert.match(wordTaskMenu, /onclick="startWordTaskMenuChallenge\(\)"[\s\S]*今日挑战/);
+assert.match(taskEngineSource, /startWordTaskMenuReview\(\)[\s\S]*source: wordTaskMenuSource, mode: 'review', returnTo: 'wordTaskMenu'/);
+assert.match(taskEngineSource, /startWordTaskMenuChallenge\(\)[\s\S]*source: wordTaskMenuSource, mode: 'challenge', returnTo: 'wordTaskMenu'/);
+assert.match(tasksSource, /confirmExitChallenge\(\)[\s\S]*returnTo === 'wordTaskMenu'[\s\S]*openWordTaskMenu\(wordTaskMenuSource\)/);
 
 const sequences = {
   complete: types(complete),
@@ -141,10 +137,4 @@ const sequences = {
 };
 
 console.log(JSON.stringify(sequences, null, 2));
-todayReviewTransition.then(() => {
-  assert.equal(todayChallengeStarts, 1, 'today review should start the existing today challenge once');
-  console.log('reviewPlan tests passed');
-}).catch(error => {
-  console.error(error);
-  process.exitCode = 1;
-});
+console.log('reviewPlan tests passed');

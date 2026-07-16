@@ -7,6 +7,7 @@ Object.assign(window, {
   startDailyQuiz, selectDQOpt, confirmDQAnswer, nextDQ, speakWord,
   showMergeSelect, startMergeStudy, startMergeMode, startMergeDailyQuiz,
   startTodayReview, startTodayChallenge, startMixedReview, startMixedChallenge,
+  openWordTaskMenu, closeWordTaskMenu, startWordTaskMenuReview, startWordTaskMenuChallenge,
   startBatchReview, startBatchChallenge, finishReviewToSource, confirmExitChallenge,
   startReviewMatchPlay, nextWrongReviewCard,
   openStudentWordCard, studentWordNav, showTeacherMixSelect, selectTaskAssignmentOption,

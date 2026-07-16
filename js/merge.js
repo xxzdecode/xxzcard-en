@@ -151,7 +151,11 @@ function showResult(correct, total, wrongList) {
   // adjust back button based on context
   const backBtn = document.getElementById('resultBackBtn');
   if (resultContext === 'task-challenge') {
-    backBtn.textContent = activeTaskReturn === 'detail' ? '← 返回单词卡' : '← 返回首页';
+    backBtn.textContent = activeTaskReturn === 'detail'
+      ? '← 返回单词卡'
+      : activeTaskReturn === 'wordTaskMenu'
+        ? `← 返回${wordTaskMenuSource === 'today' ? '今日单词' : '混合单词'}`
+        : '← 返回首页';
     backBtn.onclick = () => finishTaskToSource();
   } else if (resultContext === 'merge-daily' || resultContext === 'global-daily') {
     backBtn.textContent = '← 返回首页';
