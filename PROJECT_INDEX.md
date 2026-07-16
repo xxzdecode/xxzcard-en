@@ -58,7 +58,7 @@
 - `js/vocabularyReviewData.js`：生词巩固当前词表、音标、释义和图片路径。
 - `js/vocabularyReview.js`：生词巩固目录、学习/自测切换、卡片翻面、滑动和图片预加载。
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
-- `scripts/add-practice.mjs`：随堂练习上传的主命令；`scripts/add-courseware.mjs` 作为旧命令兼容入口保留。详细触发流程由 `xxzdecode/xxz-tools` 的 `english-project/README.md` 维护。
+- `scripts/add-practice.mjs`：随堂练习上传的主命令；`scripts/add-courseware.mjs` 作为旧命令兼容入口保留。详细触发流程由 `xxzdecode/xxz-tools` 的 `xxzcard-en-hub/README.md` 维护。
 
 ## 4. 数据流相关文件
 
