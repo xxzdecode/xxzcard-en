@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>火车排序练习模板</title>
+  <link rel="stylesheet" href="css/shell.css" />
+  <link rel="stylesheet" href="css/train.css" />
+  <script src="js/practice-data.js" defer></script>
+  <script src="js/shell.js" defer></script>
+  <script src="js/train.js" defer></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="hill h1"></div>
+    <div class="hill h2"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">🚂</div>
+        <div>
+          <h1 id="practiceTitle">火车排序练习</h1>
+          <p id="practiceSubtitle">拖动车厢，排列成正确顺序</p>
+        </div>
+      </div>
+
+      <div class="mission">
+        <span class="sign">任务</span>
+        <span id="instruction">按要求排列车厢</span>
+      </div>
+
+      <div class="progress">
+        <div class="progress-ring" id="progressRing">
+          <span id="progressNumber">1/5</span>
+        </div>
+        <small id="progressText">火车<br>排序模板</small>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="stage-head">
+        <div class="station-sign">🚉 <span id="stationName">第一站</span></div>
+        <div class="sentence-type" id="sentenceType">顺序练习</div>
+        <div class="score" id="scoreText">已完成 0 / 2</div>
+      </div>
+
+      <section id="playground" class="playground"></section>
+
+      <div class="result-strip" id="resultStrip" aria-live="polite">
+        <div class="feedback-icon" id="feedbackIcon">△</div>
+        <div class="feedback-main">
+          <div class="feedback-title" id="feedbackTitle">先观察每节车厢，再按要求调整顺序。</div>
+          <div class="feedback-detail" id="feedbackDetail">当前内容是用于验证模板的中性示例。</div>
+        </div>
+        <div class="rule-after" id="ruleAfter">检查后显示说明</div>
+      </div>
+    </main>
+
+    <footer class="controls">
+      <button class="btn secondary" id="prevBtn" type="button">← 上一题</button>
+      <button class="btn ghost" id="resetBtn" type="button">重新打乱</button>
+
+      <div class="dots" id="dots" aria-label="题目导航"></div>
+      <button class="btn check" id="checkBtn" type="button">检查答案</button>
+      <button class="btn secondary" id="nextBtn" type="button">下一题 →</button>
+    </footer>
+
+    <div class="completion" id="completion">
+      <div class="completion-card">
+        <div class="completion-emoji" id="completionEmoji">🚂✨</div>
+        <h2 id="completionTitle">全部完成！</h2>
+        <p id="completionText">你已经完成了全部排序练习。</p>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+          <button class="btn secondary" id="returnBtn" type="button">返回练习</button>
+          <button class="btn check" id="restartBtn" type="button">重新开始</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
