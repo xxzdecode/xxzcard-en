@@ -25,7 +25,6 @@ const VOCABULARY_REVIEW_ASSETS = [
   './js/wordDedupe.js',
   './js/vocabularyReviewData.js',
   './js/vocabularyReview.js',
-  './js/homeworkPrep.js',
   './js/main.js',
   './assets/vocabulary-review/line.webp',
   './assets/vocabulary-review/cucumber.webp',

@@ -22,10 +22,6 @@ Object.assign(window, {
   doDictionarySearch, openDictionaryResult, openBatchWordCard, jumpToWordLink,
   closeAllModals, deleteBatch, goDetail, retryResult,
   pinInput, pinDel, cancelPin,
-  openHomeworkPrep, closeHomeworkPrep, homeworkPrepSignIn, homeworkPrepSignOut,
-  homeworkProcessNext, homeworkShowPendingReview, homeworkConfirmReady,
-  homeworkOpenBlock, homeworkRetryBlock, homeworkResolveReview,
-  openHomeworkSourcePreview, closeHomeworkSourcePreview,
 });
 
 // ══════════════════════════════════════
