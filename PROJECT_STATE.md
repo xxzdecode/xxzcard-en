@@ -10,7 +10,7 @@
 
 ### HW-021｜编号练习半自动 Agent / Worker MVP
 
-当前进度：C01–C05 已完成本地实现与验证；尚未部署到生产 Supabase，尚未开始 C06 的真实定位/OCR。
+当前进度：C01–C12 已完成仓库内实现与本地验证；BLOCK-003 已依据教师确认写入 seed 为 `ready`。后续交付方向与执行计划由 `xxzdecode/xxz-tools/english-project/projects/homework-prep/STATUS.md` 和 `TASKS.md` 维护。
 
 #### C01 巡检结论
 
@@ -55,6 +55,21 @@
 - 数据库正向迁移、RLS/权限断言、种子数据、原子抢占、重复点击、续跑和回滚均已在 `xxzworden` 的 Postgres 17 中通过单事务执行后回滚验证，生产库未留下改动。
 - 本机没有 Docker，因此未运行本地 Supabase 容器；生产迁移和 Edge Function 部署属于后续确认门槛。
 - C06 前的重要决策：HW-020 没有指定 OCR / 多模态模型供应商。实际定位与印刷内容提取前，需确认使用 OpenAI API 还是其他供应商；密钥、费用和调用契约取决于该选择。
+
+#### C06–C09 试点状态
+
+- BLOCK-003 已完成真实定位、结构化提取、教学分析与 QA；覆盖源 PDF 第 7–9 页，题号 11 跨第 8–9 页。
+- 试点固化 60 个答案点（48 个客观题答案点、12 个翻译答案点），QA 的 review 数为 0，手写内容按规则忽略。
+- 教师已于 2026-07-16 确认内容通过；确认 fixture 与 C08–C09 测试 fixture 保存在 `supabase/functions/homework-worker/fixtures/`，C10–C12 不再重复请求内容确认。
+
+#### C10–C12 实施状态
+
+- C10：新增教师端“作业备课”审核台，展示当前块、范围、状态、四步进度、待处理 review、最近错误与审计时间线；支持处理下一块、重试、review 决策、确认 ready，以及经教师 JWT 授权的私有 PDF 单页预览。
+- C11：任务记录包含开始/结束/耗时、尝试次数、稳定错误码与输入输出摘要；重试保持幂等并从失败步骤续跑，review 决策只重跑 analyzing 或 QA。analyzing 重跑会同时使旧 QA 失效，必须重新完成 QA 才能进入教师 ready 确认门。
+- C12：新增审计表、RLS/service-only 权限、教师身份记录、最大两次自动机械重试和 ready 数据库门禁；BLOCK-001/002 的 R-001/R-002 决策及 BLOCK-003 教师确认均被回放测试锁定。
+- 安全边界：浏览器只持公开 anon key 和用户 access token；service role 仅在 Edge Function 内使用。源 PDF 不生成 signed URL，服务端验证 block/document/page 关联后只返回请求页。
+- 本地验证：Deno check/format/lint、PDF 单页提取测试、Node Worker/C12 验收测试、JS 语法检查与桌面/390px 本地浏览器检查通过；本地未发现横向溢出或控制台错误。
+- 验证边界：本机无 Docker，未执行空库 `supabase db reset`；生产 Supabase 当前也未应用仓库 migrations。因此数据库迁移实跑、Edge Function 部署和已登录教师的线上点击链路尚未在线完成。
 
 ----------------------------------------------------
 

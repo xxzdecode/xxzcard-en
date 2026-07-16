@@ -15,7 +15,8 @@
 
 `index.html` 中的主要 screen：
 
-- `screenHome`：首页、用户切换、学生今日/混合任务与三个学习入口，以及老师端“单词卡 / 随堂练习”两个主入口。
+- `screenHome`：首页、用户切换、学生今日/混合任务与学习入口，以及老师端“单词卡 / 随堂练习 / 生词巩固 / 作业备课”入口。
+- `screenHomeworkPrep`：HW-021 教师审核台；使用 Supabase Auth 教师身份查看块状态、处理 review、重试与确认 ready。
 - `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。
 - `screenCourseware` / `screenCoursewarePlayer`：老师端随堂练习目录与独立 iframe 播放页；内部 ID 保留旧名称以兼容已有入口。
 - `screenWordCards`：学生单词卡列表和单词卡查看。
@@ -53,6 +54,9 @@
 - `js/courseware.js`：独立随堂练习清单、老师端目录渲染和 iframe 播放器开关逻辑；文件名保留用于兼容。
 - `js/courseware-data.js`：由练习上传脚本维护的随堂练习目录数据；文件名和旧全局变量别名保留用于兼容。
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
+- `js/homeworkPrep.js`：作业备课审核台的教师登录、概览、块详情、review 决策、重试、ready 确认和受保护 PDF 单页预览。
+- `supabase/functions/homework-worker/`：HW-021 顺序 Worker/API；负责教师 JWT 授权、任务抢占与续跑、审核操作、审计读取和私有 PDF 单页预览。
+- `supabase/migrations/`：HW-021 数据结构、队列函数、RLS、审计日志和教师审核状态机迁移；对应手动回滚位于 `supabase/rollbacks/`。
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
 - `scripts/add-practice.mjs`：随堂练习上传的主命令；`scripts/add-courseware.mjs` 作为旧命令兼容入口保留。详细触发流程由 `xxzdecode/xxz-tools` 的 `english-project/README.md` 维护。
 
@@ -109,7 +113,10 @@
 18. `js/taskEngine.js`
 19. `js/merge.js`
 20. `js/wordDedupe.js`
-21. `js/main.js`
+21. `js/vocabularyReviewData.js`
+22. `js/vocabularyReview.js`
+23. `js/homeworkPrep.js`
+24. `js/main.js`
 
 ## 6. 常见任务应该先看哪些文件
 
@@ -128,6 +135,7 @@
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
 - 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
+- 看 HW-021 作业备课审核台：先看 `js/homeworkPrep.js` 与 `screenHomeworkPrep`，再看 `supabase/functions/homework-worker/` 和最新两份 homework migration。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
 
 ## 7. 不要随便动的地方

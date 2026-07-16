@@ -86,7 +86,55 @@
       </svg>
       <span>生词巩固</span>
     </button>
+    <button class="bottom-feature-nav__item" onclick="openHomeworkPrep()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 4h16v16H4z" />
+        <path d="M8 8h8M8 12h5M8 16h3" />
+        <path d="M16 15l1.5 1.5L20 14" />
+      </svg>
+      <span>作业备课</span>
+    </button>
   </nav>
+</div>
+
+<!-- ══ SCREEN: HOMEWORK PREP REVIEW ══ -->
+<div class="screen" id="screenHomeworkPrep">
+  <div class="topbar homework-prep-topbar">
+    <button class="back-btn" onclick="closeHomeworkPrep()">←</button>
+    <span class="topbar-title">编号练习备课</span>
+    <button class="homework-prep-text-btn" id="homeworkPrepSignOutBtn" type="button" onclick="homeworkPrepSignOut()" hidden>退出账号</button>
+  </div>
+  <main class="homework-prep-shell">
+    <section class="homework-prep-login" id="homeworkPrepLoginPanel" hidden>
+      <h1>教师身份验证</h1>
+      <p>网站 PIN 只控制界面；审核和确认 ready 需要教师 Supabase 账号。</p>
+      <label>邮箱<input id="homeworkPrepEmail" type="email" autocomplete="username" inputmode="email"></label>
+      <label>密码<input id="homeworkPrepPassword" type="password" autocomplete="current-password"></label>
+      <button type="button" onclick="homeworkPrepSignIn()">登录并进入审核</button>
+      <div class="homework-prep-message" id="homeworkPrepLoginMessage" role="status"></div>
+    </section>
+    <section id="homeworkPrepApp" hidden>
+      <div class="homework-prep-actions">
+        <button class="homework-prep-primary" id="homeworkProcessNextBtn" type="button" onclick="homeworkProcessNext()">处理下一块</button>
+        <button type="button" onclick="homeworkShowPendingReview()">待我确认 <span id="homeworkPendingBadge">0</span></button>
+        <button id="homeworkConfirmReadyBtn" type="button" onclick="homeworkConfirmReady()" disabled>确认 ready</button>
+      </div>
+      <div class="homework-prep-message" id="homeworkPrepMessage" role="status"></div>
+      <section class="homework-prep-overview" id="homeworkPrepOverview" aria-live="polite"></section>
+      <section class="homework-prep-detail" id="homeworkPrepDetail"></section>
+    </section>
+  </main>
+</div>
+
+<div class="homework-source-modal" id="homeworkSourceModal" hidden>
+  <div class="homework-source-dialog" role="dialog" aria-modal="true" aria-labelledby="homeworkSourceTitle">
+    <div class="topbar">
+      <button class="back-btn" type="button" onclick="closeHomeworkSourcePreview()">←</button>
+      <span class="topbar-title" id="homeworkSourceTitle">来源页预览</span>
+    </div>
+    <div class="homework-source-meta" id="homeworkSourceMeta"></div>
+    <iframe id="homeworkSourceFrame" title="编号练习来源页"></iframe>
+  </div>
 </div>
 
 <!-- ══ SCREEN: VOCABULARY REVIEW LIST ══ -->
@@ -603,6 +651,7 @@
 <script src="js/wordDedupe.js"></script>
 <script src="js/vocabularyReviewData.js"></script>
 <script src="js/vocabularyReview.js"></script>
+<script src="js/homeworkPrep.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

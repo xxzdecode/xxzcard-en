@@ -2,9 +2,16 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
-import { requireTeacher } from "./lib/auth.ts";
+import { requireTeacher, teacherUserId } from "./lib/auth.ts";
 import { loadWorkerConfig } from "./lib/config.ts";
+import {
+  confirmHomeworkReady,
+  loadHomeworkBlock,
+  loadHomeworkOverview,
+  resolveHomeworkReview,
+} from "./lib/dashboard.ts";
 import { HomeworkWorkerError, publicErrorBody } from "./lib/errors.ts";
+import { loadAuthorizedPagePreview } from "./lib/preview.ts";
 import { processNextBlock, retryBlock } from "./lib/queue.ts";
 
 const config = loadWorkerConfig((name) => Deno.env.get(name));
@@ -41,6 +48,36 @@ function jsonResponse(request: Request, body: unknown, status = 200): Response {
   });
 }
 
+function pdfResponse(request: Request, bytes: Uint8Array): Response {
+  return new Response(bytes as BodyInit, {
+    status: 200,
+    headers: {
+      ...corsHeaders(request),
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "inline; filename=homework-source-page.pdf",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
+async function requestJson(request: Request): Promise<Record<string, unknown>> {
+  try {
+    const value = await request.json();
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error();
+    }
+    return value as Record<string, unknown>;
+  } catch {
+    throw new HomeworkWorkerError(
+      "invalid_json_body",
+      400,
+      "A valid JSON object is required.",
+      false,
+    );
+  }
+}
+
 function routePath(request: Request): string {
   const pathname = new URL(request.url).pathname;
   const functionPrefix = "/homework-worker";
@@ -64,6 +101,37 @@ export default {
 
       const path = routePath(request);
 
+      if (request.method === "GET" && path === "/api/homework/overview") {
+        return jsonResponse(request, await loadHomeworkOverview(supabaseAdmin));
+      }
+
+      const detailMatch = path.match(
+        /^\/api\/homework\/blocks\/([0-9a-f-]+)$/i,
+      );
+      if (request.method === "GET" && detailMatch) {
+        return jsonResponse(
+          request,
+          await loadHomeworkBlock(supabaseAdmin, detailMatch[1]),
+        );
+      }
+
+      const previewMatch = path.match(
+        /^\/api\/homework\/blocks\/([0-9a-f-]+)\/source-preview$/i,
+      );
+      if (request.method === "GET" && previewMatch) {
+        const url = new URL(request.url);
+        const documentId = url.searchParams.get("document_id") ?? "";
+        const pageNumber = Number(url.searchParams.get("page"));
+        const bytes = await loadAuthorizedPagePreview(
+          supabaseAdmin,
+          config,
+          previewMatch[1],
+          documentId,
+          pageNumber,
+        );
+        return pdfResponse(request, bytes);
+      }
+
       if (
         request.method === "POST" &&
         path === "/api/homework/blocks/process-next"
@@ -78,6 +146,36 @@ export default {
         return jsonResponse(
           request,
           await retryBlock(supabaseAdmin, retryMatch[1]),
+        );
+      }
+
+      const confirmMatch = path.match(
+        /^\/api\/homework\/blocks\/([0-9a-f-]+)\/confirm-ready$/i,
+      );
+      if (request.method === "POST" && confirmMatch) {
+        return jsonResponse(
+          request,
+          await confirmHomeworkReady(
+            supabaseAdmin,
+            confirmMatch[1],
+            teacherUserId(context.userClaims),
+          ),
+        );
+      }
+
+      const resolveMatch = path.match(
+        /^\/api\/homework\/review-items\/([0-9a-f-]+)\/resolve$/i,
+      );
+      if (request.method === "POST" && resolveMatch) {
+        const body = await requestJson(request);
+        return jsonResponse(
+          request,
+          await resolveHomeworkReview(
+            supabaseAdmin,
+            resolveMatch[1],
+            body.teacher_decision,
+            teacherUserId(context.userClaims),
+          ),
         );
       }
 

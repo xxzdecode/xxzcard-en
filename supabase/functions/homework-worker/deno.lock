@@ -1,12 +1,24 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@std/assert@1.0.19": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
     "jsr:@supabase/functions-js@2.110.5": "2.110.5",
     "npm:@supabase/server@1.4.0": "1.4.0_@supabase+supabase-js@2.110.5",
     "npm:@supabase/supabase-js@2.110.5": "2.110.5",
-    "npm:openai@^4.52.5": "4.104.0"
+    "npm:openai@^4.52.5": "4.104.0",
+    "npm:pdf-lib@1.17.1": "1.17.1"
   },
   "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    },
     "@supabase/functions-js@2.110.5": {
       "integrity": "8a74e819b14fac78f0e7987b255a71e400924be8a562bcdfc4ec9d420cd73bc4",
       "dependencies": [
@@ -15,16 +27,28 @@
     }
   },
   "npm": {
+    "@pdf-lib/standard-fonts@1.0.0": {
+      "integrity": "sha512-hU30BK9IUN/su0Mn9VdlVKsWBS6GyhVfqjwl1FjZN4TxP6cCw0jP2w7V3Hf5uX7M0AZJ16vey9yE0ny7Sa59ZA==",
+      "dependencies": [
+        "pako"
+      ]
+    },
+    "@pdf-lib/upng@1.0.1": {
+      "integrity": "sha512-dQK2FUMQtowVP00mtIksrlZhdFXQZPC+taih1q4CvPZ5vqdxR/LKBaFg0oAfzd1GlHZXXSPdQfzQnt+ViGvEIQ==",
+      "dependencies": [
+        "pako"
+      ]
+    },
     "@supabase/auth-js@2.110.5": {
       "integrity": "sha512-QSlI5CNeEefHP95/GbeMhNgr8aHEHiXFh8c1IWthYyI9ZzBwEigYzJFCw4Ff+GkL8OK9tArBmGGv6rpg5zLXSw==",
       "dependencies": [
-        "tslib"
+        "tslib@2.8.1"
       ]
     },
     "@supabase/functions-js@2.110.5": {
       "integrity": "sha512-nuQuoIoEGT8ukrwr6THlY5v50bSMJ2rqti1FFsGyDaC98POLmcFQVFFh23PVPhRsKWUxrFc0MpmEoHKa7CY4mg==",
       "dependencies": [
-        "tslib"
+        "tslib@2.8.1"
       ]
     },
     "@supabase/phoenix@0.4.4": {
@@ -33,14 +57,14 @@
     "@supabase/postgrest-js@2.110.5": {
       "integrity": "sha512-eObfgBjxLPzFakwMpUmsv8nuNPOhoDhzzN8cwvEvGkxkmuRIZcOCYH9+DRbpKnxh7tgsBZW+KWtaZI2j98b2/g==",
       "dependencies": [
-        "tslib"
+        "tslib@2.8.1"
       ]
     },
     "@supabase/realtime-js@2.110.5": {
       "integrity": "sha512-VtOZxw5jfrc37KgIfFdp9SOFJjtvJ0qU+gT8CPQjL7cqy4DJlaTXacw5aBBogLZksqAI0YN67qhlDaMKFwfOuw==",
       "dependencies": [
         "@supabase/phoenix",
-        "tslib"
+        "tslib@2.8.1"
       ]
     },
     "@supabase/server@1.4.0_@supabase+supabase-js@2.110.5": {
@@ -54,7 +78,7 @@
       "integrity": "sha512-7GkOZlrYknVGVPyijoDbu5OXGvQ2oQ6dkU0juAkIMPZ9QgtmJ8IPrxe76zGSbmzbaC1GdKw7pqeXEi2HT67sbA==",
       "dependencies": [
         "iceberg-js",
-        "tslib"
+        "tslib@2.8.1"
       ]
     },
     "@supabase/supabase-js@2.110.5": {
@@ -256,8 +280,23 @@
       ],
       "bin": true
     },
+    "pako@1.0.11": {
+      "integrity": "sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw=="
+    },
+    "pdf-lib@1.17.1": {
+      "integrity": "sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw==",
+      "dependencies": [
+        "@pdf-lib/standard-fonts",
+        "@pdf-lib/upng",
+        "pako",
+        "tslib@1.14.1"
+      ]
+    },
     "tr46@0.0.3": {
       "integrity": "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw=="
+    },
+    "tslib@1.14.1": {
+      "integrity": "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="
     },
     "tslib@2.8.1": {
       "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
@@ -281,9 +320,11 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@std/assert@1.0.19",
       "jsr:@supabase/functions-js@2.110.5",
       "npm:@supabase/server@1.4.0",
-      "npm:@supabase/supabase-js@2.110.5"
+      "npm:@supabase/supabase-js@2.110.5",
+      "npm:pdf-lib@1.17.1"
     ]
   }
 }

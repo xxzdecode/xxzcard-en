@@ -26,3 +26,21 @@ export function requireTeacher(userClaims: unknown): void {
     );
   }
 }
+
+export function teacherUserId(userClaims: unknown): string {
+  requireTeacher(userClaims);
+  const subject = asClaims(userClaims).sub;
+  if (
+    typeof subject !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(subject)
+  ) {
+    throw new HomeworkWorkerError(
+      "teacher_identity_invalid",
+      403,
+      "The teacher identity is invalid.",
+      false,
+    );
+  }
+  return subject;
+}
