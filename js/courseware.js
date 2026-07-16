@@ -1,7 +1,9 @@
-// TEACHER COURSEWARE
-const COURSEWARE_ITEMS = Array.isArray(window.COURSEWARE_ITEMS)
-  ? window.COURSEWARE_ITEMS
-  : [];
+// TEACHER CLASSROOM PRACTICE
+// Keep COURSEWARE_ITEMS as a compatibility alias for historical data files.
+const CLASSROOM_PRACTICE_ITEMS = Array.isArray(window.CLASSROOM_PRACTICE_ITEMS)
+  ? window.CLASSROOM_PRACTICE_ITEMS
+  : (Array.isArray(window.COURSEWARE_ITEMS) ? window.COURSEWARE_ITEMS : []);
+const COURSEWARE_ITEMS = CLASSROOM_PRACTICE_ITEMS;
 
 const COURSEWARE_ICONS = {
   book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15M8 7h8M8 11h6"/>',
@@ -19,7 +21,7 @@ function renderCoursewareList() {
   const list = document.getElementById('coursewareList');
   if (!list) return;
   if (COURSEWARE_ITEMS.length === 0) {
-    list.innerHTML = '<div class="courseware-empty">还没有课件</div>';
+    list.innerHTML = '<div class="courseware-empty">还没有随堂练习</div>';
     return;
   }
   list.innerHTML = COURSEWARE_ITEMS.map(item => `

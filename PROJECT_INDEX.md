@@ -15,9 +15,9 @@
 
 `index.html` 中的主要 screen：
 
-- `screenHome`：首页、用户切换、学生今日/混合任务与三个学习入口，以及老师端“单词卡 / 课件”两个主入口。
+- `screenHome`：首页、用户切换、学生今日/混合任务与三个学习入口，以及老师端“单词卡 / 随堂练习”两个主入口。
 - `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。
-- `screenCourseware` / `screenCoursewarePlayer`：老师端课件目录与独立 iframe 播放页。
+- `screenCourseware` / `screenCoursewarePlayer`：老师端随堂练习目录与独立 iframe 播放页；内部 ID 保留旧名称以兼容已有入口。
 - `screenWordCards`：学生单词卡列表和单词卡查看。
 - `screenPhonemeTraining`：音标训练。
 - `screenThemeQuizzes`：专项小游戏列表。
@@ -50,11 +50,11 @@
 - `js/study.js`：普通学习卡片翻面、认识/不认识判断、滑动动画。
 - `js/merge.js`：多个单词本合并练习、智能抽取、混合模式菜单和结果。
 - `js/themeQuizzes.js`：专项小游戏注册表和 iframe 打开/关闭逻辑。
-- `js/courseware.js`：独立课件清单、老师课件目录渲染和 iframe 播放器开关逻辑。
-- `js/courseware-data.js`：由课件上传脚本维护的课件目录数据。
+- `js/courseware.js`：独立随堂练习清单、老师端目录渲染和 iframe 播放器开关逻辑；文件名保留用于兼容。
+- `js/courseware-data.js`：由练习上传脚本维护的随堂练习目录数据；文件名和旧全局变量别名保留用于兼容。
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
-- `scripts/add-courseware.mjs`：课件上传预演和登记脚本；详细触发流程由 `xxzdecode/xxz-tools` 的 `english-project/README.md` 维护。
+- `scripts/add-practice.mjs`：随堂练习上传的主命令；`scripts/add-courseware.mjs` 作为旧命令兼容入口保留。详细触发流程由 `xxzdecode/xxz-tools` 的 `english-project/README.md` 维护。
 
 ## 4. 数据流相关文件
 
@@ -72,17 +72,17 @@
 - `js/home.js`：根据 appData、用户记录和任务状态渲染首页。
 - `js/dictionary.js`：对卡片字段做标准化和展示层解析。
 
-课件目录：
+随堂练习目录（保留历史路径）：
 
-- `courseware/`：已发布课件文件。
-- `js/courseware-data.js`：课件目录数据，由 `scripts/add-courseware.mjs` 更新。
+- `courseware/`：已发布随堂练习文件；为保证历史 URL 可访问，不迁移或改名。
+- `js/courseware-data.js`：随堂练习目录数据，由 `scripts/add-practice.mjs` 更新。
 
 ## 5. 配置 / 构建相关文件
 
 - `index.html`：静态页面入口，同时定义脚本加载顺序。
 - `styles.css`：全局样式入口。
 - `js/config.js`：运行时配置和默认数据。
-- `scripts/add-courseware.mjs`：无构建系统下的独立 Node.js 维护脚本。
+- `scripts/add-practice.mjs`：无构建系统下的随堂练习上传主命令；旧脚本路径继续兼容。
 - `.gitignore`：Git 忽略规则文件。
 
 当前项目目录中没有看到 `package.json`、打包配置或测试配置；项目形态更接近直接由浏览器加载的静态 HTML/CSS/JS。
@@ -126,7 +126,7 @@
 - 看单词卡背面、词典字段、搜索、词族/搭配/例句：先看 `js/dictionary.js`。
 - 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
-- 看老师课件目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；课件上传脚本任务再看 `scripts/add-courseware.mjs`。
+- 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
 
@@ -140,4 +140,4 @@
 - `js/dictionary.js` 中的卡片字段标准化逻辑；它连接旧字段、新字段和展示层。
 - `js/tasks.js`、`js/taskEngine.js`、`js/review.js`、`js/quiz.js`、`js/questionTypes.js` 之间的任务/题型协作关系。
 - `js/themeQuizzes.js` 中的专项小游戏注册表；主页面入口依赖这里决定可打开的独立练习页。
-- `courseware/` 与 `js/courseware-data.js`；只在有效的待上传说明和脚本预演通过后更新。
+- `courseware/` 与 `js/courseware-data.js`；只在有效的待上传练习说明和脚本预演通过后更新，且不得破坏历史路径。
