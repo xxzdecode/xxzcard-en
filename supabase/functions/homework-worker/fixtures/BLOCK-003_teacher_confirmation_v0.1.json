@@ -1,0 +1,29 @@
+{
+  "schema_version": "v0.1",
+  "block_code": "BLOCK-003",
+  "number_start": 9,
+  "number_end": 12,
+  "decision_type": "teacher_content_confirmation",
+  "decision": "approved",
+  "content_status": "teacher_confirmed",
+  "confirmed_at": "2026-07-16",
+  "review_item_count": 0,
+  "teacher_note": "内容通过，可用于备课。",
+  "runtime_status": "pending_c10_c12",
+  "ready_write_condition": {
+    "teacher_confirmation_recorded": true,
+    "c10_teacher_review_ui": "pending",
+    "c11_retry_logging_traceability": "pending",
+    "c12_end_to_end_acceptance": "pending"
+  },
+  "source_truth": {
+    "repository": "xxzdecode/xxz-tools",
+    "path": "english-project/projects/homework-prep/batches/第三试运行块_BLOCK-003_编号9-12_C06-C09_v0.1.md",
+    "teacher_confirmation_commit": "4aac44b7a1c888c5da60842d1012edf3a5866678"
+  },
+  "constraints": {
+    "do_not_recheck_each_question": true,
+    "ignore_handwriting": true,
+    "do_not_mark_runtime_ready_before_c12": true
+  }
+}
