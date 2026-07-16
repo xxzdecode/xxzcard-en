@@ -3,6 +3,18 @@ let vocabularyReviewMode = 'learn';
 let vocabularyReviewRevealed = false;
 let vocabularyReviewTouchStart = null;
 let vocabularyReviewDidSwipe = false;
+const vocabularyReviewPreloadedImages = new Set();
+
+function preloadVocabularyReviewImages(index = vocabularyReviewIndex) {
+  if (!reviewWords.length || typeof Image === 'undefined') return;
+  [-2, -1, 0, 1, 2].forEach(offset => {
+    const item = reviewWords[(index + offset + reviewWords.length) % reviewWords.length];
+    if (!item || vocabularyReviewPreloadedImages.has(item.image)) return;
+    vocabularyReviewPreloadedImages.add(item.image);
+    const image = new Image();
+    image.src = item.image;
+  });
+}
 
 function renderVocabularyReviewList() {
   const count = document.getElementById('vocabularyReviewCount');
@@ -22,6 +34,7 @@ function openVocabularyReviewList() {
   document.body.classList.remove('vocabulary-review-open');
   renderVocabularyReviewList();
   showScreen('screenVocabularyReviewList');
+  preloadVocabularyReviewImages();
 }
 
 function startVocabularyReview(index = 0) {
@@ -86,7 +99,9 @@ function setVocabularyReviewImage(image, fallback, item) {
     image.hidden = true;
     fallback.hidden = false;
   };
-  image.src = item.image;
+  if (image.getAttribute('src') !== item.image) {
+    image.src = item.image;
+  }
 }
 
 function renderVocabularyReviewCard(animate = true) {
@@ -122,11 +137,7 @@ function renderVocabularyReviewCard(animate = true) {
     document.getElementById('vocabularyReviewImageFallback'),
     item
   );
-  setVocabularyReviewImage(
-    document.getElementById('vocabularyReviewQuizImage'),
-    document.getElementById('vocabularyReviewQuizFallback'),
-    item
-  );
+  preloadVocabularyReviewImages();
 }
 
 function isVocabularyReviewPlayerActive() {
@@ -171,5 +182,11 @@ if (vocabularyReviewQuizFace) {
   vocabularyReviewQuizFace.addEventListener('click', () => {
     if (vocabularyReviewDidSwipe) return;
     revealVocabularyReviewCard();
+  });
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
   });
 }

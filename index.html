@@ -174,11 +174,13 @@
     </button>
 
     <article class="vocabulary-review-card" id="vocabularyReviewCard" aria-live="polite">
+      <div class="vocabulary-review-visual vocabulary-review-shared-visual">
+        <img id="vocabularyReviewImage" alt="" hidden>
+        <span class="vocabulary-review-placeholder" id="vocabularyReviewImageFallback" aria-hidden="true">✨</span>
+      </div>
+
       <div class="vocabulary-review-face vocabulary-review-full-face" id="vocabularyReviewFullFace">
-        <div class="vocabulary-review-visual">
-          <img id="vocabularyReviewImage" alt="" hidden>
-          <span class="vocabulary-review-placeholder" id="vocabularyReviewImageFallback" aria-hidden="true">✨</span>
-        </div>
+        <div aria-hidden="true"></div>
         <div class="vocabulary-review-info">
           <div class="vocabulary-review-word-row">
             <h1 id="vocabularyReviewWord">line</h1>
@@ -193,10 +195,6 @@
       </div>
 
       <button class="vocabulary-review-face vocabulary-review-quiz-face" id="vocabularyReviewQuizFace" type="button" aria-label="显示当前单词答案" aria-hidden="true">
-        <span class="vocabulary-review-visual vocabulary-review-visual--quiz">
-          <img id="vocabularyReviewQuizImage" alt="" hidden>
-          <span class="vocabulary-review-placeholder" id="vocabularyReviewQuizFallback" aria-hidden="true">✨</span>
-        </span>
       </button>
     </article>
 

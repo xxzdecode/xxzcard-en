@@ -28,9 +28,21 @@ const expected = [
 assert.equal(words.length, expected.length);
 assert.deepEqual(words.map(item => [item.word, item.phonetic, item.meaning]), expected);
 for (const item of words) {
-  assert.equal(item.image, `assets/vocabulary-review/${item.word}.png`);
+  assert.equal(item.image, `assets/vocabulary-review/${item.word}.webp`);
   assert.ok(fs.existsSync(path.join(root, item.image)), `missing image: ${item.image}`);
   assert.equal(item.placeholder, '✨');
+}
+
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const reviewScript = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
+const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
+
+assert.equal((html.match(/id="vocabularyReviewImage"/g) || []).length, 1);
+assert.equal((html.match(/id="vocabularyReviewQuizImage"/g) || []).length, 0);
+assert.match(reviewScript, /image\.getAttribute\('src'\) !== item\.image/);
+assert.match(reviewScript, /\[-2, -1, 0, 1, 2\]/);
+for (const item of words) {
+  assert.ok(serviceWorker.includes(`./${item.image}`), `image missing from service worker: ${item.image}`);
 }
 
 console.log('vocabulary review data tests passed');
