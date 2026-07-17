@@ -107,6 +107,26 @@
     </section>
   </div>
   <script src="./data/catalog.js"></script>
-  <script src="./js/challenge-shell.js"></script>
+  <script>
+    (function bootGrammarChallenge() {
+      const catalog = Array.isArray(window.GRAMMAR_CHALLENGE_CATALOG)
+        ? [...window.GRAMMAR_CHALLENGE_CATALOG].sort((a, b) => String(b.date).localeCompare(String(a.date)))
+        : [];
+      const params = new URLSearchParams(window.location.search);
+      const requestedId = params.get('practice');
+      const entry = requestedId ? catalog.find(item => item.id === requestedId) : catalog[0];
+
+      if (entry && entry.pagePath) {
+        const target = new URL(entry.pagePath, window.location.href);
+        if (params.get('embedded') === '1') target.searchParams.set('embedded', '1');
+        window.location.replace(target.href);
+        return;
+      }
+
+      const shell = document.createElement('script');
+      shell.src = './js/challenge-shell.js';
+      document.body.appendChild(shell);
+    })();
+  </script>
 </body>
 </html>
