@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#fff4f7" />
+  <title>名词与不可数名词｜语法挑战</title>
+  <style>
+    :root{
+      --page:#fff4f7;--panel:#fffdfc;--pink:#e88fa3;--pink-soft:#fff0f5;
+      --mint:#a8d8c8;--mint-dark:#5f9f8c;--mint-soft:#dff3ea;
+      --yellow:#fff0c9;--yellow-border:#ebcf8e;--blue:#eaf1fb;--blue-border:#c7dcf3;
+      --purple:#f2ebf8;--purple-border:#d8c7e8;--peach:#ffe9d6;--peach-border:#f0c79a;
+      --text:#625b63;--muted:#8a7f86;--line:#efdde4;
+      --ok:#d7f3dc;--ok-border:#94cfa0;--bad:#ffe0d9;--bad-border:#eaa693;
+      --shadow:0 10px 28px rgba(220,170,180,.16);--tap:44px;
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--page);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Arial,sans-serif;
+      -webkit-text-size-adjust:100%;touch-action:manipulation}
+    button{font:inherit;min-height:var(--tap);border:0;border-radius:999px;padding:9px 16px;font-weight:800;cursor:pointer;
+      color:#fff;background:var(--mint);box-shadow:0 5px 12px rgba(120,183,162,.2);transition:.12s}
+    button:active{transform:translateY(1px) scale(.99)}
+    button:focus-visible,.option:focus-visible,.word-card:focus-visible,.category:focus-visible{outline:3px solid #f3b6c7;outline-offset:2px}
+    button.secondary{color:var(--mint-dark);background:var(--mint-soft);box-shadow:none}
+    button.ghost{color:var(--muted);background:transparent;border:1px solid var(--line);box-shadow:none}
+    button[disabled]{opacity:.42;cursor:not-allowed;transform:none}
+    .practice-app{width:100vw;height:100dvh;display:grid;grid-template-rows:auto auto minmax(0,1fr) 48px auto;gap:9px;
+      padding:max(9px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+      overflow:hidden;background:radial-gradient(circle at 8% 0%,rgba(255,255,255,.8),transparent 30%),linear-gradient(180deg,#fff8fa,var(--page))}
+    .topbar,.stage-head,.playground,.result-strip,.footer-controls{background:rgba(255,253,252,.97);border:1px solid var(--line);box-shadow:var(--shadow)}
+    .topbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 12px;border-radius:20px}
+    .brand{display:flex;align-items:center;gap:9px;min-width:0}.brand-icon{font-size:30px}.brand h1{margin:0;color:var(--pink);font-size:clamp(20px,2.2vw,29px);white-space:nowrap}
+    .knowledge{min-width:0;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-height:64px;overflow:hidden}
+    .chip{display:inline-flex;align-items:center;min-height:28px;padding:4px 9px;border-radius:999px;background:var(--yellow);border:1px solid var(--yellow-border);font-size:clamp(11px,1.1vw,14px);font-weight:800;white-space:nowrap;color:#7b6843}
+    .top-actions{display:flex;gap:7px;align-items:center}.progress{display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap);padding:8px 12px;border-radius:999px;background:var(--mint-soft);color:var(--mint-dark);font-weight:900;white-space:nowrap}
+    .stage-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px 13px;border-radius:17px}
+    .phase-badge{padding:6px 11px;border-radius:999px;background:var(--purple);border:1px solid var(--purple-border);color:#725e86;font-weight:900;white-space:nowrap}
+    .instruction{font-size:clamp(16px,1.65vw,21px);font-weight:900;text-align:center;overflow-wrap:anywhere}.question-number{color:var(--muted);font-weight:800;white-space:nowrap}
+    .playground{min-width:0;min-height:0;overflow:hidden;border-radius:22px;padding:12px;position:relative}
+    .question-layout{width:100%;height:100%;min-width:0;min-height:0;display:grid;grid-template-columns:minmax(230px,.34fr) minmax(0,.66fr);gap:12px}
+    .prompt-panel,.answer-panel{min-width:0;min-height:0;border-radius:18px;padding:13px;overflow:hidden}
+    .prompt-panel{background:#fff8fb;border:1px dashed #e8cfd9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+    .answer-panel{background:#fff;border:1px solid #f2e7eb;display:flex;flex-direction:column;justify-content:center;gap:10px}
+    .big-emoji{font-size:clamp(48px,6.6vw,82px);line-height:1}.main-word{font-size:clamp(28px,3.7vw,50px);font-weight:950;color:#715e68;line-height:1.14;overflow-wrap:anywhere}.sub-note{color:var(--muted);font-size:clamp(13px,1.3vw,16px);font-weight:700;line-height:1.45}
+    .section-label{margin:0;color:#766c74;font-size:clamp(15px,1.45vw,19px);font-weight:900;text-align:center}
+    .option-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;min-height:0}.option-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.option-grid.five{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .option,.word-card,.category{min-width:0;min-height:var(--tap);display:flex;align-items:center;justify-content:center;padding:11px 10px;border-radius:15px;border:2px solid transparent;background:#f8e9f0;color:#705f68;font-weight:900;text-align:center;overflow-wrap:anywhere;cursor:pointer;user-select:none}
+    .option small{display:block;color:var(--muted);font-size:.78em;margin-top:3px;font-weight:700}.option.selected,.word-card.selected{background:var(--pink-soft);border-color:#f3b6c7}.option.correct-mark{background:var(--ok);border-color:var(--ok-border)}.option.wrong-mark{background:var(--bad);border-color:var(--bad-border)}
+    .word-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;width:100%}.word-card{font-size:clamp(16px,1.75vw,23px);gap:7px;position:relative}.word-card.assigned::after{content:"✓";position:absolute;right:8px;top:5px;color:var(--mint-dark);font-size:14px}.word-card .mini{font-size:1.1em}
+    .classify-layout{display:grid;grid-template-columns:minmax(250px,.40fr) minmax(0,.60fr);gap:12px;width:100%;height:100%}.source-box{display:grid;grid-template-rows:auto minmax(0,1fr);gap:9px;padding:12px;border-radius:17px;background:#fff8fb;border:1px dashed #e8cfd9}.source-box .word-grid{align-self:stretch}.category-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.category{display:grid;grid-template-rows:auto minmax(0,1fr);align-items:start;justify-items:center;gap:8px;background:var(--blue);border-color:var(--blue-border)}.category:nth-child(2){background:var(--yellow);border-color:var(--yellow-border)}.category:nth-child(3){background:#ddf5f1;border-color:#7fc4bb}.category-title{font-size:clamp(15px,1.5vw,20px);font-weight:950}.placed-list{width:100%;display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center;gap:6px}.placed-item{padding:6px 9px;border:0;border-radius:999px;background:rgba(255,255,255,.88);color:var(--text);font-weight:850;font-size:clamp(12px,1.1vw,14px);box-shadow:none;min-height:34px}
+    .sentence-wrap{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}.source-sentence{font-size:clamp(22px,2.7vw,36px);font-weight:950;color:#6e5e66;padding:12px 18px;border-radius:16px;background:var(--peach);border:1px solid var(--peach-border);text-align:center}.arrow{font-size:25px;color:var(--mint-dark);font-weight:950}.sentence-slots{display:grid;grid-template-columns:repeat(3,minmax(145px,1fr));gap:11px;width:min(920px,100%)}.slot{padding:10px;border-radius:16px;background:#fff8fb;border:1px solid var(--line)}.slot-title{text-align:center;color:var(--muted);font-size:13px;font-weight:850;margin-bottom:7px}.slot-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.slot .option{padding:9px 7px;font-size:clamp(15px,1.55vw,20px)}
+    .result-strip{height:48px;border-radius:16px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;padding:7px 13px;overflow:hidden}.result-strip.correct{background:var(--ok);border-color:var(--ok-border)}.result-strip.wrong{background:var(--bad);border-color:var(--bad-border)}.result-icon{font-size:20px}.result-text{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.result-detail{color:var(--muted);font-size:13px;white-space:nowrap}
+    .footer-controls{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 11px;border-radius:18px}.footer-left,.footer-right{display:flex;gap:8px}.footer-center{display:flex;justify-content:center;gap:8px}.footer-controls button{min-width:104px}
+    dialog{border:0;padding:0;border-radius:22px;color:var(--text);background:var(--panel);box-shadow:0 22px 65px rgba(90,70,80,.28)}dialog::backdrop{background:rgba(90,70,80,.22);backdrop-filter:blur(3px)}
+    .dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;background:#fff8fb;border-bottom:1px solid var(--line)}.dialog-head h2{margin:0;color:var(--pink)}.dialog-body{padding:16px;max-height:65dvh;overflow:auto;line-height:1.65}.rules-dialog{width:min(800px,calc(100vw - 28px))}.rule-table{width:100%;border-collapse:collapse}.rule-table th,.rule-table td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:center}.rule-table th{background:var(--mint-soft);color:var(--mint-dark)}
+    .completion{width:min(690px,calc(100vw - 28px));text-align:center}.completion .dialog-body{padding:24px}.completion-icon{font-size:62px}.completion h2{font-size:32px;margin:5px 0;color:var(--pink)}.summary-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:16px 0;text-align:left}.summary-item{padding:9px 11px;border-radius:13px;background:var(--mint-soft);font-weight:850}.stats{padding:10px;border-radius:13px;background:var(--yellow);font-weight:850;margin:12px 0}.completion-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+    @media (orientation:landscape) and (max-height:540px){
+      :root{--tap:36px}.practice-app{grid-template-rows:auto auto minmax(0,1fr) 40px auto;gap:6px;padding:6px 7px}.topbar{padding:5px 8px;border-radius:15px}.brand-icon{font-size:23px}.brand h1{font-size:18px}.knowledge{gap:3px;max-height:40px}.chip{min-height:22px;padding:2px 6px;font-size:10px}.top-actions{gap:4px}.progress,button{min-height:34px;padding:5px 9px;font-size:12px}.stage-head{padding:5px 9px;border-radius:13px}.phase-badge{padding:4px 8px;font-size:12px}.instruction{font-size:15px}.question-number{font-size:12px}.playground{padding:7px;border-radius:16px}.question-layout,.classify-layout{gap:7px}.prompt-panel,.answer-panel,.source-box{padding:8px;border-radius:13px}.big-emoji{font-size:40px}.main-word{font-size:26px}.sub-note{font-size:11px}.option-grid,.word-grid,.category-grid{gap:5px}.option,.word-card,.category{min-height:34px;padding:6px;border-radius:11px;font-size:12px}.category-title{font-size:13px}.placed-item{padding:3px 6px;font-size:10px;min-height:27px}.sentence-wrap{gap:7px}.source-sentence{font-size:20px;padding:7px 12px}.arrow{font-size:18px}.sentence-slots{gap:6px}.slot{padding:6px;border-radius:11px}.slot-title{font-size:10px;margin-bottom:4px}.slot-options{gap:4px}.slot .option{font-size:12px;padding:5px}.result-strip{height:40px;padding:4px 10px;border-radius:12px}.result-text{font-size:12px}.result-detail{display:none}.footer-controls{padding:5px 7px;border-radius:13px}.footer-controls button{min-width:78px}
+    }
+    @media (orientation:portrait) and (max-width:767px){.practice-app{position:fixed;left:0;top:100dvh;width:100dvh;height:100vw;transform:rotate(-90deg);transform-origin:top left}}
+    @media (max-width:900px) and (orientation:landscape){.brand-icon{display:none}.knowledge .chip:nth-child(5){display:none}.question-layout{grid-template-columns:minmax(180px,.32fr) minmax(0,.68fr)}.classify-layout{grid-template-columns:minmax(220px,.38fr) minmax(0,.62fr)}}
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon">🏭</span><h1>名词与不可数名词</h1></div>
+      <div class="knowledge" aria-label="知识摘要">
+        <span class="chip">可数：有单复数</span><span class="chip">不可数：不直接加 s</span><span class="chip">many + 复数</span><span class="chip">much + 不可数</span><span class="chip">量词本身变复数</span>
+      </div>
+      <div class="top-actions"><span class="progress" id="progressText">1 / 24</span><button class="secondary" id="rulesButton">查看规则</button><button class="ghost" id="exitButton">返回目录</button></div>
+    </header>
+    <section class="stage-head">
+      <span class="phase-badge" id="phaseBadge">身份审查站</span>
+      <div class="instruction" id="instruction">把名词放进正确的区域。</div>
+      <span class="question-number" id="questionNumber">第 1 题</span>
+    </section>
+    <main class="playground" id="playground" aria-live="polite"></main>
+    <section class="result-strip" id="resultStrip" aria-live="polite">
+      <span class="result-icon" id="resultIcon">△</span><span class="result-text" id="resultText">完成作答后点击“检查答案”。</span><span class="result-detail" id="resultDetail">答错后可以继续修改。</span>
+    </section>
+    <footer class="footer-controls">
+      <div class="footer-left"><button class="ghost" id="prevButton">上一题</button></div>
+      <div class="footer-center"><button id="checkButton">检查答案</button><button class="secondary" id="answerButton">显示答案</button></div>
+      <div class="footer-right"><button id="nextButton" disabled>下一题</button></div>
+    </footer>
+  </div>
+  <dialog class="rules-dialog" id="rulesDialog">
+    <div class="dialog-head"><h2>名词与不可数名词规则</h2><button class="ghost" id="closeRules">关闭</button></div>
+    <div class="dialog-body">
+      <table class="rule-table">
+        <tr><th>知识点</th><th>规则</th><th>例子</th></tr>
+        <tr><td>可数名词</td><td>可以数，有单数和复数</td><td>a book / two books</td></tr>
+        <tr><td>不可数名词</td><td>不直接用数字，也不直接加 -s</td><td>water / rice / bread</td></tr>
+        <tr><td>many</td><td>many + 可数名词复数</td><td>many children</td></tr>
+        <tr><td>much</td><td>much + 不可数名词</td><td>much water</td></tr>
+        <tr><td>a lot of / lots of</td><td>可数复数和不可数都能使用</td><td>a lot of books / lots of milk</td></tr>
+        <tr><td>不可数名词数量</td><td>数字 + 量词复数 + of + 不可数名词</td><td>three pieces of bread</td></tr>
+      </table>
+      <p><strong>句子也要一致：</strong>复数主语用 are；单数或不可数名词在 there be 句型中通常用 is。</p>
+    </div>
+  </dialog>
+  <dialog class="completion" id="completionDialog">
+    <div class="dialog-body">
+      <div class="completion-icon">🎉</div><h2>语法挑战完成！</h2>
+      <div class="summary-list" id="summaryList"></div>
+      <div class="stats" id="completionStats"></div>
+      <div class="completion-actions"><button id="retryButton">随机再练一组</button><button class="secondary" id="reviewButton">查看需要复习的题</button><button class="ghost" id="directoryButton">返回目录</button></div>
+    </div>
+  </dialog>
+  <script>
+    const CATEGORY_LABELS={singular:'可数名词单数',plural:'可数名词复数',uncountable:'不可数名词'};
+    const machineOptions=[
+      {id:'s',label:'普通机',note:'一般情况 +s'},
+      {id:'es',label:'特别机',note:'s/x/sh/ch/部分o +es'},
+      {id:'ies',label:'y 换轨机',note:'辅音+y，y→ies'},
+      {id:'vowelY',label:'y 保留机',note:'元音+y，直接+s'},
+      {id:'ves',label:'v 变身机',note:'部分 f/fe→ves'},
+      {id:'irregular',label:'特殊通道',note:'不规则变化'},
+      {id:'same',label:'同形通道',note:'单复数拼写相同'},
+      {id:'alreadyPlural',label:'复数原料',note:'本身就是复数'}
+    ];
+    const pools={
+      classify:[
+        {id:'c1',type:'classify',phase:'身份审查站',instruction:'把名词放进正确的区域。',cards:[['apple','🍎','singular'],['boxes','📦','plural'],['milk','🥛','uncountable'],['rice','🍚','uncountable'],['child','🧒','singular'],['women','👩','plural']]},
+        {id:'c2',type:'classify',phase:'身份审查站',instruction:'判断单数、复数和不可数名词。',cards:[['tomato','🍅','singular'],['photos','📷','plural'],['bread','🍞','uncountable'],['water','💧','uncountable'],['family','👨‍👩‍👧','singular'],['people','👥','plural']]},
+        {id:'c3',type:'classify',phase:'身份审查站',instruction:'把六张词卡正确分类。',cards:[['knife','🔪','singular'],['men','👨','plural'],['tea','🍵','uncountable'],['juice','🧃','uncountable'],['buses','🚌','plural'],['city','🏙️','singular']]},
+        {id:'c4',type:'classify',phase:'身份审查站',instruction:'哪些能数？哪些不能直接数？',cards:[['pencil','✏️','singular'],['children','🧒','plural'],['paper','📄','uncountable'],['rice','🍚','uncountable'],['tooth','🦷','singular'],['mice','🐭','plural']]},
+        {id:'c5',type:'classify',phase:'身份审查站',instruction:'找准每个名词的身份。',cards:[['watch','⌚','singular'],['families','👨‍👩‍👧','plural'],['water','💧','uncountable'],['bread','🍞','uncountable'],['woman','👩','singular'],['feet','🦶','plural']]},
+        {id:'c6',type:'classify',phase:'身份审查站',instruction:'把名词放进正确的仓库。',cards:[['box','📦','singular'],['tomatoes','🍅','plural'],['milk','🥛','uncountable'],['tea','🍵','uncountable'],['mouse','🐭','singular'],['people','👥','plural']]},
+        {id:'c7',type:'classify',phase:'身份审查站',instruction:'注意特殊复数和不可数名词。',cards:[['leaf','🍃','singular'],['teeth','🦷','plural'],['juice','🧃','uncountable'],['paper','📄','uncountable'],['baby','👶','singular'],['cities','🏙️','plural']]},
+        {id:'c8',type:'classify',phase:'身份审查站',instruction:'完成最后一次名词身份审查。',cards:[['photo','📷','singular'],['knives','🔪','plural'],['rice','🍚','uncountable'],['bread','🍞','uncountable'],['man','👨','singular'],['children','🧒','plural']]}
+      ],
+      machine:[
+        {id:'m1',type:'machine',phase:'复数变身站',instruction:'book 应该进入哪条复数通道？',emoji:'📘',word:'book',answer:'s',result:'book → books',correct:'一般情况直接加 -s。'},
+        {id:'m2',type:'machine',phase:'复数变身站',instruction:'bus 应该进入哪条复数通道？',emoji:'🚌',word:'bus',answer:'es',result:'bus → buses',correct:'bus 以 s 结尾，加 -es。'},
+        {id:'m3',type:'machine',phase:'复数变身站',instruction:'watch 应该进入哪条复数通道？',emoji:'⌚',word:'watch',answer:'es',result:'watch → watches',correct:'watch 以 ch 结尾，加 -es。'},
+        {id:'m4',type:'machine',phase:'复数变身站',instruction:'dish 应该进入哪条复数通道？',emoji:'🍽️',word:'dish',answer:'es',result:'dish → dishes',correct:'dish 以 sh 结尾，加 -es。'},
+        {id:'m5',type:'machine',phase:'复数变身站',instruction:'baby 应该进入哪条复数通道？',emoji:'👶',word:'baby',answer:'ies',result:'baby → babies',correct:'辅音字母 + y，y 变 i 再加 -es。'},
+        {id:'m6',type:'machine',phase:'复数变身站',instruction:'family 应该进入哪条复数通道？',emoji:'👨‍👩‍👧',word:'family',answer:'ies',result:'family → families',correct:'family 中 y 前是辅音 l，所以变成 families。'},
+        {id:'m7',type:'machine',phase:'复数变身站',instruction:'boy 应该进入哪条复数通道？',emoji:'👦',word:'boy',answer:'vowelY',result:'boy → boys',correct:'y 前是元音 o，保留 y，直接加 -s。'},
+        {id:'m8',type:'machine',phase:'复数变身站',instruction:'key 应该进入哪条复数通道？',emoji:'🔑',word:'key',answer:'vowelY',result:'key → keys',correct:'y 前是元音 e，直接加 -s。'},
+        {id:'m9',type:'machine',phase:'复数变身站',instruction:'photo 应该进入哪条复数通道？',emoji:'📷',word:'photo',answer:'s',result:'photo → photos',correct:'photo 直接加 -s。'},
+        {id:'m10',type:'machine',phase:'复数变身站',instruction:'tomato 应该进入哪条复数通道？',emoji:'🍅',word:'tomato',answer:'es',result:'tomato → tomatoes',correct:'tomato 的复数是 tomatoes。'},
+        {id:'m11',type:'machine',phase:'复数变身站',instruction:'knife 应该进入哪条复数通道？',emoji:'🔪',word:'knife',answer:'ves',result:'knife → knives',correct:'knife 变复数时，fe 变 v 再加 -es。'},
+        {id:'m12',type:'machine',phase:'复数变身站',instruction:'leaf 应该进入哪条复数通道？',emoji:'🍃',word:'leaf',answer:'ves',result:'leaf → leaves',correct:'leaf 变复数时，f 变 v 再加 -es。'},
+        {id:'m13',type:'machine',phase:'复数变身站',instruction:'child 应该进入哪条复数通道？',emoji:'🧒',word:'child',answer:'irregular',result:'child → children',correct:'child 是不规则复数。'},
+        {id:'m14',type:'machine',phase:'复数变身站',instruction:'woman 应该进入哪条复数通道？',emoji:'👩',word:'woman',answer:'irregular',result:'woman → women',correct:'woman 的复数是 women。'},
+        {id:'m15',type:'machine',phase:'复数变身站',instruction:'mouse 应该进入哪条复数通道？',emoji:'🐭',word:'mouse',answer:'irregular',result:'mouse → mice',correct:'mouse 的复数是 mice。'},
+        {id:'m16',type:'machine',phase:'复数变身站',instruction:'sheep 应该进入哪条复数通道？',emoji:'🐑',word:'sheep',answer:'same',result:'sheep → sheep',correct:'sheep 单复数同形。'},
+        {id:'m17',type:'machine',phase:'复数变身站',instruction:'fish（表示鱼的条数）进入哪条通道？',emoji:'🐟',word:'fish',answer:'same',result:'fish → fish',correct:'表示鱼的条数时，fish 通常单复数同形。'},
+        {id:'m18',type:'machine',phase:'复数变身站',instruction:'people 应该进入哪条通道？',emoji:'👥',word:'people',answer:'alreadyPlural',result:'person → people',correct:'people 本身通常表示复数，不再加 -s。'}
+      ],
+      quantifier:[
+        {id:'q1',type:'choice',phase:'数量词分流站',instruction:'选择正确的数量词。',emoji:'🍎',word:'How _____ apples are in the bag?',options:['many','much','a piece of','an'],answer:'many',correct:'apples 是可数名词复数，所以用 many。'},
+        {id:'q2',type:'choice',phase:'数量词分流站',instruction:'选择正确的数量词。',emoji:'🍚',word:'How _____ rice do we need?',options:['many','much','three','an'],answer:'much',correct:'rice 是不可数名词，所以用 much。'},
+        {id:'q3',type:'choice',phase:'数量词分流站',instruction:'选择完全正确的短语。',emoji:'📚',word:'很多书',options:['much books','many books','many book','much book'],answer:'many books',correct:'many 后接可数名词复数：many books。'},
+        {id:'q4',type:'choice',phase:'数量词分流站',instruction:'选择完全正确的短语。',emoji:'💧',word:'很多水',options:['many waters','much water','much waters','many water'],answer:'much water',correct:'water 是不可数名词：much water。'},
+        {id:'q5',type:'choice',phase:'数量词分流站',instruction:'哪句话正确？',emoji:'🥛',word:'选择正确句子',options:['There is a lot of milk in the fridge.','There are a lot of milks in the fridge.','There is many milk in the fridge.','There are much milk in the fridge.'],answer:'There is a lot of milk in the fridge.',correct:'milk 不可数，a lot of 可以修饰它，there be 使用 is。'},
+        {id:'q6',type:'choice',phase:'数量词分流站',instruction:'哪句话正确？',emoji:'📦',word:'选择正确句子',options:['There are lots of boxes here.','There is lots of box here.','There are much boxes here.','There is many boxes here.'],answer:'There are lots of boxes here.',correct:'boxes 是复数；lots of 可修饰复数名词，there be 使用 are。'},
+        {id:'q7',type:'choice',phase:'数量词分流站',instruction:'选择正确的问句。',emoji:'🧒',word:'询问有多少孩子',options:['How much children are there?','How many children are there?','How many child is there?','How much child is there?'],answer:'How many children are there?',correct:'children 是可数名词复数，用 How many。'},
+        {id:'q8',type:'choice',phase:'数量词分流站',instruction:'选择正确的问句。',emoji:'🧃',word:'询问有多少果汁',options:['How many juice is there?','How much juice is there?','How much juices are there?','How many juices are there?'],answer:'How much juice is there?',correct:'juice 不可数，用 How much；there be 用 is。'},
+        {id:'q9',type:'choice',phase:'数量词分流站',instruction:'选择正确答案。',emoji:'👥',word:'There are _____ people in the park.',options:['many','much','a piece of','an'],answer:'many',correct:'people 本身是复数，可以用 many people。'},
+        {id:'q10',type:'choice',phase:'数量词分流站',instruction:'选择正确答案。',emoji:'🍞',word:'We do not have _____ bread.',options:['many','much','two','an'],answer:'much',correct:'bread 不可数，否定句中可用 much bread。'},
+        {id:'q11',type:'choice',phase:'数量词分流站',instruction:'选择两个都能填入空格的表达。',emoji:'🍵',word:'There is _____ tea in the cup.',options:['a lot of / lots of','many / much','many / a lot of','three / many'],answer:'a lot of / lots of',correct:'a lot of 和 lots of 都能修饰不可数名词 tea。'},
+        {id:'q12',type:'choice',phase:'数量词分流站',instruction:'选择正确答案。',emoji:'🍅',word:'There are not _____ tomatoes left.',options:['many','much','a bowl of','an'],answer:'many',correct:'tomatoes 是可数名词复数，用 many。'}
+      ],
+      measure:[
+        {id:'u1',type:'assemble',phase:'量词包装站',instruction:'拼出“一杯茶”。',source:'一杯茶',groups:[{label:'数量',options:['a','two']},{label:'量词',options:['cup of','cups of']},{label:'名词',options:['tea','teas']}],answer:['a','cup of','tea'],result:'a cup of tea',correct:'一杯茶：a cup of tea。'},
+        {id:'u2',type:'assemble',phase:'量词包装站',instruction:'拼出“两碗米饭”。',source:'两碗米饭',groups:[{label:'数量',options:['two','a']},{label:'量词',options:['bowls of','bowl of']},{label:'名词',options:['rice','rices']}],answer:['two','bowls of','rice'],result:'two bowls of rice',correct:'数字大于一，量词 bowl 变复数；rice 不变。'},
+        {id:'u3',type:'assemble',phase:'量词包装站',instruction:'拼出“三片面包”。',source:'三片面包',groups:[{label:'数量',options:['three','a']},{label:'量词',options:['pieces of','piece of']},{label:'名词',options:['bread','breads']}],answer:['three','pieces of','bread'],result:'three pieces of bread',correct:'量词 pieces 变复数，bread 仍是不变的不可数名词。'},
+        {id:'u4',type:'assemble',phase:'量词包装站',instruction:'拼出“两瓶水”。',source:'两瓶水',groups:[{label:'数量',options:['two','a']},{label:'量词',options:['bottles of','bottle of']},{label:'名词',options:['water','waters']}],answer:['two','bottles of','water'],result:'two bottles of water',correct:'two bottles of water。数字修饰的是 bottles。'},
+        {id:'u5',type:'assemble',phase:'量词包装站',instruction:'拼出“三杯果汁”。',source:'三杯果汁',groups:[{label:'数量',options:['three','a']},{label:'量词',options:['cups of','cup of']},{label:'名词',options:['juice','juices']}],answer:['three','cups of','juice'],result:'three cups of juice',correct:'cups 变复数，juice 不变。'},
+        {id:'u6',type:'assemble',phase:'量词包装站',instruction:'拼出“一张纸”。',source:'一张纸',groups:[{label:'数量',options:['a','two']},{label:'量词',options:['piece of','pieces of']},{label:'名词',options:['paper','papers']}],answer:['a','piece of','paper'],result:'a piece of paper',correct:'表示一张纸可说 a piece of paper。'},
+        {id:'u7',type:'choice',phase:'量词包装站',instruction:'选择正确的数量表达。',emoji:'🍞',word:'桌上有四片面包。',options:['There are four pieces of bread on the table.','There are four piece of breads on the table.','There is four pieces of bread on the table.','There are four breads on the table.'],answer:'There are four pieces of bread on the table.',correct:'four pieces 是复数，所以用 are；bread 不加 -s。'},
+        {id:'u8',type:'choice',phase:'量词包装站',instruction:'选择正确的数量表达。',emoji:'🍚',word:'我想要两碗米饭。',options:['I would like two bowls of rice.','I would like two bowl of rices.','I would like two rices.','I would like much bowls of rice.'],answer:'I would like two bowls of rice.',correct:'正确表达是 two bowls of rice。'}
+      ],
+      correction:[
+        {id:'e1',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'There are much rice on the table.',options:['There is a lot of rice on the table.','There are many rice on the table.','There is a lot of rices on the table.','There are much rices on the table.'],answer:'There is a lot of rice on the table.',correct:'rice 不可数，用 is；a lot of rice 正确。'},
+        {id:'e2',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'I want two breads.',options:['I want two pieces of bread.','I want two piece of breads.','I want much breads.','I want two bread.'],answer:'I want two pieces of bread.',correct:'bread 不可数，需要量词：two pieces of bread。'},
+        {id:'e3',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'How much apples do you have?',options:['How many apples do you have?','How much apple do you have?','How many apple do you have?','How much apples does you have?'],answer:'How many apples do you have?',correct:'apples 是可数名词复数，所以用 How many。'},
+        {id:'e4',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'These is three box.',options:['These are three boxes.','This are three boxes.','These is three boxes.','These are three box.'],answer:'These are three boxes.',correct:'复数句中 These、are、boxes 三处都要一致。'},
+        {id:'e5',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'There are five childs in the park.',options:['There are five children in the park.','There is five children in the park.','There are five child in the park.','There are five childrens in the park.'],answer:'There are five children in the park.',correct:'child 的不规则复数是 children。'},
+        {id:'e6',type:'choice',phase:'句子质检站',instruction:'选择完全正确的句子。',emoji:'🔎',word:'检查 people 的用法',options:['There are many people outside.','There are many peoples outside.','There is much people outside.','There are much people outside.'],answer:'There are many people outside.',correct:'people 本身通常是复数：many people，搭配 are。'},
+        {id:'e7',type:'choice',phase:'句子质检站',instruction:'选择完全正确的句子。',emoji:'🐑',word:'检查 sheep 的用法',options:['There are three sheep on the farm.','There are three sheeps on the farm.','There is three sheep on the farm.','There are much sheep on the farm.'],answer:'There are three sheep on the farm.',correct:'sheep 单复数同形；three sheep 搭配 are。'},
+        {id:'e8',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'There is many milk in the glass.',options:['There is much milk in the glass.','There are many milks in the glass.','There is many milks in the glass.','There are much milk in the glass.'],answer:'There is much milk in the glass.',correct:'milk 不可数，使用 much；there be 使用 is。'},
+        {id:'e9',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'Two womans are waiting.',options:['Two women are waiting.','Two woman are waiting.','Two womens are waiting.','Two women is waiting.'],answer:'Two women are waiting.',correct:'woman 的复数是 women，复数主语用 are。'},
+        {id:'e10',type:'choice',phase:'句子质检站',instruction:'选择完全正确的修改。',emoji:'🔧',word:'The leafs are yellow.',options:['The leaves are yellow.','The leafes are yellow.','The leaf is yellow.','The leaves is yellow.'],answer:'The leaves are yellow.',correct:'leaf 的复数是 leaves，搭配 are。'},
+        {id:'e11',type:'choice',phase:'句子质检站',instruction:'选择完全正确的句子。',emoji:'📄',word:'表达“我需要三张纸”',options:['I need three pieces of paper.','I need three papers.','I need three piece of papers.','I need much pieces of paper.'],answer:'I need three pieces of paper.',correct:'本课按不可数用法表达：three pieces of paper。'},
+        {id:'e12',type:'choice',phase:'句子质检站',instruction:'选择完全正确的问答。',emoji:'🍞',word:'询问面包数量',options:['How much bread is there? — There are two pieces.','How many bread are there? — There are two breads.','How much breads are there? — There is two piece.','How many pieces of bread is there? — There is two.'],answer:'How much bread is there? — There are two pieces.',correct:'bread 不可数，用 How much；回答可数两片时用 two pieces。'}
+      ]
+    };
+    const roundPlan=[['classify',3],['machine',7],['quantifier',5],['measure',4],['correction',5]];
+    let lastRoundIds=new Set();
+    let questions=[];
+    const state={index:0,answers:[],attempts:[],solved:[],revealed:[],firstTry:[],selectedCard:null};
+    const $=id=>document.getElementById(id);
+    const playground=$('playground'),resultStrip=$('resultStrip'),resultIcon=$('resultIcon'),resultText=$('resultText'),resultDetail=$('resultDetail');
+    function shuffle(values){const out=[...values];for(let i=out.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out}
+    function cloneQuestion(q){
+      const copy=JSON.parse(JSON.stringify(q));
+      if(copy.options)copy.options=shuffle(copy.options);
+      if(copy.cards){copy.cards=shuffle(copy.cards);copy.categoryOrder=shuffle(Object.keys(CATEGORY_LABELS));}
+      if(copy.groups)copy.groups.forEach(group=>group.options=shuffle(group.options));
+      if(copy.type==='machine')copy.machineChoices=shuffle(machineOptions);
+      return copy;
+    }
+    function samplePool(name,count){
+      const fresh=shuffle(pools[name].filter(q=>!lastRoundIds.has(q.id)));
+      const repeat=shuffle(pools[name].filter(q=>lastRoundIds.has(q.id)));
+      return [...fresh,...repeat].slice(0,count).map(cloneQuestion);
+    }
+    function buildRound(){
+      const next=[];
+      roundPlan.forEach(([name,count])=>next.push(...samplePool(name,count)));
+      lastRoundIds=new Set(next.map(q=>q.id));
+      questions=next;
+      state.index=0;state.answers=questions.map(q=>q.type==='classify'?{}:q.type==='assemble'?Array(q.groups.length).fill(null):q.type==='multi'?[]:null);
+      state.attempts=Array(questions.length).fill(0);state.solved=Array(questions.length).fill(false);state.revealed=Array(questions.length).fill(false);state.firstTry=Array(questions.length).fill(false);state.selectedCard=null;
+      render();
+    }
+    function showFeedback(type,message,detail=''){
+      resultStrip.classList.remove('correct','wrong');
+      const map={neutral:['△',''],correct:['✓','correct'],wrong:['×','wrong']};const [icon,cls]=map[type]||map.neutral;
+      resultIcon.textContent=icon;resultText.textContent=message;resultDetail.textContent=detail;if(cls)resultStrip.classList.add(cls);
+    }
+    function activate(el,fn){el.addEventListener('click',fn);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fn();}})}
+    function optionEl(label,value,selected,note=''){
+      const el=document.createElement('div');el.className='option'+(selected?' selected':'');el.tabIndex=0;el.role='button';el.dataset.value=value;el.innerHTML=`<span>${label}${note?`<small>${note}</small>`:''}</span>`;return el;
+    }
+    function renderPrompt(q){
+      const panel=document.createElement('section');panel.className='prompt-panel';
+      panel.innerHTML=`<div class="big-emoji">${q.emoji||'🏭'}</div><div class="main-word">${q.word||q.source||'认真判断'}</div><div class="sub-note">挑战版提示较少，请先判断名词能不能数，再选择规则。</div>`;
+      return panel;
+    }
+    function renderChoice(q){
+      const layout=document.createElement('div');layout.className='question-layout';layout.appendChild(renderPrompt(q));
+      const panel=document.createElement('section');panel.className='answer-panel';panel.innerHTML='<h2 class="section-label">选择一个正确答案</h2>';
+      const grid=document.createElement('div');grid.className='option-grid';
+      q.options.forEach(value=>{const el=optionEl(value,value,state.answers[state.index]===value);activate(el,()=>{if(state.solved[state.index]||state.revealed[state.index])return;state.answers[state.index]=value;render()});grid.appendChild(el)});
+      panel.appendChild(grid);layout.appendChild(panel);playground.appendChild(layout);
+    }
+    function renderMachine(q){
+      const layout=document.createElement('div');layout.className='question-layout';layout.appendChild(renderPrompt(q));
+      const panel=document.createElement('section');panel.className='answer-panel';panel.innerHTML='<h2 class="section-label">选择复数变化通道</h2>';
+      const grid=document.createElement('div');grid.className='option-grid';
+      q.machineChoices.forEach(item=>{const el=optionEl(item.label,item.id,state.answers[state.index]===item.id,item.note);activate(el,()=>{if(state.solved[state.index]||state.revealed[state.index])return;state.answers[state.index]=item.id;render()});grid.appendChild(el)});
+      panel.appendChild(grid);layout.appendChild(panel);playground.appendChild(layout);
+    }
+    function renderClassify(q){
+      const layout=document.createElement('div');layout.className='classify-layout';
+      const source=document.createElement('section');source.className='source-box';source.innerHTML='<h2 class="section-label">先选词卡，再点右侧区域</h2>';
+      const words=document.createElement('div');words.className='word-grid';
+      q.cards.forEach(([word,emoji])=>{const assigned=Boolean(state.answers[state.index][word]);const el=document.createElement('div');el.className='word-card'+(state.selectedCard===word?' selected':'')+(assigned?' assigned':'');el.tabIndex=0;el.role='button';el.innerHTML=`<span class="mini">${emoji}</span><span>${word}</span>`;activate(el,()=>{if(state.solved[state.index]||state.revealed[state.index])return;state.selectedCard=word;render()});words.appendChild(el)});
+      source.appendChild(words);layout.appendChild(source);
+      const targets=document.createElement('section');targets.className='category-grid';
+      q.categoryOrder.forEach(cat=>{const box=document.createElement('div');box.className='category';box.tabIndex=0;box.role='button';box.innerHTML=`<div class="category-title">${CATEGORY_LABELS[cat]}</div><div class="placed-list"></div>`;
+        const list=box.querySelector('.placed-list');Object.entries(state.answers[state.index]).filter(([,value])=>value===cat).forEach(([word])=>{const chip=document.createElement('button');chip.className='placed-item';chip.type='button';chip.textContent=word;chip.title='点击移回';chip.addEventListener('click',e=>{e.stopPropagation();delete state.answers[state.index][word];render()});list.appendChild(chip)});
+        activate(box,()=>{if(!state.selectedCard||state.solved[state.index]||state.revealed[state.index])return;state.answers[state.index][state.selectedCard]=cat;state.selectedCard=null;render()});targets.appendChild(box)});
+      layout.appendChild(targets);playground.appendChild(layout);
+    }
+    function renderAssemble(q){
+      const wrap=document.createElement('div');wrap.className='sentence-wrap';
+      const source=document.createElement('div');source.className='source-sentence';source.textContent=q.source;wrap.appendChild(source);
+      const arrow=document.createElement('div');arrow.className='arrow';arrow.textContent='↓';wrap.appendChild(arrow);
+      const slots=document.createElement('div');slots.className='sentence-slots';
+      q.groups.forEach((group,groupIndex)=>{const slot=document.createElement('section');slot.className='slot';slot.innerHTML=`<div class="slot-title">${group.label}</div>`;const opts=document.createElement('div');opts.className='slot-options';
+        group.options.forEach(value=>{const el=optionEl(value,value,state.answers[state.index][groupIndex]===value);activate(el,()=>{if(state.solved[state.index]||state.revealed[state.index])return;state.answers[state.index][groupIndex]=value;render()});opts.appendChild(el)});slot.appendChild(opts);slots.appendChild(slot)});
+      wrap.appendChild(slots);playground.appendChild(wrap);
+    }
+    function render(){
+      const q=questions[state.index];$('phaseBadge').textContent=q.phase;$('instruction').textContent=q.instruction;$('questionNumber').textContent=`第 ${state.index+1} 题`;$('progressText').textContent=`${state.index+1} / ${questions.length}`;
+      playground.innerHTML='';if(q.type==='classify')renderClassify(q);else if(q.type==='machine')renderMachine(q);else if(q.type==='assemble')renderAssemble(q);else renderChoice(q);
+      $('prevButton').disabled=state.index===0;$('nextButton').disabled=!(state.solved[state.index]||state.revealed[state.index]);$('nextButton').textContent=state.index===questions.length-1?'完成':'下一题';
+      if(state.solved[state.index])showFeedback('correct',q.correct,q.result||'可以进入下一题。');
+      else if(state.revealed[state.index])showFeedback('neutral',`答案：${answerText(q)}`,'这题会列入复习。');
+      else showFeedback('neutral','完成作答后点击“检查答案”。','答错后可以继续修改。');
+    }
+    function isComplete(q){
+      const answer=state.answers[state.index];
+      if(q.type==='classify')return Object.keys(answer).length===q.cards.length;
+      if(q.type==='assemble')return answer.every(Boolean);
+      return Boolean(answer);
+    }
+    function isCorrect(q){
+      const answer=state.answers[state.index];
+      if(q.type==='classify')return q.cards.every(([word,,cat])=>answer[word]===cat);
+      if(q.type==='assemble')return q.answer.every((value,index)=>answer[index]===value);
+      return answer===q.answer;
+    }
+    function checkAnswer(){
+      const q=questions[state.index];if(state.solved[state.index]||state.revealed[state.index])return;
+      if(!isComplete(q)){showFeedback('wrong','请先完成本题所有选择。','还有内容没有作答。');return}
+      state.attempts[state.index]+=1;
+      if(isCorrect(q)){state.solved[state.index]=true;if(state.attempts[state.index]===1)state.firstTry[state.index]=true;state.selectedCard=null;render()}
+      else showFeedback('wrong','还不完全正确，请再检查。','先判断可数、不可数，再检查单复数和数量词。');
+    }
+    function answerText(q){
+      if(q.type==='classify')return q.cards.map(([word,,cat])=>`${word}→${CATEGORY_LABELS[cat]}`).join('；');
+      if(q.type==='assemble')return q.result;
+      if(q.type==='machine')return q.result;
+      return q.answer;
+    }
+    function revealAnswer(){
+      if(state.solved[state.index]||state.revealed[state.index])return;
+      state.revealed[state.index]=true;state.attempts[state.index]+=1;state.selectedCard=null;render();
+    }
+    function move(delta){
+      const next=state.index+delta;if(next<0||next>=questions.length)return;state.index=next;state.selectedCard=null;render();
+    }
+    function finish(){
+      const first=state.firstTry.filter(Boolean).length;
+      const later=state.solved.filter((value,index)=>value&&!state.firstTry[index]).length;
+      const revealed=state.revealed.filter(Boolean).length;
+      const review=questions.filter((q,index)=>state.revealed[index]||state.attempts[index]>1).length;
+      $('summaryList').innerHTML=`<div class="summary-item">首次答对：${first} 题</div><div class="summary-item">修改后答对：${later} 题</div><div class="summary-item">查看答案：${revealed} 题</div><div class="summary-item">建议复习：${review} 题</div>`;
+      $('completionStats').textContent=`本轮共 ${questions.length} 题；下次会优先抽取本轮没有出现的题目。`;
+      $('reviewButton').disabled=review===0;$('completionDialog').showModal();
+    }
+    function nextQuestion(){if(state.index===questions.length-1)finish();else move(1)}
+    function reviewWrong(){
+      const index=questions.findIndex((q,i)=>state.revealed[i]||state.attempts[i]>1);
+      $('completionDialog').close();if(index>=0){state.index=index;render()}
+    }
+    function navigateOutside(target){
+      if(window.parent!==window){window.parent.postMessage({type:'grammar-challenge-navigation',target},window.location.origin==='null'?'*':window.location.origin);return}
+      window.location.href='../../index.html';
+    }
+    $('checkButton').addEventListener('click',checkAnswer);$('answerButton').addEventListener('click',revealAnswer);$('prevButton').addEventListener('click',()=>move(-1));$('nextButton').addEventListener('click',nextQuestion);
+    $('rulesButton').addEventListener('click',()=>$('rulesDialog').showModal());$('closeRules').addEventListener('click',()=>$('rulesDialog').close());$('rulesDialog').addEventListener('click',e=>{if(e.target===$('rulesDialog'))$('rulesDialog').close()});
+    $('retryButton').addEventListener('click',()=>{$('completionDialog').close();buildRound()});$('reviewButton').addEventListener('click',reviewWrong);$('directoryButton').addEventListener('click',()=>navigateOutside('directory'));$('exitButton').addEventListener('click',()=>navigateOutside('directory'));
+    buildRound();
+  </script>
+</body>
+</html>
