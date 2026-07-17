@@ -1,6 +1,12 @@
 (function registerGrammarChallengeCatalog() {
-  // 新增练习时：新增一份 data/*.js，并在这里登记元数据和数据文件路径。
+  // 新增练习时：数据型练习使用 dataPath；复用随堂练习 UI 的独立页面使用 pagePath。
   window.GRAMMAR_CHALLENGE_CATALOG = [
+    {
+      id: 'grammar-2026-07-17-nouns-uncountable',
+      date: '2026-07-17',
+      title: '名词与不可数名词',
+      pagePath: './practices/2026-07-17.html'
+    },
     {
       id: 'grammar-2026-07-16-pronouns-be',
       date: '2026-07-16',
