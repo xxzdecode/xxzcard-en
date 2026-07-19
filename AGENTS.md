@@ -8,7 +8,8 @@
 - 收到“上传练习”时，不在本仓库自行猜测待上传文件；唯一详细流程位于 `xxzdecode/xxz-tools` 的 `xxzcard-en-hub/README.md`。
 - 未找到有效的 `xxzcard-en-hub/inbox/待上传练习.md` 时立即停止，不上传旧练习或测试副本。
 - 收到“上传生词巩固图片”时，必须读取 `xxzdecode/xxz-tools/xxzcard-en-hub/rules/current/11_生词巩固图片生成与上传流程.md`。
-- 生词巩固图片来源优先级固定为：用户当次给出的可访问绝对路径 → 本仓库 `_incoming/vocabulary-review-images/` → 当前环境真实存在的 `/mnt/data/vocabulary-review-images/` → 用户明确要求的 GitHub 云端中转目录。
+- 用户当次附加总 ZIP 时，优先读取附件并自动解压到本仓库 `_incoming/vocabulary-review-images/`；默认不得让用户再次手动解压。
+- 附件不存在或不可读时，来源优先级固定为：用户当次给出的可访问绝对路径 → 本仓库 `_incoming/vocabulary-review-images/` → 当前环境真实存在的 `/mnt/data/vocabulary-review-images/` → 用户明确要求的 GitHub 云端中转目录。
 - 不得假设 ChatGPT 的 `/mnt/data` 在当前 Windows 或 Codex 环境可见。`_incoming/` 是默认跨环境本地交接目录，并被 Git 忽略。
 - 找到来源后，连续处理其中全部有效 `pending` 批次，按 `createdAt` 从早到晚执行；不得只取最新一批。某批失败时停止后续批次并报告已完成与阻塞范围。
 - 本地目录不可见或没有有效批次时立即停止，不使用历史旧图或自行猜测；但必须先按规则检查所有合法来源。
