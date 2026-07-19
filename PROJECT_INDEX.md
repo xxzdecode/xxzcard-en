@@ -59,6 +59,7 @@
 - `js/vocabularyReview.js`：生词巩固目录、学习/自测切换、卡片翻面、滑动和图片预加载。
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
 - `scripts/add-practice.mjs`：随堂练习上传的主命令；`scripts/add-courseware.mjs` 作为旧命令兼容入口保留。详细触发流程由 `xxzdecode/xxz-tools` 的 `xxzcard-en-hub/README.md` 维护。
+- `scripts/publish-vocabulary-review-images.py`：生词巩固图片批量发布命令；`prepare` 统一处理全部 pending 批次，推送成功后再用 `finalize` 一次性回写完成状态。
 
 ## 4. 数据流相关文件
 
@@ -87,6 +88,7 @@
 - `styles.css`：全局样式入口。
 - `js/config.js`：运行时配置和默认数据。
 - `scripts/add-practice.mjs`：无构建系统下的随堂练习上传主命令；旧脚本路径继续兼容。
+- `scripts/publish-vocabulary-review-images.py`：生词巩固图片的批量校验、WebP 转换、数据路径与离线缓存更新，以及推送后的本地状态回写。
 - `.gitignore`：Git 忽略规则文件。
 
 当前项目目录中没有看到 `package.json`、打包配置或测试配置；项目形态更接近直接由浏览器加载的静态 HTML/CSS/JS。
@@ -135,6 +137,7 @@
 - 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 看老师端生词巩固：先看 `js/vocabularyReview.js` 和 `js/vocabularyReviewData.js`，再看 `index.html` 中两个 vocabulary review screen。
+- 上传生词巩固图片：先按外部固定流程确认来源，再使用 `scripts/publish-vocabulary-review-images.py prepare`；统一提交推送成功后使用 `finalize`。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
 
 ## 7. 不要随便动的地方

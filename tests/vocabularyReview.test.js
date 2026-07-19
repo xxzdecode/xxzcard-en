@@ -33,7 +33,7 @@ assert.match(reviewScript, /\[-2, -1, 0, 1, 2\]/);
 for (const item of words.filter(item => fs.existsSync(path.join(root, item.image)))) {
   assert.ok(serviceWorker.includes(`./${item.image}`), `image missing from service worker: ${item.image}`);
 }
-assert.match(serviceWorker, /vocabulary-review-v3/);
+assert.match(serviceWorker, /vocabulary-review-v\d+/);
 assert.match(serviceWorker, /fetch\(event\.request, \{ cache: 'no-cache' \}\)/);
 assert.match(serviceWorker, /cache\.put\(cacheKey, copy\)/);
 assert.match(serviceWorker, /\.catch\(\(\) => caches\.match\(cacheKey\)\)/);
