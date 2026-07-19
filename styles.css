@@ -277,13 +277,26 @@ body.word-dedupe-open { padding-bottom: 0; overflow: hidden; }
 .vocabulary-review-word-list {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 24px;
 }
+.vocabulary-review-word-item {
+  min-width: 0; overflow: hidden; border: 1px solid var(--sky-mid); border-radius: 14px;
+  background: #F8FCFF;
+}
 .vocabulary-review-word-chip {
-  min-height: 52px; padding: 10px 12px; border: 1px solid var(--sky-mid); border-radius: 14px;
-  background: #F8FCFF; color: var(--text-dark); font-size: 16px; font-weight: 800;
+  width: 100%; min-height: 48px; padding: 10px 12px; border: none;
+  background: transparent; color: var(--text-dark); font-size: 16px; font-weight: 800;
   cursor: pointer; touch-action: manipulation;
 }
 .vocabulary-review-word-chip:active { transform: scale(0.97); background: var(--sky); }
+.vocabulary-review-list-remember {
+  width: 100%; min-height: 34px; padding: 6px 8px; border: none; border-top: 1px solid var(--sky-mid);
+  background: rgba(216,240,232,0.55); color: #287C56; font-size: 12px; font-weight: 900;
+  cursor: pointer; touch-action: manipulation;
+}
+.vocabulary-review-list-remember:active { background: #CDEBDD; }
 .vocabulary-review-word-chip:focus-visible,
+.vocabulary-review-list-remember:focus-visible,
+.vocabulary-review-remembered button:focus-visible,
+.vocabulary-review-remember-btn:focus-visible,
 .vocabulary-review-start-btn:focus-visible,
 .vocabulary-review-mode:focus-visible,
 .vocabulary-review-nav:focus-visible,
@@ -298,6 +311,22 @@ body.word-dedupe-open { padding-bottom: 0; overflow: hidden; }
   cursor: pointer; touch-action: manipulation;
 }
 .vocabulary-review-start-btn:active { transform: scale(0.985); }
+.vocabulary-review-start-btn:disabled { opacity: 0.45; box-shadow: none; cursor: default; }
+.vocabulary-review-empty {
+  margin: 18px 0 24px; padding: 28px 16px; border-radius: 16px; background: #F8FCFF;
+  color: var(--text-mid); text-align: center; font-size: 17px; font-weight: 800;
+}
+.vocabulary-review-remembered { margin-top: 18px; }
+.vocabulary-review-remembered summary {
+  color: var(--text-mid); font-size: 14px; font-weight: 800; cursor: pointer;
+}
+.vocabulary-review-remembered-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.vocabulary-review-remembered-list button {
+  display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 11px;
+  border: 1px solid #D5DEE5; border-radius: 12px; background: #F5F7F8; color: var(--text-mid);
+  font-size: 14px; font-weight: 800; cursor: pointer;
+}
+.vocabulary-review-remembered-list button span { color: var(--blue); font-size: 12px; }
 
 body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
 #screenVocabularyReviewPlayer {
@@ -340,9 +369,14 @@ body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
   touch-action: pan-y;
 }
 .vocabulary-review-card--refresh { animation: vocabulary-review-refresh 180ms ease; }
+.vocabulary-review-card.is-remembering { animation: vocabulary-review-remember 280ms ease forwards; }
 @keyframes vocabulary-review-refresh {
   from { opacity: 0.62; transform: scale(0.995); }
   to { opacity: 1; transform: scale(1); }
+}
+@keyframes vocabulary-review-remember {
+  55% { opacity: 0.76; transform: scale(0.985); }
+  100% { opacity: 0; transform: translateY(12px) scale(0.97); }
 }
 .vocabulary-review-face { position: absolute; inset: 0; }
 .vocabulary-review-full-face {
@@ -382,7 +416,7 @@ body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
 }
 .vocabulary-review-placeholder[hidden] { display: none; }
 .vocabulary-review-info {
-  min-width: 0; padding: 28px 24px 28px 30px;
+  min-width: 0; padding: 28px 24px 92px 30px;
   display: flex; flex-direction: column; justify-content: center;
 }
 .vocabulary-review-word-row { min-width: 0; display: flex; align-items: center; gap: 12px; }
@@ -403,6 +437,13 @@ body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
 .vocabulary-review-phonetic { color: var(--text-mid); font-weight: 700; font-family: "Noto Sans IPA", sans-serif; }
 .vocabulary-review-dot { color: var(--sky-mid); }
 .vocabulary-review-meaning { color: var(--text-dark); font-weight: 900; }
+.vocabulary-review-remember-btn {
+  position: absolute; z-index: 4; right: 24px; bottom: 24px; min-height: 48px; padding: 11px 18px;
+  border: none; border-radius: 999px; background: linear-gradient(135deg, #D8F0E8, #BFE5D6);
+  color: #216C4A; font-size: 15px; font-weight: 900; box-shadow: 0 6px 18px rgba(33,108,74,0.15);
+  cursor: pointer; touch-action: manipulation;
+}
+.vocabulary-review-remember-btn:active { transform: scale(0.96); }
 .vocabulary-review-nav {
   position: absolute; z-index: 5; top: 50%; width: 82px; height: 116px;
   transform: translateY(-50%); border: 1px solid rgba(74,144,196,0.14);
@@ -434,7 +475,8 @@ body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
   }
   .vocabulary-review-shared-visual { top: 12px; right: 12px; bottom: 28%; left: 12px; }
   .vocabulary-review-card.is-quiz-hidden .vocabulary-review-shared-visual { bottom: 12px; }
-  .vocabulary-review-info { padding: 18px 24px 24px; }
+  .vocabulary-review-info { padding: 18px 24px 78px; }
+  .vocabulary-review-remember-btn { right: 18px; bottom: 18px; min-height: 44px; }
   .vocabulary-review-word-row h1 { font-size: clamp(38px, 10vw, 56px); }
   .vocabulary-review-nav { width: 58px; height: 88px; }
   .vocabulary-review-nav--prev { left: 0; }

@@ -125,7 +125,12 @@
       <span id="vocabularyReviewCount">14 个共用词</span>
     </div>
     <div class="vocabulary-review-word-list" id="vocabularyReviewWordList"></div>
+    <p class="vocabulary-review-empty" id="vocabularyReviewEmpty" hidden>这些词都记住啦 🎉</p>
     <button class="vocabulary-review-start-btn" type="button" onclick="startVocabularyReview(0)">开始刷词</button>
+    <details class="vocabulary-review-remembered" id="vocabularyReviewRemembered" hidden>
+      <summary id="vocabularyReviewRememberedSummary">已记住（0）</summary>
+      <div class="vocabulary-review-remembered-list" id="vocabularyReviewRememberedList"></div>
+    </details>
   </section>
 </div>
 
@@ -171,6 +176,9 @@
       </div>
 
       <button class="vocabulary-review-face vocabulary-review-quiz-face" id="vocabularyReviewQuizFace" type="button" aria-label="显示当前单词答案" aria-hidden="true">
+      </button>
+      <button class="vocabulary-review-remember-btn" id="vocabularyReviewRememberButton" type="button" onclick="markVocabularyReviewWordRemembered()">
+        ✓ 我记住了
       </button>
     </article>
 

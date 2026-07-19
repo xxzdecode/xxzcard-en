@@ -18,6 +18,7 @@ Object.assign(window, {
   openWordDedupe, closeWordDedupe,
   openVocabularyReviewList, startVocabularyReview, closeVocabularyReviewPlayer,
   setVocabularyReviewMode, changeVocabularyReviewWord, speakVocabularyReviewWord,
+  markVocabularyReviewWordRemembered, restoreVocabularyReviewWord,
   openWordCards, openPhonemeTraining, speakEnglish,
   showRename, confirmRename, onTitleTap, showSync, confirmSync, showPush, togglePush,
   toggleEditPanel, showWordSelector, openCardEditor, editNav, saveCardEdit, deleteCard,
