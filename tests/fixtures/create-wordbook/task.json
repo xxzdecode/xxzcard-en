@@ -1,0 +1,15 @@
+{
+  "taskId": "fixture-create-wordbook-task-001",
+  "sourceFile": "valid-cards.txt",
+  "baseName": "自动化测试",
+  "date": "2026-07-20",
+  "timezone": "Asia/Singapore",
+  "sharedWith": ["sister", "brother"],
+  "expectedCardCount": 2,
+  "expectedWords": ["apple", "go"],
+  "existingWords": ["book"],
+  "existingCardUpdateCandidates": [{"word": "book", "reason": "保留给人工更新流程"}],
+  "mode": "create",
+  "strict": true,
+  "autoApplyAfterDryRun": true
+}

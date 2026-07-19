@@ -1,0 +1,23 @@
+word: apple
+meaning: 苹果
+pos: n.
+phonetic: /ˈæpəl/
+emoji: 🍎
+morphology: []
+collocations: [{"phrase":"eat an apple","example":"I eat an apple after lunch. / 我午饭后吃一个苹果。"}]
+irregularForms: []
+synonyms: []
+wordFamily: []
+tip: apple 的复数直接加 -s。
+
+word: go
+meaning: 去；走
+pos: v.
+phonetic: /ɡəʊ/
+emoji: 🚶
+morphology: []
+collocations: [{"phrase":"go home","example":"I go home at five. / 我五点回家。"},{"phrase":"go to school","example":"We go to school every day. / 我们每天上学。"}]
+irregularForms: [{"label":"过去式","form":"go → went"},{"label":"过去分词","form":"go → gone"}]
+synonyms: []
+wordFamily: []
+tip: go home 中 home 前不加 to。
