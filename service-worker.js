@@ -1,4 +1,4 @@
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v6';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v7';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
@@ -25,6 +25,8 @@ const VOCABULARY_REVIEW_ASSETS = [
   './js/wordDedupe.js',
   './js/vocabularyReviewData.js',
   './js/vocabularyReview.js',
+  './js/vocabularyScreeningData.js',
+  './js/vocabularyScreening.js',
   './js/main.js',
   './assets/vocabulary-review/line.webp',
   './assets/vocabulary-review/cucumber.webp',

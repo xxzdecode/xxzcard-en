@@ -66,6 +66,13 @@
       </svg>
       <span>专项小游戏</span>
     </button>
+    <button class="bottom-feature-nav__item" onclick="openVocabularyScreening()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="3" width="16" height="18" rx="3" />
+        <path d="M8 8h8M8 12h5M8 16l2 2 4 -4" />
+      </svg>
+      <span>生词检验</span>
+    </button>
   </nav>
   <nav class="teacher-home-nav teacher-only" aria-label="老师主要功能">
     <button class="bottom-feature-nav__item" onclick="openTeacherWordCards()">
@@ -90,6 +97,39 @@
       <span>生词巩固</span>
     </button>
   </nav>
+</div>
+
+<!-- ══ SCREEN: VOCABULARY SCREENING ══ -->
+<div class="screen" id="screenVocabularyScreening">
+  <div class="screen-header">
+    <button class="back-btn" onclick="closeVocabularyScreening()">‹</button>
+    <h2>生词检验</h2>
+  </div>
+  <main class="vocabulary-screening-shell">
+    <section class="vocabulary-screening-intro">
+      <span aria-hidden="true">🔎</span>
+      <div>
+        <h1>看看哪些词已经认识</h1>
+        <p>每批只检测一次，选错的词会自动生成你的生词本。</p>
+      </div>
+    </section>
+    <section id="vocabularyScreeningBatchList" class="vocabulary-screening-batches"></section>
+    <section id="vocabularyScreeningPlayer" class="vocabulary-screening-player" hidden>
+      <div class="vocabulary-screening-player-head">
+        <strong id="vocabularyScreeningTitle"></strong>
+        <span id="vocabularyScreeningProgressText"></span>
+      </div>
+      <div class="vocabulary-screening-progress"><i id="vocabularyScreeningProgressFill"></i></div>
+      <div class="vocabulary-screening-question">
+        <small>请选择正确的意思</small>
+        <div id="vocabularyScreeningWord" class="vocabulary-screening-word"></div>
+      </div>
+      <div id="vocabularyScreeningOptions" class="vocabulary-screening-options"></div>
+      <div id="vocabularyScreeningFeedback" class="vocabulary-screening-feedback" aria-live="polite"></div>
+      <p class="vocabulary-screening-save-note">每答一题都会自动保存，可以中途退出。</p>
+    </section>
+    <section id="vocabularyScreeningSummary" class="vocabulary-screening-summary" hidden></section>
+  </main>
 </div>
 
 <!-- ══ SCREEN: GRAMMAR CHALLENGE INDEX ══ -->
@@ -651,6 +691,8 @@
 <script src="js/wordDedupe.js"></script>
 <script src="js/vocabularyReviewData.js"></script>
 <script src="js/vocabularyReview.js"></script>
+<script src="js/vocabularyScreeningData.js"></script>
+<script src="js/vocabularyScreening.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

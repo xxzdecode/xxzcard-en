@@ -98,6 +98,7 @@ function closeAllModals() {
 
 function resetStudentRuntimeView() {
   closeAllModals();
+  if (typeof resetVocabularyScreeningRuntime === 'function') resetVocabularyScreeningRuntime();
   activeTask = null;
   activeTaskDeck = [];
   activeTaskAllCards = [];
