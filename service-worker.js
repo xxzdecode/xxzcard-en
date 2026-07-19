@@ -1,4 +1,4 @@
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v5';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v6';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
@@ -59,7 +59,14 @@ const VOCABULARY_REVIEW_ASSETS = [
   './assets/vocabulary-review/go.webp',
   './assets/vocabulary-review/despite.webp',
   './assets/vocabulary-review/difficulty.webp',
-  './assets/vocabulary-review/insist.webp'
+  './assets/vocabulary-review/insist.webp',
+  './assets/vocabulary-review/task.webp',
+  './assets/vocabulary-review/hold.webp',
+  './assets/vocabulary-review/speech.webp',
+  './assets/vocabulary-review/contest.webp',
+  './assets/vocabulary-review/exhibit.webp',
+  './assets/vocabulary-review/numerous.webp',
+  './assets/vocabulary-review/valuable.webp'
 ];
 const VOCABULARY_REVIEW_URLS = new Set(
   VOCABULARY_REVIEW_ASSETS.map(path => new URL(path, self.location.href).href)
