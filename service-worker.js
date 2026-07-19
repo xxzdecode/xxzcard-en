@@ -1,4 +1,4 @@
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v3';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v4';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
@@ -39,7 +39,17 @@ const VOCABULARY_REVIEW_ASSETS = [
   './assets/vocabulary-review/mirror.webp',
   './assets/vocabulary-review/lab.webp',
   './assets/vocabulary-review/poor.webp',
-  './assets/vocabulary-review/ship.webp'
+  './assets/vocabulary-review/ship.webp',
+  './assets/vocabulary-review/tidy.webp',
+  './assets/vocabulary-review/mess.webp',
+  './assets/vocabulary-review/weak.webp',
+  './assets/vocabulary-review/culture.webp',
+  './assets/vocabulary-review/divide.webp',
+  './assets/vocabulary-review/foreign.webp',
+  './assets/vocabulary-review/collect.webp',
+  './assets/vocabulary-review/information.webp',
+  './assets/vocabulary-review/tradition.webp',
+  './assets/vocabulary-review/festival.webp'
 ];
 const VOCABULARY_REVIEW_URLS = new Set(
   VOCABULARY_REVIEW_ASSETS.map(path => new URL(path, self.location.href).href)
