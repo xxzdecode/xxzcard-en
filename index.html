@@ -49,6 +49,20 @@
       </svg>
       <span>单词卡</span>
     </button>
+    <button class="bottom-feature-nav__item" onclick="openVocabularyScreening()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="3" width="16" height="18" rx="3" />
+        <path d="M8 8h8M8 12h5M8 16l2 2 4 -4" />
+      </svg>
+      <span>生词检验</span>
+    </button>
+    <button class="bottom-feature-nav__item" onclick="openVocabularyReviewList()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+        <path d="M8 9h8M8 13h5M16.5 15.5l1 1 2 -2" />
+      </svg>
+      <span>生词巩固</span>
+    </button>
     <button class="bottom-feature-nav__item" onclick="openPhonemeTraining()">
       <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 5a3 3 0 0 1 6 0v5a3 3 0 0 1 -6 0z" />
@@ -65,13 +79,6 @@
         <path d="M17.32 5h-10.64a4 4 0 0 0 -3.94 3.3l-1.22 6.9a3 3 0 0 0 5.1 2.6l1.18 -1.18a2 2 0 0 1 1.42 -.62h5.56a2 2 0 0 1 1.42 .62l1.18 1.18a3 3 0 0 0 5.1 -2.6l-1.22 -6.9a4 4 0 0 0 -3.94 -3.3z" />
       </svg>
       <span>专项小游戏</span>
-    </button>
-    <button class="bottom-feature-nav__item" onclick="openVocabularyScreening()">
-      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="4" y="3" width="16" height="18" rx="3" />
-        <path d="M8 8h8M8 12h5M8 16l2 2 4 -4" />
-      </svg>
-      <span>生词检验</span>
     </button>
   </nav>
   <nav class="teacher-home-nav teacher-only" aria-label="老师主要功能">
@@ -156,7 +163,7 @@
 <!-- ══ SCREEN: VOCABULARY REVIEW LIST ══ -->
 <div class="screen" id="screenVocabularyReviewList">
   <div class="topbar">
-    <button class="back-btn" onclick="returnToTeacherHome()">←</button>
+    <button class="back-btn" onclick="closeVocabularyReviewList()">←</button>
     <span class="topbar-title">生词巩固</span>
   </div>
   <section class="vocabulary-review-list-panel" aria-labelledby="vocabularyReviewListTitle">

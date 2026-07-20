@@ -16,7 +16,7 @@ Object.assign(window, {
   openTeacherWordCards, returnToTeacherHome, closeBatchDetail, closeBatchImport, closeMergeSelect,
   openCoursewareList, openCourseware, closeCourseware,
   openWordDedupe, closeWordDedupe,
-  openVocabularyReviewList, startVocabularyReview, closeVocabularyReviewPlayer,
+  openVocabularyReviewList, closeVocabularyReviewList, startVocabularyReview, closeVocabularyReviewPlayer,
   setVocabularyReviewMode, changeVocabularyReviewWord, speakVocabularyReviewWord,
   markVocabularyReviewWordRemembered, restoreVocabularyReviewWord,
   openVocabularyScreening, startVocabularyScreening, answerVocabularyScreening,

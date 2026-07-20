@@ -5,26 +5,89 @@ let vocabularyReviewTouchStart = null;
 let vocabularyReviewDidSwipe = false;
 const vocabularyReviewPreloadedImages = new Set();
 const VOCABULARY_REVIEW_REMEMBERED_KEY = 'wc_vocabulary_review_remembered';
-let vocabularyReviewRememberedWords = loadVocabularyReviewRememberedWords();
+const VOCABULARY_REVIEW_MIGRATION_KEY = 'wc_vocabulary_review_shared_migration_v1';
+let vocabularyReviewRememberedWords = new Set();
+let vocabularyReviewWritePending = false;
 
-function loadVocabularyReviewRememberedWords() {
+function canUseVocabularyReview() {
+  return currentUser === 'teacher' || currentUser === 'sister' || currentUser === 'brother';
+}
+
+function normalizeVocabularyReviewRememberedWords(words) {
+  const availableWords = new Set(reviewWords.map(item => item.word));
+  return Array.from(new Set(
+    (Array.isArray(words) ? words : [])
+      .filter(word => typeof word === 'string' && availableWords.has(word))
+  ));
+}
+
+function readLegacyVocabularyReviewRememberedWords() {
   try {
     const saved = JSON.parse(localStorage.getItem(VOCABULARY_REVIEW_REMEMBERED_KEY) || '[]');
-    if (!Array.isArray(saved)) return new Set();
-    const availableWords = new Set(reviewWords.map(item => item.word));
-    return new Set(saved.filter(word => typeof word === 'string' && availableWords.has(word)));
+    return normalizeVocabularyReviewRememberedWords(saved);
   } catch (error) {
-    return new Set();
+    return [];
   }
 }
 
-function saveVocabularyReviewRememberedWords() {
+function getVocabularyReviewState(data = appData) {
+  const state = data && data.vocabularyReviewState;
+  return {
+    version: 1,
+    rememberedWords: normalizeVocabularyReviewRememberedWords(state && state.rememberedWords),
+    updatedAt: state && typeof state.updatedAt === 'string' ? state.updatedAt : '',
+    updatedBy: state && typeof state.updatedBy === 'string' ? state.updatedBy : ''
+  };
+}
+
+function applyVocabularyReviewState(data = appData) {
+  vocabularyReviewRememberedWords = new Set(getVocabularyReviewState(data).rememberedWords);
+}
+
+async function initializeVocabularyReviewSharedState() {
+  if (!canUseVocabularyReview()) return false;
   try {
-    localStorage.setItem(
-      VOCABULARY_REVIEW_REMEMBERED_KEY,
-      JSON.stringify(Array.from(vocabularyReviewRememberedWords))
-    );
-  } catch (error) {}
+    const remote = await sbGetRemote('main');
+    if (remote) {
+      normalizeAppData(remote);
+      appData = remote;
+      setMainSnapshot(appData);
+    }
+    applyVocabularyReviewState(appData);
+  } catch (error) {
+    showStorageError(error);
+    applyVocabularyReviewState(appData);
+    return false;
+  }
+
+  let migrationComplete = false;
+  try { migrationComplete = localStorage.getItem(VOCABULARY_REVIEW_MIGRATION_KEY) === '1'; } catch (error) {}
+  if (migrationComplete) return true;
+
+  const legacyWords = readLegacyVocabularyReviewRememberedWords();
+  if (!legacyWords.length) {
+    try { localStorage.setItem(VOCABULARY_REVIEW_MIGRATION_KEY, '1'); } catch (error) {}
+    return true;
+  }
+
+  const migrated = await updateMainDataSafely(data => {
+    const state = getVocabularyReviewState(data);
+    data.vocabularyReviewState = {
+      version: 1,
+      rememberedWords: normalizeVocabularyReviewRememberedWords([
+        ...state.rememberedWords,
+        ...legacyWords
+      ]),
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser
+    };
+    return true;
+  });
+  if (!migrated) return false;
+
+  applyVocabularyReviewState(migrated);
+  try { localStorage.setItem(VOCABULARY_REVIEW_MIGRATION_KEY, '1'); } catch (error) {}
+  return true;
 }
 
 function getActiveVocabularyReviewWords() {
@@ -62,7 +125,7 @@ function renderVocabularyReviewList() {
       <button class="vocabulary-review-word-chip" type="button" onclick="startVocabularyReview(${index})">
         ${item.word}
       </button>
-      <button class="vocabulary-review-list-remember" type="button" onclick="markVocabularyReviewWordRemembered('${item.word}')" aria-label="将 ${item.word} 标记为已记住">
+      <button class="vocabulary-review-list-remember" type="button" data-vocabulary-review-word="${item.word}" onclick="markVocabularyReviewWordRemembered('${item.word}')" aria-label="将 ${item.word} 标记为已记住" ${vocabularyReviewWritePending ? 'disabled' : ''}>
         ✓ 记住了
       </button>
     </div>
@@ -70,7 +133,7 @@ function renderVocabularyReviewList() {
   if (empty) empty.hidden = activeWords.length > 0;
   if (startButton) startButton.disabled = activeWords.length === 0;
 
-  if (rememberedPanel) rememberedPanel.hidden = rememberedWords.length === 0;
+  if (rememberedPanel) rememberedPanel.hidden = !isTeacher() || rememberedWords.length === 0;
   if (rememberedSummary) rememberedSummary.textContent = `已记住（${rememberedWords.length}）`;
   if (rememberedList) {
     rememberedList.innerHTML = rememberedWords.map(item => `
@@ -81,17 +144,25 @@ function renderVocabularyReviewList() {
   }
 }
 
-function openVocabularyReviewList() {
-  if (!isTeacher()) return;
+async function openVocabularyReviewList() {
+  if (!canUseVocabularyReview()) return;
   document.body.classList.remove('vocabulary-review-open');
+  await initializeVocabularyReviewSharedState();
   renderVocabularyReviewList();
   showScreen('screenVocabularyReviewList');
   preloadVocabularyReviewImages();
 }
 
+function closeVocabularyReviewList() {
+  if (!canUseVocabularyReview()) return;
+  document.body.classList.remove('vocabulary-review-open');
+  showScreen('screenHome');
+  loadHome();
+}
+
 function startVocabularyReview(index = 0) {
   const activeWords = getActiveVocabularyReviewWords();
-  if (!isTeacher() || !activeWords.length) return;
+  if (!canUseVocabularyReview() || !activeWords.length) return;
   const requestedIndex = Number.isFinite(Number(index)) ? Number(index) : 0;
   vocabularyReviewIndex = ((Math.trunc(requestedIndex) % activeWords.length) + activeWords.length) % activeWords.length;
   vocabularyReviewMode = 'learn';
@@ -102,7 +173,7 @@ function startVocabularyReview(index = 0) {
 }
 
 function closeVocabularyReviewPlayer() {
-  if (!isTeacher()) return;
+  if (!canUseVocabularyReview()) return;
   document.body.classList.remove('vocabulary-review-open');
   renderVocabularyReviewList();
   showScreen('screenVocabularyReviewList');
@@ -195,44 +266,92 @@ function renderVocabularyReviewCard(animate = true) {
   preloadVocabularyReviewImages();
 }
 
-function markVocabularyReviewWordRemembered(word) {
+function setVocabularyReviewWritePending(word, pending) {
+  vocabularyReviewWritePending = pending;
+  document.querySelectorAll('.vocabulary-review-list-remember').forEach(button => {
+    button.disabled = pending;
+  });
+  const playerButton = document.getElementById('vocabularyReviewRememberButton');
+  if (playerButton) playerButton.disabled = pending;
+  const card = document.getElementById('vocabularyReviewCard');
+  if (card && word) card.classList.toggle('is-remembering', pending);
+}
+
+async function updateVocabularyReviewSharedWord(word, remember) {
+  if (!canUseVocabularyReview() || (!remember && !isTeacher())) return null;
+  return await updateMainDataSafely(data => {
+    const state = getVocabularyReviewState(data);
+    const rememberedWords = new Set(state.rememberedWords);
+    const changed = remember ? !rememberedWords.has(word) : rememberedWords.has(word);
+    if (remember) rememberedWords.add(word);
+    else rememberedWords.delete(word);
+    if (!changed) return false;
+    data.vocabularyReviewState = {
+      version: 1,
+      rememberedWords: normalizeVocabularyReviewRememberedWords(Array.from(rememberedWords)),
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentUser
+    };
+    return true;
+  }, 2);
+}
+
+async function markVocabularyReviewWordRemembered(word) {
   const activeWords = getActiveVocabularyReviewWords();
   const item = word
     ? reviewWords.find(candidate => candidate.word === word)
     : activeWords[vocabularyReviewIndex];
-  if (!isTeacher() || !item || vocabularyReviewRememberedWords.has(item.word)) return;
+  if (!canUseVocabularyReview() || vocabularyReviewWritePending || !item || vocabularyReviewRememberedWords.has(item.word)) return;
 
-  const finish = () => {
-    card?.classList.remove('is-remembering');
-    vocabularyReviewRememberedWords.add(item.word);
-    saveVocabularyReviewRememberedWords();
-    const remainingWords = getActiveVocabularyReviewWords();
-    if (!isVocabularyReviewPlayerActive()) {
-      renderVocabularyReviewList();
-      return;
-    }
-    if (!remainingWords.length) {
-      closeVocabularyReviewPlayer();
-      return;
-    }
-    vocabularyReviewIndex = Math.min(vocabularyReviewIndex, remainingWords.length - 1);
-    vocabularyReviewRevealed = false;
-    renderVocabularyReviewCard(true);
-  };
-
-  const card = document.getElementById('vocabularyReviewCard');
-  if (isVocabularyReviewPlayerActive() && card) {
-    card.classList.add('is-remembering');
-    window.setTimeout(finish, 280);
-  } else {
-    finish();
+  setVocabularyReviewWritePending(item.word, true);
+  const saved = await updateVocabularyReviewSharedWord(item.word, true);
+  if (!saved) {
+    setVocabularyReviewWritePending(item.word, false);
+    return;
   }
+
+  applyVocabularyReviewState(saved);
+  setVocabularyReviewWritePending(item.word, false);
+  const remainingWords = getActiveVocabularyReviewWords();
+  if (!isVocabularyReviewPlayerActive()) {
+    renderVocabularyReviewList();
+    return;
+  }
+  if (!remainingWords.length) {
+    closeVocabularyReviewPlayer();
+    return;
+  }
+  vocabularyReviewIndex = Math.min(vocabularyReviewIndex, remainingWords.length - 1);
+  vocabularyReviewRevealed = false;
+  renderVocabularyReviewCard(true);
 }
 
-function restoreVocabularyReviewWord(word) {
-  if (!isTeacher() || !vocabularyReviewRememberedWords.delete(word)) return;
-  saveVocabularyReviewRememberedWords();
+async function restoreVocabularyReviewWord(word) {
+  if (!isTeacher() || vocabularyReviewWritePending || !vocabularyReviewRememberedWords.has(word)) return;
+  setVocabularyReviewWritePending(word, true);
+  const saved = await updateVocabularyReviewSharedWord(word, false);
+  setVocabularyReviewWritePending(word, false);
+  if (!saved) return;
+  applyVocabularyReviewState(saved);
   renderVocabularyReviewList();
+}
+
+function refreshVocabularyReviewSharedStateFromAppData() {
+  const list = document.getElementById('screenVocabularyReviewList');
+  const player = document.getElementById('screenVocabularyReviewPlayer');
+  const listActive = list && list.classList.contains('active');
+  const playerActive = player && player.classList.contains('active');
+  if (!listActive && !playerActive) return;
+  applyVocabularyReviewState(appData);
+  const activeWords = getActiveVocabularyReviewWords();
+  if (playerActive && !activeWords.length) {
+    closeVocabularyReviewPlayer();
+  } else if (playerActive) {
+    vocabularyReviewIndex = Math.min(vocabularyReviewIndex, activeWords.length - 1);
+    renderVocabularyReviewCard(false);
+  } else {
+    renderVocabularyReviewList();
+  }
 }
 
 function isVocabularyReviewPlayerActive() {

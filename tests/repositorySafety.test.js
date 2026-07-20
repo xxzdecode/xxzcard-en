@@ -82,6 +82,34 @@ async function verifyMainWriteSafety() {
     value('ensureMainCanSave(__intendedMain)'),
     error => error && error.code === 'MAIN_CONFLICT'
   );
+
+  const firstRead = JSON.parse(JSON.stringify(remote));
+  const concurrent = {
+    ...remote,
+    vocabularyReviewState: {
+      version: 1,
+      rememberedWords: ['other-device-word'],
+      updatedAt: '2026-07-20T00:00:00.000Z',
+      updatedBy: 'brother'
+    }
+  };
+  let readCount = 0;
+  context.sbGetRemote = async () => JSON.parse(JSON.stringify(readCount++ === 0 ? firstRead : concurrent));
+  context.sbSet = async (key, data) => {
+    assert.equal(key, 'main');
+    context.__savedMain = JSON.parse(JSON.stringify(data));
+  };
+  const merged = await value(`updateMainDataSafely(data => {
+    const remembered = new Set((data.vocabularyReviewState && data.vocabularyReviewState.rememberedWords) || []);
+    remembered.add('sister-word');
+    data.vocabularyReviewState = { version: 1, rememberedWords: Array.from(remembered) };
+    return true;
+  }, 2)`);
+  assert.ok(merged, 'conflicting update should retry with the latest remote main');
+  assert.deepEqual(
+    Array.from(context.__savedMain.vocabularyReviewState.rememberedWords),
+    ['other-device-word', 'sister-word']
+  );
 }
 
 verifyMainWriteSafety()

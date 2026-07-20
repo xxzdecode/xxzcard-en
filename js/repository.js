@@ -280,6 +280,50 @@ async function saveData(data) {
   }
 }
 
+async function updateMainDataSafely(mutator, maxAttempts = 2) {
+  if (typeof mutator !== 'function' || !canWriteCloudData()) return null;
+  const attempts = Math.max(1, Math.trunc(Number(maxAttempts)) || 1);
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const remote = await sbGetRemote('main');
+      const base = remote || { batches: [], pin: null };
+      normalizeAppData(base);
+      const next = cloneForStorage(base);
+      const changed = mutator(next);
+
+      if (changed === false) {
+        appData = base;
+        setMainSnapshot(appData);
+        return appData;
+      }
+      normalizeAppData(next);
+      if (findInvalidEnglishCard(next)) {
+        throw storageError('INVALID_CARD_DATA', 'invalid card data');
+      }
+
+      setMainSnapshot(base);
+      await ensureMainCanSave(next);
+      await sbSet('main', next);
+      appData = next;
+      setMainSnapshot(appData);
+      return appData;
+    } catch(e) {
+      if (e && e.code === 'MAIN_CONFLICT' && attempt + 1 < attempts) continue;
+      if (e && e.code === 'OFFLINE_READONLY') {
+        const cached = getMirrorValue('main');
+        if (cached) {
+          normalizeAppData(cached);
+          appData = cached;
+        }
+      }
+      showStorageError(e);
+      return null;
+    }
+  }
+  return null;
+}
+
 async function saveUserBatch(batchId, rec) {
   try {
     if (!canWriteCloudData()) return false;
@@ -538,6 +582,9 @@ setInterval(async () => {
     if (home && home.classList.contains('active')) loadHome();
     const teacherCards = document.getElementById('screenTeacherWordCards');
     if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
+    if (typeof refreshVocabularyReviewSharedStateFromAppData === 'function') {
+      refreshVocabularyReviewSharedStateFromAppData();
+    }
     return;
   }
   const fresh = await loadData();
@@ -549,6 +596,9 @@ setInterval(async () => {
   if (home && home.classList.contains('active')) loadHome();
   const teacherCards = document.getElementById('screenTeacherWordCards');
   if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
+  if (typeof refreshVocabularyReviewSharedStateFromAppData === 'function') {
+    refreshVocabularyReviewSharedStateFromAppData();
+  }
 }, 30000);
 
 scheduleDailySupabaseMirror();

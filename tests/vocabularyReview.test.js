@@ -4,10 +4,16 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
-const context = vm.createContext({});
-vm.runInContext(fs.readFileSync(path.join(root, 'js/vocabularyReviewData.js'), 'utf8'), context);
+const dataScript = fs.readFileSync(path.join(root, 'js/vocabularyReviewData.js'), 'utf8');
+const reviewScript = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const styles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
+const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
-const words = JSON.parse(vm.runInContext('JSON.stringify(reviewWords)', context));
+const dataContext = vm.createContext({});
+vm.runInContext(dataScript, dataContext);
+const words = JSON.parse(vm.runInContext('JSON.stringify(reviewWords)', dataContext));
+
 assert.ok(words.length > 0);
 assert.equal(new Set(words.map(item => item.word)).size, words.length);
 for (const item of words) {
@@ -22,10 +28,25 @@ for (const item of words) {
   assert.ok(item.placeholder.length > 0);
 }
 
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const reviewScript = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
-const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
+const studentNav = html.match(/<nav class="bottom-feature-nav student-only"[\s\S]*?<\/nav>/)?.[0] || '';
+const teacherNav = html.match(/<nav class="teacher-home-nav teacher-only"[\s\S]*?<\/nav>/)?.[0] || '';
+assert.deepEqual(
+  Array.from(studentNav.matchAll(/<span>([^<]+)<\/span>/g), match => match[1]),
+  ['单词卡', '生词检验', '生词巩固', '音标训练', '专项小游戏']
+);
+assert.equal((studentNav.match(/openVocabularyReviewList\(\)/g) || []).length, 1);
+assert.equal((teacherNav.match(/openVocabularyReviewList\(\)/g) || []).length, 1);
+assert.match(html, /onclick="closeVocabularyReviewList\(\)"/);
+assert.match(styles, /grid-template-columns:\s*repeat\(6/);
+assert.match(styles, /:nth-child\(-n \+ 3\).*span 2/);
+assert.match(styles, /:nth-child\(n \+ 4\).*span 3/);
+assert.match(styles, /:nth-child\(4\)::before\s*\{\s*content:\s*none/);
+assert.match(styles, /body:not\(\.is-teacher\) \.vocabulary-review-remembered/);
 
+assert.match(serviceWorker, /vocabulary-review-v9/);
+assert.match(serviceWorker, /fetch\(event\.request, \{ cache: 'no-cache' \}\)/);
+assert.match(serviceWorker, /cache\.put\(cacheKey, copy\)/);
+assert.match(serviceWorker, /\.catch\(\(\) => caches\.match\(cacheKey\)\)/);
 assert.equal((html.match(/id="vocabularyReviewImage"/g) || []).length, 1);
 assert.equal((html.match(/id="vocabularyReviewQuizImage"/g) || []).length, 0);
 assert.match(reviewScript, /image\.getAttribute\('src'\) !== item\.image/);
@@ -33,41 +54,195 @@ assert.match(reviewScript, /\[-2, -1, 0, 1, 2\]/);
 for (const item of words.filter(item => fs.existsSync(path.join(root, item.image)))) {
   assert.ok(serviceWorker.includes(`./${item.image}`), `image missing from service worker: ${item.image}`);
 }
-assert.match(serviceWorker, /vocabulary-review-v\d+/);
-assert.match(serviceWorker, /fetch\(event\.request, \{ cache: 'no-cache' \}\)/);
-assert.match(serviceWorker, /cache\.put\(cacheKey, copy\)/);
-assert.match(serviceWorker, /\.catch\(\(\) => caches\.match\(cacheKey\)\)/);
 
-assert.match(html, /id="vocabularyReviewRemembered"/);
-assert.match(html, /onclick="markVocabularyReviewWordRemembered\(\)"/);
-assert.match(reviewScript, /wc_vocabulary_review_remembered/);
-assert.match(reviewScript, /function getActiveVocabularyReviewWords\(\)/);
-assert.match(reviewScript, /function restoreVocabularyReviewWord\(word\)/);
-assert.match(reviewScript, /vocabularyReviewRememberedWords\.has\(item\.word\)/);
+function createClassList(initial = []) {
+  const values = new Set(initial);
+  return {
+    add: value => values.add(value),
+    remove: value => values.delete(value),
+    contains: value => values.has(value),
+    toggle(value, force) {
+      if (force === undefined ? !values.has(value) : force) values.add(value);
+      else values.delete(value);
+    }
+  };
+}
 
-const savedValues = new Map();
-const browserContext = vm.createContext({
-  localStorage: {
-    getItem: key => savedValues.get(key) || null,
-    setItem: (key, value) => savedValues.set(key, value)
-  },
-  document: {
-    addEventListener() {},
-    getElementById() { return null; }
-  },
-  navigator: {},
-  window: {
-    addEventListener() {},
-    setTimeout(callback) { callback(); }
+function createHarness({ legacyWords = [], rememberedWords = [], failWrites = false } = {}) {
+  const savedValues = new Map();
+  if (legacyWords.length) savedValues.set('wc_vocabulary_review_remembered', JSON.stringify(legacyWords));
+  const elements = new Map();
+  const element = (id, active = false) => {
+    const value = {
+      id,
+      hidden: false,
+      disabled: false,
+      innerHTML: '',
+      textContent: '',
+      classList: createClassList(active ? ['active'] : []),
+      setAttribute() {},
+      getAttribute() { return ''; },
+      addEventListener() {}
+    };
+    elements.set(id, value);
+    return value;
+  };
+  const screens = [element('screenHome'), element('screenVocabularyReviewList'), element('screenVocabularyReviewPlayer')];
+  [
+    'vocabularyReviewCount', 'vocabularyReviewWordList', 'vocabularyReviewEmpty',
+    'vocabularyReviewRemembered', 'vocabularyReviewRememberedSummary',
+    'vocabularyReviewRememberedList', 'vocabularyReviewRememberButton',
+    'vocabularyReviewCard'
+  ].forEach(id => element(id));
+  const startButton = { disabled: false };
+  let remoteMain = {
+    batches: [],
+    vocabularyReviewState: { version: 1, rememberedWords: [...rememberedWords], updatedAt: '', updatedBy: '' }
+  };
+  const context = vm.createContext({
+    console,
+    Date,
+    Set,
+    currentUser: 'sister',
+    appData: JSON.parse(JSON.stringify(remoteMain)),
+    localStorage: {
+      getItem: key => savedValues.get(key) || null,
+      setItem: (key, value) => savedValues.set(key, value)
+    },
+    document: {
+      body: { classList: createClassList() },
+      addEventListener() {},
+      getElementById: id => elements.get(id) || null,
+      querySelector: selector => selector === '.vocabulary-review-start-btn' ? startButton : null,
+      querySelectorAll: selector => selector === '.screen' ? screens : []
+    },
+    navigator: {},
+    window: { addEventListener() {}, setTimeout(callback) { callback(); }, scrollTo() {} },
+    Image: undefined,
+    isTeacher: () => context.currentUser === 'teacher',
+    normalizeAppData: () => false,
+    setMainSnapshot() {},
+    showStorageError() {},
+    loadHome() {},
+    showScreen(id) {
+      screens.forEach(screen => screen.classList.remove('active'));
+      elements.get(id)?.classList.add('active');
+    },
+    sbGetRemote: async () => JSON.parse(JSON.stringify(remoteMain)),
+    updateMainDataSafely: async mutator => {
+      if (failWrites) return null;
+      const next = JSON.parse(JSON.stringify(remoteMain));
+      const changed = mutator(next);
+      if (changed !== false) remoteMain = next;
+      context.appData = JSON.parse(JSON.stringify(remoteMain));
+      return context.appData;
+    }
+  });
+  vm.runInContext(dataScript, context);
+  vm.runInContext(reviewScript, context);
+  return {
+    context,
+    elements,
+    savedValues,
+    startButton,
+    value: expression => vm.runInContext(expression, context),
+    setFailWrites(value) { failWrites = value; },
+    getRemote: () => JSON.parse(JSON.stringify(remoteMain))
+  };
+}
+
+async function verifySharedState() {
+  const first = words[0].word;
+  const second = words[1].word;
+  const third = words[2].word;
+  const harness = createHarness({
+    legacyWords: [first, 'removed-word', first],
+    rememberedWords: [second, 'stale-cloud-word']
+  });
+
+  for (const role of ['teacher', 'sister', 'brother']) {
+    harness.context.currentUser = role;
+    assert.equal(harness.value('canUseVocabularyReview()'), true);
   }
-});
-vm.runInContext(fs.readFileSync(path.join(root, 'js/vocabularyReviewData.js'), 'utf8'), browserContext);
-vm.runInContext(reviewScript, browserContext);
-assert.equal(vm.runInContext('getActiveVocabularyReviewWords().length', browserContext), words.length);
-const rememberedWord = words[0].word;
-browserContext.rememberedWord = rememberedWord;
-vm.runInContext('vocabularyReviewRememberedWords.add(rememberedWord); saveVocabularyReviewRememberedWords()', browserContext);
-assert.equal(vm.runInContext('getActiveVocabularyReviewWords().length', browserContext), words.length - 1);
-assert.deepEqual(JSON.parse(savedValues.get('wc_vocabulary_review_remembered')), [rememberedWord]);
+  harness.context.currentUser = 'unknown';
+  assert.equal(harness.value('canUseVocabularyReview()'), false);
 
-console.log('vocabulary review data tests passed');
+  harness.context.currentUser = 'sister';
+  await harness.value('initializeVocabularyReviewSharedState()');
+  assert.deepEqual(harness.getRemote().vocabularyReviewState.rememberedWords, [second, first]);
+  assert.equal(harness.savedValues.get('wc_vocabulary_review_shared_migration_v1'), '1');
+
+  await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(third)})`);
+  assert.ok(harness.getRemote().vocabularyReviewState.rememberedWords.includes(third));
+  const countAfterSister = harness.value('getActiveVocabularyReviewWords().length');
+
+  harness.context.currentUser = 'brother';
+  harness.context.appData = harness.getRemote();
+  harness.value('applyVocabularyReviewState(appData)');
+  assert.equal(harness.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(third)})`), false);
+  assert.equal(harness.value('getActiveVocabularyReviewWords().length'), countAfterSister);
+
+  const refreshedDevice = createHarness({
+    rememberedWords: harness.getRemote().vocabularyReviewState.rememberedWords
+  });
+  refreshedDevice.context.currentUser = 'brother';
+  await refreshedDevice.value('initializeVocabularyReviewSharedState()');
+  assert.equal(
+    refreshedDevice.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(third)})`),
+    false,
+    'a fresh device load should use the shared cloud state'
+  );
+
+  harness.context.currentUser = 'sister';
+  await harness.value(`restoreVocabularyReviewWord(${JSON.stringify(third)})`);
+  assert.ok(harness.getRemote().vocabularyReviewState.rememberedWords.includes(third), 'students cannot restore words');
+
+  harness.context.currentUser = 'teacher';
+  await harness.value(`restoreVocabularyReviewWord(${JSON.stringify(third)})`);
+  assert.equal(harness.getRemote().vocabularyReviewState.rememberedWords.includes(third), false);
+
+  harness.context.currentUser = 'unknown';
+  const beforeUnknown = JSON.stringify(harness.getRemote());
+  await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(third)})`);
+  assert.equal(JSON.stringify(harness.getRemote()), beforeUnknown);
+
+  harness.context.currentUser = 'brother';
+  harness.value('applyVocabularyReviewState(appData)');
+  const beforeFailure = harness.value('getActiveVocabularyReviewWords().length');
+  harness.setFailWrites(true);
+  await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(third)})`);
+  assert.equal(harness.value('getActiveVocabularyReviewWords().length'), beforeFailure);
+  assert.equal(harness.value('vocabularyReviewWritePending'), false);
+
+  const failedMigration = createHarness({ legacyWords: [first], failWrites: true });
+  await failedMigration.value('initializeVocabularyReviewSharedState()');
+  assert.equal(failedMigration.savedValues.has('wc_vocabulary_review_shared_migration_v1'), false);
+  assert.deepEqual(failedMigration.getRemote().vocabularyReviewState.rememberedWords, []);
+
+  const lastWord = words.at(-1).word;
+  const allButLast = words.slice(0, -1).map(item => item.word);
+  const emptyStudent = createHarness({ rememberedWords: allButLast });
+  emptyStudent.context.currentUser = 'brother';
+  await emptyStudent.value('initializeVocabularyReviewSharedState()');
+  emptyStudent.context.showScreen('screenVocabularyReviewPlayer');
+  await emptyStudent.value(`markVocabularyReviewWordRemembered(${JSON.stringify(lastWord)})`);
+  assert.equal(emptyStudent.elements.get('screenVocabularyReviewList').classList.contains('active'), true);
+  assert.equal(emptyStudent.elements.get('vocabularyReviewEmpty').hidden, false);
+  assert.equal(emptyStudent.startButton.disabled, true);
+  assert.equal(emptyStudent.elements.get('vocabularyReviewRemembered').hidden, true);
+
+  const emptyTeacher = createHarness({ rememberedWords: words.map(item => item.word) });
+  emptyTeacher.context.currentUser = 'teacher';
+  await emptyTeacher.value('initializeVocabularyReviewSharedState()');
+  emptyTeacher.value('renderVocabularyReviewList()');
+  assert.equal(emptyTeacher.elements.get('vocabularyReviewEmpty').hidden, false);
+  assert.equal(emptyTeacher.startButton.disabled, true);
+  assert.equal(emptyTeacher.elements.get('vocabularyReviewRemembered').hidden, false);
+}
+
+verifySharedState()
+  .then(() => console.log('vocabulary review shared-state tests passed'))
+  .catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });

@@ -70,9 +70,11 @@ body {
 }
 .bottom-feature-nav.student-only {
   width: calc(100% - 40px); max-width: 400px; margin: 16px auto 6px;
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 2px;
   color: #8C6FCB;
 }
+.bottom-feature-nav.student-only > :nth-child(-n + 3) { grid-column: span 2; }
+.bottom-feature-nav.student-only > :nth-child(n + 4) { grid-column: span 3; }
 .teacher-home-nav {
   width: calc(100% - 40px); max-width: 400px; margin: 18px auto 6px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -94,6 +96,7 @@ body {
 .bottom-feature-nav__item:focus-visible {
   outline: 2px solid #8C6FCB; outline-offset: -2px;
 }
+.bottom-feature-nav.student-only > :nth-child(4)::before { content: none; }
 
 /* ══ STUDENT VOCABULARY SCREENING ══ */
 .vocabulary-screening-shell {
@@ -417,6 +420,7 @@ body.word-dedupe-open { padding-bottom: 0; overflow: hidden; }
   font-size: 14px; font-weight: 800; cursor: pointer;
 }
 .vocabulary-review-remembered-list button span { color: var(--blue); font-size: 12px; }
+body:not(.is-teacher) .vocabulary-review-remembered { display: none; }
 
 body.vocabulary-review-open { padding-bottom: 0; overflow: hidden; }
 #screenVocabularyReviewPlayer {
