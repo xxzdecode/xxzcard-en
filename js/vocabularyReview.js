@@ -8,6 +8,7 @@ const VOCABULARY_REVIEW_REMEMBERED_KEY = 'wc_vocabulary_review_remembered';
 const VOCABULARY_REVIEW_MIGRATION_KEY = 'wc_vocabulary_review_shared_migration_v1';
 let vocabularyReviewRememberedWords = new Set();
 let vocabularyReviewWritePending = false;
+let vocabularyReviewWordOrder = [];
 
 function canUseVocabularyReview() {
   return currentUser === 'teacher' || currentUser === 'sister' || currentUser === 'brother';
@@ -60,6 +61,8 @@ async function initializeVocabularyReviewSharedState() {
     return false;
   }
 
+  if (!isTeacher()) return true;
+
   let migrationComplete = false;
   try { migrationComplete = localStorage.getItem(VOCABULARY_REVIEW_MIGRATION_KEY) === '1'; } catch (error) {}
   if (migrationComplete) return true;
@@ -90,8 +93,55 @@ async function initializeVocabularyReviewSharedState() {
   return true;
 }
 
+function syncVocabularyReviewWordOrder() {
+  const activeWords = reviewWords.filter(item => !vocabularyReviewRememberedWords.has(item.word));
+  const activeWordNames = new Set(activeWords.map(item => item.word));
+  const orderedNames = vocabularyReviewWordOrder.filter(word => activeWordNames.has(word));
+  const orderedNameSet = new Set(orderedNames);
+  activeWords.forEach(item => {
+    if (!orderedNameSet.has(item.word)) orderedNames.push(item.word);
+  });
+  vocabularyReviewWordOrder = orderedNames;
+  return activeWords;
+}
+
 function getActiveVocabularyReviewWords() {
-  return reviewWords.filter(item => !vocabularyReviewRememberedWords.has(item.word));
+  const activeWords = syncVocabularyReviewWordOrder();
+  const wordsByName = new Map(activeWords.map(item => [item.word, item]));
+  return vocabularyReviewWordOrder.map(word => wordsByName.get(word)).filter(Boolean);
+}
+
+function shuffleVocabularyReviewItems(items, random = Math.random) {
+  const shuffled = items.slice();
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
+function shuffleVocabularyReviewCards(random = Math.random) {
+  const activeWords = getActiveVocabularyReviewWords();
+  if (activeWords.length < 2) {
+    vocabularyReviewIndex = 0;
+    renderVocabularyReviewList();
+    return;
+  }
+
+  const currentOrder = activeWords.map(item => item.word);
+  let nextOrder = shuffleVocabularyReviewItems(currentOrder, random);
+  if (nextOrder.every((word, index) => word === currentOrder[index])) {
+    nextOrder = shuffleVocabularyReviewItems(currentOrder, random);
+  }
+  if (nextOrder.every((word, index) => word === currentOrder[index])) {
+    nextOrder = [...currentOrder.slice(1), currentOrder[0]];
+  }
+
+  vocabularyReviewWordOrder = nextOrder;
+  vocabularyReviewIndex = 0;
+  vocabularyReviewRevealed = false;
+  renderVocabularyReviewList();
+  preloadVocabularyReviewImages(0);
 }
 
 function preloadVocabularyReviewImages(index = vocabularyReviewIndex) {
@@ -111,6 +161,7 @@ function renderVocabularyReviewList() {
   const list = document.getElementById('vocabularyReviewWordList');
   const empty = document.getElementById('vocabularyReviewEmpty');
   const startButton = document.querySelector('.vocabulary-review-start-btn');
+  const shuffleButton = document.querySelector('.vocabulary-review-shuffle-btn');
   const rememberedPanel = document.getElementById('vocabularyReviewRemembered');
   const rememberedSummary = document.getElementById('vocabularyReviewRememberedSummary');
   const rememberedList = document.getElementById('vocabularyReviewRememberedList');
@@ -120,18 +171,20 @@ function renderVocabularyReviewList() {
   if (count) count.textContent = `${activeWords.length} 个待巩固`;
   if (!list) return;
 
+  const teacherCanManage = isTeacher();
   list.innerHTML = activeWords.map((item, index) => `
-    <div class="vocabulary-review-word-item">
+    <div class="vocabulary-review-word-item${teacherCanManage ? '' : ' vocabulary-review-word-item--readonly'}">
       <button class="vocabulary-review-word-chip" type="button" onclick="startVocabularyReview(${index})">
         ${item.word}
       </button>
-      <button class="vocabulary-review-list-remember" type="button" data-vocabulary-review-word="${item.word}" onclick="markVocabularyReviewWordRemembered('${item.word}')" aria-label="将 ${item.word} 标记为已记住" ${vocabularyReviewWritePending ? 'disabled' : ''}>
+      ${teacherCanManage ? `<button class="vocabulary-review-list-remember" type="button" data-vocabulary-review-word="${item.word}" onclick="markVocabularyReviewWordRemembered('${item.word}')" aria-label="将 ${item.word} 标记为已记住" ${vocabularyReviewWritePending ? 'disabled' : ''}>
         ✓ 记住了
-      </button>
+      </button>` : ''}
     </div>
   `).join('');
   if (empty) empty.hidden = activeWords.length > 0;
   if (startButton) startButton.disabled = activeWords.length === 0;
+  if (shuffleButton) shuffleButton.disabled = activeWords.length === 0;
 
   if (rememberedPanel) rememberedPanel.hidden = !isTeacher() || rememberedWords.length === 0;
   if (rememberedSummary) rememberedSummary.textContent = `已记住（${rememberedWords.length}）`;
@@ -240,6 +293,13 @@ function renderVocabularyReviewCard(animate = true) {
   document.getElementById('vocabularyReviewPhonetic').textContent = item.phonetic;
   document.getElementById('vocabularyReviewMeaning').textContent = item.meaning;
 
+  const rememberButton = document.getElementById('vocabularyReviewRememberButton');
+  if (rememberButton) {
+    rememberButton.hidden = !isTeacher();
+    rememberButton.disabled = !isTeacher() || vocabularyReviewWritePending;
+    rememberButton.setAttribute('aria-hidden', String(!isTeacher()));
+  }
+
   const quizHidden = vocabularyReviewMode === 'quiz' && !vocabularyReviewRevealed;
   card.classList.toggle('is-quiz-hidden', quizHidden);
   card.classList.toggle('vocabulary-review-card--refresh', animate);
@@ -278,7 +338,7 @@ function setVocabularyReviewWritePending(word, pending) {
 }
 
 async function updateVocabularyReviewSharedWord(word, remember) {
-  if (!canUseVocabularyReview() || (!remember && !isTeacher())) return null;
+  if (!isTeacher()) return null;
   return await updateMainDataSafely(data => {
     const state = getVocabularyReviewState(data);
     const rememberedWords = new Set(state.rememberedWords);
@@ -301,7 +361,7 @@ async function markVocabularyReviewWordRemembered(word) {
   const item = word
     ? reviewWords.find(candidate => candidate.word === word)
     : activeWords[vocabularyReviewIndex];
-  if (!canUseVocabularyReview() || vocabularyReviewWritePending || !item || vocabularyReviewRememberedWords.has(item.word)) return;
+  if (!isTeacher() || vocabularyReviewWritePending || !item || vocabularyReviewRememberedWords.has(item.word)) return;
 
   setVocabularyReviewWritePending(item.word, true);
   const saved = await updateVocabularyReviewSharedWord(item.word, true);

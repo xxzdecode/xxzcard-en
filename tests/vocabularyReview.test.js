@@ -43,7 +43,7 @@ assert.match(styles, /:nth-child\(n \+ 4\).*span 3/);
 assert.match(styles, /:nth-child\(4\)::before\s*\{\s*content:\s*none/);
 assert.match(styles, /body:not\(\.is-teacher\) \.vocabulary-review-remembered/);
 
-assert.match(serviceWorker, /vocabulary-review-v9/);
+assert.match(serviceWorker, /vocabulary-review-v10/);
 assert.match(serviceWorker, /fetch\(event\.request, \{ cache: 'no-cache' \}\)/);
 assert.match(serviceWorker, /cache\.put\(cacheKey, copy\)/);
 assert.match(serviceWorker, /\.catch\(\(\) => caches\.match\(cacheKey\)\)/);
@@ -51,6 +51,9 @@ assert.equal((html.match(/id="vocabularyReviewImage"/g) || []).length, 1);
 assert.equal((html.match(/id="vocabularyReviewQuizImage"/g) || []).length, 0);
 assert.match(reviewScript, /image\.getAttribute\('src'\) !== item\.image/);
 assert.match(reviewScript, /\[-2, -1, 0, 1, 2\]/);
+assert.match(html, />打乱卡片<\/button>/);
+assert.match(html, /id="vocabularyReviewRememberButton"[^>]*hidden/);
+assert.match(styles, /\.vocabulary-review-actions\s*\{[^}]*grid-template-columns/);
 for (const item of words.filter(item => fs.existsSync(path.join(root, item.image)))) {
   assert.ok(serviceWorker.includes(`./${item.image}`), `image missing from service worker: ${item.image}`);
 }
@@ -92,9 +95,13 @@ function createHarness({ legacyWords = [], rememberedWords = [], failWrites = fa
     'vocabularyReviewCount', 'vocabularyReviewWordList', 'vocabularyReviewEmpty',
     'vocabularyReviewRemembered', 'vocabularyReviewRememberedSummary',
     'vocabularyReviewRememberedList', 'vocabularyReviewRememberButton',
-    'vocabularyReviewCard'
+    'vocabularyReviewCard', 'vocabularyReviewProgress', 'vocabularyReviewWord',
+    'vocabularyReviewPhonetic', 'vocabularyReviewMeaning', 'vocabularyReviewFullFace',
+    'vocabularyReviewQuizFace', 'vocabularyReviewImage', 'vocabularyReviewImageFallback'
   ].forEach(id => element(id));
   const startButton = { disabled: false };
+  const shuffleButton = { disabled: false };
+  let writeAttempts = 0;
   let remoteMain = {
     batches: [],
     vocabularyReviewState: { version: 1, rememberedWords: [...rememberedWords], updatedAt: '', updatedBy: '' }
@@ -113,7 +120,11 @@ function createHarness({ legacyWords = [], rememberedWords = [], failWrites = fa
       body: { classList: createClassList() },
       addEventListener() {},
       getElementById: id => elements.get(id) || null,
-      querySelector: selector => selector === '.vocabulary-review-start-btn' ? startButton : null,
+      querySelector: selector => {
+        if (selector === '.vocabulary-review-start-btn') return startButton;
+        if (selector === '.vocabulary-review-shuffle-btn') return shuffleButton;
+        return null;
+      },
       querySelectorAll: selector => selector === '.screen' ? screens : []
     },
     navigator: {},
@@ -130,6 +141,7 @@ function createHarness({ legacyWords = [], rememberedWords = [], failWrites = fa
     },
     sbGetRemote: async () => JSON.parse(JSON.stringify(remoteMain)),
     updateMainDataSafely: async mutator => {
+      writeAttempts += 1;
       if (failWrites) return null;
       const next = JSON.parse(JSON.stringify(remoteMain));
       const changed = mutator(next);
@@ -145,9 +157,11 @@ function createHarness({ legacyWords = [], rememberedWords = [], failWrites = fa
     elements,
     savedValues,
     startButton,
+    shuffleButton,
     value: expression => vm.runInContext(expression, context),
     setFailWrites(value) { failWrites = value; },
-    getRemote: () => JSON.parse(JSON.stringify(remoteMain))
+    getRemote: () => JSON.parse(JSON.stringify(remoteMain)),
+    getWriteAttempts: () => writeAttempts
   };
 }
 
@@ -169,35 +183,51 @@ async function verifySharedState() {
 
   harness.context.currentUser = 'sister';
   await harness.value('initializeVocabularyReviewSharedState()');
-  assert.deepEqual(harness.getRemote().vocabularyReviewState.rememberedWords, [second, first]);
-  assert.equal(harness.savedValues.get('wc_vocabulary_review_shared_migration_v1'), '1');
+  assert.deepEqual(harness.getRemote().vocabularyReviewState.rememberedWords, [second, 'stale-cloud-word']);
+  assert.equal(harness.savedValues.has('wc_vocabulary_review_shared_migration_v1'), false);
+  assert.equal(harness.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(second)})`), false);
 
+  harness.value('renderVocabularyReviewList()');
+  assert.doesNotMatch(harness.elements.get('vocabularyReviewWordList').innerHTML, /记住了/);
+  assert.equal(harness.elements.get('vocabularyReviewRemembered').hidden, true);
+  harness.value('startVocabularyReview(0)');
+  assert.equal(harness.elements.get('vocabularyReviewRememberButton').hidden, true);
+  assert.equal(harness.elements.get('vocabularyReviewRememberButton').disabled, true);
+
+  const beforeStudentWrite = JSON.stringify(harness.getRemote());
+  const studentWriteAttempts = harness.getWriteAttempts();
   await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(third)})`);
-  assert.ok(harness.getRemote().vocabularyReviewState.rememberedWords.includes(third));
-  const countAfterSister = harness.value('getActiveVocabularyReviewWords().length');
+  await harness.value(`updateVocabularyReviewSharedWord(${JSON.stringify(third)}, true)`);
+  assert.equal(JSON.stringify(harness.getRemote()), beforeStudentWrite);
+  assert.equal(harness.getWriteAttempts(), studentWriteAttempts);
 
   harness.context.currentUser = 'brother';
   harness.context.appData = harness.getRemote();
   harness.value('applyVocabularyReviewState(appData)');
-  assert.equal(harness.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(third)})`), false);
-  assert.equal(harness.value('getActiveVocabularyReviewWords().length'), countAfterSister);
+  assert.equal(harness.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(second)})`), false);
 
   const refreshedDevice = createHarness({
-    rememberedWords: harness.getRemote().vocabularyReviewState.rememberedWords
+    rememberedWords: [second]
   });
   refreshedDevice.context.currentUser = 'brother';
   await refreshedDevice.value('initializeVocabularyReviewSharedState()');
   assert.equal(
-    refreshedDevice.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(third)})`),
+    refreshedDevice.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(second)})`),
     false,
     'a fresh device load should use the shared cloud state'
   );
 
-  harness.context.currentUser = 'sister';
-  await harness.value(`restoreVocabularyReviewWord(${JSON.stringify(third)})`);
-  assert.ok(harness.getRemote().vocabularyReviewState.rememberedWords.includes(third), 'students cannot restore words');
-
   harness.context.currentUser = 'teacher';
+  await harness.value('initializeVocabularyReviewSharedState()');
+  assert.deepEqual(harness.getRemote().vocabularyReviewState.rememberedWords, [second, first]);
+  assert.equal(harness.savedValues.get('wc_vocabulary_review_shared_migration_v1'), '1');
+  harness.value('renderVocabularyReviewList()');
+  assert.match(harness.elements.get('vocabularyReviewWordList').innerHTML, /✓ 记住了/);
+  harness.value('startVocabularyReview(0)');
+  assert.equal(harness.elements.get('vocabularyReviewRememberButton').hidden, false);
+
+  await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(third)})`);
+  assert.ok(harness.getRemote().vocabularyReviewState.rememberedWords.includes(third));
   await harness.value(`restoreVocabularyReviewWord(${JSON.stringify(third)})`);
   assert.equal(harness.getRemote().vocabularyReviewState.rememberedWords.includes(third), false);
 
@@ -206,8 +236,7 @@ async function verifySharedState() {
   await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(third)})`);
   assert.equal(JSON.stringify(harness.getRemote()), beforeUnknown);
 
-  harness.context.currentUser = 'brother';
-  harness.value('applyVocabularyReviewState(appData)');
+  harness.context.currentUser = 'teacher';
   const beforeFailure = harness.value('getActiveVocabularyReviewWords().length');
   harness.setFailWrites(true);
   await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(third)})`);
@@ -215,20 +244,18 @@ async function verifySharedState() {
   assert.equal(harness.value('vocabularyReviewWritePending'), false);
 
   const failedMigration = createHarness({ legacyWords: [first], failWrites: true });
+  failedMigration.context.currentUser = 'teacher';
   await failedMigration.value('initializeVocabularyReviewSharedState()');
   assert.equal(failedMigration.savedValues.has('wc_vocabulary_review_shared_migration_v1'), false);
   assert.deepEqual(failedMigration.getRemote().vocabularyReviewState.rememberedWords, []);
 
-  const lastWord = words.at(-1).word;
-  const allButLast = words.slice(0, -1).map(item => item.word);
-  const emptyStudent = createHarness({ rememberedWords: allButLast });
+  const emptyStudent = createHarness({ rememberedWords: words.map(item => item.word) });
   emptyStudent.context.currentUser = 'brother';
   await emptyStudent.value('initializeVocabularyReviewSharedState()');
-  emptyStudent.context.showScreen('screenVocabularyReviewPlayer');
-  await emptyStudent.value(`markVocabularyReviewWordRemembered(${JSON.stringify(lastWord)})`);
-  assert.equal(emptyStudent.elements.get('screenVocabularyReviewList').classList.contains('active'), true);
+  emptyStudent.value('renderVocabularyReviewList()');
   assert.equal(emptyStudent.elements.get('vocabularyReviewEmpty').hidden, false);
   assert.equal(emptyStudent.startButton.disabled, true);
+  assert.equal(emptyStudent.shuffleButton.disabled, true);
   assert.equal(emptyStudent.elements.get('vocabularyReviewRemembered').hidden, true);
 
   const emptyTeacher = createHarness({ rememberedWords: words.map(item => item.word) });
@@ -240,7 +267,38 @@ async function verifySharedState() {
   assert.equal(emptyTeacher.elements.get('vocabularyReviewRemembered').hidden, false);
 }
 
-verifySharedState()
+async function verifyShuffle() {
+  const harness = createHarness();
+  const originalWords = harness.value('reviewWords.map(item => item.word)');
+  const input = [1, 2, 3, 4];
+  harness.context.shuffleInput = input;
+  const shuffled = harness.value('shuffleVocabularyReviewItems(shuffleInput, () => 0)');
+  assert.deepEqual(Array.from(shuffled).sort(), input);
+  assert.deepEqual(input, [1, 2, 3, 4]);
+  assert.deepEqual(Array.from(harness.value('shuffleVocabularyReviewItems([], () => 0)')), []);
+  assert.deepEqual(Array.from(harness.value('shuffleVocabularyReviewItems([1], () => 0)')), [1]);
+
+  const writesBeforeShuffle = harness.getWriteAttempts();
+  const beforeOrder = harness.value('getActiveVocabularyReviewWords().map(item => item.word)');
+  harness.value('shuffleVocabularyReviewCards(() => 0)');
+  const afterOrder = harness.value('getActiveVocabularyReviewWords().map(item => item.word)');
+  assert.notDeepEqual(Array.from(afterOrder), Array.from(beforeOrder));
+  assert.deepEqual(Array.from(afterOrder).sort(), Array.from(beforeOrder).sort());
+  assert.deepEqual(Array.from(harness.value('reviewWords.map(item => item.word)')), Array.from(originalWords));
+  assert.equal(harness.value('vocabularyReviewIndex'), 0);
+  assert.equal(harness.getWriteAttempts(), writesBeforeShuffle);
+
+  harness.context.currentUser = 'teacher';
+  const firstShuffledWord = afterOrder[0];
+  await harness.value(`markVocabularyReviewWordRemembered(${JSON.stringify(firstShuffledWord)})`);
+  assert.equal(harness.value(`getActiveVocabularyReviewWords().some(item => item.word === ${JSON.stringify(firstShuffledWord)})`), false);
+  await harness.value(`restoreVocabularyReviewWord(${JSON.stringify(firstShuffledWord)})`);
+  const restoredOrder = harness.value('getActiveVocabularyReviewWords().map(item => item.word)');
+  assert.equal(restoredOrder.at(-1), firstShuffledWord);
+  assert.equal(new Set(restoredOrder).size, restoredOrder.length);
+}
+
+Promise.all([verifySharedState(), verifyShuffle()])
   .then(() => console.log('vocabulary review shared-state tests passed'))
   .catch(error => {
     console.error(error);
