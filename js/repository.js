@@ -240,7 +240,7 @@ async function ensureMainCanSave(data) {
   if (remote) normalizeAppData(remote);
   const remoteFp = fingerprintData(remote);
   const dataFp = fingerprintData(data);
-  if (mainSnapshot && remoteFp !== mainSnapshot && remoteFp !== dataFp) {
+  if (remote && remoteFp !== dataFp && (!mainSnapshot || remoteFp !== mainSnapshot)) {
     appData = remote || { batches: [], pin: null };
     setMainSnapshot(appData);
     const home = document.getElementById('screenHome');

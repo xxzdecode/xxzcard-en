@@ -187,6 +187,28 @@ async function saveVocabularyScreeningRecord(record) {
   }
 }
 
+async function appendVocabularyScreeningWordbook(wordbook) {
+  const fresh = await sbGetRemote('main');
+  if (!fresh || !Array.isArray(fresh.batches)) {
+    throw storageError('MAIN_CONFLICT', 'main is unavailable');
+  }
+  normalizeAppData(fresh);
+
+  const existing = fresh.batches.find(item => String(item.id) === wordbook.id);
+  if (existing) {
+    appData = fresh;
+    setMainSnapshot(appData);
+    return true;
+  }
+
+  const nextData = cloneForStorage(fresh);
+  nextData.batches.push(wordbook);
+  setMainSnapshot(fresh);
+  if (!await saveData(nextData)) return false;
+  appData = nextData;
+  return true;
+}
+
 async function deriveVocabularyScreeningLibraries(batch, record) {
   if (!record.completedAt) return false;
   try {
@@ -196,13 +218,7 @@ async function deriveVocabularyScreeningLibraries(batch, record) {
 
     const wordbook = makeVocabularyScreeningWordbook(batch, record);
     if (wordbook) {
-      const existing = appData.batches.find(item => String(item.id) === wordbook.id);
-      if (!existing) {
-        const nextData = cloneForStorage(appData);
-        nextData.batches.push(wordbook);
-        if (!await saveData(nextData)) return false;
-        appData = nextData;
-      }
+      if (!await appendVocabularyScreeningWordbook(wordbook)) return false;
       record.wordbookId = wordbook.id;
       record.wordbookName = wordbook.name;
     } else {

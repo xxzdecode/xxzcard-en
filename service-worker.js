@@ -1,4 +1,4 @@
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v7';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v8';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',

@@ -84,10 +84,49 @@ assert.equal(value('__known1.words.length'), 168);
 assert.equal(value('__known2.words.length'), 168);
 assert.equal(value('__known2.student'), 'sister');
 
+context.__savedMain = null;
+context.__snapshotMain = null;
+context.appData = { batches: [{ id: 'stale-only', cards: [] }] };
+context.sbGetRemote = async () => ({
+  pin: '0716',
+  batches: [
+    { id: 'remote-1', cards: [] },
+    { id: 'remote-2', cards: [] }
+  ],
+  taskAssignments: [{ date: '2026-07-20' }],
+  mixedAssignments: []
+});
+context.normalizeAppData = () => false;
+context.cloneForStorage = input => JSON.parse(JSON.stringify(input));
+context.setMainSnapshot = input => { context.__snapshotMain = JSON.parse(JSON.stringify(input)); };
+context.saveData = async input => {
+  context.__savedMain = JSON.parse(JSON.stringify(input));
+  return true;
+};
+context.storageError = (code, message) => Object.assign(new Error(message), { code });
+
+async function verifySafeWordbookAppend() {
+  context.__wordbook = { id: 'screening-safe', cards: [], sharedWith: ['sister'] };
+  assert.equal(await value('appendVocabularyScreeningWordbook(__wordbook)'), true);
+  assert.deepEqual(Array.from(context.__snapshotMain.batches, item => item.id), ['remote-1', 'remote-2']);
+  assert.deepEqual(Array.from(context.__savedMain.batches, item => item.id), [
+    'remote-1', 'remote-2', 'screening-safe'
+  ]);
+  assert.equal(context.__savedMain.taskAssignments.length, 1);
+  assert.deepEqual(Array.from(context.appData.batches, item => item.id), [
+    'remote-1', 'remote-2', 'screening-safe'
+  ]);
+}
+
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.match(html, /id="screenVocabularyScreening"/);
 assert.match(html, /onclick="openVocabularyScreening\(\)"/);
 assert.ok(html.indexOf('js/vocabularyScreeningData.js') < html.indexOf('js/vocabularyScreening.js'));
 assert.ok(html.indexOf('js/vocabularyScreening.js') < html.indexOf('js/main.js'));
 
-console.log('vocabulary screening tests passed');
+verifySafeWordbookAppend()
+  .then(() => console.log('vocabulary screening tests passed'))
+  .catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
