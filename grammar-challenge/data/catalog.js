@@ -5,7 +5,7 @@
       id: 'grammar-2026-07-22-simple-present-1',
       date: '2026-07-22',
       title: '一般现在时第一课｜三单',
-      pagePath: './practices/2026-07-22.html'
+      pagePath: './practices/2026-07-22-corrected.html'
     },
     {
       id: 'grammar-2026-07-17-articles',
