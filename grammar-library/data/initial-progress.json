@@ -1,0 +1,21 @@
+[
+  {"topicKey":"sentence-parts","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"sentence-be-action-aux","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"subject-pronouns-be","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"be-positive-negative","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"be-questions-answers","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"noun-types","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"noun-number","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"countable-uncountable","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"articles","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"simple-present-use","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"third-person-singular","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"simple-present-negative-question","status":"confirmed_complete","note":"当前正式教学状态初始化"},
+  {"topicKey":"wh-question-method","status":"needs_review","note":"已接触，需系统复习确认"},
+  {"topicKey":"what-who-where","status":"needs_review","note":"已接触，需系统复习确认"},
+  {"topicKey":"frequency-adverbs","status":"needs_review","note":"需复习 be 后、实义前"},
+  {"topicKey":"how-often","status":"needs_review","note":"需复习频率问答"},
+  {"topicKey":"can","status":"needs_review","note":"快速复习后再确认"},
+  {"topicKey":"there-be","status":"to_teach","note":"此前漏项，待补讲"},
+  {"topicKey":"impersonal-it","status":"to_teach","note":"此前漏项，待补讲"}
+]

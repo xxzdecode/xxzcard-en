@@ -1,4 +1,4 @@
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v10';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v11';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const VOCABULARY_REVIEW_ASSETS = [
   './js/themeQuizzes.js',
   './js/courseware-data.js',
   './js/courseware.js',
+  './js/grammarLibrary.js',
   './js/batch.js',
   './js/import.js',
   './js/tasks.js',
@@ -28,6 +29,12 @@ const VOCABULARY_REVIEW_ASSETS = [
   './js/vocabularyScreeningData.js',
   './js/vocabularyScreening.js',
   './js/main.js',
+  './grammar-library/index.html',
+  './grammar-library/styles.css',
+  './grammar-library/app.js',
+  './grammar-library/data/topics.json',
+  './grammar-library/data/source-coverage.json',
+  './grammar-library/data/initial-progress.json',
   './assets/vocabulary-review/line.webp',
   './assets/vocabulary-review/cucumber.webp',
   './assets/vocabulary-review/bonnet.webp',

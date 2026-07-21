@@ -15,6 +15,7 @@ Object.assign(window, {
   openThemeQuizList, openThemeQuiz, closeThemeQuiz,
   openTeacherWordCards, returnToTeacherHome, closeBatchDetail, closeBatchImport, closeMergeSelect,
   openCoursewareList, openCourseware, closeCourseware,
+  openGrammarLibrary, closeGrammarLibrary,
   openWordDedupe, closeWordDedupe,
   openVocabularyReviewList, closeVocabularyReviewList, startVocabularyReview, closeVocabularyReviewPlayer,
   setVocabularyReviewMode, changeVocabularyReviewWord, speakVocabularyReviewWord,

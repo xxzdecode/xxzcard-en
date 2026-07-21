@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英语语法知识点库</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">TEACHING ORDER · 逐知识点进度</p>
+        <h1>英语语法知识点库</h1>
+        <p class="hero-copy">按真实教学依赖浏览、检索和更新，不再按旧目录机械推进。</p>
+      </div>
+      <div class="hero-actions">
+        <button id="sourceViewButton" class="secondary-button" type="button">来源覆盖</button>
+        <button id="authButton" class="secondary-button" type="button">教师登录</button>
+      </div>
+    </header>
+
+    <div id="syncBanner" class="sync-banner" role="status" hidden></div>
+
+    <section class="toolbar" aria-label="知识点筛选">
+      <label class="search-field">
+        <span>搜索</span>
+        <input id="searchInput" type="search" placeholder="疑问词、时态、词性、例句…" autocomplete="off">
+      </label>
+      <label>
+        <span>分类</span>
+        <select id="categoryFilter">
+          <option value="all">全部分类</option>
+          <option value="syntax">句法</option>
+          <option value="morphology">词法</option>
+          <option value="tense">时态</option>
+          <option value="verb">动词</option>
+          <option value="reference">基础参考</option>
+        </select>
+      </label>
+      <label>
+        <span>状态</span>
+        <select id="statusFilter">
+          <option value="all">全部状态</option>
+          <option value="to_teach">待补讲</option>
+          <option value="needs_review">需复习确认</option>
+          <option value="not_started">未开始</option>
+          <option value="confirmed_complete">确认完成</option>
+        </select>
+      </label>
+      <label>
+        <span>级别</span>
+        <select id="levelFilter">
+          <option value="current">当前主线</option>
+          <option value="all">全部级别</option>
+          <option value="core">核心</option>
+          <option value="extension">扩充</option>
+          <option value="advanced">进阶储备</option>
+          <option value="reference">基础参考</option>
+        </select>
+      </label>
+    </section>
+
+    <nav id="moduleNav" class="module-nav" aria-label="教学模块"></nav>
+
+    <main>
+      <section class="summary-strip" aria-label="进度摘要">
+        <div><strong id="visibleCount">0</strong><span>当前显示</span></div>
+        <div><strong id="completeCount">0</strong><span>确认完成</span></div>
+        <div><strong id="reviewCount">0</strong><span>需复习</span></div>
+        <div><strong id="teachCount">0</strong><span>待补讲</span></div>
+      </section>
+      <div id="topicList" class="topic-list" aria-live="polite"></div>
+      <p id="emptyState" class="empty-state" hidden>没有符合当前条件的知识点。</p>
+    </main>
+  </div>
+
+  <dialog id="topicDialog" class="topic-dialog"></dialog>
+  <dialog id="sourceDialog" class="source-dialog">
+    <form method="dialog" class="dialog-topbar">
+      <div><p class="eyebrow">SOURCE COVERAGE</p><h2>三份目录覆盖矩阵</h2></div>
+      <button class="icon-button" aria-label="关闭">×</button>
+    </form>
+    <div id="sourceSummary" class="source-summary"></div>
+    <div id="sourceTableWrap" class="source-table-wrap"></div>
+  </dialog>
+  <dialog id="authDialog" class="auth-dialog">
+    <form id="authForm">
+      <div class="dialog-topbar"><div><p class="eyebrow">SUPABASE AUTH</p><h2>教师登录</h2></div><button id="authCloseButton" class="icon-button" type="button" aria-label="关闭">×</button></div>
+      <p class="dialog-help">登录只用于写入共享教学进度；未登录时仍可查看。</p>
+      <label><span>邮箱</span><input id="authEmail" type="email" required autocomplete="username"></label>
+      <label><span>密码</span><input id="authPassword" type="password" required autocomplete="current-password"></label>
+      <p id="authError" class="form-error" role="alert"></p>
+      <button class="primary-button" type="submit">登录并继续</button>
+    </form>
+    <div id="authSignedIn" hidden>
+      <div class="dialog-topbar"><div><p class="eyebrow">SUPABASE AUTH</p><h2>已登录</h2></div><button class="icon-button" type="button" onclick="document.getElementById('authDialog').close()" aria-label="关闭">×</button></div>
+      <p id="authIdentity"></p>
+      <button id="legacyImportButton" class="secondary-button" type="button" hidden>导入旧版本地进度</button>
+      <button id="signOutButton" class="danger-button" type="button">退出登录</button>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -15,11 +15,12 @@
 
 `index.html` 中的主要 screen：
 
-- `screenHome`：首页、用户切换、学生今日/混合任务与学习入口，以及老师端“单词卡 / 随堂练习 / 生词巩固”三个主入口。
+- `screenHome`：首页、用户切换、学生今日/混合任务与学习入口，以及老师端“单词卡 / 随堂练习 / 生词巩固 / 知识点库”四个主入口。
 - `screenVocabularyReviewList`：老师端生词巩固目录与单词选择页。
 - `screenVocabularyReview`：生词巩固学习/自测卡片页。
 - `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。
 - `screenCourseware` / `screenCoursewarePlayer`：老师端随堂练习目录与独立 iframe 播放页；内部 ID 保留旧名称以兼容已有入口。
+- `screenGrammarLibrary`：老师端“知识点库”入口与 iframe 容器，加载结构化英语语法知识点库。
 - `screenWordCards`：学生单词卡列表和单词卡查看。
 - `screenPhonemeTraining`：音标训练。
 - `screenThemeQuizzes`：专项小游戏列表。
@@ -54,6 +55,8 @@
 - `js/themeQuizzes.js`：专项小游戏注册表和 iframe 打开/关闭逻辑。
 - `js/courseware.js`：独立随堂练习清单、老师端目录渲染和 iframe 播放器开关逻辑；文件名保留用于兼容。
 - `js/courseware-data.js`：由练习上传脚本维护的随堂练习目录数据；文件名和旧全局变量别名保留用于兼容。
+- `js/grammarLibrary.js`：老师端知识点库 iframe 的打开和返回逻辑。
+- `grammar-library/`：英语语法知识点库独立页面、结构化教学顺序、来源覆盖矩阵和进度交互。
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
 - `js/vocabularyReviewData.js`：生词巩固当前词表、音标、释义和图片路径。
 - `js/vocabularyReview.js`：生词巩固目录、学习/自测切换、卡片翻面、滑动和图片预加载。
@@ -107,19 +110,20 @@
 8. `js/themeQuizzes.js`
 9. `js/courseware-data.js`
 10. `js/courseware.js`
-11. `js/batch.js`
-12. `js/import.js`
-13. `js/tasks.js`
-14. `js/review.js`
-15. `js/study.js`
-16. `js/quiz.js`
-17. `js/questionTypes.js`
-18. `js/taskEngine.js`
-19. `js/merge.js`
-20. `js/wordDedupe.js`
-21. `js/vocabularyReviewData.js`
-22. `js/vocabularyReview.js`
-23. `js/main.js`
+11. `js/grammarLibrary.js`
+12. `js/batch.js`
+13. `js/import.js`
+14. `js/tasks.js`
+15. `js/review.js`
+16. `js/study.js`
+17. `js/quiz.js`
+18. `js/questionTypes.js`
+19. `js/taskEngine.js`
+20. `js/merge.js`
+21. `js/wordDedupe.js`
+22. `js/vocabularyReviewData.js`
+23. `js/vocabularyReview.js`
+24. `js/main.js`
 
 ## 6. 常见任务应该先看哪些文件
 
@@ -137,6 +141,7 @@
 - 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
 - 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
+- 看老师端知识点库：先看 `grammar-library/data/topics.json` 与 `grammar-library/app.js`，再看 `js/grammarLibrary.js` 和 Supabase grammar migration。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 执行已完成内容的单词本任务：先看 `docs/create-wordbook-automation.md`，再使用 `scripts/create-wordbook.mjs`；不得跳过 dry-run 或改成普通多次写入。
 - 看老师端生词巩固：先看 `js/vocabularyReview.js` 和 `js/vocabularyReviewData.js`，再看 `index.html` 中两个 vocabulary review screen。

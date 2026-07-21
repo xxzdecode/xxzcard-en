@@ -103,6 +103,13 @@
       </svg>
       <span>生词巩固</span>
     </button>
+    <button class="bottom-feature-nav__item" onclick="openGrammarLibrary()">
+      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1 -3 -3z" />
+        <path d="M5 17a3 3 0 0 1 3 -3h11M9 8h6M9 11h4" />
+      </svg>
+      <span>知识点库</span>
+    </button>
   </nav>
 </div>
 
@@ -272,6 +279,15 @@
     <span class="topbar-title" id="coursewareTitle">随堂练习</span>
   </div>
   <iframe class="courseware-frame" id="coursewareFrame" title="随堂练习"></iframe>
+</div>
+
+<!-- ══ SCREEN: GRAMMAR KNOWLEDGE LIBRARY ══ -->
+<div class="screen" id="screenGrammarLibrary">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeGrammarLibrary()">←</button>
+    <span class="topbar-title">知识点库</span>
+  </div>
+  <iframe class="grammar-library-frame" id="grammarLibraryFrame" title="英语语法知识点库"></iframe>
 </div>
 
 <!-- ══ SCREEN: WORD TASK MENU ══ -->
@@ -689,6 +705,7 @@
 <script src="js/themeQuizzes.js"></script>
 <script src="js/courseware-data.js"></script>
 <script src="js/courseware.js"></script>
+<script src="js/grammarLibrary.js"></script>
 <script src="js/batch.js"></script>
 <script src="js/import.js"></script>
 <script src="js/tasks.js"></script>
