@@ -22,6 +22,7 @@
       let markup = await response.text();
       const configJson = JSON.stringify(config).replace(/</g, "\\u003c");
       markup = markup.replace(/<title>[\s\S]*?<\/title>/i, () => "<title>冠词｜上一课语法挑战</title>");
+      markup = markup.replace("</head>", () => "<style>.options{grid-template-columns:1fr;overflow-y:auto;align-content:start;padding-right:2px}</style></head>");
       markup = markup.replace(
         /<script id="practice-data" type="application\/json">[\s\S]*?<\/script>/i,
         () => `<script id="practice-data" type="application/json">${configJson}<\/script>`
