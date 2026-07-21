@@ -2,9 +2,9 @@
   // 新增练习时：数据型练习使用 dataPath；复用随堂练习 UI 的独立页面使用 pagePath。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
-      id: 'grammar-2026-07-22-simple-present-2',
+      id: 'grammar-2026-07-22-simple-present-1',
       date: '2026-07-22',
-      title: '一般现在时第二课｜否定与提问',
+      title: '一般现在时第一课｜三单',
       pagePath: './practices/2026-07-22.html'
     },
     {
