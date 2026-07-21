@@ -3,7 +3,7 @@ window.CLASSROOM_PRACTICE_ITEMS = [
   {
     "id": "courseware-2026-07-22-simple-present-2",
     "title": "26.07.22｜一般现在时第二课",
-    "description": "一般现在时第二课随堂练习，共20题，覆盖否定句、一般疑问句、特殊疑问句与 How often",
+    "description": "一般现在时第二课随堂练习，共20题，覆盖否定句、一般疑问句与简短回答",
     "icon": "screen",
     "tone": "purple",
     "path": "courseware/26.07.22｜一般现在时第二课.html"
