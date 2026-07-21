@@ -26,7 +26,7 @@ window.CLASSROOM_PRACTICE_ITEMS = [
   },
   {
     "id": "courseware-2026-07-16",
-    "title": "26.07.16",
+    "title": "26.07.16｜语法车站：代词 + be 动词",
     "description": "代词与 be 动词课堂即时练习",
     "icon": "screen",
     "tone": "purple",
@@ -34,7 +34,7 @@ window.CLASSROOM_PRACTICE_ITEMS = [
   },
   {
     "id": "sentence-structure-2026-07-15",
-    "title": "26.07.15",
+    "title": "26.07.15｜句子骨架与句型变身",
     "description": "句子骨架、句型判断、句型转换与扩句练习",
     "icon": "screen",
     "tone": "purple",
