@@ -1,6 +1,5 @@
 const SUPABASE_URL = 'https://pnwxpuwsoprfehdvnlik.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBud3hwdXdzb3ByZmVoZHZubGlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTE5MjIsImV4cCI6MjA5NjgyNzkyMn0.aDdixCpy7l4NR3zK-WyOCvBmFLmZ7pbP8Pg4w8WYClg';
-const AUTH_STORAGE_KEY = 'grammar_supabase_session_v1';
 const STATUS_LABELS = {
   not_started: '未开始',
   to_teach: '待补讲',
@@ -24,39 +23,12 @@ const state = {
   initialProgress: [],
   progress: new Map(),
   selectedModule: 'all',
-  session: readSession(),
   databaseReady: true,
   saving: new Set()
 };
 
-function readSession() {
-  try {
-    const session = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null');
-    if (!session || !session.access_token || !session.expires_at || session.expires_at * 1000 <= Date.now()) return null;
-    return session;
-  } catch (_) {
-    return null;
-  }
-}
-
-function decodeJwt(token) {
-  try {
-    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(decodeURIComponent(Array.from(atob(payload), c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')));
-  } catch (_) {
-    return {};
-  }
-}
-
-function isTeacherSession() {
-  if (!state.session) return false;
-  const claims = decodeJwt(state.session.access_token);
-  return ['teacher', 'admin'].includes(claims.app_metadata && claims.app_metadata.role);
-}
-
-function apiHeaders(authenticated = false, extra = {}) {
-  const token = authenticated && state.session ? state.session.access_token : SUPABASE_KEY;
-  return { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...extra };
+function apiHeaders(extra = {}) {
+  return { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', ...extra };
 }
 
 async function loadJson(path) {
@@ -76,21 +48,34 @@ function makeInitialProgressMap() {
 }
 
 async function loadRemoteProgress() {
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/grammar_teaching_progress?scope_key=eq.shared&select=status,first_taught_at,confirmed_at,last_lesson_date,note,updated_at,grammar_topics!inner(topic_key)`,
-    { headers: apiHeaders() }
-  );
-  if (!response.ok) {
-    state.databaseReady = false;
-    throw new Error(`进度表尚未部署（HTTP ${response.status}）`);
-  }
-  const rows = await response.json();
+  const store = await readRemoteProgressStore();
   const progress = makeInitialProgressMap();
-  rows.forEach(row => {
-    const key = row.grammar_topics && row.grammar_topics.topic_key;
-    if (key) progress.set(key, { ...row, topic_key: key, source: 'database' });
+  Object.entries(store.topics || {}).forEach(([key, row]) => {
+    if (state.topics.some(topic => topic.topicKey === key)) progress.set(key, { ...row, topic_key: key, source: 'database' });
   });
   state.progress = progress;
+  state.databaseReady = true;
+}
+
+async function readRemoteProgressStore() {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/kv_store?key=eq.grammar_progress&select=value`, { headers: apiHeaders() });
+  if (!response.ok) throw new Error(`无法读取 Supabase 进度（HTTP ${response.status}）`);
+  const rows = await response.json();
+  return rows.length && rows[0].value && typeof rows[0].value === 'object'
+    ? rows[0].value
+    : { schemaVersion: 1, scopeKey: 'shared', topics: {}, events: [] };
+}
+
+async function writeRemoteProgressStore(store) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/kv_store`, {
+    method: 'POST',
+    headers: apiHeaders({ Prefer: 'resolution=merge-duplicates' }),
+    body: JSON.stringify({ key: 'grammar_progress', value: store })
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.message || `HTTP ${response.status}`);
+  }
 }
 
 function statusFor(topicKey) {
@@ -172,7 +157,7 @@ function renderTopics() {
       ? `<div class="module-heading"><h2>${escapeHtml(MODULES[topic.moduleKey].title)}</h2><span>${state.topics.filter(item => item.moduleKey === topic.moduleKey).length} 个知识点</span></div>`
       : '';
     lastModule = topic.moduleKey;
-    const disabled = !isTeacherSession() || !state.databaseReady || state.saving.has(topic.topicKey);
+    const disabled = !state.databaseReady || state.saving.has(topic.topicKey);
     return `${heading}<article class="topic-row ${status === 'confirmed_complete' ? 'complete' : ''}" data-topic-key="${topic.topicKey}">
       <button class="check-button" type="button" data-action="toggle" aria-label="${status === 'confirmed_complete' ? '取消完成' : '标记完成'}" ${disabled ? 'disabled' : ''}>✓</button>
       <button class="topic-main" type="button" data-action="detail">
@@ -213,31 +198,47 @@ function openTopic(topicKey) {
 }
 
 async function updateProgress(topicKey, nextStatus, options = {}) {
-  if (!isTeacherSession()) {
-    showBanner('请先使用具有 teacher/admin app_metadata 角色的 Supabase Auth 账号登录。', 'error');
-    return { status: 'not_authenticated' };
-  }
   const previous = state.progress.get(topicKey) || { topic_key: topicKey, status: 'not_started', note: '' };
   state.progress.set(topicKey, { ...previous, status: nextStatus, updated_at: new Date().toISOString() });
   state.saving.add(topicKey);
   renderTopics();
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/set_grammar_progress`, {
-      method: 'POST',
-      headers: apiHeaders(true),
-      body: JSON.stringify({
-        p_topic_key: topicKey,
-        p_status: nextStatus,
-        p_scope_key: 'shared',
-        p_lesson_date: options.lessonDate || null,
-        p_note: options.note || previous.note || '',
-        p_only_if_missing: Boolean(options.onlyIfMissing)
-      })
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.message || `HTTP ${response.status}`);
-    if (payload.status === 'skipped_existing') state.progress.set(topicKey, previous);
-    else state.progress.set(topicKey, { ...state.progress.get(topicKey), source: 'database', updated_at: payload.updatedAt || new Date().toISOString() });
+    const store = await readRemoteProgressStore();
+    const stored = store.topics && store.topics[topicKey];
+    if (options.onlyIfMissing && stored) {
+      state.progress.set(topicKey, { ...stored, topic_key: topicKey, source: 'database' });
+      showBanner('数据库已有记录，旧进度未覆盖。', 'ok');
+      return { status: 'skipped_existing' };
+    }
+    const updatedAt = new Date().toISOString();
+    const note = options.note || previous.note || '';
+    const topic = state.topics.find(item => item.topicKey === topicKey);
+    const nextRecord = {
+      title: topic.titleZh,
+      module: topic.moduleKey,
+      sequence: topic.sequenceOrder,
+      status: nextStatus,
+      last_lesson_date: options.lessonDate || (stored && stored.last_lesson_date) || null,
+      note,
+      updated_at: updatedAt
+    };
+    const nextStore = {
+      schemaVersion: 1,
+      scopeKey: 'shared',
+      updatedAt,
+      topics: { ...(store.topics || {}), [topicKey]: nextRecord },
+      events: [...(Array.isArray(store.events) ? store.events : []), {
+        topic_key: topicKey,
+        old_status: stored ? stored.status : 'not_started',
+        new_status: nextStatus,
+        lesson_date: options.lessonDate || null,
+        note,
+        created_at: updatedAt
+      }].slice(-1000)
+    };
+    await writeRemoteProgressStore(nextStore);
+    state.progress.set(topicKey, { ...nextRecord, topic_key: topicKey, source: 'database' });
+    const payload = { status: 'saved', updatedAt };
     showBanner(payload.status === 'skipped_existing' ? '数据库已有记录，旧进度未覆盖。' : '教学进度已保存到 Supabase。', 'ok');
     return payload;
   } catch (error) {
@@ -294,54 +295,10 @@ async function importLegacyProgress() {
   showBanner(`旧进度导入完成：映射 ${mapping.mapped.length}，新增 ${saved}，数据库已有并跳过 ${skipped}，无法映射 ${mapping.failed.length}${mapping.failed.length ? `（${mapping.failed.join('、')}）` : ''}。`, mapping.failed.length ? '' : 'ok');
 }
 
-async function signIn(email, password) {
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error_description || payload.msg || payload.message || '登录失败');
-  payload.expires_at = Math.floor(Date.now() / 1000) + payload.expires_in;
-  const claims = decodeJwt(payload.access_token);
-  if (!['teacher', 'admin'].includes(claims.app_metadata && claims.app_metadata.role)) throw new Error('账号已登录，但没有 teacher/admin 权限');
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
-  state.session = payload;
-}
-
-function updateAuthUi() {
-  const signedIn = isTeacherSession();
-  document.getElementById('authButton').textContent = signedIn ? '教师已登录' : '教师登录';
-  document.getElementById('authForm').hidden = signedIn;
-  document.getElementById('authSignedIn').hidden = !signedIn;
-  if (signedIn) {
-    const claims = decodeJwt(state.session.access_token);
-    document.getElementById('authIdentity').textContent = `${claims.email || '教师账号'} · ${claims.app_metadata.role}`;
-    document.getElementById('legacyImportButton').hidden = !findLegacyProgress();
-  }
-  renderTopics();
-}
-
 function bindEvents() {
   ['searchInput', 'categoryFilter', 'statusFilter', 'levelFilter'].forEach(id => document.getElementById(id).addEventListener(id === 'searchInput' ? 'input' : 'change', renderTopics));
   document.getElementById('sourceViewButton').addEventListener('click', () => document.getElementById('sourceDialog').showModal());
-  document.getElementById('authButton').addEventListener('click', () => document.getElementById('authDialog').showModal());
-  document.getElementById('authCloseButton').addEventListener('click', () => document.getElementById('authDialog').close());
-  document.getElementById('authForm').addEventListener('submit', async event => {
-    event.preventDefault();
-    const error = document.getElementById('authError');
-    error.textContent = '';
-    try {
-      await signIn(document.getElementById('authEmail').value, document.getElementById('authPassword').value);
-      updateAuthUi();
-      document.getElementById('authDialog').close();
-      showBanner('教师身份已验证，可以更新共享教学进度。', 'ok');
-    } catch (reason) { error.textContent = reason.message; }
-  });
-  document.getElementById('signOutButton').addEventListener('click', () => {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    state.session = null;
-    updateAuthUi();
-    document.getElementById('authDialog').close();
-  });
+  document.getElementById('legacyImportButton').hidden = !findLegacyProgress();
   document.getElementById('legacyImportButton').addEventListener('click', importLegacyProgress);
 }
 
@@ -354,12 +311,13 @@ async function init() {
     renderModuleNav();
     renderSourceView();
     bindEvents();
-    updateAuthUi();
+    renderTopics();
     try {
       await loadRemoteProgress();
       showBanner('已读取 Supabase 共享教学进度。', 'ok');
     } catch (error) {
-      showBanner(`${error.message}。当前显示任务卡中的初始化快照，数据库部署前为只读。`, 'error');
+      state.databaseReady = false;
+      showBanner(`${error.message}。当前显示初始进度，云端不可用时为只读。`, 'error');
     }
     renderTopics();
   } catch (error) {

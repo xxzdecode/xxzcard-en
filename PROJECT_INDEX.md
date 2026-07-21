@@ -141,7 +141,7 @@
 - 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
 - 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
-- 看老师端知识点库：先看 `grammar-library/data/topics.json` 与 `grammar-library/app.js`，再看 `js/grammarLibrary.js` 和 Supabase grammar migration。
+- 看老师端知识点库：先看 `grammar-library/data/topics.json` 与 `grammar-library/app.js`，再看 `js/grammarLibrary.js` 和 Supabase `kv_store/grammar_progress` 进度记录。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 执行已完成内容的单词本任务：先看 `docs/create-wordbook-automation.md`，再使用 `scripts/create-wordbook.mjs`；不得跳过 dry-run 或改成普通多次写入。
 - 看老师端生词巩固：先看 `js/vocabularyReview.js` 和 `js/vocabularyReviewData.js`，再看 `index.html` 中两个 vocabulary review screen。

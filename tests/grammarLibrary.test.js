@@ -38,12 +38,14 @@ for (const key of ['sentence-parts', 'subject-pronouns-be', 'articles', 'simple-
 for (const key of ['wh-question-method', 'frequency-adverbs', 'can']) assert.equal(initialMap.get(key), 'needs_review');
 for (const key of ['there-be', 'impersonal-it']) assert.equal(initialMap.get(key), 'to_teach');
 
-const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20260721230000_create_grammar_knowledge_library.sql'), 'utf8');
-for (const table of ['grammar_topics', 'grammar_topic_sources', 'grammar_teaching_progress', 'grammar_progress_events']) assert.match(migration, new RegExp(`alter table public\\.${table} enable row level security`, 'i'));
-assert.match(migration, /security invoker/i);
-assert.match(migration, /app_metadata/);
-assert.doesNotMatch(migration, /for (insert|update|delete) to anon/i, 'anonymous writes must not be granted');
-assert.match(migration, /set_grammar_progress/);
+const app = fs.readFileSync(path.join(root, 'grammar-library/app.js'), 'utf8');
+assert.match(app, /key=eq\.grammar_progress/);
+assert.match(app, /key:\s*'grammar_progress'/);
+assert.match(app, /resolution=merge-duplicates/);
+assert.doesNotMatch(app, /auth\/v1|teacher\/admin|authDialog/);
+const seed = fs.readFileSync(path.join(root, 'scripts/seed-grammar-library.mjs'), 'utf8');
+assert.match(seed, /kv_store\/grammar_progress/);
+assert.match(seed, /existingProgressKept/);
 
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.match(index, />知识点库</);

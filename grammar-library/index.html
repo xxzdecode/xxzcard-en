@@ -16,7 +16,7 @@
       </div>
       <div class="hero-actions">
         <button id="sourceViewButton" class="secondary-button" type="button">来源覆盖</button>
-        <button id="authButton" class="secondary-button" type="button">教师登录</button>
+        <button id="legacyImportButton" class="secondary-button" type="button" hidden>导入旧进度</button>
       </div>
     </header>
 
@@ -84,23 +84,6 @@
     <div id="sourceSummary" class="source-summary"></div>
     <div id="sourceTableWrap" class="source-table-wrap"></div>
   </dialog>
-  <dialog id="authDialog" class="auth-dialog">
-    <form id="authForm">
-      <div class="dialog-topbar"><div><p class="eyebrow">SUPABASE AUTH</p><h2>教师登录</h2></div><button id="authCloseButton" class="icon-button" type="button" aria-label="关闭">×</button></div>
-      <p class="dialog-help">登录只用于写入共享教学进度；未登录时仍可查看。</p>
-      <label><span>邮箱</span><input id="authEmail" type="email" required autocomplete="username"></label>
-      <label><span>密码</span><input id="authPassword" type="password" required autocomplete="current-password"></label>
-      <p id="authError" class="form-error" role="alert"></p>
-      <button class="primary-button" type="submit">登录并继续</button>
-    </form>
-    <div id="authSignedIn" hidden>
-      <div class="dialog-topbar"><div><p class="eyebrow">SUPABASE AUTH</p><h2>已登录</h2></div><button class="icon-button" type="button" onclick="document.getElementById('authDialog').close()" aria-label="关闭">×</button></div>
-      <p id="authIdentity"></p>
-      <button id="legacyImportButton" class="secondary-button" type="button" hidden>导入旧版本地进度</button>
-      <button id="signOutButton" class="danger-button" type="button">退出登录</button>
-    </div>
-  </dialog>
-
   <script src="app.js"></script>
 </body>
 </html>
