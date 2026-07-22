@@ -787,7 +787,6 @@ function renderWordCardBatchList() {
       <div class="batch-info">
         <div class="batch-name">${escapeHtml(batch.name)}</div>
         <div class="batch-meta">${batch.cards.length} 个单词</div>
-        ${bookPurpose === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
       </div>
       <span class="batch-arrow">›</span>`;
     item.addEventListener('click', () => openBatch(batch.id));

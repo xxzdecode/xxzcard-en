@@ -75,7 +75,6 @@ async function refreshTeacherWordCards() {
         <div class="batch-info">
           <div class="batch-name">${batch.name}</div>
           <div class="batch-meta">${batch.cards.length} 个单词 · ✅${urec.known.length} ❌${urec.unknown.length}</div>
-          ${bookPurpose === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
           ${pushTagsHTML}
         </div>
         <span class="batch-arrow">›</span>

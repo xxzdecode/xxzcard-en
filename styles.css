@@ -331,7 +331,6 @@ body.grammar-challenge-open { padding-bottom: 0; overflow: hidden; }
 .batch-info { flex: 1; min-width: 0; }
 .batch-name { font-size: 15px; font-weight: 700; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .batch-meta { font-size: 12px; color: var(--text-light); margin-top: 2px; }
-.book-purpose-tag { width: fit-content; margin-top: 5px; padding: 2px 8px; border-radius: 999px; background: #EEF4FF; color: #526A92; font-size: 11px; font-weight: 700; }
 .batch-arrow { font-size: 18px; color: var(--text-light); flex-shrink: 0; }
 .batch-delete {
   width: 30px; height: 30px; border-radius: 50%; border: none;
