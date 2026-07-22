@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>频度副词专项课｜多久一次，频度词放哪里</title>
+  <style>
+    :root {
+      --page-bg: #fff4f7;
+      --panel: #fffdfc;
+      --title: #d97892;
+      --mint: #a8d8c8;
+      --mint-deep: #397c69;
+      --mint-soft: #dff3ea;
+      --knowledge: #fff0c9;
+      --line: #efdde4;
+      --text: #625b63;
+      --muted: #81747c;
+      --correct: #d7f3dc;
+      --wrong: #ffd9d9;
+      --feedback-height: 52px;
+      --tap: 46px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: var(--page-bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    button { font: inherit; min-height: var(--tap); cursor: pointer; }
+    button:focus-visible { outline: 3px solid #f3b6c7; outline-offset: 2px; }
+    .practice-app {
+      width: 100vw; height: 100dvh; overflow: hidden;
+      display: grid; grid-template-rows: auto minmax(0, 1fr) var(--feedback-height); gap: 10px;
+      padding: max(9px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right))
+        max(9px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+    }
+    .practice-header {
+      display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+      align-items: center; gap: 10px; min-width: 0; padding: 9px 12px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(220, 170, 180, .14);
+    }
+    h1 { margin: 0; color: var(--title); font-size: clamp(21px, 2.4vw, 31px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .knowledge-strip { min-width: 0; display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow: hidden; }
+    .knowledge-chip { padding: 5px 9px; border-radius: 999px; background: var(--knowledge); font-size: clamp(12px, 1.25vw, 15px); font-weight: 700; white-space: nowrap; }
+    .header-actions { display: flex; gap: 7px; align-items: center; }
+    .progress { padding: 8px 12px; border-radius: 999px; background: var(--mint-soft); color: var(--mint-deep); font-weight: 900; white-space: nowrap; }
+    .action { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--mint); color: #fff; font-weight: 800; }
+    .action.secondary { color: var(--mint-deep); background: var(--mint-soft); }
+    .practice-stage {
+      min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center;
+      padding: clamp(12px, 2vw, 24px); background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+    }
+    .question-card { width: min(920px, 100%); max-height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 12px; }
+    .category { margin: 0; color: var(--muted); font-weight: 800; }
+    .prompt { margin: 0; font-size: clamp(21px, 3vw, 35px); line-height: 1.35; overflow-wrap: anywhere; white-space: pre-line; }
+    .prompt-context { display: grid; gap: 7px; min-height: 0; }
+    .source-line, .answer-zone, .rule-line {
+      border-radius: 14px; padding: 8px 12px; overflow-wrap: anywhere;
+    }
+    .source-line { background: #fff8ef; font-size: clamp(16px, 1.8vw, 21px); font-weight: 800; }
+    .answer-zone { min-height: 48px; background: var(--mint-soft); color: var(--mint-deep); font-size: clamp(17px, 2vw, 23px); font-weight: 900; }
+    .rule-line { background: var(--knowledge); color: var(--muted); font-size: clamp(13px, 1.35vw, 16px); font-weight: 700; }
+    .options { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .options.order-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .option {
+      min-width: 0; border: 2px solid var(--line); border-radius: 16px; padding: 10px 14px;
+      background: #fff8fb; color: var(--text); font-weight: 800; font-size: clamp(16px, 2vw, 22px); overflow-wrap: anywhere;
+    }
+    .option[aria-pressed="true"] { border-color: #e88fa3; background: #fff0f5; }
+    .option.correct-option { border-color: #6bb985; background: var(--correct); }
+    .option.wrong-option { border-color: #e28a8a; background: var(--wrong); }
+    .option.order-picked { opacity: .48; }
+    .question-actions { display: flex; justify-content: center; gap: 9px; }
+    .feedback {
+      height: var(--feedback-height); min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .feedback.correct { background: var(--correct); }
+    .feedback.wrong { background: var(--wrong); }
+    .completion {
+      border: 0; border-radius: 22px; padding: 24px; color: var(--text); background: var(--panel);
+      box-shadow: 0 20px 60px rgba(80, 55, 70, .25); text-align: center;
+    }
+    .completion::backdrop { background: rgba(80, 55, 70, .25); }
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --feedback-height: 40px; --tap: 38px; }
+      .practice-app { gap: 6px; padding: 6px; }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+    @media (orientation: portrait) and (max-width: 767px) {
+      .practice-app {
+        position: fixed; left: 0; top: 100dvh; width: 100dvh; height: 100vw;
+        transform: rotate(-90deg); transform-origin: top left;
+        --feedback-height: 40px; --tap: 38px; gap: 6px; padding: 6px;
+      }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="practice-header">
+      <h1 id="pageTitle"></h1>
+      <div class="knowledge-strip" id="knowledgeStrip" aria-label="知识摘要"></div>
+      <div class="header-actions">
+        <span class="progress" id="progressText" aria-live="polite"></span>
+        <button class="action" id="newRoundButton" type="button">重新开始</button>
+      </div>
+    </header>
+    <main class="practice-stage">
+      <section class="question-card" aria-live="polite">
+        <p class="category" id="categoryText"></p>
+        <div class="prompt-context">
+          <div class="source-line" id="sourceLine" hidden></div>
+          <h2 class="prompt" id="promptText"></h2>
+          <div class="rule-line" id="ruleLine" hidden></div>
+        </div>
+        <div class="options" id="options"></div>
+        <div class="answer-zone" id="answerZone" hidden></div>
+        <div class="question-actions">
+          <button class="action" id="checkButton" type="button">检查答案</button>
+          <button class="action secondary" id="showAnswerButton" type="button">显示答案</button>
+          <button class="action secondary" id="nextButton" type="button" disabled>下一题</button>
+        </div>
+      </section>
+    </main>
+    <footer class="feedback" id="feedback" aria-live="polite">△ 请选择答案。</footer>
+  </div>
+  <dialog class="completion" id="completionDialog" data-complete="false">
+    <h2>本轮完成</h2>
+    <p id="completionText"></p>
+    <button class="action" id="restartButton" type="button">重新开始</button>
+  </dialog>
+  <script id="practice-data" type="application/json">{"version":1,"title":"频度副词专项课｜多久一次，频度词放哪里","knowledge":["always / usually / often / sometimes / never","be 后，动作前","How often + do/does + 主语 + 动词原形"],"completion":"频度副词专项练习完成｜你完成了 20 题。记住：be 后，动作前；想问多久一次，用 How often。","round":{"size":20,"shuffle":false,"quotas":{"meaning":5,"position":5,"order":3,"usage":2,"howoften":5}},"scope":{"mode":"declared","allowedWords":[]},"questions":[{"id":"CP01","category":"meaning","categoryLabel":"词义｜always","type":"single","prompt":"哪个词表示“总是”？","options":["always","sometimes","never","often"],"answer":"always","answerDisplay":"always = 总是","correctFeedback":"正确。always 表示事情每次或几乎每次都发生。","wrongFeedback":"想一想频率跑道的最上端。","explanation":"always 位于本课频率梯度最高端。"},{"id":"CP02","category":"meaning","categoryLabel":"词义｜never","type":"single","prompt":"哪个词表示“从不”？","options":["usually","often","never","sometimes"],"answer":"never","answerDisplay":"never = 从不","correctFeedback":"正确。never 表示一次也不发生。","wrongFeedback":"想一想频率跑道的最下端。","explanation":"never 位于频率最低端。"},{"id":"CP03","category":"meaning","categoryLabel":"频率顺序","type":"single","prompt":"哪一组是从发生得最多到发生得最少？","options":["always → usually → often → sometimes → never","never → sometimes → often → usually → always","always → often → never → usually → sometimes","usually → always → sometimes → never → often"],"answer":"always → usually → often → sometimes → never","answerDisplay":"always → usually → often → sometimes → never","correctFeedback":"正确。always 最高，never 最低。","wrongFeedback":"先固定两端，再看中间三个词。","explanation":"本课只要求大致梯度，不背精确百分比。"},{"id":"CP04","category":"meaning","categoryLabel":"语境｜usually","type":"single","prompt":"Mia 一周有四天步行上学。最合适的句子是哪一句？","options":["Mia never walks to school.","Mia usually walks to school.","Mia always walks to school.","Mia walks to school once a year."],"answer":"Mia usually walks to school.","answerDisplay":"Mia usually walks to school.","correctFeedback":"正确。四天一周表示通常如此，但不是每天。","wrongFeedback":"她不是一次也不走，也不是每天都走。","explanation":"usually 常描述大多数时候形成的习惯。"},{"id":"CP05","category":"meaning","categoryLabel":"语境｜sometimes","type":"single","prompt":"Leo 只在部分周日下棋。Leo ___ plays chess on Sundays.","options":["always","never","sometimes","every"],"answer":"sometimes","answerDisplay":"Leo sometimes plays chess on Sundays.","correctFeedback":"正确。只在部分时候发生，可以用 sometimes。","wrongFeedback":"不是每周都发生，也不是一次也不发生。","explanation":"sometimes 表示有时。"},{"id":"CP06","category":"position","categoryLabel":"be 后｜is always","type":"single","prompt":"选择正确的句子。","options":["Amy always is ready.","Amy is always ready.","Amy is ready always.","Amy does always ready."],"answer":"Amy is always ready.","answerDisplay":"Amy is always ready.","correctFeedback":"正确。句子有 is，always 放在 is 后。","wrongFeedback":"先找 be 动词 is。","explanation":"be 句结构是主语 + be + 频度副词 + 其他。"},{"id":"CP07","category":"position","categoryLabel":"be 后｜are often","type":"single","prompt":"They ___ ___ happy in the park.","options":["often are","are often","do often","often do"],"answer":"are often","answerDisplay":"They are often happy in the park.","correctFeedback":"正确。often 放在 be 动词 are 后。","wrongFeedback":"这句话表示状态，不需要 do。","explanation":"They 使用 are；频度副词放在 be 后。"},{"id":"CP08","category":"position","categoryLabel":"动作前｜often read","type":"single","prompt":"选择正确的句子。","options":["I read often after dinner.","I am often read after dinner.","I often read after dinner.","I do read often after dinner."],"answer":"I often read after dinner.","answerDisplay":"I often read after dinner.","correctFeedback":"正确。read 是动作，often 放在它前面。","wrongFeedback":"句子里没有 be，先找动作 read。","explanation":"动作句结构是主语 + 频度副词 + 动词 + 其他。"},{"id":"CP09","category":"position","categoryLabel":"三单｜usually walks","type":"single","prompt":"Amy usually ___ to school.","options":["walk","walks","walking","is walk"],"answer":"walks","answerDisplay":"Amy usually walks to school.","correctFeedback":"正确。Amy 是第三人称单数，动作动词用 walks。","wrongFeedback":"频度词不改变主谓一致规则。","explanation":"usually 在动作前；Amy 使用 walks。"},{"id":"CP10","category":"position","categoryLabel":"两条路线｜综合","type":"single","prompt":"哪一组两个句子都正确？","options":["She is sometimes busy. / She sometimes helps her mother.","She sometimes is busy. / She helps sometimes her mother.","She does sometimes busy. / She is sometimes help her mother.","She is busy sometimes always. / She sometimes does helps her mother."],"answer":"She is sometimes busy. / She sometimes helps her mother.","answerDisplay":"She is sometimes busy.\nShe sometimes helps her mother.","correctFeedback":"正确。状态句放在 is 后，动作句放在 helps 前。","wrongFeedback":"分别找第一句的 is 和第二句的动作 helps。","explanation":"第一句走 be 路线，第二句走动作路线。"},{"id":"CP11","category":"order","categoryLabel":"句子小火车｜be 后","type":"order","source":"Amy 放学后通常很忙。","prompt":"按正确语序点击词块。","options":["Amy","is","usually","busy","after school","."],"answer":[0,1,2,3,4,5],"answerDisplay":"Amy is usually busy after school.","correctFeedback":"正确。频度词放在 is 后。","wrongFeedback":"先放主语和 is，再把 usually 接在后面。","explanation":"be 句结构为主语 + be + 频度副词 + 其他。"},{"id":"CP12","category":"order","categoryLabel":"句子小火车｜动作前","type":"order","source":"Tom 经常晚饭后读书。","prompt":"按正确语序点击词块。","options":["after dinner","reads","Tom",".","often"],"answer":[2,4,1,0,3],"answerDisplay":"Tom often reads after dinner.","correctFeedback":"正确。often 在动作 reads 前。","wrongFeedback":"Tom 是第三人称单数，动作词要保留 reads。","explanation":"频度词放在实义动词前；Tom 使用 reads。"},{"id":"CP13","category":"order","categoryLabel":"句子小火车｜Sometimes 句首","type":"order","source":"有时，她放学后画画。","prompt":"按正确语序点击词块。","options":["she","after school","Sometimes",".","draws",","],"answer":[2,5,0,4,1,3],"answerDisplay":"Sometimes, she draws after school.","correctFeedback":"正确。Sometimes 可以在句首，后面加逗号。","wrongFeedback":"句首先放 Sometimes，再放逗号和完整句子。","explanation":"sometimes 常放在动作前，也可以放句首。"},{"id":"CP14","category":"usage","categoryLabel":"纠错｜动作前","type":"single","source":"Leo plays usually basketball after school.","prompt":"选择正确改法。","options":["Leo usually plays basketball after school.","Leo is usually plays basketball after school.","Leo plays basketball usually always after school.","Leo does usually plays basketball after school."],"answer":"Leo usually plays basketball after school.","answerDisplay":"Leo usually plays basketball after school.","correctFeedback":"正确。usually 应放在动作 plays 前。","wrongFeedback":"句子里没有 be；真正动作是 plays。","explanation":"Leo 是第三人称单数，保留 plays。"},{"id":"CP15","category":"usage","categoryLabel":"时间短语｜on Saturdays","type":"single","prompt":"我们每周六都有英语课。选择正确句子。","options":["We have English on Saturdays.","We have English on Saturday yesterday.","We have English at Saturdays.","We are have English on Saturdays."],"answer":"We have English on Saturdays.","answerDisplay":"We have English on Saturdays.","correctFeedback":"正确。on Saturdays 表示每周六。","wrongFeedback":"这里说的是规律，不是某一个特定周六。","explanation":"on Saturday 常指某一个周六；on Saturdays 可表示每周六。"},{"id":"CP16","category":"howoften","categoryLabel":"How often｜do","type":"single","prompt":"How often ___ you read English books?","options":["do","does","are","is"],"answer":"do","answerDisplay":"How often do you read English books?","correctFeedback":"正确。主语 you 使用 do。","wrongFeedback":"How often 后仍要根据主语选择 do 或 does。","explanation":"结构是 How often + do + you + 动词原形。"},{"id":"CP17","category":"howoften","categoryLabel":"How often｜does + 原形","type":"single","prompt":"选择正确问句。","options":["How often does Amy exercise?","How often does Amy exercises?","How often do Amy exercise?","How often is Amy exercise?"],"answer":"How often does Amy exercise?","answerDisplay":"How often does Amy exercise?","correctFeedback":"正确。Amy 使用 does，后面用原形 exercise。","wrongFeedback":"看到 does 后，检查动作动词是否还原。","explanation":"does 已承担三单标记，后面必须用原形。"},{"id":"CP18","category":"howoften","categoryLabel":"How often｜回答","type":"single","prompt":"How often do you help at home?","options":["By bus.","In the kitchen.","Twice a week.","Because it is fun."],"answer":"Twice a week.","answerDisplay":"How often do you help at home? — Twice a week.","correctFeedback":"正确。Twice a week 表示频率。","wrongFeedback":"How often 问多久一次，不是方式、地点或原因。","explanation":"次数短语 twice a week 可以直接回答 How often。"},{"id":"CP19","category":"howoften","categoryLabel":"次数表达｜once twice times","type":"single","prompt":"哪一组中英文全部对应正确？","options":["once a week = 一周一次；twice a month = 一月两次；three times a year = 一年三次","once a week = 一周两次；twice a month = 一月一次；three times a year = 一年四次","one time a week = 从不；twice a month = 总是；three time a year = 有时","once weeks = 一周一次；twice months = 一月两次；three time year = 一年三次"],"answer":"once a week = 一周一次；twice a month = 一月两次；three times a year = 一年三次","answerDisplay":"once a week = 一周一次\ntwice a month = 一月两次\nthree times a year = 一年三次","correctFeedback":"正确。一次用 once，两次用 twice，三次及以上用数字加 times。","wrongFeedback":"先固定 once 和 twice 两个特殊词。","explanation":"标准表达是 once a week / twice a month / three times a year。"},{"id":"CP20","category":"howoften","categoryLabel":"综合对话","type":"single","prompt":"哪一组对话全部正确？","options":["How often does Leo play basketball? — He usually plays basketball twice a week.","How often does Leo plays basketball? — He plays usually basketball twice a week.","How does often Leo play basketball? — He is usually play basketball twice a week.","How often do Leo play basketball? — He usually play basketball twice a week."],"answer":"How often does Leo play basketball? — He usually plays basketball twice a week.","answerDisplay":"How often does Leo play basketball?\n— He usually plays basketball twice a week.","correctFeedback":"正确。问句使用 does + play，回答中 usually 放在 plays 前。","wrongFeedback":"检查 Leo 用 do 还是 does、does 后原形和 usually 的位置。","explanation":"Leo 用 does + play；回答 he usually plays。"}]}</script>
+  <script>
+    (() => {
+      "use strict";
+      const config = JSON.parse(document.getElementById("practice-data").textContent);
+      const byId = (id) => document.getElementById(id);
+      const ui = {
+        title: byId("pageTitle"), knowledge: byId("knowledgeStrip"), progress: byId("progressText"),
+        category: byId("categoryText"), prompt: byId("promptText"), source: byId("sourceLine"),
+        answerZone: byId("answerZone"), rule: byId("ruleLine"), options: byId("options"),
+        check: byId("checkButton"), show: byId("showAnswerButton"), next: byId("nextButton"),
+        feedback: byId("feedback"), dialog: byId("completionDialog"), completion: byId("completionText")
+      };
+      const state = { round: [], index: 0, selected: [], solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: [] };
+
+      function shuffle(values) {
+        const copy = [...values];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+      function buildRound() {
+        if (config.round.shuffle === false) return config.questions.slice(0, config.round.size);
+        if (Array.isArray(config.round.groups)) {
+          return config.round.groups.flatMap((group) => {
+            const ids = new Set(group.ids || []);
+            let items = config.questions.filter((q) => ids.has(q.id));
+            if (group.shuffle !== false) items = shuffle(items);
+            return items;
+          }).slice(0, config.round.size);
+        }
+        const picked = [];
+        for (const [category, count] of Object.entries(config.round.quotas)) {
+          picked.push(...shuffle(config.questions.filter((q) => q.category === category)).slice(0, count));
+        }
+        return shuffle(picked);
+      }
+      function answerIndices(question) {
+        const answers = Array.isArray(question.answer) ? question.answer : [question.answer];
+        const used = new Set();
+        return answers.map((value) => {
+          if (typeof value === "number") return value;
+          const index = question.options.findIndex((option, optionIndex) => option === value && !used.has(optionIndex));
+          used.add(index); return index;
+        });
+      }
+      function answerValues(question) {
+        return answerIndices(question).map((index) => question.options[index]);
+      }
+      function selectedValues(question) {
+        return state.selected.map((index) => question.options[index]);
+      }
+      function isCorrect(question) {
+        const selected = selectedValues(question);
+        const answers = answerValues(question);
+        if (question.type === "order") {
+          const indices = answerIndices(question);
+          return state.selected.length === indices.length && state.selected.every((value, index) => value === indices[index]);
+        }
+        if (question.type === "multi") return selected.length === answers.length && selected.every((value) => answers.includes(value));
+        return selected.length === 1 && selected[0] === answers[0];
+      }
+      function completeAnswer(question) {
+        return question.answerDisplay || answerValues(question).join(question.type === "order" ? " " : "、");
+      }
+      function feedback(type, message) {
+        ui.feedback.className = `feedback ${type || ""}`.trim();
+        ui.feedback.textContent = `${type === "correct" ? "✓" : type === "wrong" ? "×" : "△"} ${message}`;
+      }
+      function updateAnswerZone(question) {
+        if (question.type !== "order") return;
+        ui.answerZone.textContent = state.selected.length ? selectedValues(question).join(" ") : "按顺序点击词块，句子会在这里组成。";
+      }
+      function renderQuestion() {
+        const q = state.round[state.index];
+        state.selected = [];
+        ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
+        ui.category.textContent = q.categoryLabel || q.category;
+        ui.prompt.textContent = q.prompt;
+        ui.source.hidden = !q.source; ui.source.textContent = q.source || "";
+        ui.rule.hidden = !q.rule; ui.rule.textContent = q.rule || "";
+        ui.answerZone.hidden = q.type !== "order"; updateAnswerZone(q);
+        ui.options.classList.toggle("order-options", q.type === "order");
+        ui.options.replaceChildren(...q.options.map((option, index) => {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "option"; button.dataset.optionIndex = String(index);
+          button.setAttribute("aria-pressed", "false"); button.textContent = option;
+          button.addEventListener("click", () => {
+            if (state.solved[state.index]) return;
+            if (q.type === "multi") {
+              state.selected = state.selected.includes(index) ? state.selected.filter((item) => item !== index) : [...state.selected, index];
+            } else if (q.type === "order") {
+              if (state.selected.includes(index)) state.selected = state.selected.filter((item) => item !== index);
+              else state.selected.push(index);
+            } else state.selected = [index];
+            ui.options.querySelectorAll(".option").forEach((item) => {
+              const picked = state.selected.includes(Number(item.dataset.optionIndex));
+              item.setAttribute("aria-pressed", String(picked));
+              item.classList.toggle("order-picked", q.type === "order" && picked);
+            });
+            updateAnswerZone(q);
+            feedback("", "已选择，点击“检查答案”。");
+          });
+          return button;
+        }));
+        ui.next.disabled = true;
+        ui.check.disabled = false; ui.show.disabled = false;
+        feedback("", q.type === "multi" ? "请选择全部正确答案。" : q.type === "order" ? "请按正确语序点击全部词块。" : "请选择答案。");
+      }
+      function startRound() {
+        state.round = buildRound(); state.index = 0; state.selected = [];
+        state.solved = Array(state.round.length).fill(false); state.revealed = Array(state.round.length).fill(false);
+        state.attempts = Array(state.round.length).fill(0); state.firstTry = Array(state.round.length).fill(false);
+        state.wrongEver = Array(state.round.length).fill(false);
+        ui.dialog.dataset.complete = "false";
+        if (ui.dialog.open) ui.dialog.close();
+        renderQuestion();
+      }
+      function checkAnswer() {
+        if (!state.selected.length) return feedback("wrong", "请先选择答案。");
+        if (state.solved[state.index]) return;
+        const q = state.round[state.index];
+        state.attempts[state.index] += 1;
+        if (isCorrect(q)) {
+          state.solved[state.index] = true;
+          state.firstTry[state.index] = state.attempts[state.index] === 1 && !state.revealed[state.index];
+          ui.options.querySelectorAll(".option").forEach((item) => {
+            if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          });
+          feedback("correct", `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim());
+          ui.check.disabled = true; ui.show.disabled = true; ui.next.disabled = false;
+        } else {
+          state.wrongEver[state.index] = true;
+          state.selected.forEach((index) => ui.options.querySelector(`[data-option-index="${index}"]`)?.classList.add("wrong-option"));
+          feedback("wrong", q.wrongFeedback || "再看助动词、主语和动词原形。你可以继续修改。");
+          state.selected = [];
+          ui.options.querySelectorAll(".option").forEach((item) => { item.setAttribute("aria-pressed", "false"); item.classList.remove("order-picked"); });
+          updateAnswerZone(q);
+        }
+      }
+      function showAnswer() {
+        const q = state.round[state.index];
+        state.revealed[state.index] = true; state.solved[state.index] = true;
+        feedback("correct", `答案：${completeAnswer(q)}。${q.explanation || ""}`);
+        ui.answerZone.hidden = false; ui.answerZone.textContent = completeAnswer(q);
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+        });
+        ui.check.disabled = true; ui.show.disabled = true;
+        ui.next.disabled = false;
+      }
+      function nextQuestion() {
+        if (state.index + 1 < state.round.length) { state.index += 1; renderQuestion(); return; }
+        const first = state.firstTry.filter(Boolean).length;
+        const final = state.solved.filter(Boolean).length;
+        const wrongIds = state.round.filter((_, index) => state.wrongEver[index]).map((question) => question.id);
+        ui.completion.textContent = `${config.completion || "本轮完成。"} 首次正确 ${first} / ${state.round.length}，最终正确 ${final} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`;
+        ui.dialog.dataset.complete = "true";
+        if (typeof ui.dialog.showModal === "function") ui.dialog.showModal(); else ui.dialog.setAttribute("open", "");
+      }
+
+      ui.title.textContent = config.title;
+      ui.knowledge.replaceChildren(...config.knowledge.map((text) => {
+        const chip = document.createElement("span"); chip.className = "knowledge-chip"; chip.textContent = text; return chip;
+      }));
+      byId("newRoundButton").addEventListener("click", startRound);
+      byId("restartButton").addEventListener("click", startRound);
+      ui.check.addEventListener("click", checkAnswer);
+      ui.show.addEventListener("click", showAnswer);
+      ui.next.addEventListener("click", nextQuestion);
+      window.__LESSON_PREP_QA__ = {
+        state: () => ({ index: state.index, total: state.round.length, complete: ui.dialog.dataset.complete === "true", id: state.round[state.index]?.id }),
+        selectWrong: () => {
+          const q = state.round[state.index];
+          const correct = new Set(answerIndices(q));
+          const wrongIndex = q.options.findIndex((_, index) => !correct.has(index));
+          state.selected = wrongIndex >= 0 ? [wrongIndex] : [];
+          ui.options.querySelectorAll(".option").forEach((item) => item.setAttribute("aria-pressed", String(state.selected.includes(Number(item.dataset.optionIndex)))));
+          updateAnswerZone(q);
+        },
+        solveCurrent: () => {
+          const q = state.round[state.index];
+          state.selected = answerIndices(q).filter((index) => index >= 0);
+          ui.options.querySelectorAll(".option").forEach((item) => item.setAttribute("aria-pressed", String(state.selected.includes(Number(item.dataset.optionIndex)))));
+          updateAnswerZone(q);
+        }
+      };
+      startRound();
+    })();
+  </script>
+</body>
+</html>

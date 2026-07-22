@@ -53,6 +53,13 @@ test('reuses the website parser and enforces the complete current format', async
   ]);
 });
 
+test('accepts a complete Windows CRLF import file', async () => {
+  const source = (await validText()).replaceAll('\n', '\r\n');
+  const parsed = await parseAndValidateCards(source);
+  assert.equal(parsed.cards.length, 2);
+  assert.equal(parsed.uniqueWordCount, 2);
+});
+
 test('rejects BOM, wrong nested shapes, American IPA and duplicate words', async () => {
   const source = await validText();
   await assert.rejects(() => parseAndValidateCards(`\uFEFF${source}`), error => {
@@ -120,6 +127,26 @@ test('card fingerprints are stable across object key order', () => {
     cardFingerprint({ word: 'apple', meaning: '苹果', nested: { b: 2, a: 1 } }),
     cardFingerprint({ nested: { a: 1, b: 2 }, meaning: '苹果', word: 'apple' })
   );
+});
+
+test('post-write acceptance allows jsonb key reordering but keeps the exact field set', async () => {
+  const { cards } = await parseAndValidateCards(await validText());
+  const planned = makeBatch({
+    title: '课堂词汇', taskId: 'jsonb-order-001', cards,
+    now: new Date('2026-07-19T16:30:00.000Z')
+  });
+  const reorder = value => {
+    if (Array.isArray(value)) return value.map(reorder);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.keys(value).sort().map(key => [key, reorder(value[key])]));
+    }
+    return value;
+  };
+  const acceptance = acceptBatch(
+    { batches: [reorder(planned.batch)] }, planned.batch, planned.fingerprints
+  );
+  assert.equal(acceptance.ok, true);
+  assert.deepEqual(acceptance.errors, []);
 });
 
 test('checks taskId, same batch name, existing words and stored fingerprints', async () => {

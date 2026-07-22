@@ -243,7 +243,7 @@ function loadExistingParser() {
     vm.runInContext(dictionary, context, { filename: dictionaryPath });
     vm.runInContext(importer, context, { filename: importPath });
     existingParser = text => {
-      context.__wordbookInput = text;
+      context.__wordbookInput = text.replaceAll('\r\n', '\n');
       const result = vm.runInContext('parseCards(__wordbookInput)', context);
       delete context.__wordbookInput;
       return JSON.parse(JSON.stringify(result));
@@ -291,24 +291,26 @@ function validateLineLayout(text) {
   return errors;
 }
 
-function validateExactKeys(item, expectedKeys, label, errors) {
+function validateExactKeys(item, expectedKeys, label, errors, enforceKeyOrder = true) {
   if (!item || typeof item !== 'object' || Array.isArray(item)) {
     errors.push(`${label} 必须是 JSON 对象`);
     return false;
   }
   const keys = Object.keys(item);
-  if (keys.length !== expectedKeys.length || keys.some((key, index) => key !== expectedKeys[index])) {
+  const hasExactSet = keys.length === expectedKeys.length
+    && expectedKeys.every(key => Object.prototype.hasOwnProperty.call(item, key));
+  if (!hasExactSet || (enforceKeyOrder && keys.some((key, index) => key !== expectedKeys[index]))) {
     errors.push(`${label} 字段必须完整并按顺序排列：${expectedKeys.join(' → ')}`);
     return false;
   }
   return true;
 }
 
-function validateNestedArray(field, items, cardLabel, errors) {
+function validateNestedArray(field, items, cardLabel, errors, enforceKeyOrder = true) {
   const expectedKeys = NESTED_FIELDS[field];
   items.forEach((item, index) => {
     const label = `${cardLabel}.${field}[${index}]`;
-    if (!validateExactKeys(item, expectedKeys, label, errors)) return;
+    if (!validateExactKeys(item, expectedKeys, label, errors, enforceKeyOrder)) return;
     expectedKeys.forEach(key => {
       if (typeof item[key] !== 'string' || item[key].trim() === '') {
         errors.push(`${label}.${key} 必须是非空字符串`);
@@ -331,9 +333,9 @@ function isValidPos(value) {
   return parts.length > 0 && parts.every(part => POS_PARTS.has(part));
 }
 
-function validateCard(card, cardIndex, errors) {
+function validateCard(card, cardIndex, errors, enforceKeyOrder = true) {
   const label = `第 ${cardIndex + 1} 张卡`;
-  if (!validateExactKeys(card, CARD_FIELDS, label, errors)) return;
+  if (!validateExactKeys(card, CARD_FIELDS, label, errors, enforceKeyOrder)) return;
   for (const field of STRING_FIELDS) {
     if (typeof card[field] !== 'string') errors.push(`${label}.${field} 必须是字符串`);
   }
@@ -362,7 +364,7 @@ function validateCard(card, cardIndex, errors) {
     errors.push(`${label}.wordFamily 最多 3 项`);
   }
   for (const field of ARRAY_FIELDS) {
-    if (Array.isArray(card[field])) validateNestedArray(field, card[field], label, errors);
+    if (Array.isArray(card[field])) validateNestedArray(field, card[field], label, errors, enforceKeyOrder);
   }
 }
 
@@ -512,7 +514,7 @@ export function acceptBatch(data, plannedBatch, fingerprints) {
   if (words.size !== plannedBatch.cards.length) errors.push('写入后唯一词数不一致');
   (batch.cards || []).forEach((card, index) => {
     const cardErrors = [];
-    validateCard(card, index, cardErrors);
+    validateCard(card, index, cardErrors, false);
     errors.push(...cardErrors.map(error => `写入后${error}`));
   });
   const automation = batch.automation || {};

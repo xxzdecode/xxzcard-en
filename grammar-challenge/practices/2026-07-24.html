@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>特殊疑问句专项课｜先选疑问词，再搭问句骨架</title>
+  <style>
+    :root {
+      --page-bg: #fff4f7;
+      --panel: #fffdfc;
+      --title: #d97892;
+      --mint: #a8d8c8;
+      --mint-deep: #397c69;
+      --mint-soft: #dff3ea;
+      --knowledge: #fff0c9;
+      --line: #efdde4;
+      --text: #625b63;
+      --muted: #81747c;
+      --correct: #d7f3dc;
+      --wrong: #ffd9d9;
+      --feedback-height: 52px;
+      --tap: 46px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: var(--page-bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    button { font: inherit; min-height: var(--tap); cursor: pointer; }
+    button:focus-visible { outline: 3px solid #f3b6c7; outline-offset: 2px; }
+    .practice-app {
+      width: 100vw; height: 100dvh; overflow: hidden;
+      display: grid; grid-template-rows: auto minmax(0, 1fr) var(--feedback-height); gap: 10px;
+      padding: max(9px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right))
+        max(9px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+    }
+    .practice-header {
+      display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+      align-items: center; gap: 10px; min-width: 0; padding: 9px 12px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(220, 170, 180, .14);
+    }
+    h1 { margin: 0; color: var(--title); font-size: clamp(21px, 2.4vw, 31px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .knowledge-strip { min-width: 0; display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow: hidden; }
+    .knowledge-chip { padding: 5px 9px; border-radius: 999px; background: var(--knowledge); font-size: clamp(12px, 1.25vw, 15px); font-weight: 700; white-space: nowrap; }
+    .header-actions { display: flex; gap: 7px; align-items: center; }
+    .progress { padding: 8px 12px; border-radius: 999px; background: var(--mint-soft); color: var(--mint-deep); font-weight: 900; white-space: nowrap; }
+    .action { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--mint); color: #fff; font-weight: 800; }
+    .action.secondary { color: var(--mint-deep); background: var(--mint-soft); }
+    .practice-stage {
+      min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center;
+      padding: clamp(12px, 2vw, 24px); background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+    }
+    .question-card { width: min(920px, 100%); max-height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 12px; }
+    .category { margin: 0; color: var(--muted); font-weight: 800; }
+    .prompt { margin: 0; font-size: clamp(21px, 3vw, 35px); line-height: 1.35; overflow-wrap: anywhere; white-space: pre-line; }
+    .prompt-context { display: grid; gap: 7px; min-height: 0; }
+    .source-line, .answer-zone, .rule-line {
+      border-radius: 14px; padding: 8px 12px; overflow-wrap: anywhere;
+    }
+    .source-line { background: #fff8ef; font-size: clamp(16px, 1.8vw, 21px); font-weight: 800; }
+    .answer-zone { min-height: 48px; background: var(--mint-soft); color: var(--mint-deep); font-size: clamp(17px, 2vw, 23px); font-weight: 900; }
+    .rule-line { background: var(--knowledge); color: var(--muted); font-size: clamp(13px, 1.35vw, 16px); font-weight: 700; }
+    .options { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .options.order-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .option {
+      min-width: 0; border: 2px solid var(--line); border-radius: 16px; padding: 10px 14px;
+      background: #fff8fb; color: var(--text); font-weight: 800; font-size: clamp(16px, 2vw, 22px); overflow-wrap: anywhere;
+    }
+    .option[aria-pressed="true"] { border-color: #e88fa3; background: #fff0f5; }
+    .option.correct-option { border-color: #6bb985; background: var(--correct); }
+    .option.wrong-option { border-color: #e28a8a; background: var(--wrong); }
+    .option.order-picked { opacity: .48; }
+    .question-actions { display: flex; justify-content: center; gap: 9px; }
+    .feedback {
+      height: var(--feedback-height); min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .feedback.correct { background: var(--correct); }
+    .feedback.wrong { background: var(--wrong); }
+    .completion {
+      border: 0; border-radius: 22px; padding: 24px; color: var(--text); background: var(--panel);
+      box-shadow: 0 20px 60px rgba(80, 55, 70, .25); text-align: center;
+    }
+    .completion::backdrop { background: rgba(80, 55, 70, .25); }
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --feedback-height: 40px; --tap: 38px; }
+      .practice-app { gap: 6px; padding: 6px; }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+    @media (orientation: portrait) and (max-width: 767px) {
+      .practice-app {
+        position: fixed; left: 0; top: 100dvh; width: 100dvh; height: 100vw;
+        transform: rotate(-90deg); transform-origin: top left;
+        --feedback-height: 40px; --tap: 38px; gap: 6px; padding: 6px;
+      }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="practice-header">
+      <h1 id="pageTitle"></h1>
+      <div class="knowledge-strip" id="knowledgeStrip" aria-label="知识摘要"></div>
+      <div class="header-actions">
+        <span class="progress" id="progressText" aria-live="polite"></span>
+        <button class="action" id="newRoundButton" type="button">重新开始</button>
+      </div>
+    </header>
+    <main class="practice-stage">
+      <section class="question-card" aria-live="polite">
+        <p class="category" id="categoryText"></p>
+        <div class="prompt-context">
+          <div class="source-line" id="sourceLine" hidden></div>
+          <h2 class="prompt" id="promptText"></h2>
+          <div class="rule-line" id="ruleLine" hidden></div>
+        </div>
+        <div class="options" id="options"></div>
+        <div class="answer-zone" id="answerZone" hidden></div>
+        <div class="question-actions">
+          <button class="action" id="checkButton" type="button">检查答案</button>
+          <button class="action secondary" id="showAnswerButton" type="button">显示答案</button>
+          <button class="action secondary" id="nextButton" type="button" disabled>下一题</button>
+        </div>
+      </section>
+    </main>
+    <footer class="feedback" id="feedback" aria-live="polite">△ 请选择答案。</footer>
+  </div>
+  <dialog class="completion" id="completionDialog" data-complete="false">
+    <h2>本轮完成</h2>
+    <p id="completionText"></p>
+    <button class="action" id="restartButton" type="button">重新开始</button>
+  </dialog>
+  <script id="practice-data" type="application/json">{"version":1,"title":"特殊疑问句专项课｜先选疑问词，再搭问句骨架","knowledge":["What / Who / Where / When / Why / How","be 路线与 do/does 路线","does 后动词原形；Who 作主语不加 do/does"],"completion":"语法挑战完成｜你完成了 10 题。先判断缺少什么信息，再选择 be 路线或 do/does 路线；看到 does 要检查动词原形，Who 作主语时不要加 do/does。","round":{"size":10,"shuffle":false,"quotas":{"clue":5,"route":2,"base":2,"who":1}},"scope":{"mode":"declared","allowedWords":[]},"questions":[{"id":"GC01","category":"clue","categoryLabel":"回答线索｜What","type":"single","prompt":"— ___ do you eat for breakfast?\n— Bread and eggs.","options":["What","Who","Where","When"],"answer":"What","answerDisplay":"What do you eat for breakfast?","correctFeedback":"正确。Bread and eggs 是食物内容，所以用 What。","wrongFeedback":"先看回答在说什么东西，还是人物、地点或时间。","explanation":"回答给出早餐内容，使用 What；主语 you 的动作句用 do。"},{"id":"GC02","category":"clue","categoryLabel":"回答线索｜Where","type":"single","prompt":"— ___ do Lily and Amy play after school?\n— In the park.","options":["Where","When","Why","How"],"answer":"Where","answerDisplay":"Where do Lily and Amy play after school?","correctFeedback":"正确。In the park 是地点回答，所以用 Where。","wrongFeedback":"看到 in + 地点，先判断问题是不是在问哪里。","explanation":"回答给出地点；Lily and Amy 相当于 they，所以用 do。"},{"id":"GC03","category":"clue","categoryLabel":"回答线索｜When","type":"single","prompt":"— ___ do they have English?\n— On Monday morning.","options":["Where","When","Why","Who"],"answer":"When","answerDisplay":"When do they have English?","correctFeedback":"正确。On Monday morning 是时间回答，所以用 When。","wrongFeedback":"星期和时间段都属于时间信息。","explanation":"回答给出英语课时间，使用 When；主语 they 使用 do。"},{"id":"GC04","category":"clue","categoryLabel":"回答线索｜Why","type":"single","prompt":"— ___ does Nina walk to school?\n— Because she lives near the school.","options":["What","Where","Why","How"],"answer":"Why","answerDisplay":"Why does Nina walk to school?","correctFeedback":"正确。Because... 在说明原因，所以用 Why。","wrongFeedback":"Because 通常在回答为什么。","explanation":"Nina 是第三人称单数，使用 does，后面的 walk 保持原形。"},{"id":"GC05","category":"clue","categoryLabel":"回答线索｜How","type":"single","prompt":"回答是 By bus. 选择正确问句。","options":["How does Ben go to the library?","Where does Ben go to the library?","Why does Ben go to the library?","How does Ben goes to the library?"],"answer":"How does Ben go to the library?","answerDisplay":"How does Ben go to the library?","correctFeedback":"正确。By bus 说明方式，所以用 How；does 后用 go。","wrongFeedback":"同时检查回答类型和 does 后的动词形式。","explanation":"By bus 回答方式；Ben 使用 does，实义动词还原为 go。"},{"id":"GC06","category":"route","categoryLabel":"be 动词路线｜双检查","type":"single","source":"The cat is in my room. / Your grandfather is fine.","prompt":"哪一组两个问句都正确？","options":["Where is the cat? / How is your grandfather?","Where does the cat be? / How does your grandfather be?","Where the cat is? / How are your grandfather?","What is the cat? / Where is your grandfather?"],"answer":"Where is the cat? / How is your grandfather?","answerDisplay":"Where is the cat?\nHow is your grandfather?","correctFeedback":"正确。be 动词句不加 do/does；your grandfather 用 is。","wrongFeedback":"先判断句子里是否已有 is，再找真正主语。","explanation":"be 动词直接放到主语前，不需要 do 或 does。"},{"id":"GC07","category":"route","categoryLabel":"动作内容｜两个 do","type":"single","source":"You play chess after school.","prompt":"对 play chess 提问，选择正确问句。","options":["What do you do after school?","What you do after school?","What does you do after school?","What do you play chess after school?"],"answer":"What do you do after school?","answerDisplay":"What do you do after school?","correctFeedback":"正确。第一个 do 帮助提问，第二个 do 表示做。","wrongFeedback":"被问的是整个动作 play chess，不能继续留在问句中。","explanation":"删去动作内容，用 What 替代；主语 you 使用助动词 do。"},{"id":"GC08","category":"base","categoryLabel":"does 后原形｜play","type":"single","source":"Tom plays football in the park.","prompt":"对 in the park 提问，选择正确问句。","options":["Where does Tom play football?","Where does Tom plays football?","Where do Tom play football?","Where is Tom play football?"],"answer":"Where does Tom play football?","answerDisplay":"Where does Tom play football?","correctFeedback":"正确。Tom 使用 does，plays 还原为 play。","wrongFeedback":"看到 does 后，检查实义动词是否为原形。","explanation":"地点用 Where；does 已承担三单标记，后面用 play。"},{"id":"GC09","category":"base","categoryLabel":"does 后原形｜have","type":"single","source":"Lily has a blue notebook.","prompt":"对 a blue notebook 提问，选择正确问句。","options":["What does Lily have?","What does Lily has?","What do Lily have?","What Lily has?"],"answer":"What does Lily have?","answerDisplay":"What does Lily have?","correctFeedback":"正确。has 的原形是 have。","wrongFeedback":"Lily 用 does；does 后不能保留 has。","explanation":"物品用 What；Lily 使用 does，has 还原为 have。"},{"id":"GC10","category":"who","categoryLabel":"Who 作主语｜不加 does","type":"single","source":"Jenny goes to school at eight o'clock.","prompt":"对 Jenny 提问，选择正确问句。","options":["Who goes to school at eight o'clock?","Who does go to school at eight o'clock?","Who does Jenny go to school at eight o'clock?","When does Jenny go to school?"],"answer":"Who goes to school at eight o'clock?","answerDisplay":"Who goes to school at eight o'clock?","correctFeedback":"正确。Who 替代 Jenny，直接站在主语位置，不加 does。","wrongFeedback":"先判断被问走的是不是原句主语。","explanation":"Who 作主语时保持陈述语序，并保留三单动词 goes。"}]}</script>
+  <script>
+    (() => {
+      "use strict";
+      const config = JSON.parse(document.getElementById("practice-data").textContent);
+      const byId = (id) => document.getElementById(id);
+      const ui = {
+        title: byId("pageTitle"), knowledge: byId("knowledgeStrip"), progress: byId("progressText"),
+        category: byId("categoryText"), prompt: byId("promptText"), source: byId("sourceLine"),
+        answerZone: byId("answerZone"), rule: byId("ruleLine"), options: byId("options"),
+        check: byId("checkButton"), show: byId("showAnswerButton"), next: byId("nextButton"),
+        feedback: byId("feedback"), dialog: byId("completionDialog"), completion: byId("completionText")
+      };
+      const state = { round: [], index: 0, selected: [], solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: [] };
+
+      function shuffle(values) {
+        const copy = [...values];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+      function buildRound() {
+        if (config.round.shuffle === false) return config.questions.slice(0, config.round.size);
+        if (Array.isArray(config.round.groups)) {
+          return config.round.groups.flatMap((group) => {
+            const ids = new Set(group.ids || []);
+            let items = config.questions.filter((q) => ids.has(q.id));
+            if (group.shuffle !== false) items = shuffle(items);
+            return items;
+          }).slice(0, config.round.size);
+        }
+        const picked = [];
+        for (const [category, count] of Object.entries(config.round.quotas)) {
+          picked.push(...shuffle(config.questions.filter((q) => q.category === category)).slice(0, count));
+        }
+        return shuffle(picked);
+      }
+      function answerIndices(question) {
+        const answers = Array.isArray(question.answer) ? question.answer : [question.answer];
+        const used = new Set();
+        return answers.map((value) => {
+          if (typeof value === "number") return value;
+          const index = question.options.findIndex((option, optionIndex) => option === value && !used.has(optionIndex));
+          used.add(index); return index;
+        });
+      }
+      function answerValues(question) {
+        return answerIndices(question).map((index) => question.options[index]);
+      }
+      function selectedValues(question) {
+        return state.selected.map((index) => question.options[index]);
+      }
+      function isCorrect(question) {
+        const selected = selectedValues(question);
+        const answers = answerValues(question);
+        if (question.type === "order") {
+          const indices = answerIndices(question);
+          return state.selected.length === indices.length && state.selected.every((value, index) => value === indices[index]);
+        }
+        if (question.type === "multi") return selected.length === answers.length && selected.every((value) => answers.includes(value));
+        return selected.length === 1 && selected[0] === answers[0];
+      }
+      function completeAnswer(question) {
+        return question.answerDisplay || answerValues(question).join(question.type === "order" ? " " : "、");
+      }
+      function feedback(type, message) {
+        ui.feedback.className = `feedback ${type || ""}`.trim();
+        ui.feedback.textContent = `${type === "correct" ? "✓" : type === "wrong" ? "×" : "△"} ${message}`;
+      }
+      function updateAnswerZone(question) {
+        if (question.type !== "order") return;
+        ui.answerZone.textContent = state.selected.length ? selectedValues(question).join(" ") : "按顺序点击词块，句子会在这里组成。";
+      }
+      function renderQuestion() {
+        const q = state.round[state.index];
+        state.selected = [];
+        ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
+        ui.category.textContent = q.categoryLabel || q.category;
+        ui.prompt.textContent = q.prompt;
+        ui.source.hidden = !q.source; ui.source.textContent = q.source || "";
+        ui.rule.hidden = !q.rule; ui.rule.textContent = q.rule || "";
+        ui.answerZone.hidden = q.type !== "order"; updateAnswerZone(q);
+        ui.options.classList.toggle("order-options", q.type === "order");
+        ui.options.replaceChildren(...q.options.map((option, index) => {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "option"; button.dataset.optionIndex = String(index);
+          button.setAttribute("aria-pressed", "false"); button.textContent = option;
+          button.addEventListener("click", () => {
+            if (state.solved[state.index]) return;
+            if (q.type === "multi") {
+              state.selected = state.selected.includes(index) ? state.selected.filter((item) => item !== index) : [...state.selected, index];
+            } else if (q.type === "order") {
+              if (state.selected.includes(index)) state.selected = state.selected.filter((item) => item !== index);
+              else state.selected.push(index);
+            } else state.selected = [index];
+            ui.options.querySelectorAll(".option").forEach((item) => {
+              const picked = state.selected.includes(Number(item.dataset.optionIndex));
+              item.setAttribute("aria-pressed", String(picked));
+              item.classList.toggle("order-picked", q.type === "order" && picked);
+            });
+            updateAnswerZone(q);
+            feedback("", "已选择，点击“检查答案”。");
+          });
+          return button;
+        }));
+        ui.next.disabled = true;
+        ui.check.disabled = false; ui.show.disabled = false;
+        feedback("", q.type === "multi" ? "请选择全部正确答案。" : q.type === "order" ? "请按正确语序点击全部词块。" : "请选择答案。");
+      }
+      function startRound() {
+        state.round = buildRound(); state.index = 0; state.selected = [];
+        state.solved = Array(state.round.length).fill(false); state.revealed = Array(state.round.length).fill(false);
+        state.attempts = Array(state.round.length).fill(0); state.firstTry = Array(state.round.length).fill(false);
+        state.wrongEver = Array(state.round.length).fill(false);
+        ui.dialog.dataset.complete = "false";
+        if (ui.dialog.open) ui.dialog.close();
+        renderQuestion();
+      }
+      function checkAnswer() {
+        if (!state.selected.length) return feedback("wrong", "请先选择答案。");
+        if (state.solved[state.index]) return;
+        const q = state.round[state.index];
+        state.attempts[state.index] += 1;
+        if (isCorrect(q)) {
+          state.solved[state.index] = true;
+          state.firstTry[state.index] = state.attempts[state.index] === 1 && !state.revealed[state.index];
+          ui.options.querySelectorAll(".option").forEach((item) => {
+            if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          });
+          feedback("correct", `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim());
+          ui.check.disabled = true; ui.show.disabled = true; ui.next.disabled = false;
+        } else {
+          state.wrongEver[state.index] = true;
+          state.selected.forEach((index) => ui.options.querySelector(`[data-option-index="${index}"]`)?.classList.add("wrong-option"));
+          feedback("wrong", q.wrongFeedback || "再看助动词、主语和动词原形。你可以继续修改。");
+          state.selected = [];
+          ui.options.querySelectorAll(".option").forEach((item) => { item.setAttribute("aria-pressed", "false"); item.classList.remove("order-picked"); });
+          updateAnswerZone(q);
+        }
+      }
+      function showAnswer() {
+        const q = state.round[state.index];
+        state.revealed[state.index] = true; state.solved[state.index] = true;
+        feedback("correct", `答案：${completeAnswer(q)}。${q.explanation || ""}`);
+        ui.answerZone.hidden = false; ui.answerZone.textContent = completeAnswer(q);
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+        });
+        ui.check.disabled = true; ui.show.disabled = true;
+        ui.next.disabled = false;
+      }
+      function nextQuestion() {
+        if (state.index + 1 < state.round.length) { state.index += 1; renderQuestion(); return; }
+        const first = state.firstTry.filter(Boolean).length;
+        const final = state.solved.filter(Boolean).length;
+        const wrongIds = state.round.filter((_, index) => state.wrongEver[index]).map((question) => question.id);
+        ui.completion.textContent = `${config.completion || "本轮完成。"} 首次正确 ${first} / ${state.round.length}，最终正确 ${final} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`;
+        ui.dialog.dataset.complete = "true";
+        if (typeof ui.dialog.showModal === "function") ui.dialog.showModal(); else ui.dialog.setAttribute("open", "");
+      }
+
+      ui.title.textContent = config.title;
+      ui.knowledge.replaceChildren(...config.knowledge.map((text) => {
+        const chip = document.createElement("span"); chip.className = "knowledge-chip"; chip.textContent = text; return chip;
+      }));
+      byId("newRoundButton").addEventListener("click", startRound);
+      byId("restartButton").addEventListener("click", startRound);
+      ui.check.addEventListener("click", checkAnswer);
+      ui.show.addEventListener("click", showAnswer);
+      ui.next.addEventListener("click", nextQuestion);
+      window.__LESSON_PREP_QA__ = {
+        state: () => ({ index: state.index, total: state.round.length, complete: ui.dialog.dataset.complete === "true", id: state.round[state.index]?.id }),
+        selectWrong: () => {
+          const q = state.round[state.index];
+          const correct = new Set(answerIndices(q));
+          const wrongIndex = q.options.findIndex((_, index) => !correct.has(index));
+          state.selected = wrongIndex >= 0 ? [wrongIndex] : [];
+          ui.options.querySelectorAll(".option").forEach((item) => item.setAttribute("aria-pressed", String(state.selected.includes(Number(item.dataset.optionIndex)))));
+          updateAnswerZone(q);
+        },
+        solveCurrent: () => {
+          const q = state.round[state.index];
+          state.selected = answerIndices(q).filter((index) => index >= 0);
+          ui.options.querySelectorAll(".option").forEach((item) => item.setAttribute("aria-pressed", String(state.selected.includes(Number(item.dataset.optionIndex)))));
+          updateAnswerZone(q);
+        }
+      };
+      startRound();
+    })();
+  </script>
+</body>
+</html>
