@@ -779,14 +779,15 @@ function renderWordCardBatchList() {
     return;
   }
   batches.forEach(batch => {
+    const bookPurpose = getBookPurpose(batch);
     const item = document.createElement('div');
     item.className = 'batch-item';
     item.innerHTML = `
-      <span class="batch-icon">📚</span>
+      <span class="batch-icon">${bookPurpose === 'support' ? '🧩' : '📚'}</span>
       <div class="batch-info">
         <div class="batch-name">${escapeHtml(batch.name)}</div>
         <div class="batch-meta">${batch.cards.length} 个单词</div>
-        ${getBookPurpose(batch) === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
+        ${bookPurpose === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
       </div>
       <span class="batch-arrow">›</span>`;
     item.addEventListener('click', () => openBatch(batch.id));

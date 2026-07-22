@@ -58,6 +58,7 @@ async function refreshTeacherWordCards() {
       : '<div class="empty-state"><div class="empty-emoji">📭</div><p>当前类型下还没有单词本</p></div>';
   } else {
     batches.forEach(batch => {
+      const bookPurpose = getBookPurpose(batch);
       const urec = urecMap[batch.id] || {known:[],unknown:[]};
       const item = document.createElement('div');
       item.className = 'batch-item';
@@ -70,11 +71,11 @@ async function refreshTeacherWordCards() {
           + '</div>';
       }
       item.innerHTML = `
-        <span class="batch-icon">📚</span>
+        <span class="batch-icon">${bookPurpose === 'support' ? '🧩' : '📚'}</span>
         <div class="batch-info">
           <div class="batch-name">${batch.name}</div>
           <div class="batch-meta">${batch.cards.length} 个单词 · ✅${urec.known.length} ❌${urec.unknown.length}</div>
-          ${getBookPurpose(batch) === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
+          ${bookPurpose === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
           ${pushTagsHTML}
         </div>
         <span class="batch-arrow">›</span>
@@ -134,8 +135,12 @@ function closeMergeSelect() {
 async function deleteBatch(id) {
   if (!canWriteCloudData()) return;
   if (!confirm('确定删除这个单词本吗？')) return;
-  appData.batches = appData.batches.filter(b => String(b.id) !== String(id));
-  if (!await saveData(appData)) return;
+  const updated = await updateMainDataSafely(data => {
+    const before = data.batches.length;
+    data.batches = data.batches.filter(batch => String(batch.id) !== String(id));
+    return data.batches.length !== before;
+  });
+  if (!updated) return;
   if (isTeacher()) refreshTeacherWordCards();
   else loadHome();
 }

@@ -57,4 +57,7 @@ assert.match(indexSource, /teacherSupportBookFilter/);
 const repositorySource = fs.readFileSync(path.join(root, 'js/repository.js'), 'utf8');
 assert.match(repositorySource, /bookPurpose:\s*bookPurpose === 'support' \? 'support' : 'common'/);
 
+const dictionarySource = fs.readFileSync(path.join(root, 'js/dictionary.js'), 'utf8');
+assert.match(dictionarySource, /bookPurpose === 'support' \? '🧩' : '📚'/);
+
 console.log('book purpose tests passed');

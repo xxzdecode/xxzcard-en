@@ -4,16 +4,20 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const screeningSource = fs.readFileSync(path.join(root, 'js/vocabularyScreening.js'), 'utf8');
 const context = vm.createContext({ console, Date, Math, JSON, Object, Array, Set, String });
 vm.runInContext(fs.readFileSync(path.join(root, 'js/dictionary.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(root, 'js/vocabularyScreeningData.js'), 'utf8'), context);
-vm.runInContext(fs.readFileSync(path.join(root, 'js/vocabularyScreening.js'), 'utf8'), context);
+vm.runInContext(screeningSource, context);
 
 function value(expression) {
   return vm.runInContext(expression, context);
 }
 
 const batches = value('VOCABULARY_SCREENING_BATCHES');
+assert.match(screeningSource, /const VOCABULARY_SCREENING_ENABLED = false/);
+assert.match(html, /生词检验已停用：保留页面、脚本和历史数据作为备份/);
 assert.equal(batches.length, 1);
 assert.equal(batches[0].id, 'common-words-1');
 assert.equal(batches[0].title, '常用词1');
@@ -118,7 +122,6 @@ async function verifySafeWordbookAppend() {
   ]);
 }
 
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.match(html, /id="screenVocabularyScreening"/);
 assert.match(html, /onclick="openVocabularyScreening\(\)"/);
 assert.ok(html.indexOf('js/vocabularyScreeningData.js') < html.indexOf('js/vocabularyScreening.js'));

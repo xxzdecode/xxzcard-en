@@ -43,7 +43,7 @@ assert.match(styles, /:nth-child\(n \+ 4\).*span 3/);
 assert.match(styles, /:nth-child\(4\)::before\s*\{\s*content:\s*none/);
 assert.match(styles, /body:not\(\.is-teacher\) \.vocabulary-review-remembered/);
 
-assert.match(serviceWorker, /vocabulary-review-v13/);
+assert.match(serviceWorker, /vocabulary-review-v14/);
 assert.match(serviceWorker, /fetch\(event\.request, \{ cache: 'no-cache' \}\)/);
 assert.match(serviceWorker, /cache\.put\(cacheKey, copy\)/);
 assert.match(serviceWorker, /\.catch\(\(\) => caches\.match\(cacheKey\)\)/);

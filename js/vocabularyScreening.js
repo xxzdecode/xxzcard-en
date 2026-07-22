@@ -2,6 +2,10 @@
 // Results are stored separately per student and batch, then derived into:
 // 1) a cumulative known-word library, and 2) a student-visible wordbook of wrong answers.
 
+// Feature retired on 2026-07-23. Keep the implementation and stored records as a backup,
+// but block all normal entry and derivation paths so it cannot create student-specific wordbooks.
+const VOCABULARY_SCREENING_ENABLED = false;
+
 let vocabularyScreeningBatch = null;
 let vocabularyScreeningRecord = null;
 let vocabularyScreeningOptions = [];
@@ -210,6 +214,7 @@ async function appendVocabularyScreeningWordbook(wordbook) {
 }
 
 async function deriveVocabularyScreeningLibraries(batch, record) {
+  if (!VOCABULARY_SCREENING_ENABLED) return false;
   if (!record.completedAt) return false;
   try {
     const knownKey = vocabularyKnownLibraryKey(record.student);
@@ -241,7 +246,7 @@ function resetVocabularyScreeningRuntime() {
 }
 
 async function openVocabularyScreening() {
-  if (isTeacher()) return;
+  if (!VOCABULARY_SCREENING_ENABLED || isTeacher()) return;
   resetVocabularyScreeningRuntime();
   showScreen('screenVocabularyScreening');
   await renderVocabularyScreeningBatchList();
@@ -273,7 +278,7 @@ async function renderVocabularyScreeningBatchList() {
 }
 
 async function startVocabularyScreening(batchId) {
-  if (isTeacher() || !canWriteCloudData()) return;
+  if (!VOCABULARY_SCREENING_ENABLED || isTeacher() || !canWriteCloudData()) return;
   const batch = getVocabularyScreeningBatch(batchId);
   if (!batch) return;
   vocabularyScreeningBatch = batch;
@@ -319,7 +324,7 @@ function renderVocabularyScreeningQuestion() {
 }
 
 async function answerVocabularyScreening(optionIndex) {
-  if (vocabularyScreeningLocked || !vocabularyScreeningRecord || !vocabularyScreeningBatch) return;
+  if (!VOCABULARY_SCREENING_ENABLED || vocabularyScreeningLocked || !vocabularyScreeningRecord || !vocabularyScreeningBatch) return;
   const selected = vocabularyScreeningOptions[optionIndex];
   const word = nextVocabularyScreeningWord(vocabularyScreeningRecord);
   if (selected === undefined || !word) return;
@@ -373,7 +378,7 @@ function renderVocabularyScreeningResult() {
 }
 
 async function retryVocabularyScreeningDerivation() {
-  if (!vocabularyScreeningRecord || !vocabularyScreeningBatch) return;
+  if (!VOCABULARY_SCREENING_ENABLED || !vocabularyScreeningRecord || !vocabularyScreeningBatch) return;
   await deriveVocabularyScreeningLibraries(vocabularyScreeningBatch, vocabularyScreeningRecord);
   renderVocabularyScreeningResult();
 }
