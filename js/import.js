@@ -19,6 +19,8 @@ function showNewBatch() {
   setConfirmImportBusy(false);
   importMode = 'new';
   document.getElementById('newBatchName').value = todayStr();
+  document.getElementById('newBatchPurpose').value = 'common';
+  document.getElementById('newBatchPurposeGroup').hidden = false;
   document.getElementById('newBatchText').value = '';
   document.getElementById('parsePreview').style.display = 'none';
   document.getElementById('parsePreview').innerHTML = '';
@@ -31,6 +33,7 @@ function showImportMore() {
   setConfirmImportBusy(false);
   importMode = 'add';
   document.getElementById('newBatchName').value = getCurrentBatch().name;
+  document.getElementById('newBatchPurposeGroup').hidden = true;
   document.getElementById('newBatchText').value = '';
   document.getElementById('parsePreview').style.display = 'none';
   document.getElementById('confirmImportBtn').style.display = 'none';
@@ -148,7 +151,8 @@ async function confirmImport() {
   if (importMode === 'new') {
     setConfirmImportBusy(true);
     const name = document.getElementById('newBatchName').value.trim() || todayStr();
-    const batch = makeBatch(name, pendingCards);
+    const purpose = document.getElementById('newBatchPurpose').value;
+    const batch = makeBatch(name, pendingCards, purpose);
     appData.batches.push(batch);
     if (!await saveData(appData)) {
       appData.batches = appData.batches.filter(item => item.id !== batch.id);

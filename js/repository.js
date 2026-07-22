@@ -397,11 +397,18 @@ function showOfflineBanner() {
     : '\u79bb\u7ebf\u6a21\u5f0f - \u5f53\u524d\u53ea\u8bfb\u672c\u5730 Supabase \u955c\u50cf';
   home.insertBefore(el, home.firstChild);
 }
-function makeBatch(name, cards) {
+function makeBatch(name, cards, bookPurpose = 'common') {
   const id = String(Date.now())+String(Math.floor(Math.random()*9999));
   const date = batchTodayISO();
   const displayName = String(name || '').trim() || todayStr();
-  return { id, date, name: displayName, cards: (cards || []).map(normalizeEnglishCard), sharedWith: [] };
+  return {
+    id,
+    date,
+    name: displayName,
+    cards: (cards || []).map(normalizeEnglishCard),
+    sharedWith: [],
+    bookPurpose: bookPurpose === 'support' ? 'support' : 'common'
+  };
 }
 function todayStr() {
   return formatBatchName(batchTodayISO(), '');

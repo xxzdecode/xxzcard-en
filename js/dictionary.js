@@ -769,10 +769,13 @@ function renderHighlightedWord(word, spelling) {
 function renderWordCardBatchList() {
   const list = document.getElementById('wordCardBatchList');
   if (!list) return;
-  const batches = getVisibleBatchesNewestFirst();
+  const filterState = getBookPurposeFilterState('studentCommonBookFilter', 'studentSupportBookFilter');
+  const batches = filterBatchesByBookPurpose(getVisibleBatchesNewestFirst(), filterState.showCommon, filterState.showSupport);
   list.innerHTML = '';
   if (!batches.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-emoji">🔒</div><p>暂无推送的单词卡<br>等老师推送后就可以查看啦</p></div>';
+    list.innerHTML = !filterState.showCommon && !filterState.showSupport
+      ? '<div class="empty-state"><div class="empty-emoji">📚</div><p>当前没有选择要显示的单词本类型</p></div>'
+      : '<div class="empty-state"><div class="empty-emoji">🔒</div><p>当前类型下暂无推送的单词卡</p></div>';
     return;
   }
   batches.forEach(batch => {
@@ -783,6 +786,7 @@ function renderWordCardBatchList() {
       <div class="batch-info">
         <div class="batch-name">${escapeHtml(batch.name)}</div>
         <div class="batch-meta">${batch.cards.length} 个单词</div>
+        ${getBookPurpose(batch) === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
       </div>
       <span class="batch-arrow">›</span>`;
     item.addEventListener('click', () => openBatch(batch.id));

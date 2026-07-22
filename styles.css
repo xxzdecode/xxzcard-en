@@ -313,6 +313,14 @@ body.grammar-challenge-open { padding-bottom: 0; overflow: hidden; }
   width: calc(100% - 40px); max-width: 400px;
   display: flex; flex-direction: column; gap: 10px;
 }
+.book-purpose-filters {
+  width: calc(100% - 40px); max-width: 400px; margin: 0 auto 12px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  border: 1px solid rgba(75, 130, 170, 0.16); border-radius: 14px; background: rgba(255,255,255,0.62);
+}
+.book-purpose-filters legend { padding: 0 5px; font-size: 12px; font-weight: 700; color: var(--text-mid); }
+.book-purpose-filters label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--text-dark); cursor: pointer; }
+.book-purpose-filters input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); cursor: pointer; }
 .batch-item {
   background: var(--white); border-radius: 16px; padding: 16px 18px;
   box-shadow: var(--shadow); display: flex; align-items: center; gap: 14px;
@@ -323,6 +331,7 @@ body.grammar-challenge-open { padding-bottom: 0; overflow: hidden; }
 .batch-info { flex: 1; min-width: 0; }
 .batch-name { font-size: 15px; font-weight: 700; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .batch-meta { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+.book-purpose-tag { width: fit-content; margin-top: 5px; padding: 2px 8px; border-radius: 999px; background: #EEF4FF; color: #526A92; font-size: 11px; font-weight: 700; }
 .batch-arrow { font-size: 18px; color: var(--text-light); flex-shrink: 0; }
 .batch-delete {
   width: 30px; height: 30px; border-radius: 50%; border: none;

@@ -257,6 +257,11 @@
     <button class="merge-entry-btn word-dedupe-entry-btn" id="wordDedupeEntryBtn" onclick="openWordDedupe()">🔍 单词去重</button>
     <button class="add-batch-btn" onclick="showNewBatch()">＋ 新建单词本</button>
   </div>
+  <fieldset class="book-purpose-filters" aria-label="筛选单词本类型">
+    <legend>显示类型</legend>
+    <label><input id="teacherCommonBookFilter" type="checkbox" checked onchange="refreshTeacherWordCards()"> 常用词</label>
+    <label><input id="teacherSupportBookFilter" type="checkbox" onchange="refreshTeacherWordCards()"> 辅助词</label>
+  </fieldset>
   <div class="batch-list" id="batchList"></div>
 </div>
 
@@ -318,6 +323,11 @@
   </div>
   <div class="search-results" id="searchResults" style="display:none"></div>
   <div class="section-divider"><span>单词卡</span></div>
+  <fieldset class="book-purpose-filters" aria-label="筛选单词本类型">
+    <legend>显示类型</legend>
+    <label><input id="studentCommonBookFilter" type="checkbox" checked onchange="renderWordCardBatchList()"> 常用词</label>
+    <label><input id="studentSupportBookFilter" type="checkbox" onchange="renderWordCardBatchList()"> 辅助词</label>
+  </fieldset>
   <div class="batch-list" id="wordCardBatchList"></div>
 </div>
 
@@ -361,6 +371,13 @@
     <div class="form-group">
       <label class="form-label">单词本名称</label>
       <input class="form-input" id="newBatchName" placeholder="例：07.06｜生词" maxlength="30">
+    </div>
+    <div class="form-group" id="newBatchPurposeGroup">
+      <label class="form-label" for="newBatchPurpose">单词本类型</label>
+      <select class="form-input" id="newBatchPurpose">
+        <option value="common">常用词</option>
+        <option value="support">辅助词</option>
+      </select>
     </div>
     <div class="form-group">
       <label class="form-label">粘贴单词内容</label>

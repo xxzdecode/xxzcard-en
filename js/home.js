@@ -46,13 +46,16 @@ async function refreshTeacherWordCards() {
   const list = document.getElementById('batchList');
   if (!list) return;
   list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-light);font-size:13px">加载中…</div>';
-  const batches = getVisibleBatchesNewestFirst();
+  const filterState = getBookPurposeFilterState('teacherCommonBookFilter', 'teacherSupportBookFilter');
+  const batches = filterBatchesByBookPurpose(getVisibleBatchesNewestFirst(), filterState.showCommon, filterState.showSupport);
   const urecMap = {};
   await Promise.all(batches.map(async b => { urecMap[b.id] = await loadUserBatch(b.id); }));
 
   list.innerHTML = '';
   if (batches.length === 0) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-emoji">📭</div><p>还没有单词本<br>点上方按钮新建一个吧</p></div>';
+    list.innerHTML = !filterState.showCommon && !filterState.showSupport
+      ? '<div class="empty-state"><div class="empty-emoji">📚</div><p>当前没有选择要显示的单词本类型</p></div>'
+      : '<div class="empty-state"><div class="empty-emoji">📭</div><p>当前类型下还没有单词本</p></div>';
   } else {
     batches.forEach(batch => {
       const urec = urecMap[batch.id] || {known:[],unknown:[]};
@@ -71,6 +74,7 @@ async function refreshTeacherWordCards() {
         <div class="batch-info">
           <div class="batch-name">${batch.name}</div>
           <div class="batch-meta">${batch.cards.length} 个单词 · ✅${urec.known.length} ❌${urec.unknown.length}</div>
+          ${getBookPurpose(batch) === 'support' ? '<div class="book-purpose-tag">🧩 辅助词</div>' : ''}
           ${pushTagsHTML}
         </div>
         <span class="batch-arrow">›</span>
