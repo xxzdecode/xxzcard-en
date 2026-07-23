@@ -41,6 +41,17 @@
     <span class="grammar-challenge-entry__title">语法挑战</span>
     <span class="grammar-challenge-entry__arrow" aria-hidden="true">›</span>
   </button>
+  <button class="grammar-challenge-entry vocabulary-tour-entry" type="button" onclick="openVocabularyReviewList()">
+    <span class="grammar-challenge-entry__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <circle cx="9" cy="10" r="2" />
+        <path d="M5.5 17l4 -4 3 3 2.5 -2.5 3.5 3.5" />
+      </svg>
+    </span>
+    <span class="grammar-challenge-entry__title">新词导览</span>
+    <span class="grammar-challenge-entry__arrow" aria-hidden="true">›</span>
+  </button>
   <nav class="bottom-feature-nav student-only" aria-label="主要功能">
     <button class="bottom-feature-nav__item" onclick="openWordCards()">
       <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -58,13 +69,6 @@
       <span>生词检验</span>
     </button>
     -->
-    <button class="bottom-feature-nav__item" onclick="openVocabularyReviewList()">
-      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="4" y="4" width="16" height="16" rx="3" />
-        <path d="M8 9h8M8 13h5M16.5 15.5l1 1 2 -2" />
-      </svg>
-      <span>生词巩固</span>
-    </button>
     <button class="bottom-feature-nav__item" onclick="openPhonemeTraining()">
       <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 5a3 3 0 0 1 6 0v5a3 3 0 0 1 -6 0z" />
@@ -97,13 +101,6 @@
         <path d="M4 5.5v15M8 7h8M8 11h6" />
       </svg>
       <span>随堂练习</span>
-    </button>
-    <button class="bottom-feature-nav__item" onclick="openVocabularyReviewList()">
-      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="4" y="4" width="16" height="16" rx="3" />
-        <path d="M8 9h8M8 13h5M16.5 15.5l1 1 2 -2" />
-      </svg>
-      <span>生词巩固</span>
     </button>
     <button class="bottom-feature-nav__item" onclick="openGrammarLibrary()">
       <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -173,11 +170,11 @@
 <div class="screen" id="screenVocabularyReviewList">
   <div class="topbar">
     <button class="back-btn" onclick="closeVocabularyReviewList()">←</button>
-    <span class="topbar-title">生词巩固</span>
+    <span class="topbar-title">新词导览</span>
   </div>
   <section class="vocabulary-review-list-panel" aria-labelledby="vocabularyReviewListTitle">
     <div class="vocabulary-review-list-heading">
-      <h1 id="vocabularyReviewListTitle">生词巩固</h1>
+      <h1 id="vocabularyReviewListTitle">新词导览</h1>
       <span id="vocabularyReviewCount">14 个共用词</span>
     </div>
     <div class="vocabulary-review-word-list" id="vocabularyReviewWordList"></div>
@@ -197,8 +194,8 @@
 <div class="screen" id="screenVocabularyReviewPlayer">
   <header class="vocabulary-review-player-topbar">
     <div class="vocabulary-review-player-title">
-      <button class="back-btn" onclick="closeVocabularyReviewPlayer()" aria-label="返回生词列表">←</button>
-      <span>生词巩固</span>
+      <button class="back-btn" onclick="closeVocabularyReviewPlayer()" aria-label="返回新词导览">←</button>
+      <span>新词导览</span>
     </div>
     <div class="vocabulary-review-progress" id="vocabularyReviewProgress">1 / 14</div>
     <div class="vocabulary-review-modes" role="group" aria-label="刷词模式">

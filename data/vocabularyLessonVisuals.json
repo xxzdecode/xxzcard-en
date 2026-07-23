@@ -4,40 +4,347 @@
     {
       "lessonId": "2026-07-24-common-words-2",
       "sourceWordbook": "常用词2",
-      "status": "placeholder-ready",
+      "status": "completed",
+      "importedAt": "2026-07-23T17:24:14.169Z",
       "items": [
-        {"word":"breath","visualType":"scene","focalPoint":"50% 45%","collocations":["take a deep breath"],"teacherNote":"名词；注意与 breathe（动词）区分。"},
-        {"word":"chase","visualType":"scene","collocations":["chase after"],"teacherNote":"强调追赶关系，不只是一起跑。"},
-        {"word":"feast","visualType":"scene","collocations":["a big feast"]},
-        {"word":"flock","visualType":"scene","collocations":["a flock of birds","a flock of sheep"]},
-        {"word":"harmful","visualType":"scene","collocations":["be harmful to"],"teacherNote":"harm + -ful，表示“有害的”。"},
-        {"word":"pitter-patter","visualType":"scene","teacherNote":"可形容雨滴或小脚连续发出的轻快声音。"},
-        {"word":"shepherd","visualType":"scene","collocations":["a shepherd and his sheep"]},
-        {"word":"snatch","visualType":"scene","collocations":["snatch something away"],"teacherNote":"动作突然、快速。"},
-        {"word":"unless","visualType":"scene","collocations":["unless + 句子"],"teacherNote":"相当于 if ... not。"},
-        {"word":"weep","visualType":"scene","collocations":["weep quietly"]},
-        {"word":"adventure","visualType":"scene","collocations":["go on an adventure"]},
-        {"word":"complain","visualType":"scene","collocations":["complain about"],"teacherNote":"通常要说清楚向谁表达不满或在抱怨什么。"},
-        {"word":"delighted","visualType":"scene","collocations":["be delighted with","be delighted to do"]},
-        {"word":"ancient","visualType":"scene","collocations":["ancient buildings"],"teacherNote":"表示非常古老，不只是旧。"},
-        {"word":"carve","visualType":"scene","collocations":["carve wood","carve a shape"]},
-        {"word":"compare","visualType":"scene","collocations":["compare A with B"],"teacherNote":"重点是左右对照两个对象。"},
-
-        {"word":"hilltop","visualType":"compound","parts":["⛰️","🔝"],"relation":"＋","teacherNote":"hill + top，山丘的顶部。"},
-        {"word":"backyard","visualType":"compound","parts":["🏠","🌳"],"relation":"＋","teacherNote":"back + yard，房子后面的院子。"},
-        {"word":"villager","visualType":"compound","parts":["🏘️","🧑"],"relation":"＋","teacherNote":"village + -er，住在村庄里的人。"},
-
-        {"word":"believe","visualType":"concept","concept":{"icons":["💭","✅"],"relation":"→"},"collocations":["believe in"],"teacherNote":"表示相信某件事是真的，或信任某人/事物。"},
-        {"word":"fond","visualType":"concept","concept":{"icons":["🧒","❤️","📚"],"relation":"＋"},"collocations":["be fond of"],"teacherNote":"be fond of = 喜爱。"},
-        {"word":"remarkable","visualType":"concept","concept":{"icons":["🌟","😮","👏"],"relation":"＋"},"teacherNote":"表示突出到值得注意或赞叹。"},
-        {"word":"truth","visualType":"concept","concept":{"icons":["💬","✅"],"relation":"→"},"collocations":["tell the truth"]},
-        {"word":"clarification","visualType":"concept","concept":{"icons":["🌫️","🔎","✨"],"relation":"→"},"collocations":["ask for clarification"],"teacherNote":"表示把模糊信息说明清楚。"},
-        {"word":"curious","visualType":"concept","concept":{"icons":["🧒","🔍","❓"],"relation":"＋"},"collocations":["be curious about"]},
-
-        {"word":"aeroplane","visualType":"emoji","emoji":"✈️"},
-        {"word":"village","visualType":"emoji","emoji":"🏘️"},
-        {"word":"spinner","visualType":"emoji","emoji":"🌀"},
-        {"word":"craft","visualType":"emoji","emoji":"✂️🎨"}
+        {
+          "word": "breath",
+          "visualType": "scene",
+          "focalPoint": "50% 50%",
+          "collocations": [
+            "take a deep breath"
+          ],
+          "teacherNote": "名词；注意与 breathe（动词）区分。",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/breath.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/breath-thumb.webp",
+          "sourceHash": "8db86f2de91dd7da2fc198c50930dbffed78e033026ec4d975b6033d1a5c1f76"
+        },
+        {
+          "word": "chase",
+          "visualType": "scene",
+          "collocations": [
+            "chase after"
+          ],
+          "teacherNote": "强调追赶关系，不只是一起跑。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/chase.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/chase-thumb.webp",
+          "sourceHash": "a17d843e35688dda094130c659aa12bae9cd3bac92dc5725622f2afd05cc07d2"
+        },
+        {
+          "word": "feast",
+          "visualType": "scene",
+          "collocations": [
+            "a big feast"
+          ],
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/feast.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/feast-thumb.webp",
+          "sourceHash": "d14f339836e2cebb23ffb1b40d8c5d52f220293bbac5d6673f3e3594fcc7ad64"
+        },
+        {
+          "word": "flock",
+          "visualType": "scene",
+          "collocations": [
+            "a flock of birds",
+            "a flock of sheep"
+          ],
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/flock.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/flock-thumb.webp",
+          "sourceHash": "204a2bde6697af8b6c755c8a0fc3ca03e0bbe2c0f27394fbacaa709853014ea4"
+        },
+        {
+          "word": "harmful",
+          "visualType": "scene",
+          "collocations": [
+            "be harmful to"
+          ],
+          "teacherNote": "harm + -ful，表示“有害的”。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/harmful.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/harmful-thumb.webp",
+          "sourceHash": "b47cf45b2fdcba24310f727ff769d14dd8ecb7999d6c6ba692e43fadfd02f405"
+        },
+        {
+          "word": "pitter-patter",
+          "visualType": "scene",
+          "teacherNote": "可形容雨滴或小脚连续发出的轻快声音。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/pitter-patter.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/pitter-patter-thumb.webp",
+          "sourceHash": "7d11a9798a6308125416e63afc89d06b0c10ecc51334fe569dd00e47ad81102b"
+        },
+        {
+          "word": "shepherd",
+          "visualType": "scene",
+          "collocations": [
+            "a shepherd and his sheep"
+          ],
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/shepherd.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/shepherd-thumb.webp",
+          "sourceHash": "4ccb37b3b7040cc9cec86eb7f1f973c4f8a85a1dfbb428dd62d39819fad3932b"
+        },
+        {
+          "word": "snatch",
+          "visualType": "scene",
+          "collocations": [
+            "snatch something away"
+          ],
+          "teacherNote": "动作突然、快速。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/snatch.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/snatch-thumb.webp",
+          "sourceHash": "45974e869e1f5e28b371434142c3bd9f1aacdb0b4f34da502f0480feaec456dc"
+        },
+        {
+          "word": "unless",
+          "visualType": "scene",
+          "collocations": [
+            "unless + 句子"
+          ],
+          "teacherNote": "相当于 if ... not。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/unless.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/unless-thumb.webp",
+          "sourceHash": "e5f2239e61d49da0f1cd69bf1445d95a102d59355a724de6ff59dcd9f5669f39"
+        },
+        {
+          "word": "weep",
+          "visualType": "scene",
+          "collocations": [
+            "weep quietly"
+          ],
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/weep.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/weep-thumb.webp",
+          "sourceHash": "664dd564bc9241f051a93bec11346b9bad1c3a55c4f0b82b8d48899dda31ea62"
+        },
+        {
+          "word": "adventure",
+          "visualType": "scene",
+          "collocations": [
+            "go on an adventure"
+          ],
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/adventure.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/adventure-thumb.webp",
+          "sourceHash": "6c8ab31e3067c10b316060ccde9afded72c739fc203282bdf1c97cf54f54d917"
+        },
+        {
+          "word": "complain",
+          "visualType": "scene",
+          "collocations": [
+            "complain about"
+          ],
+          "teacherNote": "通常要说清楚向谁表达不满或在抱怨什么。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/complain.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/complain-thumb.webp",
+          "sourceHash": "2123ad7f8f72393128dc4e11c20bcf29d43edeb07e851b61f296afd578d0b477"
+        },
+        {
+          "word": "delighted",
+          "visualType": "scene",
+          "collocations": [
+            "be delighted with",
+            "be delighted to do"
+          ],
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/delighted.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/delighted-thumb.webp",
+          "sourceHash": "1b3ca30368ab6d0cd834e9466f05b2535c14b71064831bba870a18d7e8bb5256"
+        },
+        {
+          "word": "ancient",
+          "visualType": "scene",
+          "collocations": [
+            "ancient buildings"
+          ],
+          "teacherNote": "表示非常古老，不只是旧。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/ancient.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/ancient-thumb.webp",
+          "sourceHash": "03bdd0cb59f1b17e76f3c05af33f346e95a83d277eea3d185f60d68c8bb65c5e"
+        },
+        {
+          "word": "carve",
+          "visualType": "scene",
+          "collocations": [
+            "carve wood",
+            "carve a shape"
+          ],
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/carve.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/carve-thumb.webp",
+          "sourceHash": "9fc6841325f1ffff6cd21fc453b15d3b405aeb0452e43afa0f746932767f2a3d"
+        },
+        {
+          "word": "compare",
+          "visualType": "scene",
+          "collocations": [
+            "compare A with B"
+          ],
+          "teacherNote": "重点是左右对照两个对象。",
+          "focalPoint": "50% 50%",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-2/compare.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-2/compare-thumb.webp",
+          "sourceHash": "85a2b2dcac128a0a7998826cfa1456fbc6d76e6cd3d938a877df5a41cfc5b434"
+        },
+        {
+          "word": "hilltop",
+          "visualType": "compound",
+          "parts": [
+            "⛰️",
+            "🔝"
+          ],
+          "relation": "＋",
+          "teacherNote": "hill + top，山丘的顶部。",
+          "arrangement": "person-or-marker-at-the-top-of-a-rounded-hill"
+        },
+        {
+          "word": "backyard",
+          "visualType": "compound",
+          "parts": [
+            "🏠",
+            "🌳"
+          ],
+          "relation": "＋",
+          "teacherNote": "back + yard，房子后面的院子。",
+          "arrangement": "yard-and-grass-positioned-behind-the-house"
+        },
+        {
+          "word": "villager",
+          "visualType": "compound",
+          "parts": [
+            "🏘️",
+            "🧑"
+          ],
+          "relation": "＋",
+          "teacherNote": "village + -er，住在村庄里的人。",
+          "arrangement": "person-positioned-inside-a-village-setting"
+        },
+        {
+          "word": "believe",
+          "visualType": "concept",
+          "concept": {
+            "icons": [
+              "💭",
+              "✅"
+            ],
+            "relation": "→",
+            "layout": "thought-confirmed",
+            "description": "a-thought-or-judgement-held-with-confidence"
+          },
+          "collocations": [
+            "believe in"
+          ],
+          "teacherNote": "表示相信某件事是真的，或信任某人/事物。"
+        },
+        {
+          "word": "fond",
+          "visualType": "concept",
+          "concept": {
+            "icons": [
+              "🧒",
+              "❤️",
+              "🐶"
+            ],
+            "relation": "→",
+            "layout": "person-affection-object",
+            "description": "a-person-showing-clear-liking-and-closeness-to-something"
+          },
+          "collocations": [
+            "be fond of"
+          ],
+          "teacherNote": "be fond of = 喜爱。"
+        },
+        {
+          "word": "remarkable",
+          "visualType": "concept",
+          "concept": {
+            "icons": [
+              "⭐",
+              "👏"
+            ],
+            "relation": "→",
+            "layout": "standout-performance-reaction",
+            "description": "one-exceptional-result-causing-visible-amazement"
+          },
+          "teacherNote": "表示突出到值得注意或赞叹。"
+        },
+        {
+          "word": "truth",
+          "visualType": "concept",
+          "concept": {
+            "icons": [
+              "💬",
+              "✅"
+            ],
+            "relation": "→",
+            "layout": "statement-fact-confirmation",
+            "description": "a-statement-that-matches-the-facts"
+          },
+          "collocations": [
+            "tell the truth"
+          ]
+        },
+        {
+          "word": "clarification",
+          "visualType": "concept",
+          "concept": {
+            "icons": [
+              "🌫️",
+              "➡️",
+              "🔍"
+            ],
+            "relation": "→",
+            "layout": "unclear-to-clear",
+            "description": "information-changing-from-vague-to-clear"
+          },
+          "collocations": [
+            "ask for clarification"
+          ],
+          "teacherNote": "表示把模糊信息说明清楚。"
+        },
+        {
+          "word": "curious",
+          "visualType": "concept",
+          "concept": {
+            "icons": [
+              "🧒",
+              "🔎",
+              "❓"
+            ],
+            "relation": "→",
+            "layout": "person-investigates-unknown",
+            "description": "a-person-examining-an-unknown-object-with-interest"
+          },
+          "collocations": [
+            "be curious about"
+          ]
+        },
+        {
+          "word": "aeroplane",
+          "visualType": "emoji",
+          "emoji": "✈️"
+        },
+        {
+          "word": "village",
+          "visualType": "emoji",
+          "emoji": "🏘️"
+        },
+        {
+          "word": "spinner",
+          "visualType": "emoji",
+          "emoji": "🌀"
+        },
+        {
+          "word": "craft",
+          "visualType": "emoji",
+          "emoji": "✂️🎨"
+        }
       ]
     }
   ]

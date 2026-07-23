@@ -12,7 +12,17 @@ fs.mkdirSync(path.join(tempRoot, 'data'), { recursive: true });
 fs.mkdirSync(path.join(tempRoot, 'assets', 'vocabulary-lessons'), { recursive: true });
 fs.copyFileSync(path.join(root, 'scripts', 'importVocabularyLesson.js'), path.join(tempRoot, 'scripts', 'importVocabularyLesson.js'));
 fs.copyFileSync(path.join(root, 'service-worker.js'), path.join(tempRoot, 'service-worker.js'));
-fs.writeFileSync(path.join(tempRoot, 'data', 'vocabularyLessonVisuals.json'), JSON.stringify({ schemaVersion: 2, lessons: [] }, null, 2));
+fs.writeFileSync(path.join(tempRoot, 'data', 'vocabularyLessonVisuals.json'), JSON.stringify({
+    schemaVersion: 2,
+    lessons: [{
+      lessonId: '2026-07-24-test',
+      sourceWordbook: '测试词表',
+      status: 'placeholder-ready',
+      items: [
+        { word: 'breath', visualType: 'scene', collocations: ['take a deep breath'], teacherNote: '保留老师提醒' }
+      ]
+    }]
+  }, null, 2));
 fs.writeFileSync(path.join(tempRoot, 'data', 'vocabularyLessonAssets.js'), 'self.VOCABULARY_LESSON_ASSETS = Object.freeze([]);\n');
 fs.writeFileSync(path.join(tempRoot, 'styles-vocabulary-lesson.css'), '/* fixture */\n');
 fs.writeFileSync(path.join(tempRoot, 'assets', 'vocabulary-lessons', 'scene-placeholder.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
@@ -32,7 +42,7 @@ async function prepare() {
     items: [
       { word: 'breath', visualType: 'scene', filename: 'breath.png', focalPoint: '50% 45%' },
       { word: 'hilltop', visualType: 'compound', parts: ['⛰️', '🔝'] },
-      { word: 'truth', visualType: 'concept', concept: { icons: ['💬', '✅'], relation: '→' } },
+      { word: 'truth', visualType: 'concept', icons: ['💬', '✅'], layout: 'statement-confirmed', relation: 'statement matches fact' },
       { word: 'plane', visualType: 'emoji', emoji: '✈️' }
     ]
   }, null, 2));
@@ -68,6 +78,10 @@ function runImporter(packagePath) {
   assert.equal(registry.lessons[0].items.length, 4);
   assert.equal(registry.lessons[0].items[0].image, 'assets/vocabulary-lessons/2026-07-24-test/breath.webp');
   assert.ok(registry.lessons[0].items[0].sourceHash);
+  assert.deepEqual(registry.lessons[0].items[0].collocations, ['take a deep breath']);
+  assert.equal(registry.lessons[0].items[0].teacherNote, '保留老师提醒');
+  assert.deepEqual(registry.lessons[0].items[2].concept.icons, ['💬', '✅']);
+  assert.equal(registry.lessons[0].items[2].concept.relation, '→');
   const assets = fs.readFileSync(path.join(tempRoot, 'data', 'vocabularyLessonAssets.js'), 'utf8');
   assert.match(assets, /breath\.webp/);
   assert.match(assets, /breath-thumb\.webp/);

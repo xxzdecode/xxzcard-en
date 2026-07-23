@@ -89,8 +89,13 @@ function validateManifest(manifest, packageDir) {
     if (item && item.visualType === 'compound' && (!Array.isArray(item.parts) || item.parts.length < 2)) {
       errors.push(`${prefix}.parts 至少需要两个视觉成分`);
     }
-    if (item && item.visualType === 'concept' && (!item.concept || typeof item.concept !== 'object')) {
-      errors.push(`${prefix}.concept 必须提供概念关系数据`);
+    if (
+      item
+      && item.visualType === 'concept'
+      && (!item.concept || typeof item.concept !== 'object')
+      && (!Array.isArray(item.icons) || item.icons.length < 2)
+    ) {
+      errors.push(`${prefix}.concept 或 icons 必须提供概念关系数据`);
     }
     if (item && item.visualType === 'emoji' && !String(item.emoji || '').trim()) {
       errors.push(`${prefix}.emoji 不能为空`);
@@ -180,8 +185,20 @@ async function main() {
 
   for (const item of manifest.items) {
     const word = normalizeWord(item.word);
-    const output = { ...item, word };
+    const existing = existingByWord.get(word) || {};
+    const output = { ...existing, ...item, word };
     delete output.filename;
+    if (item.visualType === 'concept' && (!item.concept || typeof item.concept !== 'object')) {
+      output.concept = {
+        icons: item.icons.map(String),
+        relation: '→',
+        layout: String(item.layout || '').trim(),
+        description: String(item.relation || '').trim()
+      };
+      delete output.icons;
+      delete output.layout;
+      delete output.relation;
+    }
     if (item.visualType === 'scene') {
       const sourcePath = path.resolve(packageDir, 'images', item.filename);
       const slug = slugify(word);
@@ -190,7 +207,6 @@ async function main() {
       const mainPath = path.join(ROOT, mainRelative);
       const thumbPath = path.join(ROOT, thumbRelative);
       const sourceHash = hashFile(sourcePath);
-      const existing = existingByWord.get(word);
       const unchanged = existing && existing.sourceHash === sourceHash && fs.existsSync(mainPath) && fs.existsSync(thumbPath);
       if (unchanged) {
         summary.skipped.push(word);

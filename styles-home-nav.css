@@ -1,17 +1,13 @@
 /* Student home navigation override.
-   Loaded after styles.css so the active student entries follow the same
-   four-column rhythm as .teacher-home-nav without changing teacher styles. */
+   The former vocabulary-review shortcut now lives in the large New Word Tour
+   module, leaving three compact utilities in this row. */
 .bottom-feature-nav.student-only {
   margin: 18px auto 6px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 0;
   row-gap: 2px;
 }
 
 .bottom-feature-nav.student-only > .bottom-feature-nav__item {
   grid-column: auto;
-}
-
-.bottom-feature-nav.student-only > .bottom-feature-nav__item:nth-child(4)::before {
-  content: "";
 }

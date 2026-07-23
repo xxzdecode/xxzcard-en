@@ -38,7 +38,9 @@ const compound = core.findVocabularyLessonVisual('hilltop', { name: '常用词2'
 const concept = core.findVocabularyLessonVisual('truth', { name: '常用词2' }, registry);
 const emoji = core.findVocabularyLessonVisual('aeroplane', { name: '常用词2' }, registry);
 assert.equal(scene.visualType, 'scene');
-assert.equal(scene.image, undefined, 'development scene entries should use the shared placeholder until formal art arrives');
+assert.equal(scene.image, 'assets/vocabulary-lessons/2026-07-24-common-words-2/breath.webp');
+assert.equal(scene.thumbnail, 'assets/vocabulary-lessons/2026-07-24-common-words-2/breath-thumb.webp');
+assert.match(scene.sourceHash, /^[a-f0-9]{64}$/);
 assert.deepEqual(compound.parts, ['⛰️', '🔝']);
 assert.deepEqual(concept.concept.icons, ['💬', '✅']);
 assert.equal(emoji.emoji, '✈️');

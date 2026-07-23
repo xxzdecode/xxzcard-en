@@ -2,7 +2,7 @@
 const homeNavigationStylesheet = document.createElement('link');
 homeNavigationStylesheet.rel = 'stylesheet';
 homeNavigationStylesheet.href = 'styles-home-nav.css';
-homeNavigationStylesheet.dataset.homeNavigationLayout = 'four-columns';
+homeNavigationStylesheet.dataset.homeNavigationLayout = 'three-columns';
 document.head.appendChild(homeNavigationStylesheet);
 
 // EXPOSE TO WINDOW (required by inline event handlers)

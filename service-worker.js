@@ -1,6 +1,6 @@
 // Supersedes vocabulary-review-v18 with the unified vocabulary teaching flow.
 importScripts('./data/vocabularyLessonAssets.js');
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v19-base';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v19-fc78183a1d';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',

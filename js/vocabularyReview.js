@@ -131,8 +131,8 @@ function ensureVocabularyLessonStyles() {
 }
 
 function upgradeVocabularyLessonEntryLabels() {
-  document.querySelectorAll('[onclick="openVocabularyReviewList()"] span:last-child').forEach(label => {
-    label.textContent = '今日生词授课';
+  document.querySelectorAll('[onclick="openVocabularyReviewList()"] .grammar-challenge-entry__title').forEach(label => {
+    label.textContent = '新词导览';
   });
 }
 
@@ -148,7 +148,7 @@ function installVocabularyLessonShell() {
   listScreen.innerHTML = `
     <div class="topbar vocabulary-lesson-selection-topbar">
       <button class="back-btn" type="button" onclick="closeVocabularyReviewList()" aria-label="返回首页">←</button>
-      <span class="topbar-title">今日生词授课</span>
+      <span class="topbar-title">新词导览</span>
     </div>
     <main class="vocabulary-lesson-selection">
       <section class="vocabulary-lesson-selection-card" aria-labelledby="vocabularyLessonSelectionTitle">
@@ -172,7 +172,7 @@ function installVocabularyLessonShell() {
   playerScreen.innerHTML = `
     <div class="vocabulary-lesson-app" id="vocabularyLessonApp">
       <header class="vocabulary-lesson-topbar">
-        <button class="vocabulary-lesson-icon-button" type="button" onclick="closeVocabularyReviewPlayer()" aria-label="退出今日生词授课">←</button>
+        <button class="vocabulary-lesson-icon-button" type="button" onclick="closeVocabularyReviewPlayer()" aria-label="退出新词导览">←</button>
         <h1 id="vocabularyLessonModeTitle">第1批</h1>
         <button class="vocabulary-lesson-change-button" id="vocabularyLessonChangeButton" type="button" onclick="startVocabularyLessonRandomReview(true)" hidden>换一批</button>
       </header>
