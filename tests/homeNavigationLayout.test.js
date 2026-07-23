@@ -35,7 +35,7 @@ assert.doesNotMatch(layoutStyles, /repeat\(6|span\s+[23]/);
 
 assert.match(mainScript, /href\s*=\s*'styles-home-nav\.css'/);
 assert.match(mainScript, /homeNavigationLayout\s*=\s*'four-columns'/);
-assert.match(serviceWorker, /vocabulary-review-v17/);
+assert.match(serviceWorker, /vocabulary-review-v18/);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
 
 console.log('home navigation layout tests passed');
