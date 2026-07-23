@@ -20,13 +20,14 @@ assert.match(studyScript, /html\.ios-touch-webkit \.back-body[\s\S]*-webkit-over
 assert.match(studyScript, /w\.style\.removeProperty\('transform'\)/);
 assert.match(studyScript, /w\.classList\.toggle\('flipped', studyFlipped\)/);
 assert.match(studyScript, /front\?\.setAttribute\('aria-hidden'/);
-assert.match(studyScript, /resetStudyCardMotion\(false\);\s*setFlipped\(studyFlipped\)/);
+assert.match(studyScript, /resetStudyCardMotion\(false\);\s*setFlipped\(false\)/);
+assert.match(studyScript, /studyCurrent = 0; studyFlipped = false;/);
 
 assert.match(studyScript, /motion\.style\.transform = `translateX/);
 assert.doesNotMatch(studyScript, /(?:wrapper|w)\.style\.transform\s*=/);
 assert.match(studyScript, /addEventListener\('touchcancel'/);
 
-assert.match(serviceWorker, /vocabulary-review-v17/);
+assert.match(serviceWorker, /vocabulary-review-v18/);
 assert.match(serviceWorker, /'\.\/js\/study\.js'/);
 
 console.log('study card flip tests passed');
