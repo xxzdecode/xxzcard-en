@@ -1,0 +1,40 @@
+name: Apply Codex task 015
+
+on:
+  push:
+    branches:
+      - codex/015-vocabulary-lesson
+    paths:
+      - .codex/task-015.tar.gz.b64
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/015-vocabulary-lesson
+          fetch-depth: 0
+      - name: Verify and extract source bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/task-015
+          base64 --decode .codex/task-015.tar.gz.b64 > /tmp/task-015/source.tar.gz
+          echo "5eae2ddc6bf3de5cdba8c7f999ed58db2e5cf64a3d46f6b5ffe21a83ce1d5249  /tmp/task-015/source.tar.gz" | sha256sum --check -
+          tar -xzf /tmp/task-015/source.tar.gz -C .
+          rm -f .codex/task-015.tar.gz.b64
+          rmdir .codex 2>/dev/null || true
+          rm -f .github/workflows/apply-codex-task-015.yml
+      - name: Commit implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add unified vocabulary lesson flow"
+          git push origin HEAD:codex/015-vocabulary-lesson
