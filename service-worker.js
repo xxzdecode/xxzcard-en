@@ -1,10 +1,12 @@
-// Supersedes vocabulary-review-v17 after making every study card start on its front face.
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v18';
+// Supersedes vocabulary-review-v18 with the unified vocabulary teaching flow.
+importScripts('./data/vocabularyLessonAssets.js');
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v19-base';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './styles-home-nav.css',
+  './styles-vocabulary-lesson.css',
   './js/config.js',
   './js/state.js',
   './js/repository.js',
@@ -77,7 +79,8 @@ const VOCABULARY_REVIEW_ASSETS = [
   './assets/vocabulary-review/contest.webp',
   './assets/vocabulary-review/exhibit.webp',
   './assets/vocabulary-review/numerous.webp',
-  './assets/vocabulary-review/valuable.webp'
+  './assets/vocabulary-review/valuable.webp',
+  ...(self.VOCABULARY_LESSON_ASSETS || [])
 ];
 const VOCABULARY_REVIEW_URLS = new Set(
   VOCABULARY_REVIEW_ASSETS.map(path => new URL(path, self.location.href).href)

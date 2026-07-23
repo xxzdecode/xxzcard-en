@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "lessons": [
+    {
+      "lessonId": "2026-07-24-common-words-2",
+      "sourceWordbook": "常用词2",
+      "status": "placeholder-ready",
+      "items": [
+        {"word":"breath","visualType":"scene","focalPoint":"50% 45%","collocations":["take a deep breath"],"teacherNote":"名词；注意与 breathe（动词）区分。"},
+        {"word":"chase","visualType":"scene","collocations":["chase after"],"teacherNote":"强调追赶关系，不只是一起跑。"},
+        {"word":"feast","visualType":"scene","collocations":["a big feast"]},
+        {"word":"flock","visualType":"scene","collocations":["a flock of birds","a flock of sheep"]},
+        {"word":"harmful","visualType":"scene","collocations":["be harmful to"],"teacherNote":"harm + -ful，表示“有害的”。"},
+        {"word":"pitter-patter","visualType":"scene","teacherNote":"可形容雨滴或小脚连续发出的轻快声音。"},
+        {"word":"shepherd","visualType":"scene","collocations":["a shepherd and his sheep"]},
+        {"word":"snatch","visualType":"scene","collocations":["snatch something away"],"teacherNote":"动作突然、快速。"},
+        {"word":"unless","visualType":"scene","collocations":["unless + 句子"],"teacherNote":"相当于 if ... not。"},
+        {"word":"weep","visualType":"scene","collocations":["weep quietly"]},
+        {"word":"adventure","visualType":"scene","collocations":["go on an adventure"]},
+        {"word":"complain","visualType":"scene","collocations":["complain about"],"teacherNote":"通常要说清楚向谁表达不满或在抱怨什么。"},
+        {"word":"delighted","visualType":"scene","collocations":["be delighted with","be delighted to do"]},
+        {"word":"ancient","visualType":"scene","collocations":["ancient buildings"],"teacherNote":"表示非常古老，不只是旧。"},
+        {"word":"carve","visualType":"scene","collocations":["carve wood","carve a shape"]},
+        {"word":"compare","visualType":"scene","collocations":["compare A with B"],"teacherNote":"重点是左右对照两个对象。"},
+
+        {"word":"hilltop","visualType":"compound","parts":["⛰️","🔝"],"relation":"＋","teacherNote":"hill + top，山丘的顶部。"},
+        {"word":"backyard","visualType":"compound","parts":["🏠","🌳"],"relation":"＋","teacherNote":"back + yard，房子后面的院子。"},
+        {"word":"villager","visualType":"compound","parts":["🏘️","🧑"],"relation":"＋","teacherNote":"village + -er，住在村庄里的人。"},
+
+        {"word":"believe","visualType":"concept","concept":{"icons":["💭","✅"],"relation":"→"},"collocations":["believe in"],"teacherNote":"表示相信某件事是真的，或信任某人/事物。"},
+        {"word":"fond","visualType":"concept","concept":{"icons":["🧒","❤️","📚"],"relation":"＋"},"collocations":["be fond of"],"teacherNote":"be fond of = 喜爱。"},
+        {"word":"remarkable","visualType":"concept","concept":{"icons":["🌟","😮","👏"],"relation":"＋"},"teacherNote":"表示突出到值得注意或赞叹。"},
+        {"word":"truth","visualType":"concept","concept":{"icons":["💬","✅"],"relation":"→"},"collocations":["tell the truth"]},
+        {"word":"clarification","visualType":"concept","concept":{"icons":["🌫️","🔎","✨"],"relation":"→"},"collocations":["ask for clarification"],"teacherNote":"表示把模糊信息说明清楚。"},
+        {"word":"curious","visualType":"concept","concept":{"icons":["🧒","🔍","❓"],"relation":"＋"},"collocations":["be curious about"]},
+
+        {"word":"aeroplane","visualType":"emoji","emoji":"✈️"},
+        {"word":"village","visualType":"emoji","emoji":"🏘️"},
+        {"word":"spinner","visualType":"emoji","emoji":"🌀"},
+        {"word":"craft","visualType":"emoji","emoji":"✂️🎨"}
+      ]
+    }
+  ]
+}
