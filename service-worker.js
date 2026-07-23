@@ -1,5 +1,5 @@
-// Supersedes vocabulary-review-v16 after the iOS card flip rendering fix.
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v17';
+// Supersedes vocabulary-review-v17 after making every study card start on its front face.
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v18';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
