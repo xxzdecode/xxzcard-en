@@ -1,3 +1,4 @@
+// Supersedes vocabulary-review-v15 after the student navigation layout update.
 const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v16';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
