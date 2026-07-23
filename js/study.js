@@ -166,7 +166,7 @@ function renderStudyCard() {
   document.getElementById('progressCount').textContent = `${studyCurrent+1}/${total}`;
   document.getElementById('progressFill').style.width = `${((studyCurrent+1)/total)*100}%`;
   resetStudyCardMotion(false);
-  setFlipped(studyFlipped); buildDots();
+  setFlipped(false); buildDots();
 }
 function setFlipped(v) {
   studyFlipped = Boolean(v);
