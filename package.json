@@ -1,0 +1,15 @@
+{
+  "name": "xxzcard-en-tools",
+  "private": true,
+  "scripts": {
+    "test": "node tests/vocabularyReview.test.js && node tests/vocabularyLessonImporter.test.js && node tests/homeNavigationLayout.test.js",
+    "test:viewport": "node tests/vocabularyLessonViewport.mjs",
+    "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js"
+  },
+  "dependencies": {
+    "sharp": "0.34.1"
+  },
+  "devDependencies": {
+    "playwright": "1.55.0"
+  }
+}

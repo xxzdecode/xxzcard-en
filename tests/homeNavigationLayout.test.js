@@ -7,6 +7,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const baseStyles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
 const layoutStyles = fs.readFileSync(path.join(root, 'styles-home-nav.css'), 'utf8');
 const mainScript = fs.readFileSync(path.join(root, 'js/main.js'), 'utf8');
+const reviewScript = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
 const studentNav = html.match(/<nav class="bottom-feature-nav student-only"[\s\S]*?<\/nav>/)?.[0] || '';
@@ -26,6 +27,8 @@ assert.deepEqual(
   Array.from(teacherNav.matchAll(/<span>([^<]+)<\/span>/g), match => match[1]),
   ['单词卡', '随堂练习', '生词巩固', '知识点库']
 );
+assert.match(reviewScript, /upgradeVocabularyLessonEntryLabels/);
+assert.match(reviewScript, /label\.textContent = '今日生词授课'/);
 
 assert.match(baseStyles, /\.teacher-home-nav\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s);
 assert.match(layoutStyles, /\.bottom-feature-nav\.student-only\s*\{[^}]*margin:\s*18px auto 6px[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s);
@@ -35,7 +38,8 @@ assert.doesNotMatch(layoutStyles, /repeat\(6|span\s+[23]/);
 
 assert.match(mainScript, /href\s*=\s*'styles-home-nav\.css'/);
 assert.match(mainScript, /homeNavigationLayout\s*=\s*'four-columns'/);
-assert.match(serviceWorker, /vocabulary-review-v18/);
+assert.match(serviceWorker, /vocabulary-review-v19-/);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
+assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson\.css'/);
 
 console.log('home navigation layout tests passed');

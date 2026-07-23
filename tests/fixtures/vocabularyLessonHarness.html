@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <base href="../../">
+  <title>Vocabulary lesson viewport harness</title>
+  <link rel="stylesheet" href="styles-vocabulary-lesson.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button { font: inherit; }
+    .screen { display: none; width: 100%; min-height: 100%; }
+    .screen.active { display: block; }
+    .topbar { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #fff; }
+    .back-btn { min-width: 44px; min-height: 44px; }
+  </style>
+  <script>
+    let currentUser = 'teacher';
+    let currentBatchId = null;
+    let appData = {
+      batches: [{
+        id: 'today',
+        name: '今日生词',
+        sharedWith: ['sister', 'brother'],
+        cards: [
+          { word: 'breath', meaning: '呼吸；一口气', phonetic: '/breθ/', emoji: '🌬️', collocations: ['take a deep breath'], tip: '名词；注意与 breathe 区分' },
+          { word: 'hilltop', meaning: '山顶', phonetic: '/ˈhɪltɒp/', emoji: '⛰️' },
+          { word: 'truth', meaning: '真相', phonetic: '/truːθ/', emoji: '✅' },
+          { word: 'aeroplane', meaning: '飞机', phonetic: '/ˈeərəpleɪn/', emoji: '✈️' },
+          { word: 'compare', meaning: '比较', phonetic: '/kəmˈpeə/', emoji: '⚖️' },
+          { word: 'backyard', meaning: '后院', phonetic: '/ˌbækˈjɑːd/', emoji: '🏡' },
+          { word: 'curious', meaning: '好奇的', phonetic: '/ˈkjʊəriəs/', emoji: '🔎' },
+          { word: 'village', meaning: '村庄', phonetic: '/ˈvɪlɪdʒ/', emoji: '🏘️' },
+          { word: 'complain', meaning: '抱怨', phonetic: '/kəmˈpleɪn/', emoji: '🗯️' },
+          { word: 'craft', meaning: '手工艺', phonetic: '/krɑːft/', emoji: '✂️' }
+        ]
+      }],
+      taskAssignments: [],
+      vocabularyReviewState: { version: 1, rememberedWords: [] }
+    };
+    function isTeacher() { return currentUser === 'teacher'; }
+    function normalizeAppData() {}
+    function setMainSnapshot() {}
+    function showStorageError(error) { console.error(error); }
+    function loadHome() {}
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+    async function sbGetRemote() { return JSON.parse(JSON.stringify(appData)); }
+    async function updateMainDataSafely(mutator) {
+      const next = JSON.parse(JSON.stringify(appData));
+      mutator(next);
+      appData = next;
+      return appData;
+    }
+    function speakWord() {}
+    function speakEnglish() {}
+  </script>
+</head>
+<body>
+  <div class="screen" id="screenHome"></div>
+  <div class="screen" id="screenVocabularyReviewList"></div>
+  <div class="screen" id="screenVocabularyReviewPlayer"></div>
+  <script src="js/vocabularyReviewData.js"></script>
+  <script src="js/vocabularyReview.js"></script>
+  <script>
+    vocabularyLessonVisualRegistry = {
+      schemaVersion: 2,
+      lessons: [{
+        lessonId: 'viewport-harness',
+        sourceWordbook: '今日生词',
+        items: [
+          { word: 'breath', visualType: 'scene', focalPoint: '50% 45%', collocations: ['take a deep breath'], teacherNote: '平静地呼吸，不画成疲惫出汗。' },
+          { word: 'hilltop', visualType: 'compound', parts: ['⛰️', '🔝'], relation: '＋' },
+          { word: 'truth', visualType: 'concept', concept: { icons: ['💬', '✅'], relation: '→' } },
+          { word: 'aeroplane', visualType: 'emoji', emoji: '✈️' },
+          { word: 'compare', visualType: 'scene' },
+          { word: 'backyard', visualType: 'compound', parts: ['🏠', '🌳'], relation: '＋' },
+          { word: 'curious', visualType: 'concept', concept: { icons: ['❓', '🔎'], relation: '→' } },
+          { word: 'village', visualType: 'emoji', emoji: '🏘️' },
+          { word: 'complain', visualType: 'scene' },
+          { word: 'craft', visualType: 'emoji', emoji: '✂️' }
+        ]
+      }]
+    };
+    installVocabularyLessonShell();
+    selectVocabularyLessonBook('today');
+  </script>
+</body>
+</html>
