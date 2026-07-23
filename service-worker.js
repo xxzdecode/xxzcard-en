@@ -1,8 +1,9 @@
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v15';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v16';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './styles-home-nav.css',
   './js/config.js',
   './js/state.js',
   './js/repository.js',
