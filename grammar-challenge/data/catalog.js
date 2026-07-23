@@ -2,6 +2,12 @@
   // 新增练习时：数据型练习使用 dataPath；复用随堂练习 UI 的独立页面使用 pagePath。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-07-24-frequency-review',
+      date: '2026-07-24',
+      title: '频度副词复习挑战',
+      pagePath: './practices/2026-07-24-frequency-review.html'
+    },
+    {
       id: 'grammar-2026-07-24-special-questions',
       date: '2026-07-24',
       title: '特殊疑问句专项课｜语法挑战',
