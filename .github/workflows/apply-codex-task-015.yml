@@ -5,7 +5,7 @@ on:
     branches:
       - codex/015-vocabulary-lesson
     paths:
-      - .codex/task-015.tar.gz.b64
+      - .codex/task-015.ready
 
 permissions:
   contents: write
@@ -23,11 +23,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/task-015
-          base64 --decode .codex/task-015.tar.gz.b64 > /tmp/task-015/source.tar.gz
+          cat .codex/task-015.part-* | base64 --decode > /tmp/task-015/source.tar.gz
           echo "5eae2ddc6bf3de5cdba8c7f999ed58db2e5cf64a3d46f6b5ffe21a83ce1d5249  /tmp/task-015/source.tar.gz" | sha256sum --check -
           tar -xzf /tmp/task-015/source.tar.gz -C .
-          rm -f .codex/task-015.tar.gz.b64
-          rmdir .codex 2>/dev/null || true
+          rm -rf .codex
           rm -f .github/workflows/apply-codex-task-015.yml
       - name: Commit implementation
         shell: bash
