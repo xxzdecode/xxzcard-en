@@ -1,3 +1,10 @@
+// Load the focused home-navigation override after the shared stylesheet.
+const homeNavigationStylesheet = document.createElement('link');
+homeNavigationStylesheet.rel = 'stylesheet';
+homeNavigationStylesheet.href = 'styles-home-nav.css';
+homeNavigationStylesheet.dataset.homeNavigationLayout = 'four-columns';
+document.head.appendChild(homeNavigationStylesheet);
+
 // EXPOSE TO WINDOW (required by inline event handlers)
 // ══════════════════════════════════════
 Object.assign(window, {
