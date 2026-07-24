@@ -18,24 +18,19 @@
   <script>
     let currentUser = 'teacher';
     let currentBatchId = null;
+    const viewportCards = [
+      { word: 'landscape', meaning: '横向图片', phonetic: '/ˈlændskeɪp/', emoji: '🏞️' },
+      { word: 'portrait', meaning: '竖向图片', phonetic: '/ˈpɔːtreɪt/', emoji: '🖼️' },
+      { word: 'square', meaning: '方形图片', phonetic: '/skweə/', emoji: '◻️' }
+    ];
+    for (let index = 4; index <= 40; index += 1) {
+      viewportCards.push({ word: `word-${index}`, meaning: `测试词 ${index}`, emoji: '✨' });
+    }
     let appData = {
-      batches: [{
-        id: 'today',
-        name: '今日生词',
-        sharedWith: ['sister', 'brother'],
-        cards: [
-          { word: 'breath', meaning: '呼吸；一口气', phonetic: '/breθ/', emoji: '🌬️', collocations: ['take a deep breath'], tip: '名词；注意与 breathe 区分' },
-          { word: 'hilltop', meaning: '山顶', phonetic: '/ˈhɪltɒp/', emoji: '⛰️' },
-          { word: 'truth', meaning: '真相', phonetic: '/truːθ/', emoji: '✅' },
-          { word: 'aeroplane', meaning: '飞机', phonetic: '/ˈeərəpleɪn/', emoji: '✈️' },
-          { word: 'compare', meaning: '比较', phonetic: '/kəmˈpeə/', emoji: '⚖️' },
-          { word: 'backyard', meaning: '后院', phonetic: '/ˌbækˈjɑːd/', emoji: '🏡' },
-          { word: 'curious', meaning: '好奇的', phonetic: '/ˈkjʊəriəs/', emoji: '🔎' },
-          { word: 'village', meaning: '村庄', phonetic: '/ˈvɪlɪdʒ/', emoji: '🏘️' },
-          { word: 'complain', meaning: '抱怨', phonetic: '/kəmˈpleɪn/', emoji: '🗯️' },
-          { word: 'craft', meaning: '手工艺', phonetic: '/krɑːft/', emoji: '✂️' }
-        ]
-      }],
+      batches: [
+        { id: 'older', name: '较早单词本', createdAt: '2026-07-20', sharedWith: ['sister', 'brother'], cards: [{ word: 'old', meaning: '旧词', emoji: '📘' }] },
+        { id: 'today', name: '今日生词', createdAt: '2026-07-24', sharedWith: ['sister', 'brother'], cards: viewportCards }
+      ],
       taskAssignments: [],
       vocabularyReviewState: { version: 1, rememberedWords: [] }
     };
@@ -72,21 +67,21 @@
         lessonId: 'viewport-harness',
         sourceWordbook: '今日生词',
         items: [
-          { word: 'breath', visualType: 'scene', focalPoint: '50% 45%', collocations: ['take a deep breath'], teacherNote: '平静地呼吸，不画成疲惫出汗。' },
-          { word: 'hilltop', visualType: 'compound', parts: ['⛰️', '🔝'], relation: '＋' },
-          { word: 'truth', visualType: 'concept', concept: { icons: ['💬', '✅'], relation: '→' } },
-          { word: 'aeroplane', visualType: 'emoji', emoji: '✈️' },
-          { word: 'compare', visualType: 'scene' },
-          { word: 'backyard', visualType: 'compound', parts: ['🏠', '🌳'], relation: '＋' },
-          { word: 'curious', visualType: 'concept', concept: { icons: ['❓', '🔎'], relation: '→' } },
-          { word: 'village', visualType: 'emoji', emoji: '🏘️' },
-          { word: 'complain', visualType: 'scene' },
-          { word: 'craft', visualType: 'emoji', emoji: '✂️' }
+          { word: 'landscape', visualType: 'scene', image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOCAIAAADe+FMwAAAEaklEQVR42u3dMarqQBSAYSMBQXBv6QRJqY0LsklrYTqX4RLchyDYWWshKokzx/m+7jXv+Wbm/Jxrc6tVs54AkJ+pIwAQaAAEGkCgARhJ/fTnrts5FIAkNputDRogAIEGEGgABBpAoAEQaACBBkCgARBoAIEGQKABBBoAgQZAoAEEGgCBBhBoAAQaQKABEGgABBpAoAEQaACBBkCgARBogABqR/BnLvt+2L9w0S6dKgg0ySr83b+l3SDQctxH+WCSDQKtyDE+uV6DQCuyXoNAI8oD/ZfFGgRal3M/B6UGgdZlpQaBRpeVGgRal5UaBBppTnaYMo1Ao8sWahBoacZCDQItzTINAi3NyDQItDQj0wg00izT45nfju7uN66zJugn9xtV1NkdgQ3a2GOVBhu0Ors1sEEbcqzSYINWZ9wjAm2qHYLbhBz4isMwF3Gtvu7ABq3OuF8QaNOLW0agzS3uGgTaxOLGQaDNqnsHgTaluH0QaPOJN4BAm0y8BBBoM4n3gEADINDWJbwKEGhziLeBQJtAvBAQaACBthxhiQaBBqC8QFuL8FoQaAAE2kKEN4NAAyDQABQTaD+r4uUg0AAINIBAAyDQo/A1It4PAg2AQAMINAACDYBAAwg0AAININAACDQAAg0g0D+3aJduF+8HgQZAoAEEGgCBHouvEfFyEGgABBpAoP2sSpm8GQQagOIDbSHCa0GgARBoaxHeCQINgEBbjvBCoNQN2gTibSDQ5hCvAgQaQKCtS3gPINBmEi8BSg20ycQbQKDNJ24fBNqU4t4RaLOKGweBNrG4awTa3JpbtwwCbXpxv/Cm2hE8zfBl3zsKaQYbtHnGbYJAm2r3CNH4iuPVbPu6Q5rBBm3OcWtgg7ZKSzPYoE0+7ghs0FZpVwMCrQUyLc0g0DKNNCPQyLQ0g0DLNNIMAp2qHUqtyyDQFmppBoHGQq3LINBK7awAgVZqXQaBRql1GQQ6bqEKibUog0CHL9ff9FqRQaD1WpFBoMmjepkkW45BoPmgjIO3W4VBoNFT4IHfqAIg0AAINIBAAyDQAAINgEADINAAAg2AQAMINAACDYBAAwg0AAININAACDSAQAMg0AAINIBAAyDQAAINgEADINAAAg3At2pHAElcZ41DwAYNINAACDSAQAMg0AAINIBAAyDQAAINgEADCDQAAg2AQAMINAACDSDQAAg0AAININAACDSAQAMg0AACDYBAAyDQAOFVh/PJKQDYoAEQaACBBkCgAQQaAIEGQKABBBoAgQYQaAAEGgCBBhBoAAQaQKABEGgAgQZAoAEQaACBBkCgAQQaAIEGQKABBBoAgQYQaAAEGkCgARBoAAQaQKABEGgAgQZAoAEQaACBBkCgAQQaAIEGEGgABBoAgQYQaAAEGkCgARBoAAQaQKABEGgAgQZAoAEQaACBBkCgAQQaAIEGEGgABBoAgQYQaAAEGkCgARBoAAQaQKABEGgAgQZAoAEEGgCBBkCgAQQaAIEGEGgAUrkDxPk54T5L3A4AAAAASUVORK5CYII=', focalPoint: '50% 50%' },
+          { word: 'portrait', visualType: 'scene', image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQ4AAAHgCAIAAADbnRQAAAAFWElEQVR42u3csUojURSA4UkYCAh5t+kCktI0PpBN2hRO52P4CL7HQMDOQrCwMCbMhHvO+b5uYdn1Hu5/742yu3ocnjrgkrURgFRAKiAVaFD/69fH44uhQNd1h8OzWwU8wEAqIBWQCkgFpAJIBaQCUgGpgFRAKiAVQCogFZAKSAWkAlIBqQBSAamAVEAqIBWQCkgFkApIBaQCUgGpgFRAKoBUQCogFZAKSAWkAlIBpAJSAamAVEAqIBWQCiAVkAosqjeCH9Np/Ps3bPc7U5KKPK77zbKRikKu+xM0IxWRXPEHCkYqIhEMZVJZNBLBFLHWSYK/EalE3bVq8QATiceYW0UnrhdKpdLa7lSLVHSiFqnoRC1kTaX9vagWqdiFapGK/acWcqQSceepRSr2nFqkAlJxMPv6SZtKjn2mFqnYYWqRCkjFMWxFJEkl665Si1RAKo5eq5OKnWSNeIDBLWL8NxR1jtvpNN7hf654+HxLM7HzZnCrgAeYK8V6pQJSccRatVSAuKlUPlxdLFIBqThWTUAqIBUgbCreHuYgFZCKo9Q0pAJSAQKm4r1hJlIBqYBUvDRMBrcKSAWypuKNYT5SAamAVLwuvMFwq4BUQCpQOhVPcLOSCkgFpAJIBWKm4nOqiUkFpAJSAaQCMVPxCdXcpAJSAakAUgGpQOJUfBvH9KQCUgGpAFIBqYBUQCogFZDKXPwEzQylAlIBqQBSAamAVEAqIBWQCkgFkApIBaQCUgGpgFRAKoBUQCogFZAKSAWkAlIBpAJSgfSpbPc70zdDqYBUQCqAVEAqIBWQCkgFpDIjP0EzPamAVEAqgFRAKpA+Fd/GMTepgFRAKoBUIHIqPqGamFRAKiAVQCoQORWfU81KKiAVkArQaCqe4KYkFZAKSMXrwusLtwpIBSqk4o1hMlIBqYBUvDTMBLcKSAUqpOK9YRpSAak4Ss1BKoBUIHgq3h4mIBWQimPV2qUCUnG4WjVuFSiSSrUj1pUiFZCKg9ZKpQJESqXCcetKkYqdpBOpgFQcvdZF4Fsl367SiVRAKo5ha5GKHWYVpHqARd9nOpEKSMXB7EqRij3nayb5AyzWztOJVOw/nUjFLtSJVDItpuW9qBOp2JE6kYpadELiVJranTpJo8+6sO89Op1GkeBWaXe/6kQqatGJB1j2Wu7wGBOJVAQjEqkUM3swIpFKiQ8wNzejEKkUbeY/2chDKiiBC/yDYZAKSAWkAlIBqYBUAKmAVEAqIBWQCkgFpAJIBaQCUgGpgFRAKiAVQCogFZAKSAWkAlIBqQBSAamAVEAqIBWQCkgFkApIBaQCUgGpgFRAKoBUQCogFZAKSAWC642goPNmMAS3CkgFpAJSAamAVACpgFRAKiAVkApIBaQCSAWkAlIBqYBUQCogFUAqIBWQCkgFpAJSAakAUgGpgFRAKiAVkApIBZAKSAWkAlIBqYBUQCqAVEAqIBWQCkgF8li9frybArhVQCogFZAKSAWkAlIBpAJSAamAVEAqIBWQCiAVkApIBaQCUgGpgFSMAKQCUgGpgFRAKiAVQCogFZAKSAWkAlIBqQBSAamAVEAqIBWQCkgFkApIBaQCUgGpgFRAKoBUQCogFZAKSAWkAlIBpAJSAamAVEAqIBWQCiAVkApIBaQCUgGpgFQAqYBUQCogFZAKSAWkAkgFpAJSAamAVEAqIBVAKiAVkApIBaQCUgGpAFIBqYBUQCogFZAKSAWQCkgFpAJSAamAVEAqgFRAKiAVkApIBaQCUgGkAlIBqYBUQCogFZAKIBWQCkgFpAJSAamAVACpgFRAKiAVkApIBaQCSAWkAov5Ai3WFRMCySuqAAAAAElFTkSuQmCC', focalPoint: '50% 50%' },
+          { word: 'square', visualType: 'scene', image: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAFoCAIAAAD1h/aCAAAE80lEQVR42u3bsWoySxTA8VUGBMF3204IlrHJA9nYWsQuj5FH8D0EwS6lAVNklWT3nPP7lRfuvV/O7PxnJvDNXvrXDmCIuREAwgEIByAcgHAAwgHwC+3Hf7rf74wG6Lpuu31z4wA8VQDhAIQDEA4A4QCEAxAOQDgA4QCEA0A4AOEAhAMQDkA4AIQDEA5AOADhAIQDQDgA4QCEAxAOQDgAhAMQDkA4AOEAhAMQDgDhAIQDEA4grGYEf+18OA79V1abtbkhHDLx7H9EShAOsXjqfyEiCIdYiAjCoRcj/XkUBOGQjAf/ePKBcEiGfCAckiEfCIdkyAfCQZ5kyAfCIRnygXBIhnwQn7/kVqUaZX9ehMMu8lPjqWLzeLbgxqEa5oBw2C2mAZ4qNolnC24cqmE+CIddYUoIh/1gVuTV7ATuJzaR33csrx+W47vLonfjUA1zw1PF1296CIfvHjOkVjh88SaJcADC4ZA0T4TDV64dCIfvG7Ol3lMFEA5HogkjHL5pc0Y4fM3agXAAFAiHA9DMEQ5AOBx9Lh0IB0DscDj0zB/hAITDcefSgXAAxA6Hg85aIByAcDjiXDoQDoDY4XC4WReEAxAOQDjch7E6uHEAwgEIByAcntDlWCPhABAOQDgA4fB4TsJKCQeAcADCAQgHIByAcIzIL+pjsV7CASAcgHAAwgEIByAcAMIBCAcgHIBwAMIBCAeAcADCAQgHIByAcEzMarO2ToFYL+EAEA5AOADhAIQDEI4R+UV9FFZKOACEAxAOQDg8nsOzRsIBIByAcADC4QkdntURDgDhACqHw33YuiAcgHA43Fw3EA6APOFwxFkLhAMQDged6wbCAZAnHI4780c4AOFw6LluIBwAecLh6DNzhAMQDgeg6wbC4WtWDUMg1VPFN23CCAcgHI5Es0U4fN+qgXD4yjFPaocDEA6HpEkiHL54M0Q4fPemh3D4+jE3yofDHjAxhMNOMCuEw34wJYTDrjAfimgF98b5cLTwkoEbh31iGgiH3WIOeKp4tkgGbhz2j58a4XBdL7aLVANPFc8WyUA45EMyEA75kAyEQz4kA4QjaT4kA+GQD8lAOORDMhCOmvmYTkH0AuEIWZD/j4hYIBwiIhYIh4jc7fAHUiITCIeUqADZ+EtugHAAwgEIByAcgHAACAcgHIBwAMIBCAeAcADCAQgHIByAcAAIByAcgHAAwgEIByAcAMIBCAcgHIBwAMIBIByAcADCAQgHIBwAwgEIByAcQBDNCJisy6I3BDcOQDgA4QAQDkA4AOEAhAMQDgDhAIQDEA5AOADhABAOQDgA4QCEAxAOAOEAhAMQDkA4AOEAhANAOADhAIQDEA5AOACEAxAOQDgA4QCEA+Bm9n76NAXAjQMQDkA4AOEAhANAOADhAIQDEA5AOACEAxAOQDgA4QCEA0A4AOEAhAMQDkA4AOEAEA5AOADhAIQDEA4A4QCEAxAOQDgA4QAQDkA4AOEAhAMQDgDhAIQDEA5AOADhAIQDQDgA4QCEAxAOQDgAhAMQDkA4AOEAhANAOADhAIQDEA5AOACEAxAOQDgA4QCEAxAOAOEAhAMQDkA4AOEAEA5AOADhAIQDEA4A4QCEAxAOQDgA4QCEA0A4AOEAhAMQDkA4AIQDEA5AOADhAIQDQDgA4QCEAxAOQDgAhAMQDkA4AOEAhAMQDoABvgCruzU/yZ/tUAAAAABJRU5ErkJggg==', focalPoint: '50% 50%' },
+          ...viewportCards.slice(3).map(card => ({ word: card.word, visualType: 'emoji', emoji: card.emoji }))
         ]
       }]
     };
-    installVocabularyLessonShell();
-    selectVocabularyLessonBook('today');
+    (function bootTask016Harness() {
+      if (typeof window.jumpVocabularyLessonBatch !== 'function') {
+        setTimeout(bootTask016Harness, 0);
+        return;
+      }
+      installVocabularyLessonShell();
+      selectVocabularyLessonBook('today');
+    })();
   </script>
 </body>
 </html>
