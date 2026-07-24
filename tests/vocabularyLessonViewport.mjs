@@ -90,7 +90,7 @@ try {
   for (const viewport of ipadSizes) {
     const run = await openHarness(viewport);
     const { page } = run;
-    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '第1批');
+    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     assert.equal(await page.locator('#vocabularyLessonQuickNav button').count(), 6);
     assert.deepEqual(await page.locator('#vocabularyLessonQuickNav button').allTextContents(), ['①', '②', '③', '④', '★ 难词', '↻ 随机']);
     assert.equal(await page.locator('#vocabularyLessonQuickNav .batch.is-active').count(), 1);
@@ -103,14 +103,23 @@ try {
       const info = document.querySelector('.vocabulary-lesson-info-panel').getBoundingClientRect();
       const footer = document.querySelector('#vocabularyLessonFooter').getBoundingClientRect();
       const nav = document.querySelector('#vocabularyLessonQuickNav').getBoundingClientRect();
+      const dots = document.querySelector('#vocabularyLessonBatchDots').getBoundingClientRect();
+      const currentDot = document.querySelector('#vocabularyLessonBatchDots .is-current').getBoundingClientRect();
       const buttons = [...document.querySelectorAll('#vocabularyLessonQuickNav button, #vocabularyLessonFooter button')].map(button => button.getBoundingClientRect().height);
       return {
         cardWidth: card.width,
+        cardHeight: card.height,
         visualWidth: visual.width,
         infoWidth: info.width,
         footerBottom: footer.bottom,
         navTop: nav.top,
         navBottom: nav.bottom,
+        dotsHeight: dots.height,
+        currentDotTop: currentDot.top,
+        currentDotBottom: currentDot.bottom,
+        dotsTop: dots.top,
+        dotsBottom: dots.bottom,
+        dotsOverflow: getComputedStyle(document.querySelector('#vocabularyLessonBatchDots')).overflow,
         buttonHeights: buttons,
         viewportHeight: innerHeight,
         noOverflow: document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight
@@ -118,8 +127,12 @@ try {
     });
     assert.ok(layout.visualWidth / layout.cardWidth >= 0.60, `visual ratio ${layout.visualWidth / layout.cardWidth}`);
     assert.ok(layout.infoWidth / layout.cardWidth <= 0.40, `info ratio ${layout.infoWidth / layout.cardWidth}`);
+    assert.ok(layout.cardHeight >= layout.viewportHeight * 0.45, JSON.stringify(layout));
     assert.ok(layout.footerBottom <= layout.viewportHeight + 1);
     assert.ok(layout.navTop >= 0 && layout.navBottom <= layout.viewportHeight);
+    assert.ok(layout.dotsHeight >= 16, JSON.stringify(layout));
+    assert.equal(layout.dotsOverflow, 'visible');
+    assert.ok(layout.currentDotTop >= layout.dotsTop - 1 && layout.currentDotBottom <= layout.dotsBottom + 1, JSON.stringify(layout));
     assert.ok(layout.buttonHeights.every(height => height >= 44));
     assert.equal(layout.noOverflow, true);
     assert.equal(await page.locator('body').innerText().then(text => /\d+\s*\/\s*\d+|共\s*\d+|剩余\s*\d+|\d+%/.test(text)), false);
@@ -129,14 +142,49 @@ try {
     await assertSceneImageFullyVisible(page, 2);
 
     await page.evaluate(() => {
+      jumpVocabularyLessonBatch(0);
+      vocabularyLessonState.wordIndex = vocabularyLessonState.batches[0].length - 1;
+      renderVocabularyLesson();
+      changeVocabularyReviewWord(1);
+    });
+    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '图片回顾');
+    assert.equal(await page.locator('#vocabularyLessonBatchDots').isHidden(), true);
+    const reviewLayout = await page.evaluate(() => {
+      const main = document.querySelector('#vocabularyLessonMain').getBoundingClientRect();
+      const wall = document.querySelector('#vocabularyLessonImageWall').getBoundingClientRect();
+      const footer = document.querySelector('#vocabularyLessonFooter').getBoundingClientRect();
+      return {
+        mainHeight: main.height,
+        wallHeight: wall.height,
+        mainBottom: main.bottom,
+        footerTop: footer.top,
+        footerBottom: footer.bottom,
+        viewportHeight: innerHeight
+      };
+    });
+    assert.ok(reviewLayout.mainHeight >= reviewLayout.viewportHeight * 0.45, JSON.stringify(reviewLayout));
+    assert.ok(reviewLayout.wallHeight >= reviewLayout.viewportHeight * 0.40, JSON.stringify(reviewLayout));
+    assert.ok(reviewLayout.footerTop >= reviewLayout.mainBottom - 1, JSON.stringify(reviewLayout));
+    assert.ok(reviewLayout.footerBottom <= reviewLayout.viewportHeight + 1, JSON.stringify(reviewLayout));
+
+    await page.getByRole('button', { name: /进入下一批/ }).click();
+    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
+    const nextBatchCardHeight = await page.locator('#vocabularyLessonCard').evaluate(element => element.getBoundingClientRect().height);
+    assert.ok(nextBatchCardHeight >= viewport.height * 0.45, `${viewport.name}: ${nextBatchCardHeight}`);
+
+    await page.evaluate(() => {
       jumpVocabularyLessonBatch(1);
       changeVocabularyReviewWord(1);
     });
-    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '第2批');
+    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-12')));
     await page.evaluate(() => closeVocabularyReviewPlayer());
+    assert.deepEqual(
+      await page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-name').allTextContents(),
+      ['今日生词', '较早单词本']
+    );
     await page.evaluate(() => selectVocabularyLessonBook('today'));
-    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '第2批');
+    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-12')));
 
     await page.evaluate(() => {
@@ -148,13 +196,13 @@ try {
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '难词巩固');
     assert.equal(await page.locator('#vocabularyLessonBatchDots').isHidden(), true);
     await page.getByRole('button', { name: '第三批' }).click();
-    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '第3批');
+    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
 
     await page.getByRole('button', { name: '随机过词' }).click();
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '随机过词');
     assert.equal(await page.locator('#vocabularyLessonBatchDots').isHidden(), true);
     await page.getByRole('button', { name: '第四批' }).click();
-    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '第4批');
+    assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     assert.equal(await page.locator('#vocabularyLessonBatchDots .vocabulary-lesson-batch-dot').count(), 10);
 
     await page.screenshot({ path: path.join(resultDir, `task-016-ipad-${viewport.name}.png`), fullPage: true });
@@ -166,16 +214,21 @@ try {
   const phoneLayout = await iphone.page.evaluate(() => {
     const footer = document.querySelector('#vocabularyLessonFooter').getBoundingClientRect();
     const nav = document.querySelector('#vocabularyLessonQuickNav').getBoundingClientRect();
+    const dots = document.querySelector('#vocabularyLessonBatchDots').getBoundingClientRect();
     return {
       noHorizontalOverflow: document.documentElement.scrollWidth <= innerWidth,
       footerVisible: footer.top < innerHeight && footer.bottom <= innerHeight + 1,
       navVisible: nav.top >= 0 && nav.bottom <= innerHeight,
+      dotsVisible: dots.height >= 16,
+      dotsOverflow: getComputedStyle(document.querySelector('#vocabularyLessonBatchDots')).overflow,
       buttons: [...document.querySelectorAll('#vocabularyLessonQuickNav button, #vocabularyLessonFooter button')].map(button => button.getBoundingClientRect().height)
     };
   });
   assert.equal(phoneLayout.noHorizontalOverflow, true);
   assert.equal(phoneLayout.footerVisible, true);
   assert.equal(phoneLayout.navVisible, true);
+  assert.equal(phoneLayout.dotsVisible, true);
+  assert.equal(phoneLayout.dotsOverflow, 'visible');
   assert.ok(phoneLayout.buttons.every(height => height >= 38));
   assert.deepEqual(iphone.consoleErrors, []);
   await iphone.page.screenshot({ path: path.join(resultDir, 'task-016-iphone-landscape.png'), fullPage: true });
