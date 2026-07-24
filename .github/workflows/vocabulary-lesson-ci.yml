@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm install --silent
       - run: npm test
 
   webkit-viewport:
@@ -27,11 +27,11 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.55.0-noble
     steps:
       - uses: actions/checkout@v4
-      - run: npm install
+      - run: npm install --silent
       - run: npm run test:viewport
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: task-015-viewport-screenshots
+          name: task-016-viewport-screenshots
           path: test-results/*.png
           if-no-files-found: ignore
