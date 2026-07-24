@@ -242,3 +242,26 @@ if (typeof module !== 'undefined' && module.exports) {
     buildVocabularyLessonWords
   };
 }
+
+if (typeof document !== 'undefined') {
+  const loadVocabularyLessonUxPatch = () => {
+    if (!document.getElementById('vocabularyLessonUxPatchStyles')) {
+      const link = document.createElement('link');
+      link.id = 'vocabularyLessonUxPatchStyles';
+      link.rel = 'stylesheet';
+      link.href = 'styles-vocabulary-lesson-patch.css';
+      document.head.appendChild(link);
+    }
+    if (!document.getElementById('vocabularyLessonUxPatchScript')) {
+      const script = document.createElement('script');
+      script.id = 'vocabularyLessonUxPatchScript';
+      script.src = 'js/vocabularyLessonUxPatch.js';
+      document.body.appendChild(script);
+    }
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadVocabularyLessonUxPatch, { once: true });
+  } else {
+    loadVocabularyLessonUxPatch();
+  }
+}
