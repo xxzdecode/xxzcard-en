@@ -1,4 +1,5 @@
 const VOCABULARY_LESSON_HARD_KEY_PREFIX = 'wc_vocabulary_lesson_hard_v1:';
+const VOCABULARY_LESSON_PROGRESS_KEY_PREFIX = 'wc_vocabulary_lesson_progress_v1:';
 const VOCABULARY_REVIEW_REMEMBERED_KEY = 'wc_vocabulary_review_remembered';
 const VOCABULARY_REVIEW_MIGRATION_KEY = 'wc_vocabulary_review_shared_migration_v1';
 const vocabularyReviewPreloadedImages = new Set();
@@ -23,7 +24,8 @@ const vocabularyLessonState = {
   randomIndex: 0,
   randomPool: [],
   revealed: false,
-  reviewScrollTop: 0
+  reviewScrollTop: 0,
+  progress: { version: 1, lastBatchIndex: 0, wordIndices: [] }
 };
 
 function canUseVocabularyReview() {
@@ -173,7 +175,11 @@ function installVocabularyLessonShell() {
     <div class="vocabulary-lesson-app" id="vocabularyLessonApp">
       <header class="vocabulary-lesson-topbar">
         <button class="vocabulary-lesson-icon-button" type="button" onclick="closeVocabularyReviewPlayer()" aria-label="退出新词导览">←</button>
-        <h1 id="vocabularyLessonModeTitle">第1批</h1>
+        <div class="vocabulary-lesson-header-content">
+          <h1 id="vocabularyLessonModeTitle">第1批</h1>
+          <nav class="vocabulary-lesson-mode-navigation" id="vocabularyLessonModeNavigation" aria-label="新词导览快捷入口"></nav>
+          <div class="vocabulary-lesson-batch-dots" id="vocabularyLessonBatchDots" aria-label="本批学习进度" hidden></div>
+        </div>
         <button class="vocabulary-lesson-change-button" id="vocabularyLessonChangeButton" type="button" onclick="startVocabularyLessonRandomReview(true)" hidden>换一批</button>
       </header>
       <main class="vocabulary-lesson-main" id="vocabularyLessonMain"></main>
@@ -206,23 +212,68 @@ function saveVocabularyLessonHardWords() {
   } catch (error) {}
 }
 
+function getVocabularyLessonProgressStorageKey(batch = vocabularyLessonState.batch, user = currentUser) {
+  return `${VOCABULARY_LESSON_PROGRESS_KEY_PREFIX}${encodeURIComponent(String(user || 'none'))}:${encodeURIComponent(String(batch && batch.id || 'none'))}`;
+}
+
+function getVocabularyLessonBatchLengths() {
+  return vocabularyLessonState.batches.map(items => items.length);
+}
+
+function readVocabularyLessonProgress(batch = vocabularyLessonState.batch) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(getVocabularyLessonProgressStorageKey(batch)) || 'null');
+    return normalizeVocabularyLessonProgress(saved, getVocabularyLessonBatchLengths());
+  } catch (error) {
+    return normalizeVocabularyLessonProgress(null, getVocabularyLessonBatchLengths());
+  }
+}
+
+function saveVocabularyLessonProgress() {
+  if (!vocabularyLessonState.batch || !vocabularyLessonState.batches.length) return;
+  const normalized = normalizeVocabularyLessonProgress(
+    vocabularyLessonState.progress,
+    getVocabularyLessonBatchLengths()
+  );
+  vocabularyLessonState.progress = normalized;
+  try {
+    localStorage.setItem(getVocabularyLessonProgressStorageKey(), JSON.stringify(normalized));
+  } catch (error) {}
+}
+
+function rememberVocabularyLessonPosition(batchIndex = vocabularyLessonState.batchIndex, wordIndex = vocabularyLessonState.wordIndex) {
+  if (!vocabularyLessonState.batches[batchIndex]) return;
+  const normalized = normalizeVocabularyLessonProgress(
+    vocabularyLessonState.progress,
+    getVocabularyLessonBatchLengths()
+  );
+  normalized.lastBatchIndex = Math.max(0, Math.min(batchIndex, vocabularyLessonState.batches.length - 1));
+  normalized.wordIndices[normalized.lastBatchIndex] = Math.max(
+    0,
+    Math.min(Math.trunc(Number(wordIndex)) || 0, vocabularyLessonState.batches[normalized.lastBatchIndex].length - 1)
+  );
+  vocabularyLessonState.progress = normalized;
+  saveVocabularyLessonProgress();
+}
+
 function renderVocabularyLessonBookSelection() {
   installVocabularyLessonShell();
   const list = document.getElementById('vocabularyLessonBookList');
   const empty = document.getElementById('vocabularyLessonBookEmpty');
   if (!list) return;
   const visibleBooks = getVocabularyLessonVisibleBatches(appData, currentUser);
-  const primaryBook = selectVocabularyLessonBatch(appData, currentUser, '');
-  const books = primaryBook
-    ? [primaryBook, ...visibleBooks.filter(batch => String(batch.id) !== String(primaryBook.id))]
-    : visibleBooks;
+  const latestId = getVocabularyLessonLatestBatchId(visibleBooks);
+  const books = visibleBooks;
   vocabularyLessonState.books = books;
-  list.innerHTML = books.map((batch, index) => `
-    <button class="vocabulary-lesson-book-button${index === 0 ? ' is-primary' : ''}" type="button" onclick="selectVocabularyLessonBook(decodeURIComponent('${encodeURIComponent(String(batch.id))}'))">
-      <span aria-hidden="true">${index === 0 ? '🌞' : '📚'}</span>
-      <span>${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}</span>
+  list.innerHTML = books.map(batch => {
+    const latest = String(batch.id) === latestId;
+    return `
+    <button class="vocabulary-lesson-book-button${latest ? ' is-latest' : ''}" type="button" onclick="selectVocabularyLessonBook(decodeURIComponent('${encodeURIComponent(String(batch.id))}'))">
+      <span aria-hidden="true">📚</span>
+      <span class="vocabulary-lesson-book-name">${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}${latest ? '<span class="vocabulary-lesson-latest-label">最新</span>' : ''}</span>
       <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>
-    </button>`).join('');
+    </button>`;
+  }).join('');
   if (empty) empty.hidden = books.length > 0;
   renderVocabularyLessonSharedAdmin();
 }
@@ -282,8 +333,9 @@ function selectVocabularyLessonBook(batchId) {
   vocabularyLessonState.batch = batch;
   vocabularyLessonState.words = buildVocabularyLessonWords(batch, vocabularyLessonVisualRegistry);
   vocabularyLessonState.batches = chunkVocabularyLessonItems(vocabularyLessonState.words, VOCABULARY_LESSON_BATCH_SIZE);
-  vocabularyLessonState.batchIndex = 0;
-  vocabularyLessonState.wordIndex = 0;
+  vocabularyLessonState.progress = readVocabularyLessonProgress(batch);
+  vocabularyLessonState.batchIndex = vocabularyLessonState.progress.lastBatchIndex;
+  vocabularyLessonState.wordIndex = vocabularyLessonState.progress.wordIndices[vocabularyLessonState.batchIndex] || 0;
   vocabularyLessonState.reviewDetailIndex = 0;
   vocabularyLessonState.hardWords = readVocabularyLessonHardWords(batch);
   vocabularyLessonState.randomWords = [];
@@ -291,10 +343,10 @@ function selectVocabularyLessonBook(batchId) {
   vocabularyLessonState.randomPool = [];
   vocabularyLessonState.revealed = false;
   vocabularyLessonState.reviewScrollTop = 0;
-  startVocabularyReview(0);
+  startVocabularyReview();
 }
 
-function startVocabularyReview(index = 0) {
+function startVocabularyReview(index = null) {
   if (!canUseVocabularyReview()) return;
   installVocabularyLessonShell();
   if (!vocabularyLessonState.batch || !vocabularyLessonState.words.length) {
@@ -305,12 +357,19 @@ function startVocabularyReview(index = 0) {
     vocabularyLessonState.words = buildVocabularyLessonWords(batch, vocabularyLessonVisualRegistry);
     vocabularyLessonState.batches = chunkVocabularyLessonItems(vocabularyLessonState.words, VOCABULARY_LESSON_BATCH_SIZE);
     vocabularyLessonState.hardWords = readVocabularyLessonHardWords(batch);
+    vocabularyLessonState.progress = readVocabularyLessonProgress(batch);
   }
   if (!vocabularyLessonState.batches.length) return;
   vocabularyLessonState.mode = 'teaching';
-  vocabularyLessonState.batchIndex = 0;
-  vocabularyLessonState.wordIndex = Math.max(0, Math.min(Math.trunc(Number(index)) || 0, vocabularyLessonState.batches[0].length - 1));
+  if (index == null) {
+    vocabularyLessonState.batchIndex = vocabularyLessonState.progress.lastBatchIndex;
+    vocabularyLessonState.wordIndex = vocabularyLessonState.progress.wordIndices[vocabularyLessonState.batchIndex] || 0;
+  } else {
+    vocabularyLessonState.batchIndex = 0;
+    vocabularyLessonState.wordIndex = Math.max(0, Math.min(Math.trunc(Number(index)) || 0, vocabularyLessonState.batches[0].length - 1));
+  }
   vocabularyLessonState.revealed = true;
+  rememberVocabularyLessonPosition();
   document.body.classList.add('vocabulary-review-open');
   showScreen('screenVocabularyReviewPlayer');
   renderVocabularyLesson();
@@ -318,6 +377,7 @@ function startVocabularyReview(index = 0) {
 
 function closeVocabularyReviewPlayer() {
   if (!canUseVocabularyReview()) return;
+  saveVocabularyLessonProgress();
   document.body.classList.remove('vocabulary-review-open');
   vocabularyLessonState.mode = 'selection';
   renderVocabularyLessonBookSelection();
@@ -353,6 +413,61 @@ function vocabularyLessonCurrentItem() {
   return vocabularyLessonCurrentItems()[vocabularyLessonCurrentIndex()] || null;
 }
 
+function isVocabularyLessonNumberedBatchMode() {
+  return vocabularyLessonState.mode === 'teaching'
+    || vocabularyLessonState.mode === 'batchReview'
+    || vocabularyLessonState.mode === 'batchReviewDetail';
+}
+
+function renderVocabularyLessonNavigation() {
+  const navigation = document.getElementById('vocabularyLessonModeNavigation');
+  const dots = document.getElementById('vocabularyLessonBatchDots');
+  if (!navigation || !dots) return;
+  const numberedMode = isVocabularyLessonNumberedBatchMode();
+  const hardAvailable = vocabularyLessonState.words.some(item => vocabularyLessonState.hardWords.has(item.key));
+  const labels = ['①', '②', '③', '④'];
+  navigation.innerHTML = `
+    ${labels.map((label, index) => {
+      const available = Boolean(vocabularyLessonState.batches[index]);
+      const active = numberedMode && vocabularyLessonState.batchIndex === index;
+      return `<button type="button" class="vocabulary-lesson-mode-button${active ? ' is-active' : ''}" onclick="jumpToVocabularyLessonBatch(${index})" aria-label="第${index + 1}批" aria-pressed="${active}" ${available ? '' : 'disabled'}>${label}</button>`;
+    }).join('')}
+    <button type="button" class="vocabulary-lesson-mode-button is-wide${vocabularyLessonState.mode === 'hardWordReview' ? ' is-active' : ''}" onclick="startVocabularyLessonHardWordReview()" aria-label="难词巩固" aria-pressed="${vocabularyLessonState.mode === 'hardWordReview'}" ${hardAvailable ? '' : 'disabled'}>★ 难词</button>
+    <button type="button" class="vocabulary-lesson-mode-button is-wide${vocabularyLessonState.mode === 'randomReview' ? ' is-active' : ''}" onclick="startVocabularyLessonRandomReview(false)" aria-label="随机抽取" aria-pressed="${vocabularyLessonState.mode === 'randomReview'}" ${vocabularyLessonState.words.length ? '' : 'disabled'}>↻ 随机</button>`;
+
+  if (vocabularyLessonState.mode !== 'teaching') {
+    dots.hidden = true;
+    dots.innerHTML = '';
+    return;
+  }
+  const items = vocabularyLessonState.batches[vocabularyLessonState.batchIndex] || [];
+  dots.hidden = false;
+  dots.innerHTML = items.map((item, index) => {
+    const state = index < vocabularyLessonState.wordIndex
+      ? ' is-past'
+      : index === vocabularyLessonState.wordIndex
+        ? ' is-current'
+        : '';
+    return `<span class="vocabulary-lesson-batch-dot${state}" aria-hidden="true"></span>`;
+  }).join('');
+}
+
+function jumpToVocabularyLessonBatch(index) {
+  const nextBatchIndex = Math.trunc(Number(index));
+  if (nextBatchIndex < 0 || nextBatchIndex >= Math.min(4, vocabularyLessonState.batches.length)) return;
+  vocabularyLessonState.progress = normalizeVocabularyLessonProgress(
+    vocabularyLessonState.progress,
+    getVocabularyLessonBatchLengths()
+  );
+  vocabularyLessonState.batchIndex = nextBatchIndex;
+  vocabularyLessonState.wordIndex = vocabularyLessonState.progress.wordIndices[nextBatchIndex] || 0;
+  vocabularyLessonState.reviewScrollTop = 0;
+  vocabularyLessonState.revealed = true;
+  vocabularyLessonState.mode = 'teaching';
+  rememberVocabularyLessonPosition();
+  renderVocabularyLesson();
+}
+
 function renderVocabularyLesson() {
   installVocabularyLessonShell();
   const title = document.getElementById('vocabularyLessonModeTitle');
@@ -362,6 +477,7 @@ function renderVocabularyLesson() {
   if (!title || !change || !main || !footer) return;
 
   change.hidden = vocabularyLessonState.mode !== 'randomReview';
+  renderVocabularyLessonNavigation();
   if (vocabularyLessonState.mode === 'batchReview') {
     title.textContent = '图片回顾';
     renderVocabularyLessonImageWall(main, footer);
@@ -492,9 +608,10 @@ function exitVocabularyLessonBatchReviewDetail() {
 function continueVocabularyLessonAfterBatchReview() {
   if (vocabularyLessonState.batchIndex < vocabularyLessonState.batches.length - 1) {
     vocabularyLessonState.batchIndex += 1;
-    vocabularyLessonState.wordIndex = 0;
+    vocabularyLessonState.wordIndex = vocabularyLessonState.progress.wordIndices[vocabularyLessonState.batchIndex] || 0;
     vocabularyLessonState.reviewScrollTop = 0;
     vocabularyLessonState.mode = 'teaching';
+    rememberVocabularyLessonPosition();
   } else {
     vocabularyLessonState.mode = 'finalMenu';
   }
@@ -509,6 +626,7 @@ function returnVocabularyLessonFinalMenu() {
 
 function startVocabularyLessonRandomReview(replace = false) {
   if (!vocabularyLessonState.words.length) return;
+  saveVocabularyLessonProgress();
   const result = createVocabularyLessonRandomBatch(
     vocabularyLessonState.words,
     vocabularyLessonState.randomPool,
@@ -525,6 +643,7 @@ function startVocabularyLessonRandomReview(replace = false) {
 function startVocabularyLessonHardWordReview() {
   const hardItems = vocabularyLessonState.words.filter(item => vocabularyLessonState.hardWords.has(item.key));
   if (!hardItems.length) return;
+  saveVocabularyLessonProgress();
   vocabularyLessonState.mode = 'hardWordReview';
   vocabularyLessonState.wordIndex = 0;
   vocabularyLessonState.revealed = true;
@@ -563,6 +682,7 @@ function changeVocabularyReviewWord(delta) {
       return;
     }
     vocabularyLessonState.wordIndex = Math.max(0, Math.min(vocabularyLessonState.wordIndex + direction, items.length - 1));
+    rememberVocabularyLessonPosition();
   } else if (mode === 'batchReviewDetail') {
     vocabularyLessonState.reviewDetailIndex = (vocabularyLessonState.reviewDetailIndex + direction + items.length) % items.length;
   } else if (mode === 'randomReview') {
@@ -695,7 +815,9 @@ function shuffleVocabularyReviewCards(random = Math.random) {
   vocabularyLessonState.batches = chunkVocabularyLessonItems(vocabularyLessonState.words, VOCABULARY_LESSON_BATCH_SIZE);
   vocabularyLessonState.batchIndex = 0;
   vocabularyLessonState.wordIndex = 0;
+  vocabularyLessonState.progress = normalizeVocabularyLessonProgress(null, getVocabularyLessonBatchLengths());
   vocabularyLessonState.mode = 'teaching';
+  rememberVocabularyLessonPosition();
   renderVocabularyLesson();
 }
 
@@ -711,6 +833,8 @@ document.addEventListener('keydown', event => {
     changeVocabularyReviewWord(1);
   }
 });
+
+window.addEventListener('pagehide', saveVocabularyLessonProgress);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

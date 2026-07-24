@@ -107,9 +107,26 @@ body.vocabulary-review-open {
   font-weight: 800;
 }
 
-.vocabulary-lesson-book-button.is-primary {
+.vocabulary-lesson-book-button.is-latest {
   border-color: #b7dfd2;
   background: var(--vl-mint-soft);
+}
+
+.vocabulary-lesson-book-name {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.vocabulary-lesson-latest-label {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--vl-mint-deep);
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .vocabulary-lesson-book-arrow {
@@ -177,7 +194,7 @@ body.vocabulary-review-open {
     max(10px, env(safe-area-inset-bottom))
     max(10px, env(safe-area-inset-left));
   display: grid;
-  grid-template-rows: 52px minmax(0, 1fr) auto;
+  grid-template-rows: 82px minmax(0, 1fr) auto;
   gap: 10px;
   overflow: hidden;
   color: var(--vl-ink);
@@ -189,7 +206,7 @@ body.vocabulary-review-open {
 .vocabulary-lesson-topbar {
   min-width: 0;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(0, auto);
   align-items: center;
   gap: 9px;
   padding: 4px 8px;
@@ -199,12 +216,91 @@ body.vocabulary-review-open {
   box-shadow: var(--vl-shadow);
 }
 
+.vocabulary-lesson-header-content {
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 8px;
+  align-content: center;
+  gap: 3px;
+}
+
 .vocabulary-lesson-topbar h1 {
   margin: 0;
   color: var(--vl-pink);
   text-align: center;
-  font-size: clamp(21px, 2.6vw, 30px);
+  font-size: 14px;
   line-height: 1;
+}
+
+.vocabulary-lesson-mode-navigation {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.vocabulary-lesson-mode-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 1px solid #b7dfd2;
+  border-radius: 999px;
+  color: var(--vl-mint-deep);
+  background: #fff;
+  box-shadow: none;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.vocabulary-lesson-mode-button.is-wide {
+  min-width: 82px;
+  font-size: 14px;
+}
+
+.vocabulary-lesson-mode-button.is-active {
+  border-color: var(--vl-mint);
+  color: #fff;
+  background: var(--vl-mint);
+}
+
+.vocabulary-lesson-mode-button:disabled {
+  border-color: #e5e1e3;
+  color: #b9b1b6;
+  background: #f2f0f1;
+  opacity: 1;
+}
+
+.vocabulary-lesson-batch-dots {
+  min-height: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.vocabulary-lesson-batch-dots[hidden] {
+  display: none;
+}
+
+.vocabulary-lesson-batch-dot {
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid #b7dfd2;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.vocabulary-lesson-batch-dot.is-past {
+  background: #cfe9df;
+}
+
+.vocabulary-lesson-batch-dot.is-current {
+  width: 10px;
+  height: 10px;
+  border-color: var(--vl-mint-deep);
+  background: var(--vl-mint);
 }
 
 .vocabulary-lesson-icon-button,
@@ -390,12 +486,18 @@ body.vocabulary-review-open {
   place-items: center;
   overflow: hidden;
   border-radius: 18px;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .vocabulary-lesson-visual.scene img {
   width: 100%;
   height: 100%;
   display: block;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   border-radius: inherit;
 }
@@ -602,7 +704,7 @@ body.vocabulary-review-open {
 
 @media (orientation: landscape) and (max-height: 620px) {
   .vocabulary-lesson-app {
-    grid-template-rows: 44px minmax(0, 1fr) auto;
+    grid-template-rows: 72px minmax(0, 1fr) auto;
     gap: 7px;
     padding:
       max(6px, env(safe-area-inset-top))
@@ -614,6 +716,27 @@ body.vocabulary-review-open {
   .vocabulary-lesson-topbar {
     border-radius: 14px;
     padding: 1px 6px;
+  }
+
+  .vocabulary-lesson-header-content {
+    grid-template-rows: 12px 38px 7px;
+    gap: 1px;
+  }
+
+  .vocabulary-lesson-mode-navigation {
+    gap: 4px;
+  }
+
+  .vocabulary-lesson-mode-button {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 3px 8px;
+    font-size: 16px;
+  }
+
+  .vocabulary-lesson-mode-button.is-wide {
+    min-width: 72px;
+    font-size: 12px;
   }
 
   .vocabulary-lesson-icon-button,
@@ -675,9 +798,27 @@ body.vocabulary-review-open {
   }
 }
 
+@media (orientation: landscape) and (min-height: 621px) and (max-width: 1366px) {
+  .vocabulary-lesson-visual-panel {
+    padding: 8px;
+  }
+
+  .vocabulary-lesson-visual.scene,
+  .vocabulary-lesson-visual.scene img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
+}
+
 @media (orientation: portrait) and (max-width: 850px) {
   .vocabulary-lesson-app {
-    grid-template-rows: 52px minmax(0, 1fr) auto;
+    grid-template-rows: 126px minmax(0, 1fr) auto;
+  }
+
+  .vocabulary-lesson-mode-navigation {
+    flex-wrap: wrap;
   }
 
   .vocabulary-lesson-card {

@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "test": "node tests/vocabularyReview.test.js && node tests/vocabularyLessonImporter.test.js && node tests/homeNavigationLayout.test.js",
+    "test:functionality": "node tests/vocabularyLessonFunctionality.mjs",
     "test:viewport": "node tests/vocabularyLessonViewport.mjs",
     "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js"
   },

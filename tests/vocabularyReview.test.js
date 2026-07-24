@@ -19,12 +19,26 @@ const studentData = {
   batches: [
     { id: '1', name: 'older', cards: [{ word: 'one' }], sharedWith: ['sister'], createdAt: '2026-07-01' },
     { id: '2', name: 'today', cards: [{ word: 'two' }], sharedWith: ['sister'], createdAt: '2026-07-23' },
-    { id: '3', name: 'teacher only', cards: [{ word: 'three' }], sharedWith: [], createdAt: '2026-07-24' }
+    { id: '3', name: 'teacher only', cards: [{ word: 'three' }], sharedWith: [], createdAt: '2026-07-24' },
+    { id: '10', name: 'same date later id', cards: [{ word: 'ten' }], sharedWith: ['sister'], createdAt: '2026-07-23' },
+    { id: 'missing', name: 'missing date', cards: [{ word: 'none' }], sharedWith: ['sister'] }
   ]
 };
-assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'sister').map(batch => batch.id), ['2', '1']);
-assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'teacher').map(batch => batch.id), ['3', '2', '1']);
+assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'sister').map(batch => batch.id), ['missing', '1', '2', '10']);
+assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'teacher').map(batch => batch.id), ['missing', '1', '2', '10', '3']);
+assert.equal(core.getVocabularyLessonLatestBatchId(core.getVocabularyLessonVisibleBatches(studentData, 'sister')), '10');
 assert.equal(core.selectVocabularyLessonBatch(studentData, 'sister', '1').id, '1');
+assert.equal(core.selectVocabularyLessonBatch(studentData, 'sister', '').id, '10');
+
+assert.deepEqual(
+  core.normalizeVocabularyLessonProgress({ lastBatchIndex: 7, wordIndices: [4, -2, 99] }, [10, 8, 3]),
+  { version: 1, lastBatchIndex: 2, wordIndices: [4, 0, 2] }
+);
+assert.deepEqual(
+  core.normalizeVocabularyLessonProgress({ lastBatchIndex: 'bad', wordIndices: 'broken' }, [10, 2]),
+  { version: 1, lastBatchIndex: 0, wordIndices: [0, 0] }
+);
+assert.deepEqual(core.normalizeVocabularyLessonProgress(null, []), { version: 1, lastBatchIndex: 0, wordIndices: [] });
 
 const lesson = registry.lessons.find(item => item.lessonId === '2026-07-24-common-words-2');
 assert.ok(lesson);
@@ -79,6 +93,16 @@ for (const mode of ['teaching', 'batchReview', 'batchReviewDetail', 'finalMenu',
 }
 assert.match(reviewScript, /sessionStorage\.setItem/);
 assert.match(reviewScript, /VOCABULARY_LESSON_HARD_KEY_PREFIX/);
+assert.match(reviewScript, /VOCABULARY_LESSON_PROGRESS_KEY_PREFIX/);
+assert.match(reviewScript, /encodeURIComponent\(String\(user/);
+assert.match(reviewScript, /localStorage\.setItem\(getVocabularyLessonProgressStorageKey/);
+assert.match(reviewScript, /jumpToVocabularyLessonBatch/);
+for (const label of ['①', '②', '③', '④', '★ 难词', '↻ 随机']) {
+  assert.ok(reviewScript.includes(label), `missing navigation label: ${label}`);
+}
+assert.match(reviewScript, /vocabulary-lesson-batch-dot/);
+assert.match(reviewScript, /vocabulary-lesson-latest-label">最新/);
+assert.doesNotMatch(reviewScript, /is-primary/);
 assert.doesNotMatch(reviewScript, /vocabularyReviewState\.rememberedWords\s*=\s*Array\.from\(vocabularyLessonState\.hardWords/);
 assert.match(reviewScript, /aria-label="查看这张图片"/);
 assert.doesNotMatch(reviewScript, /aria-label="[^"]*\$\{item\.word\}/);
@@ -93,6 +117,10 @@ assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*2fr\)\s+minmax\(260p
 assert.match(styles, /grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
 assert.match(styles, /grid-template-rows:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
 assert.match(styles, /min-height:\s*44px/);
+assert.match(styles, /\.vocabulary-lesson-book-button\.is-latest/);
+assert.match(styles, /\.vocabulary-lesson-mode-button\.is-active/);
+assert.match(styles, /\.vocabulary-lesson-batch-dot\.is-current/);
+assert.match(styles, /max-height:\s*100%/);
 assert.match(styles, /env\(safe-area-inset/);
 assert.match(styles, /prefers-reduced-motion/);
 assert.match(styles, /orientation:\s*landscape/);
@@ -100,7 +128,7 @@ assert.match(placeholder, /<svg/);
 assert.doesNotMatch(placeholder, /<text|watermark/i);
 
 assert.match(serviceWorker, /importScripts\('\.\/data\/vocabularyLessonAssets\.js'\)/);
-assert.match(serviceWorker, /vocabulary-review-v19-/);
+assert.match(serviceWorker, /vocabulary-review-v20-/);
 assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson\.css'/);
 assert.match(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 

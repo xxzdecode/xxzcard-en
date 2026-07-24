@@ -44,7 +44,7 @@ assert.doesNotMatch(layoutStyles, /repeat\(6|span\s+[23]/);
 
 assert.match(mainScript, /href\s*=\s*'styles-home-nav\.css'/);
 assert.match(mainScript, /homeNavigationLayout\s*=\s*'three-columns'/);
-assert.match(serviceWorker, /vocabulary-review-v19-/);
+assert.match(serviceWorker, /vocabulary-review-v20-/);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
 assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson\.css'/);
 

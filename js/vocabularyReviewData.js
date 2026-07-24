@@ -48,11 +48,13 @@ function getVocabularyLessonBatchDate(batch) {
   return String(batch.sortDate || batch.date || batch.createdAt || batch.updatedAt || '').trim();
 }
 
-function compareVocabularyLessonBatchesNewestFirst(a, b) {
-  if (typeof compareBatchesNewestFirst === 'function') return compareBatchesNewestFirst(a, b);
-  const dateCmp = getVocabularyLessonBatchDate(b).localeCompare(getVocabularyLessonBatchDate(a));
+function compareVocabularyLessonBatchesOldestFirst(a, b) {
+  const dateCmp = getVocabularyLessonBatchDate(a).localeCompare(getVocabularyLessonBatchDate(b));
   if (dateCmp) return dateCmp;
-  return Number(b && b.id || 0) - Number(a && a.id || 0);
+  return String(a && a.id || '').localeCompare(String(b && b.id || ''), undefined, {
+    numeric: true,
+    sensitivity: 'base'
+  });
 }
 
 function getVocabularyLessonVisibleBatches(data, user) {
@@ -62,7 +64,12 @@ function getVocabularyLessonVisibleBatches(data, user) {
     .filter(batch => Array.isArray(batch && batch.cards) && batch.cards.length > 0)
     .filter(batch => role === 'teacher' || (Array.isArray(batch.sharedWith) && batch.sharedWith.includes(role)))
     .slice()
-    .sort(compareVocabularyLessonBatchesNewestFirst);
+    .sort(compareVocabularyLessonBatchesOldestFirst);
+}
+
+function getVocabularyLessonLatestBatchId(batches) {
+  const available = Array.isArray(batches) ? batches.filter(Boolean) : [];
+  return available.length ? String(available[available.length - 1].id) : '';
 }
 
 function selectVocabularyLessonBatch(data, user, preferredId) {
@@ -75,7 +82,27 @@ function selectVocabularyLessonBatch(data, user, preferredId) {
     const visibleTodayBatch = todayBatch && batches.find(batch => String(batch.id) === String(todayBatch.id));
     if (visibleTodayBatch) return visibleTodayBatch;
   }
-  return batches[0];
+  return batches[batches.length - 1];
+}
+
+function normalizeVocabularyLessonProgress(progress, batchLengths) {
+  const lengths = (Array.isArray(batchLengths) ? batchLengths : [])
+    .map(length => Math.max(0, Math.trunc(Number(length)) || 0));
+  if (!lengths.length) return { version: 1, lastBatchIndex: 0, wordIndices: [] };
+  const source = progress && typeof progress === 'object' ? progress : {};
+  const lastBatchIndex = Math.max(
+    0,
+    Math.min(Math.trunc(Number(source.lastBatchIndex)) || 0, lengths.length - 1)
+  );
+  const savedIndices = Array.isArray(source.wordIndices) ? source.wordIndices : [];
+  return {
+    version: 1,
+    lastBatchIndex,
+    wordIndices: lengths.map((length, index) => Math.max(
+      0,
+      Math.min(Math.trunc(Number(savedIndices[index])) || 0, Math.max(0, length - 1))
+    ))
+  };
 }
 
 function chunkVocabularyLessonItems(items, size = VOCABULARY_LESSON_BATCH_SIZE) {
@@ -232,7 +259,9 @@ if (typeof module !== 'undefined' && module.exports) {
     normalizeVocabularyLessonWord,
     normalizeVocabularyLessonLines,
     getVocabularyLessonVisibleBatches,
+    getVocabularyLessonLatestBatchId,
     selectVocabularyLessonBatch,
+    normalizeVocabularyLessonProgress,
     chunkVocabularyLessonItems,
     shuffleVocabularyLessonItems,
     createVocabularyLessonRandomBatch,

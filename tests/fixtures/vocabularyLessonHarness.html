@@ -20,8 +20,15 @@
     let currentBatchId = null;
     let appData = {
       batches: [{
+        id: 'older',
+        name: '较早单词本',
+        date: '2026-07-01',
+        sharedWith: ['sister', 'brother'],
+        cards: [{ word: 'older', meaning: '较早的', emoji: '🕰️' }]
+      }, {
         id: 'today',
         name: '今日生词',
+        date: '2026-07-24',
         sharedWith: ['sister', 'brother'],
         cards: [
           { word: 'breath', meaning: '呼吸；一口气', phonetic: '/breθ/', emoji: '🌬️', collocations: ['take a deep breath'], tip: '名词；注意与 breathe 区分' },
@@ -33,7 +40,12 @@
           { word: 'curious', meaning: '好奇的', phonetic: '/ˈkjʊəriəs/', emoji: '🔎' },
           { word: 'village', meaning: '村庄', phonetic: '/ˈvɪlɪdʒ/', emoji: '🏘️' },
           { word: 'complain', meaning: '抱怨', phonetic: '/kəmˈpleɪn/', emoji: '🗯️' },
-          { word: 'craft', meaning: '手工艺', phonetic: '/krɑːft/', emoji: '✂️' }
+          { word: 'craft', meaning: '手工艺', phonetic: '/krɑːft/', emoji: '✂️' },
+          ...Array.from({ length: 30 }, (_, index) => ({
+            word: `lesson-${index + 11}`,
+            meaning: `释义${index + 11}`,
+            emoji: '✨'
+          }))
         ]
       }],
       taskAssignments: [],
@@ -72,16 +84,21 @@
         lessonId: 'viewport-harness',
         sourceWordbook: '今日生词',
         items: [
-          { word: 'breath', visualType: 'scene', focalPoint: '50% 45%', collocations: ['take a deep breath'], teacherNote: '平静地呼吸，不画成疲惫出汗。' },
-          { word: 'hilltop', visualType: 'compound', parts: ['⛰️', '🔝'], relation: '＋' },
-          { word: 'truth', visualType: 'concept', concept: { icons: ['💬', '✅'], relation: '→' } },
+          { word: 'breath', visualType: 'scene', image: 'assets/vocabulary-review/bonnet.webp', thumbnail: 'assets/vocabulary-review/bonnet.webp', focalPoint: '50% 45%', collocations: ['take a deep breath'], teacherNote: '平静地呼吸，不画成疲惫出汗。' },
+          { word: 'hilltop', visualType: 'scene', image: 'assets/vocabulary-review/celebration.webp', thumbnail: 'assets/vocabulary-review/celebration.webp' },
+          { word: 'truth', visualType: 'scene', image: 'assets/vocabulary-review/lab.webp', thumbnail: 'assets/vocabulary-review/lab.webp' },
           { word: 'aeroplane', visualType: 'emoji', emoji: '✈️' },
           { word: 'compare', visualType: 'scene' },
           { word: 'backyard', visualType: 'compound', parts: ['🏠', '🌳'], relation: '＋' },
           { word: 'curious', visualType: 'concept', concept: { icons: ['❓', '🔎'], relation: '→' } },
           { word: 'village', visualType: 'emoji', emoji: '🏘️' },
           { word: 'complain', visualType: 'scene' },
-          { word: 'craft', visualType: 'emoji', emoji: '✂️' }
+          { word: 'craft', visualType: 'emoji', emoji: '✂️' },
+          ...Array.from({ length: 30 }, (_, index) => ({
+            word: `lesson-${index + 11}`,
+            visualType: 'emoji',
+            emoji: '✨'
+          }))
         ]
       }]
     };
