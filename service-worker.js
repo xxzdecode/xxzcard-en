@@ -1,6 +1,6 @@
-// Supersedes vocabulary-review-v19 with task 016 navigation, resume and iPad image fixes.
+// Supersedes vocabulary-review-v20-task016 with vocabulary tour ordering and layout fixes.
 importScripts('./data/vocabularyLessonAssets.js');
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v20-task016';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v21-layoutfix';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
