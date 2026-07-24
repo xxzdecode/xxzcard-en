@@ -1,12 +1,13 @@
-// Supersedes vocabulary-review-v18 with the unified vocabulary teaching flow.
+// Supersedes vocabulary-review-v19 with task 016 navigation, resume and iPad image fixes.
 importScripts('./data/vocabularyLessonAssets.js');
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v19-fc78183a1d';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v20-task016';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './styles-home-nav.css',
   './styles-vocabulary-lesson.css',
+  './styles-vocabulary-lesson-016.css',
   './js/config.js',
   './js/state.js',
   './js/repository.js',
@@ -30,6 +31,7 @@ const VOCABULARY_REVIEW_ASSETS = [
   './js/wordDedupe.js',
   './js/vocabularyReviewData.js',
   './js/vocabularyReview.js',
+  './js/vocabularyLesson016.js',
   './js/vocabularyScreeningData.js',
   './js/vocabularyScreening.js',
   './js/main.js',
