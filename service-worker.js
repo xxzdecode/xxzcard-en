@@ -1,6 +1,6 @@
 // Supersedes vocabulary-review-v20-task016 with vocabulary tour ordering and layout fixes.
 importScripts('./data/vocabularyLessonAssets.js');
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v21-layoutfix';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v21-layoutfix-006a9fb8f0';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',

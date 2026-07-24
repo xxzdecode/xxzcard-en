@@ -346,6 +346,274 @@
           "emoji": "✂️🎨"
         }
       ]
+    },
+    {
+      "lessonId": "2026-07-24-common-words-3",
+      "sourceWordbook": "常用词3",
+      "status": "completed",
+      "importedAt": "2026-07-24T13:15:36.674Z",
+      "items": [
+        {
+          "word": "explain",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/explain.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/explain-thumb.webp",
+          "sourceHash": "3ff07cc3c1e9ed7042fe1981497e82e869267502ff2e6f06fcc4ed5a814f275d"
+        },
+        {
+          "word": "effective",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/effective.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/effective-thumb.webp",
+          "sourceHash": "d6cc4d5c0bc57b70a3b426df179abf8ecb3736ef25886bcb1ab78ede02d96437"
+        },
+        {
+          "word": "lift",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/lift.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/lift-thumb.webp",
+          "sourceHash": "df3ba9e79f1686fa8280b1537a7974b37179b283571fa38073e574d9ccd1bd95"
+        },
+        {
+          "word": "excitedly",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/excitedly.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/excitedly-thumb.webp",
+          "sourceHash": "15c2796eb1608073ef298ea6e1e57df5e7cf3696d2fe5c3899ce4e839b322575"
+        },
+        {
+          "word": "travel",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/travel.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/travel-thumb.webp",
+          "sourceHash": "66219b6f7b24b02b4b389949dafaa3c5afdf301c6d3cb2dc6ef0e37dec4145f2"
+        },
+        {
+          "word": "enroll",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/enroll.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/enroll-thumb.webp",
+          "sourceHash": "82a9aeb9f9a79dc3ec60f2f5c4b965c58e0d740672b25e1171a21203f88df0d8"
+        },
+        {
+          "word": "funny",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/funny.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/funny-thumb.webp",
+          "sourceHash": "6dfd1f8d6e6184dc5ec5e61b9ba8386af040fa888ccef18c631b0735fcb1d08b"
+        },
+        {
+          "word": "miss",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/miss.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/miss-thumb.webp",
+          "sourceHash": "e3d1a30c97b7d00fe781b908b258804cb423470d41bb910a2e247c59626d6c30"
+        },
+        {
+          "word": "call",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/call.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/call-thumb.webp",
+          "sourceHash": "476e5aa13d9684f74116e86114b39b294f9a322a265739045c08455f5f666e14"
+        },
+        {
+          "word": "device",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/device.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/device-thumb.webp",
+          "sourceHash": "48221fd6a2cb62fa69468bdb06f9f0165a10d6f736e4bbad91b4034ab006afb3"
+        },
+        {
+          "word": "seal",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/seal.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/seal-thumb.webp",
+          "sourceHash": "45bce4fbb46236a5f743c4f9690fddc029bb89ad4c27d07323ccb1b78744a59d"
+        },
+        {
+          "word": "float",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/float.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/float-thumb.webp",
+          "sourceHash": "5088f7db688a861413762f2f537fb3d5b1765ca38b33deb34f2c18522919c14e"
+        },
+        {
+          "word": "beside",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/beside.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/beside-thumb.webp",
+          "sourceHash": "3fa242489f05ac6c8adffaa9cd55457dfac1f1735ab5188e870d59b09a9e8a70"
+        },
+        {
+          "word": "lid",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/lid.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/lid-thumb.webp",
+          "sourceHash": "c3ff8c24b47367e193693dd9d3484e62efd6fc0371066cef9ce89eac61077723"
+        },
+        {
+          "word": "classroom",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/classroom.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/classroom-thumb.webp",
+          "sourceHash": "cecfdcd01d4778db2a92ef97f45d634af497d3a0c4d41ff25f72c0fd6a60df30"
+        },
+        {
+          "word": "describe",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/describe.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/describe-thumb.webp",
+          "sourceHash": "29dc822bb9c85483a1f7276b753f3dd024a2b646dae4ace9d0be3feb713e249f"
+        },
+        {
+          "word": "toe",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/toe.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/toe-thumb.webp",
+          "sourceHash": "149bbb4d269b501d90b43b4b55e5a4848c90526c79cc2c0f508fa8146283cbe8"
+        },
+        {
+          "word": "mammal",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/mammal.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/mammal-thumb.webp",
+          "sourceHash": "8691282ee7a27447c2a16554e5f6734d11179964102073d69fcd6fe83a762d47"
+        },
+        {
+          "word": "pole",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/pole.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/pole-thumb.webp",
+          "sourceHash": "1dd0d3e58940ae5349ba1b404e5323e52d9e61b84b2e2be11d0d2daebe35b073"
+        },
+        {
+          "word": "offspring",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/offspring.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/offspring-thumb.webp",
+          "sourceHash": "aab3a73a40dcb22b97ad58bb32c6c20108abf9fc995d26db7e6463ebfe6062b2"
+        },
+        {
+          "word": "difficult",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/difficult.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/difficult-thumb.webp",
+          "sourceHash": "a408552b0c5453655d653b9fbcee80124633ce9a298f575cbbfbb32a8a1df63e"
+        },
+        {
+          "word": "metal",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/metal.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/metal-thumb.webp",
+          "sourceHash": "16b4084ba831b4443159446b6d1526c54ab7b08746553978829536fd04df74d0"
+        },
+        {
+          "word": "fur",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/fur.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/fur-thumb.webp",
+          "sourceHash": "ceea9cbb5918f2fbe178512d8045ab150fa668ca7d7336dc2a929d9ed3e5553b"
+        },
+        {
+          "word": "repel",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/repel.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/repel-thumb.webp",
+          "sourceHash": "29f682e33af799a02354c7556f92ad8bf0033c54c066d38681cfa40eb2b86de6"
+        },
+        {
+          "word": "pupil",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/pupil.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/pupil-thumb.webp",
+          "sourceHash": "27a510127b8bfefbf4b4cacf4e6b12b2e528b6d3f700c95ebdc39117bc0be240"
+        },
+        {
+          "word": "plastic",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/plastic.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/plastic-thumb.webp",
+          "sourceHash": "7ca0e6a1924ff46a288530ef33929a82b20a524ef267e0acdcc2c7754952cbb6"
+        },
+        {
+          "word": "discuss",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/discuss.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/discuss-thumb.webp",
+          "sourceHash": "b8ff50613c82759d27a4077d866c1aa83d1b81aeeb084e3a94d4bed3c609858e"
+        },
+        {
+          "word": "steel",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/steel.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/steel-thumb.webp",
+          "sourceHash": "f33e12aa4055860bf69ceb935a1f59f2ad505f1b14a29253fcf790be72220a4a"
+        },
+        {
+          "word": "powerful",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/powerful.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/powerful-thumb.webp",
+          "sourceHash": "d677db90874c25cf348534441549ef1d52e943c4202012be75d83ce41e987121"
+        },
+        {
+          "word": "pull",
+          "visualType": "scene",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-3/pull.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-3/pull-thumb.webp",
+          "sourceHash": "8cce878845e031e3263d3f6c01d992474ca1627dcb8e87ba596ef248c855882d"
+        },
+        {
+          "word": "shoe",
+          "visualType": "emoji",
+          "emoji": "👟"
+        },
+        {
+          "word": "trousers",
+          "visualType": "emoji",
+          "emoji": "👖"
+        },
+        {
+          "word": "glove",
+          "visualType": "emoji",
+          "emoji": "🧤"
+        },
+        {
+          "word": "picture",
+          "visualType": "emoji",
+          "emoji": "🖼️"
+        },
+        {
+          "word": "people",
+          "visualType": "emoji",
+          "emoji": "👥"
+        },
+        {
+          "word": "jacket",
+          "visualType": "emoji",
+          "emoji": "🧥"
+        },
+        {
+          "word": "scarf",
+          "visualType": "emoji",
+          "emoji": "🧣"
+        },
+        {
+          "word": "hat",
+          "visualType": "emoji",
+          "emoji": "🎩"
+        },
+        {
+          "word": "sock",
+          "visualType": "emoji",
+          "emoji": "🧦"
+        },
+        {
+          "word": "giraffe",
+          "visualType": "emoji",
+          "emoji": "🦒"
+        }
+      ]
     }
   ]
 }
