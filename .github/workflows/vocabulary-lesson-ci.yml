@@ -37,10 +37,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm install --silent
-      - run: npm run test:viewport
+      - name: Run WebKit viewport tests
+        run: |
+          mkdir -p test-results
+          npm run test:viewport > test-results/viewport.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: task-016-viewport-screenshots
-          path: test-results/*.png
-          if-no-files-found: ignore
+          name: task-016-viewport-results
+          path: |
+            test-results/*.png
+            test-results/viewport.log
+          if-no-files-found: warn
