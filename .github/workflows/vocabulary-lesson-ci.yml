@@ -19,7 +19,16 @@ jobs:
         with:
           node-version: 22
       - run: npm install --silent
-      - run: npm test
+      - name: Run unit tests
+        run: |
+          mkdir -p test-results
+          npm test > test-results/unit.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: task-016-unit-log
+          path: test-results/unit.log
+          if-no-files-found: warn
 
   webkit-viewport:
     runs-on: ubuntu-latest
