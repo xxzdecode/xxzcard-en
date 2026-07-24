@@ -48,11 +48,23 @@ function getVocabularyLessonBatchDate(batch) {
   return String(batch.sortDate || batch.date || batch.createdAt || batch.updatedAt || '').trim();
 }
 
-function compareVocabularyLessonBatchesNewestFirst(a, b) {
-  if (typeof compareBatchesNewestFirst === 'function') return compareBatchesNewestFirst(a, b);
-  const dateCmp = getVocabularyLessonBatchDate(b).localeCompare(getVocabularyLessonBatchDate(a));
+function compareVocabularyLessonStableIds(a, b) {
+  return String(a && a.id || '').localeCompare(
+    String(b && b.id || ''),
+    undefined,
+    { numeric: true, sensitivity: 'base' }
+  );
+}
+
+function compareVocabularyLessonBatchesOldestFirst(a, b) {
+  const dateCmp = getVocabularyLessonBatchDate(a).localeCompare(getVocabularyLessonBatchDate(b));
   if (dateCmp) return dateCmp;
-  return Number(b && b.id || 0) - Number(a && a.id || 0);
+  return compareVocabularyLessonStableIds(a, b);
+}
+
+// Retained for compatibility with older callers. New lists intentionally use oldest-first.
+function compareVocabularyLessonBatchesNewestFirst(a, b) {
+  return -compareVocabularyLessonBatchesOldestFirst(a, b);
 }
 
 function getVocabularyLessonVisibleBatches(data, user) {
@@ -62,7 +74,12 @@ function getVocabularyLessonVisibleBatches(data, user) {
     .filter(batch => Array.isArray(batch && batch.cards) && batch.cards.length > 0)
     .filter(batch => role === 'teacher' || (Array.isArray(batch.sharedWith) && batch.sharedWith.includes(role)))
     .slice()
-    .sort(compareVocabularyLessonBatchesNewestFirst);
+    .sort(compareVocabularyLessonBatchesOldestFirst);
+}
+
+function getVocabularyLessonLatestBatch(data, user) {
+  const batches = getVocabularyLessonVisibleBatches(data, user);
+  return batches.length ? batches[batches.length - 1] : null;
 }
 
 function selectVocabularyLessonBatch(data, user, preferredId) {
@@ -75,7 +92,7 @@ function selectVocabularyLessonBatch(data, user, preferredId) {
     const visibleTodayBatch = todayBatch && batches.find(batch => String(batch.id) === String(todayBatch.id));
     if (visibleTodayBatch) return visibleTodayBatch;
   }
-  return batches[0];
+  return batches[batches.length - 1];
 }
 
 function chunkVocabularyLessonItems(items, size = VOCABULARY_LESSON_BATCH_SIZE) {
@@ -178,10 +195,7 @@ function findVocabularyLessonVisual(word, batch, registry = vocabularyLessonVisu
 
 function fallbackVocabularyLessonVisual(card) {
   const emoji = String(card && card.emoji || '').trim();
-  return {
-    visualType: 'emoji',
-    emoji: emoji || '✨'
-  };
+  return { visualType: 'emoji', emoji: emoji || '✨' };
 }
 
 function buildVocabularyLessonItem(card, batch, registry = vocabularyLessonVisualRegistry) {
@@ -224,6 +238,14 @@ function buildVocabularyLessonWords(batch, registry = vocabularyLessonVisualRegi
     .filter(item => item.word && !seen.has(item.key) && seen.add(item.key));
 }
 
+// Task 016 is an additive enhancement. Load it separately so the established player stays intact.
+if (typeof document !== 'undefined') {
+  const enhancement = document.createElement('script');
+  enhancement.src = 'js/vocabularyLesson016.js';
+  enhancement.async = false;
+  document.head.appendChild(enhancement);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     VOCABULARY_LESSON_SUPPORTED_VISUAL_TYPES,
@@ -231,7 +253,11 @@ if (typeof module !== 'undefined' && module.exports) {
     VOCABULARY_LESSON_RANDOM_SIZE,
     normalizeVocabularyLessonWord,
     normalizeVocabularyLessonLines,
+    getVocabularyLessonBatchDate,
+    compareVocabularyLessonBatchesOldestFirst,
+    compareVocabularyLessonBatchesNewestFirst,
     getVocabularyLessonVisibleBatches,
+    getVocabularyLessonLatestBatch,
     selectVocabularyLessonBatch,
     chunkVocabularyLessonItems,
     shuffleVocabularyLessonItems,

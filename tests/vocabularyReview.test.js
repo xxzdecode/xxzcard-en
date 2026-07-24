@@ -5,7 +5,9 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const core = require(path.join(root, 'js/vocabularyReviewData.js'));
 const reviewScript = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
+const task016Script = fs.readFileSync(path.join(root, 'js/vocabularyLesson016.js'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-vocabulary-lesson.css'), 'utf8');
+const task016Styles = fs.readFileSync(path.join(root, 'styles-vocabulary-lesson-016.css'), 'utf8');
 const registry = JSON.parse(fs.readFileSync(path.join(root, 'data/vocabularyLessonVisuals.json'), 'utf8'));
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const placeholder = fs.readFileSync(path.join(root, 'assets/vocabulary-lessons/scene-placeholder.svg'), 'utf8');
@@ -19,12 +21,21 @@ const studentData = {
   batches: [
     { id: '1', name: 'older', cards: [{ word: 'one' }], sharedWith: ['sister'], createdAt: '2026-07-01' },
     { id: '2', name: 'today', cards: [{ word: 'two' }], sharedWith: ['sister'], createdAt: '2026-07-23' },
-    { id: '3', name: 'teacher only', cards: [{ word: 'three' }], sharedWith: [], createdAt: '2026-07-24' }
+    { id: '3', name: 'teacher only', cards: [{ word: 'three' }], sharedWith: [], createdAt: '2026-07-24' },
+    { id: '4', name: 'same date A', cards: [{ word: 'four' }], sharedWith: ['sister'], createdAt: '2026-07-23' },
+    { id: '5', name: 'undated', cards: [{ word: 'five' }], sharedWith: ['sister'] }
   ]
 };
-assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'sister').map(batch => batch.id), ['2', '1']);
-assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'teacher').map(batch => batch.id), ['3', '2', '1']);
+assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'sister').map(batch => batch.id), ['5', '1', '2', '4']);
+assert.deepEqual(core.getVocabularyLessonVisibleBatches(studentData, 'teacher').map(batch => batch.id), ['5', '1', '2', '4', '3']);
+assert.equal(core.getVocabularyLessonLatestBatch(studentData, 'sister').id, '4');
+assert.equal(core.getVocabularyLessonLatestBatch(studentData, 'teacher').id, '3');
 assert.equal(core.selectVocabularyLessonBatch(studentData, 'sister', '1').id, '1');
+assert.equal(core.selectVocabularyLessonBatch(studentData, 'sister', '').id, '4');
+assert.ok(core.compareVocabularyLessonBatchesOldestFirst(
+  { id: '9', createdAt: '2026-07-23' },
+  { id: '10', createdAt: '2026-07-23' }
+) < 0, 'same-date ordering should use a stable numeric id tiebreaker');
 
 const lesson = registry.lessons.find(item => item.lessonId === '2026-07-24-common-words-2');
 assert.ok(lesson);
@@ -89,6 +100,25 @@ assert.match(reviewScript, /<strong>随机过词<\/strong>/);
 assert.match(reviewScript, /<strong>难词巩固<\/strong>/);
 assert.doesNotMatch(reviewScript, /已完成\$\{|剩余\$\{|\$\{[^}]*\}\s*\/\s*\$\{/);
 
+assert.match(task016Script, /CIRCLED_BATCH_LABELS\s*=\s*\['①', '②', '③', '④'\]/);
+assert.match(task016Script, /★ 难词/);
+assert.match(task016Script, /↻ 随机/);
+assert.match(task016Script, /is-latest/);
+assert.match(task016Script, /vocabulary-lesson-latest-badge">最新/);
+assert.doesNotMatch(task016Script, /primaryBook[\s\S]*filter/);
+assert.match(task016Script, /wc_vocabulary_lesson_position_v1:/);
+assert.match(task016Script, /encodeURIComponent\(String\(typeof currentUser/);
+assert.match(task016Script, /signature:\s*getVocabularyLessonProgressSignature/);
+assert.match(task016Script, /JSON\.parse\(localStorage\.getItem/);
+assert.match(task016Script, /catch \(_\) \{\s*return fallback;/);
+assert.match(task016Script, /target >= 4/);
+assert.match(task016Script, /vocabularyLessonState\.hardWords/);
+assert.doesNotMatch(task016Script, /vocabularyReviewState\.rememberedWords\s*=/);
+assert.match(task016Script, /aria-label', '本批学习进度'/);
+assert.match(task016Script, /aria-hidden="true"/);
+assert.doesNotMatch(task016Script, />\s*\d+\s*\/\s*\d+\s*</);
+assert.doesNotMatch(task016Script, /共\s*\$\{|剩余\s*\$\{|%/);
+
 assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*2fr\)\s+minmax\(260px,\s*1fr\)/);
 assert.match(styles, /grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
 assert.match(styles, /grid-template-rows:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
@@ -96,12 +126,21 @@ assert.match(styles, /min-height:\s*44px/);
 assert.match(styles, /env\(safe-area-inset/);
 assert.match(styles, /prefers-reduced-motion/);
 assert.match(styles, /orientation:\s*landscape/);
+assert.match(task016Styles, /grid-template-rows:\s*52px auto auto minmax\(0, 1fr\) auto/);
+assert.match(task016Styles, /grid-template-columns:\s*repeat\(4,/);
+assert.match(task016Styles, /object-fit:\s*contain !important/);
+assert.match(task016Styles, /width:\s*auto !important/);
+assert.match(task016Styles, /height:\s*auto !important/);
+assert.match(task016Styles, /max-width:\s*100%/);
+assert.match(task016Styles, /max-height:\s*100%/);
+assert.match(task016Styles, /min-width:\s*900px/);
+assert.match(task016Styles, /max-height:\s*850px/);
 assert.match(placeholder, /<svg/);
 assert.doesNotMatch(placeholder, /<text|watermark/i);
 
-assert.match(serviceWorker, /importScripts\('\.\/data\/vocabularyLessonAssets\.js'\)/);
-assert.match(serviceWorker, /vocabulary-review-v19-/);
-assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson\.css'/);
+assert.match(serviceWorker, /vocabulary-review-v20-task016/);
+assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson-016\.css'/);
+assert.match(serviceWorker, /'\.\/js\/vocabularyLesson016\.js'/);
 assert.match(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 
 console.log('unified vocabulary lesson tests passed');

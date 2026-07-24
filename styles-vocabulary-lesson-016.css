@@ -1,0 +1,247 @@
+/* Execution card 016: chronological books, quick navigation, batch dots and iPad-safe scene images. */
+.vocabulary-lesson-book-button {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.vocabulary-lesson-book-button.is-latest {
+  border-color: #b7dfd2;
+  background: var(--vl-mint-soft);
+}
+
+.vocabulary-lesson-book-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vocabulary-lesson-latest-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--vl-mint-deep);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.vocabulary-lesson-app {
+  grid-template-rows: 52px auto auto minmax(0, 1fr) auto;
+}
+
+.vocabulary-lesson-quick-nav {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(44px, 1fr)) minmax(94px, auto) minmax(94px, auto);
+  align-items: center;
+  gap: 7px;
+}
+
+.vocabulary-lesson-quick-button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--vl-line);
+  border-radius: 999px;
+  color: var(--vl-ink);
+  background: #fff;
+  box-shadow: none;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.vocabulary-lesson-quick-button.batch {
+  font-size: 21px;
+  line-height: 1;
+}
+
+.vocabulary-lesson-quick-button.is-active {
+  border-color: var(--vl-mint);
+  color: #fff;
+  background: var(--vl-mint);
+}
+
+.vocabulary-lesson-quick-button.mode.hard {
+  color: #af5e77;
+  background: var(--vl-pink-soft);
+}
+
+.vocabulary-lesson-quick-button.mode.random {
+  color: var(--vl-mint-deep);
+  background: var(--vl-mint-soft);
+}
+
+.vocabulary-lesson-quick-button:disabled {
+  border-color: #e5e0e3;
+  color: #aaa2a8;
+  background: #f2eff1;
+  opacity: .68;
+}
+
+.vocabulary-lesson-batch-dots {
+  min-height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.vocabulary-lesson-batch-dots[hidden] {
+  display: none;
+}
+
+.vocabulary-lesson-batch-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border: 2px solid #c8bec4;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.vocabulary-lesson-batch-dot.is-past {
+  border-color: #91cdbb;
+  background: #91cdbb;
+}
+
+.vocabulary-lesson-batch-dot.is-current {
+  width: 13px;
+  height: 13px;
+  border: 3px solid #fff;
+  background: var(--vl-mint-deep);
+  box-shadow: 0 0 0 2px #91cdbb;
+}
+
+.vocabulary-lesson-main {
+  display: grid;
+  min-height: 0;
+}
+
+.vocabulary-lesson-card,
+.vocabulary-lesson-visual-panel,
+.vocabulary-lesson-visual.scene {
+  min-height: 0;
+}
+
+.vocabulary-lesson-visual.scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.vocabulary-lesson-visual.scene img {
+  width: auto !important;
+  height: auto !important;
+  max-width: 100%;
+  max-height: 100%;
+  flex: 0 1 auto;
+  object-fit: contain !important;
+}
+
+@media (orientation: landscape) and (min-width: 900px) and (max-height: 850px) {
+  .vocabulary-lesson-app {
+    grid-template-rows: 48px 44px 14px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding:
+      max(7px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(7px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+
+  .vocabulary-lesson-topbar {
+    border-radius: 15px;
+    padding: 2px 7px;
+  }
+
+  .vocabulary-lesson-quick-nav {
+    gap: 6px;
+  }
+
+  .vocabulary-lesson-quick-button {
+    min-height: 44px;
+    padding: 5px 9px;
+  }
+
+  .vocabulary-lesson-batch-dots {
+    min-height: 14px;
+  }
+
+  .vocabulary-lesson-card {
+    grid-template-columns: minmax(0, 2fr) minmax(246px, 1fr);
+    gap: 8px;
+  }
+
+  .vocabulary-lesson-visual-panel {
+    padding: 7px;
+  }
+
+  .vocabulary-lesson-info-panel {
+    padding: clamp(13px, 2vw, 21px);
+  }
+
+  .vocabulary-lesson-footer-button {
+    min-height: 44px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) {
+  .vocabulary-lesson-app {
+    grid-template-rows: 44px 38px 11px minmax(0, 1fr) auto;
+    gap: 5px;
+  }
+
+  .vocabulary-lesson-quick-nav {
+    grid-template-columns: repeat(4, minmax(38px, 1fr)) minmax(82px, auto) minmax(82px, auto);
+    gap: 4px;
+  }
+
+  .vocabulary-lesson-quick-button {
+    min-height: 38px;
+    padding: 4px 7px;
+    font-size: 12px;
+  }
+
+  .vocabulary-lesson-quick-button.batch {
+    font-size: 18px;
+  }
+
+  .vocabulary-lesson-batch-dots {
+    min-height: 11px;
+    gap: 6px;
+  }
+
+  .vocabulary-lesson-batch-dot {
+    width: 7px;
+    height: 7px;
+    border-width: 1px;
+  }
+
+  .vocabulary-lesson-batch-dot.is-current {
+    width: 10px;
+    height: 10px;
+    border-width: 2px;
+  }
+
+  .vocabulary-lesson-visual-panel {
+    padding: 5px;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 850px) {
+  .vocabulary-lesson-app {
+    grid-template-rows: 52px auto auto minmax(0, 1fr) auto;
+  }
+
+  .vocabulary-lesson-quick-nav {
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
+  }
+
+  .vocabulary-lesson-quick-button.mode {
+    grid-column: span 2;
+  }
+}
