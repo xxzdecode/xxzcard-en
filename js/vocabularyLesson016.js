@@ -1,6 +1,7 @@
 (function installVocabularyLessonTask016() {
   const PROGRESS_KEY_PREFIX = 'wc_vocabulary_lesson_position_v1:';
   const CIRCLED_BATCH_LABELS = ['①', '②', '③', '④'];
+  const ACCESSIBLE_BATCH_LABELS = ['第一批', '第二批', '第三批', '第四批'];
   let installed = false;
 
   function playerReady() {
@@ -159,7 +160,7 @@
     const batchButtons = CIRCLED_BATCH_LABELS.map((label, index) => {
       const available = Boolean(vocabularyLessonState.batches[index] && vocabularyLessonState.batches[index].length);
       const selected = available && index === activeBatch;
-      return `<button type="button" class="vocabulary-lesson-quick-button batch${selected ? ' is-active' : ''}" onclick="jumpVocabularyLessonBatch(${index})" aria-label="第${index + 1}批" aria-current="${selected ? 'step' : 'false'}" ${available ? '' : 'disabled'}>${label}</button>`;
+      return `<button type="button" class="vocabulary-lesson-quick-button batch${selected ? ' is-active' : ''}" onclick="jumpVocabularyLessonBatch(${index})" aria-label="${ACCESSIBLE_BATCH_LABELS[index]}" aria-current="${selected ? 'step' : 'false'}" ${available ? '' : 'disabled'}>${label}</button>`;
     }).join('');
     nav.innerHTML = `${batchButtons}
       <button type="button" class="vocabulary-lesson-quick-button mode hard" onclick="openVocabularyLessonHardWordsFromNav()" aria-label="难词巩固" ${hasHardWords ? '' : 'disabled'}>★ 难词</button>
