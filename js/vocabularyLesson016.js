@@ -128,22 +128,42 @@
     }
   }
 
+  function getVisibleVocabularyLessonCurrentTask(books) {
+    if (typeof getTodayTaskBatch !== 'function') return null;
+    const currentTask = getTodayTaskBatch();
+    if (!currentTask) return null;
+    return books.find(batch => String(batch.id) === String(currentTask.id)) || null;
+  }
+
   function renderTask016BookSelection() {
     installVocabularyLessonShell();
     ensureTask016Styles();
     const list = document.getElementById('vocabularyLessonBookList');
     const empty = document.getElementById('vocabularyLessonBookEmpty');
     if (!list) return;
-    const books = getVocabularyLessonVisibleBatches(appData, currentUser);
-    const latest = books.length ? books[books.length - 1] : null;
+
+    const visibleBooks = getVocabularyLessonVisibleBatches(appData, currentUser);
+    const newestFirst = visibleBooks.slice().sort(compareVocabularyLessonBatchesNewestFirst);
+    const currentTask = getVisibleVocabularyLessonCurrentTask(newestFirst);
+    const primary = currentTask || newestFirst[0] || null;
+    const books = primary
+      ? [primary, ...newestFirst.filter(batch => String(batch.id) !== String(primary.id))]
+      : newestFirst;
+    const latest = newestFirst[0] || null;
+
     vocabularyLessonState.books = books;
     list.innerHTML = books.map(batch => {
+      const isCurrent = currentTask && String(currentTask.id) === String(batch.id);
       const isLatest = latest && String(latest.id) === String(batch.id);
+      const stateClass = isCurrent ? ' is-current' : (isLatest ? ' is-latest' : '');
+      const badge = isCurrent
+        ? '<span class="vocabulary-lesson-status-badge">当前</span>'
+        : (isLatest ? '<span class="vocabulary-lesson-status-badge">最新</span>' : '<span></span>');
       return `
-        <button class="vocabulary-lesson-book-button${isLatest ? ' is-latest' : ''}" type="button" onclick="selectVocabularyLessonBook(decodeURIComponent('${encodeURIComponent(String(batch.id))}'))">
-          <span aria-hidden="true">📚</span>
+        <button class="vocabulary-lesson-book-button${stateClass}" type="button" onclick="selectVocabularyLessonBook(decodeURIComponent('${encodeURIComponent(String(batch.id))}'))">
+          <span aria-hidden="true">${isCurrent ? '🌞' : '📚'}</span>
           <span class="vocabulary-lesson-book-name">${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}</span>
-          ${isLatest ? '<span class="vocabulary-lesson-latest-badge">最新</span>' : '<span></span>'}
+          ${badge}
           <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>
         </button>`;
     }).join('');
@@ -226,6 +246,8 @@
       ensureTask016Shell();
       renderTask016QuickNav();
       renderTask016BatchDots();
+      const title = document.getElementById('vocabularyLessonModeTitle');
+      if (title && vocabularyLessonState.mode === 'teaching') title.textContent = '新词导览';
       const legacyChange = document.getElementById('vocabularyLessonChangeButton');
       if (legacyChange) legacyChange.hidden = true;
     };
