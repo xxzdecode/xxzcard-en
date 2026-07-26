@@ -86,7 +86,7 @@ function runImporter(packagePath) {
   assert.match(assets, /breath\.webp/);
   assert.match(assets, /breath-thumb\.webp/);
   const sw = fs.readFileSync(path.join(tempRoot, 'service-worker.js'), 'utf8');
-  assert.match(sw, /vocabulary-review-v19-[a-f0-9]{10}/);
+  assert.match(sw, /vocabulary-review-v21-layoutfix-[a-f0-9]{10}/);
   const resultJson = JSON.parse(fs.readFileSync(path.join(fixture, 'result.json'), 'utf8'));
   assert.equal(resultJson.summary.converted.length, 1);
   assert.equal(resultJson.summary.registered.length, 4);

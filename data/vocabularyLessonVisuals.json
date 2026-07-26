@@ -614,6 +614,317 @@
           "emoji": "🦒"
         }
       ]
+    },
+    {
+      "lessonId": "2026-07-24-common-words-4",
+      "sourceWordbook": "常用词4",
+      "status": "completed",
+      "importedAt": "2026-07-26T09:31:32.784Z",
+      "items": [
+        {
+          "sourceOrder": 1,
+          "word": "flashlight",
+          "visualType": "emoji",
+          "emoji": "🔦"
+        },
+        {
+          "sourceOrder": 2,
+          "word": "appear",
+          "visualType": "scene",
+          "meaning": "出现",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/appear.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/appear-thumb.webp",
+          "sourceHash": "5c15f86f3e43081ea7cfb0ad99881897b106ae10c45433c78b938468e3e84f6a"
+        },
+        {
+          "sourceOrder": 3,
+          "word": "scientist",
+          "visualType": "emoji",
+          "emoji": "🧑‍🔬"
+        },
+        {
+          "sourceOrder": 4,
+          "word": "hungry",
+          "visualType": "emoji",
+          "emoji": "🤤"
+        },
+        {
+          "sourceOrder": 5,
+          "word": "snap",
+          "visualType": "scene",
+          "meaning": "啪地断开",
+          "teacherNote": "按“啪地断开”讲解，不画打响指。",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/snap.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/snap-thumb.webp",
+          "sourceHash": "2b2ee507d72314627b620a84d3505ec36060cbc47106662f9c746a303119fa2f"
+        },
+        {
+          "sourceOrder": 6,
+          "word": "speed",
+          "visualType": "emoji",
+          "emoji": "🏎️"
+        },
+        {
+          "sourceOrder": 7,
+          "word": "dream",
+          "visualType": "scene",
+          "meaning": "做梦；梦想",
+          "teacherNote": "本图表达睡着做梦。",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/dream.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/dream-thumb.webp",
+          "sourceHash": "e60f47cd14bdfee074d63b8442b3430d3b5e4d01dccd413115bed18f6d110b4b"
+        },
+        {
+          "sourceOrder": 8,
+          "word": "surprising",
+          "visualType": "emoji",
+          "emoji": "😲"
+        },
+        {
+          "sourceOrder": 9,
+          "word": "feature",
+          "visualType": "scene",
+          "meaning": "特点；特征；容貌",
+          "teacherNote": "本图锁定“特点、特征”义。",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/feature.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/feature-thumb.webp",
+          "sourceHash": "4c7f00583a6ebe7e9f6c7744ab07b5aba07fc7aea0ee808427f04f1b4ab809a3"
+        },
+        {
+          "sourceOrder": 10,
+          "word": "crane",
+          "visualType": "emoji",
+          "emoji": "🏗️"
+        },
+        {
+          "sourceOrder": 11,
+          "word": "hurry",
+          "visualType": "scene",
+          "meaning": "匆忙；急忙",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/hurry.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/hurry-thumb.webp",
+          "sourceHash": "5f134c2c1cc4428a241ecfac5bb2ce55f93adf4649ee2a1008773f336c608d9f"
+        },
+        {
+          "sourceOrder": 12,
+          "word": "hot",
+          "visualType": "emoji",
+          "emoji": "🔥"
+        },
+        {
+          "sourceOrder": 13,
+          "word": "heater",
+          "visualType": "scene",
+          "meaning": "加热器；取暖器",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/heater.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/heater-thumb.webp",
+          "sourceHash": "34b1027af9cfb18b62b21e3e114022d86c17d4870d542465dd72ca3f999159f2"
+        },
+        {
+          "sourceOrder": 14,
+          "word": "force",
+          "visualType": "scene",
+          "meaning": "力",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/force.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/force-thumb.webp",
+          "sourceHash": "2e80c538caa73dbab12fc77b34f4f2b658b46a9fc5d2c095dc99bb5a7ff567fc"
+        },
+        {
+          "sourceOrder": 15,
+          "word": "feeling",
+          "visualType": "scene",
+          "meaning": "感觉；情感",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/feeling.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/feeling-thumb.webp",
+          "sourceHash": "5385856b905ccbb5b789a32ed8a11bdd77502df11278738ff46418d9053b39b5"
+        },
+        {
+          "sourceOrder": 16,
+          "word": "imagine",
+          "visualType": "scene",
+          "meaning": "想象",
+          "teacherNote": "本图表达清醒想象。",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/imagine.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/imagine-thumb.webp",
+          "sourceHash": "4751fe868bf7233289967ce42c278a0660bc191327633657e56b369b726fb4d0"
+        },
+        {
+          "sourceOrder": 17,
+          "word": "grasshopper",
+          "visualType": "emoji",
+          "emoji": "🦗"
+        },
+        {
+          "sourceOrder": 18,
+          "word": "grumble",
+          "visualType": "scene",
+          "meaning": "抱怨；咕哝",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/grumble.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/grumble-thumb.webp",
+          "sourceHash": "e94f3478f52a98cc2265df2bc35873ab308bda80a7cae78dff45fa719b33fe1a"
+        },
+        {
+          "sourceOrder": 19,
+          "word": "true",
+          "visualType": "emoji",
+          "emoji": "✅"
+        },
+        {
+          "sourceOrder": 20,
+          "word": "track",
+          "visualType": "emoji",
+          "emoji": "🛤️"
+        },
+        {
+          "sourceOrder": 21,
+          "word": "wooden",
+          "visualType": "emoji",
+          "emoji": "🪵"
+        },
+        {
+          "sourceOrder": 22,
+          "word": "attract",
+          "visualType": "emoji",
+          "emoji": "🧲"
+        },
+        {
+          "sourceOrder": 23,
+          "word": "weight",
+          "visualType": "emoji",
+          "emoji": "⚖️"
+        },
+        {
+          "sourceOrder": 24,
+          "word": "prove",
+          "visualType": "scene",
+          "meaning": "证明",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/prove.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/prove-thumb.webp",
+          "sourceHash": "8422632b3814a2cb19eda5042159bbdb93f39dbd190ace147f8499533dacc332"
+        },
+        {
+          "sourceOrder": 25,
+          "word": "fold",
+          "visualType": "scene",
+          "meaning": "折叠",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/fold.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/fold-thumb.webp",
+          "sourceHash": "7a02b819f4853d3197545433ac60297119bc643d7f14888cd2e13953cdc47eb8"
+        },
+        {
+          "sourceOrder": 26,
+          "word": "holder",
+          "visualType": "scene",
+          "meaning": "支托物",
+          "teacherNote": "本图表达支托物，例如手机支架。",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/holder.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/holder-thumb.webp",
+          "sourceHash": "b7f9caa1b4464fd29cfb99b167d723b9fa3f1fd011001f70a7f35dd1a5447ce8"
+        },
+        {
+          "sourceOrder": 27,
+          "word": "magnet",
+          "visualType": "emoji",
+          "emoji": "🧲"
+        },
+        {
+          "sourceOrder": 28,
+          "word": "heaviness",
+          "visualType": "scene",
+          "meaning": "沉重；重量感",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/heaviness.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/heaviness-thumb.webp",
+          "sourceHash": "5aa1a5581da79d1c7b1497f9ebe065e621fa4c8362d857c50163f9abb0b740bd"
+        },
+        {
+          "sourceOrder": 29,
+          "word": "flavour",
+          "visualType": "emoji",
+          "emoji": "😋"
+        },
+        {
+          "sourceOrder": 30,
+          "word": "object",
+          "visualType": "emoji",
+          "emoji": "📦"
+        },
+        {
+          "sourceOrder": 31,
+          "word": "forward",
+          "visualType": "emoji",
+          "emoji": "➡️"
+        },
+        {
+          "sourceOrder": 32,
+          "word": "enjoy",
+          "visualType": "scene",
+          "meaning": "享受；喜欢",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/enjoy.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/enjoy-thumb.webp",
+          "sourceHash": "0977a1914156fc8cc68b7e9bbeb6e4c19c678221462676f56082316f1d6b8568"
+        },
+        {
+          "sourceOrder": 33,
+          "word": "amazing",
+          "visualType": "emoji",
+          "emoji": "🤩"
+        },
+        {
+          "sourceOrder": 34,
+          "word": "giant",
+          "visualType": "scene",
+          "meaning": "巨大的；巨人",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/giant.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/giant-thumb.webp",
+          "sourceHash": "b2dff2219ca8c735ec274005dcd81b549693a61967b570f6e4dff80b88227cef"
+        },
+        {
+          "sourceOrder": 35,
+          "word": "fail",
+          "visualType": "emoji",
+          "emoji": "❌"
+        },
+        {
+          "sourceOrder": 36,
+          "word": "lightning",
+          "visualType": "emoji",
+          "emoji": "⚡"
+        },
+        {
+          "sourceOrder": 37,
+          "word": "menu",
+          "visualType": "scene",
+          "meaning": "菜单",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/menu.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/menu-thumb.webp",
+          "sourceHash": "ae25d523189164d41acae62fd3ff74927662deb03407659c6eb2783b41b183b4"
+        },
+        {
+          "sourceOrder": 38,
+          "word": "fried",
+          "visualType": "emoji",
+          "emoji": "🍗"
+        },
+        {
+          "sourceOrder": 39,
+          "word": "refrigerator",
+          "visualType": "scene",
+          "meaning": "冰箱",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/refrigerator.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/refrigerator-thumb.webp",
+          "sourceHash": "2d0e631ac810b03b0df178b5f19187866550a46e805a15d0837b00a98cd3f622"
+        },
+        {
+          "sourceOrder": 40,
+          "word": "iron",
+          "visualType": "scene",
+          "meaning": "铁；金属铁",
+          "teacherNote": "本图表达金属铁，不是熨斗。",
+          "image": "assets/vocabulary-lessons/2026-07-24-common-words-4/iron.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-24-common-words-4/iron-thumb.webp",
+          "sourceHash": "8548d85ca5d387a236165655bb873dd37bd31fa332ff5348a10484f2868d6497"
+        }
+      ]
     }
   ]
 }
