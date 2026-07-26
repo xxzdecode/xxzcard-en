@@ -2,6 +2,12 @@
   // 新增练习时：数据型练习使用 dataPath；复用随堂练习 UI 的独立页面使用 pagePath。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-07-25-can-there-be-it-review',
+      date: '2026-07-25',
+      title: 'can · there be · it 复习挑战',
+      pagePath: './practices/2026-07-25.html'
+    },
+    {
       id: 'grammar-2026-07-24-frequency-review',
       date: '2026-07-24',
       title: '频度副词复习挑战',
