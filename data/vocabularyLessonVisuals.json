@@ -925,6 +925,516 @@
           "sourceHash": "8548d85ca5d387a236165655bb873dd37bd31fa332ff5348a10484f2868d6497"
         }
       ]
+    },
+    {
+      "lessonId": "2026-07-26-common-words-5",
+      "sourceWordbook": "常用词5",
+      "status": "completed",
+      "importedAt": "2026-07-26T13:20:23.127Z",
+      "items": [
+        {
+          "sourceOrder": 1,
+          "word": "nearby",
+          "meaning": "在附近；附近的",
+          "visualType": "concept",
+          "visual": "一个目标点和一个距离很近的第二点，用短距离关系表达“附近”",
+          "confusionNote": "不得画成地图导航、远距离或“到达”",
+          "icons": [
+            "●",
+            "●"
+          ],
+          "concept": {
+            "icons": [
+              "●",
+              "●"
+            ],
+            "layout": "两个圆点靠得很近，第二个点紧贴目标点旁边",
+            "relation": "short_distance",
+            "description": "用两个相邻圆点表达“在附近”，不用地图导航"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 2,
+          "word": "plant",
+          "meaning": "植物",
+          "visualType": "emoji",
+          "emoji": "🪴"
+        },
+        {
+          "sourceOrder": 3,
+          "word": "body",
+          "meaning": "身体",
+          "visualType": "emoji",
+          "emoji": "🧍"
+        },
+        {
+          "sourceOrder": 4,
+          "word": "outside",
+          "meaning": "在外面；向外面",
+          "visualType": "scene",
+          "confusionNote": "不能只画一栋房子；必须看出人物从室内走向室外",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "b0dde1e527e01026e29c2f2cb32d45fe9b31bc51da5d145d8ba31cb8a257dbcc",
+          "status": "passed",
+          "validation": "重做通过：孩子从室内跨过打开的门槛走向明亮院子；无文字、无拼图、词义清楚。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/outside.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/outside-thumb.webp",
+          "sourceHash": "b0dde1e527e01026e29c2f2cb32d45fe9b31bc51da5d145d8ba31cb8a257dbcc"
+        },
+        {
+          "sourceOrder": 5,
+          "word": "interesting",
+          "meaning": "有趣的；有吸引力的",
+          "visualType": "scene",
+          "confusionNote": "不能只画普通微笑；必须看出注意力被内容吸引",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "7de7f9865ba8e35db95e2522d9f8e860cfdb6643227fe26cd24194a776c3da54",
+          "status": "passed",
+          "validation": "重做通过：孩子专注阅读图画书，表情和身体前倾体现被内容吸引；无文字。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/interesting.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/interesting-thumb.webp",
+          "sourceHash": "7de7f9865ba8e35db95e2522d9f8e860cfdb6643227fe26cd24194a776c3da54"
+        },
+        {
+          "sourceOrder": 6,
+          "word": "tent",
+          "meaning": "帐篷",
+          "visualType": "emoji",
+          "emoji": "⛺"
+        },
+        {
+          "sourceOrder": 7,
+          "word": "magazine",
+          "meaning": "杂志",
+          "visualType": "emoji",
+          "emoji": "📖"
+        },
+        {
+          "sourceOrder": 8,
+          "word": "cloud",
+          "meaning": "云",
+          "visualType": "emoji",
+          "emoji": "☁️"
+        },
+        {
+          "sourceOrder": 9,
+          "word": "rainbow",
+          "meaning": "彩虹",
+          "visualType": "compound",
+          "parts": [
+            "🌧️",
+            "🌈"
+          ],
+          "visual": "雨滴线索加天空中的彩色弧线",
+          "icons": [
+            "🌧️",
+            "🌈"
+          ],
+          "compound": {
+            "icons": [
+              "🌧️",
+              "🌈"
+            ],
+            "composition": "雨滴线索 + 天空彩色弧线"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 10,
+          "word": "stormy",
+          "meaning": "有暴风雨的",
+          "visualType": "emoji",
+          "emoji": "⛈️"
+        },
+        {
+          "sourceOrder": 11,
+          "word": "machine",
+          "meaning": "机器",
+          "visualType": "emoji",
+          "emoji": "⚙️"
+        },
+        {
+          "sourceOrder": 12,
+          "word": "clap",
+          "meaning": "拍手；鼓掌",
+          "visualType": "emoji",
+          "emoji": "👏"
+        },
+        {
+          "sourceOrder": 13,
+          "word": "violet",
+          "meaning": "紫罗兰色的；紫罗兰",
+          "visualType": "emoji",
+          "emoji": "🟣"
+        },
+        {
+          "sourceOrder": 14,
+          "word": "right",
+          "meaning": "正确的",
+          "visualType": "concept",
+          "visual": "两道简单选择中，一项带清晰正确确认关系",
+          "confusionNote": "不得表达“右边”",
+          "icons": [
+            "✓"
+          ],
+          "concept": {
+            "icons": [
+              "✓"
+            ],
+            "layout": "一个清楚的正确确认符号放在答案位置",
+            "relation": "correct_choice",
+            "description": "表达“正确”，不表达“右边”"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 15,
+          "word": "tie",
+          "meaning": "领带；领结",
+          "visualType": "emoji",
+          "emoji": "👔"
+        },
+        {
+          "sourceOrder": 16,
+          "word": "nighttime",
+          "meaning": "夜间",
+          "visualType": "compound",
+          "parts": [
+            "🌙",
+            "🕘"
+          ],
+          "visual": "月夜天空加时钟的轻视觉关系",
+          "icons": [
+            "🌙",
+            "🕘"
+          ],
+          "compound": {
+            "icons": [
+              "🌙",
+              "🕘"
+            ],
+            "composition": "月亮夜空 + 时刻线索"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 17,
+          "word": "spy",
+          "meaning": "间谍",
+          "visualType": "emoji",
+          "emoji": "🕵️"
+        },
+        {
+          "sourceOrder": 18,
+          "word": "river",
+          "meaning": "河流",
+          "visualType": "emoji",
+          "emoji": "🏞️"
+        },
+        {
+          "sourceOrder": 19,
+          "word": "arm",
+          "meaning": "手臂",
+          "visualType": "emoji",
+          "emoji": "💪"
+        },
+        {
+          "sourceOrder": 20,
+          "word": "windy",
+          "meaning": "有风的",
+          "visualType": "emoji",
+          "emoji": "🌬️"
+        },
+        {
+          "sourceOrder": 21,
+          "word": "neighbour",
+          "meaning": "邻居",
+          "visualType": "scene",
+          "confusionNote": "不能只画两个普通朋友；必须体现住在相邻住所",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "7019b4eb4f001323c15c6fecf0d8c9b3f84df9e7c0e92659a29a112fe9ec8dbe",
+          "status": "passed",
+          "validation": "重做通过：相邻房屋和低矮围栏旁两位邻居友好打招呼；不是普通朋友合影。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/neighbour.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/neighbour-thumb.webp",
+          "sourceHash": "7019b4eb4f001323c15c6fecf0d8c9b3f84df9e7c0e92659a29a112fe9ec8dbe"
+        },
+        {
+          "sourceOrder": 22,
+          "word": "layer",
+          "meaning": "层；层次；等级",
+          "visualType": "concept",
+          "visual": "三层清楚叠放、边缘错开的材料",
+          "confusionNote": "不得只画书本或普通堆叠",
+          "icons": [
+            "▰",
+            "▰",
+            "▰"
+          ],
+          "concept": {
+            "icons": [
+              "▰",
+              "▰",
+              "▰"
+            ],
+            "layout": "三片半透明材料上下错开叠放",
+            "relation": "stacked_levels",
+            "description": "表达层次结构，不是普通书本堆叠"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 23,
+          "word": "progress",
+          "meaning": "进步；进展",
+          "visualType": "concept",
+          "visual": "同一学习任务从较少完成到明显完成的连续变化",
+          "confusionNote": "不得只用孤立上升箭头",
+          "icons": [
+            "🌱",
+            "🌿",
+            "🌳"
+          ],
+          "concept": {
+            "icons": [
+              "🌱",
+              "🌿",
+              "🌳"
+            ],
+            "layout": "从小芽到小树的三步变化",
+            "relation": "step_by_step_forward",
+            "description": "表达进步/进展，不只使用孤立上升箭头"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 24,
+          "word": "telescope",
+          "meaning": "望远镜",
+          "visualType": "emoji",
+          "emoji": "🔭"
+        },
+        {
+          "sourceOrder": 25,
+          "word": "starry",
+          "meaning": "布满星星的",
+          "visualType": "emoji",
+          "emoji": "🌟"
+        },
+        {
+          "sourceOrder": 26,
+          "word": "spot",
+          "meaning": "发现；注意到",
+          "visualType": "scene",
+          "confusionNote": "不能画成斑点或地点；必须表现突然注意到目标",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "c5ce1938e587d95d3abfa3a64ade453df5bebefa4aced5a0fe07f7954ee7d167",
+          "status": "passed",
+          "validation": "重做通过：孩子抬头惊喜注意到树枝上的小鸟；不是斑点或地点。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/spot.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/spot-thumb.webp",
+          "sourceHash": "c5ce1938e587d95d3abfa3a64ade453df5bebefa4aced5a0fe07f7954ee7d167"
+        },
+        {
+          "sourceOrder": 27,
+          "word": "sunny",
+          "meaning": "晴朗的；阳光充足的",
+          "visualType": "emoji",
+          "emoji": "☀️"
+        },
+        {
+          "sourceOrder": 28,
+          "word": "moonlight",
+          "meaning": "月光",
+          "visualType": "compound",
+          "parts": [
+            "🌙",
+            "✨"
+          ],
+          "visual": "月亮发出的柔和光照在地面上",
+          "icons": [
+            "🌙",
+            "✨"
+          ],
+          "compound": {
+            "icons": [
+              "🌙",
+              "✨"
+            ],
+            "composition": "月亮 + 柔和光线"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 29,
+          "word": "improve",
+          "meaning": "改善；提高",
+          "visualType": "concept",
+          "visual": "同一作品从较粗糙到更完整、更好的前后变化",
+          "confusionNote": "不得与 progress 完全相同；强调质量变好",
+          "icons": [
+            "◇",
+            "◆",
+            "✨"
+          ],
+          "concept": {
+            "icons": [
+              "◇",
+              "◆",
+              "✨"
+            ],
+            "layout": "同一作品从粗糙轮廓变成完整清晰成品，旁边少量亮点",
+            "relation": "quality_gets_better",
+            "description": "强调质量变好，与 progress 的单纯前进区分"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 30,
+          "word": "print",
+          "meaning": "打印；印刷",
+          "visualType": "emoji",
+          "emoji": "🖨️"
+        },
+        {
+          "sourceOrder": 31,
+          "word": "poke",
+          "meaning": "戳",
+          "visualType": "scene",
+          "confusionNote": "不能只画指向；必须看出手指接触并轻轻压入物体",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "a57854a23fa0abcb9638278cde4efef047a0f804d9a81677080040f4fd4841e4",
+          "status": "passed",
+          "validation": "重做通过：手指戳入柔软黏土并形成清楚凹痕；无受伤或尖锐物。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/poke.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/poke-thumb.webp",
+          "sourceHash": "a57854a23fa0abcb9638278cde4efef047a0f804d9a81677080040f4fd4841e4"
+        },
+        {
+          "sourceOrder": 32,
+          "word": "lie",
+          "meaning": "躺；平卧",
+          "visualType": "scene",
+          "confusionNote": "不能表达说谎，也不要画成生病或昏倒",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "6315e29d904a36914eedf2ca5ec96adf6c92c20bbf92166040339398eb772968",
+          "status": "passed",
+          "validation": "重做通过：孩子自然平躺在草地上看天空；不是说谎、生病或昏倒。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/lie.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/lie-thumb.webp",
+          "sourceHash": "6315e29d904a36914eedf2ca5ec96adf6c92c20bbf92166040339398eb772968"
+        },
+        {
+          "sourceOrder": 33,
+          "word": "sleepover",
+          "meaning": "留宿；过夜聚会",
+          "visualType": "scene",
+          "confusionNote": "不能只是普通睡觉；必须体现朋友一起在家中过夜",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "727f8e623ad5aca012a8aa59f7fd8c1bcb45dcfc8721636dfae5cce439092656",
+          "status": "passed",
+          "validation": "重做通过：夜晚两个孩子在家中睡袋里聊天，体现朋友留宿过夜；不是露营或酒店。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/sleepover.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/sleepover-thumb.webp",
+          "sourceHash": "727f8e623ad5aca012a8aa59f7fd8c1bcb45dcfc8721636dfae5cce439092656"
+        },
+        {
+          "sourceOrder": 34,
+          "word": "mountain",
+          "meaning": "山；山岳",
+          "visualType": "emoji",
+          "emoji": "⛰️"
+        },
+        {
+          "sourceOrder": 35,
+          "word": "rainy",
+          "meaning": "下雨的；多雨的",
+          "visualType": "emoji",
+          "emoji": "🌧️"
+        },
+        {
+          "sourceOrder": 36,
+          "word": "sky",
+          "meaning": "天空",
+          "visualType": "emoji",
+          "emoji": "🌌"
+        },
+        {
+          "sourceOrder": 37,
+          "word": "borrow",
+          "meaning": "借入；借",
+          "visualType": "scene",
+          "confusionNote": "不能画成赠送礼物；要体现暂时借用并会归还",
+          "size": {
+            "width": 1254,
+            "height": 1254
+          },
+          "sha256": "f1f64d88d8a7e4f04667ee0688bb548a62cf08387213597817d0cad7c51ac343",
+          "status": "passed",
+          "validation": "重做通过：两个孩子交接一本书，表现借入/借用互动；无礼物或交易线索。",
+          "image": "assets/vocabulary-lessons/2026-07-26-common-words-5/borrow.webp",
+          "thumbnail": "assets/vocabulary-lessons/2026-07-26-common-words-5/borrow-thumb.webp",
+          "sourceHash": "f1f64d88d8a7e4f04667ee0688bb548a62cf08387213597817d0cad7c51ac343"
+        },
+        {
+          "sourceOrder": 38,
+          "word": "plate",
+          "meaning": "盘子；碟子",
+          "visualType": "emoji",
+          "emoji": "🍽️"
+        },
+        {
+          "sourceOrder": 39,
+          "word": "impossible",
+          "meaning": "不可能的",
+          "visualType": "concept",
+          "visual": "一个明显无法完成的条件关系，如方形积木无法塞进过小圆孔",
+          "confusionNote": "不得只使用禁止符号",
+          "icons": [
+            "■",
+            "○"
+          ],
+          "concept": {
+            "icons": [
+              "■",
+              "○"
+            ],
+            "layout": "方形积木明显大于圆孔，无法塞入",
+            "relation": "condition_cannot_be_completed",
+            "description": "用形状与孔不匹配表达不可能，不只用禁止符号"
+          },
+          "status": "configured"
+        },
+        {
+          "sourceOrder": 40,
+          "word": "sea",
+          "meaning": "海；海洋",
+          "visualType": "emoji",
+          "emoji": "🌊"
+        }
+      ]
     }
   ]
 }
