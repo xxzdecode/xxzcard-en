@@ -2,6 +2,12 @@
   // 新增练习时：数据型练习使用 dataPath；复用随堂练习 UI 的独立页面使用 pagePath。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-07-27-subject-object-review',
+      date: '2026-07-27',
+      title: '主格 · 宾格复习挑战',
+      pagePath: './practices/2026-07-27.html'
+    },
+    {
       id: 'grammar-2026-07-26-possessive-whose-of-review',
       date: '2026-07-26',
       title: "'s · Whose · of 复习挑战",
