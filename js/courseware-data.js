@@ -2,7 +2,7 @@
 window.CLASSROOM_PRACTICE_ITEMS = [
   {
     "id": "courseware-2026-07-27",
-    "title": "my 与 mine 随堂练习",
+    "title": "26.07.27｜my 与 mine 随堂练习",
     "description": "形容词性与名词性物主代词随堂练习",
     "icon": "screen",
     "tone": "purple",
