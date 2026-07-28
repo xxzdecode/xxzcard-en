@@ -266,8 +266,8 @@ try {
     const run = await openRealPage({ viewport });
     const { page } = run;
     await page.waitForSelector('#vocabularyAdventurePreviewEntry:visible');
-    assert.equal(await page.getByRole('button', { name: /今日单词/ }).isVisible(), true);
-    assert.equal(await page.getByRole('button', { name: /混合单词/ }).isVisible(), true);
+    assert.equal(await page.getByRole('button', { name: /今日单词/ }).isHidden(), true);
+    assert.equal(await page.getByRole('button', { name: /混合单词/ }).isHidden(), true);
 
     await page.locator('#vocabularyAdventurePreviewEntry').click();
     await page.waitForSelector('#screenVocabularyAdventure.active');

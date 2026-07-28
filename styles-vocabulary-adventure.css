@@ -25,7 +25,30 @@
 .vocabulary-adventure-preview-entry strong { font-size: 16px; }
 .vocabulary-adventure-preview-entry small { margin-top: 2px; color: #687a93; font-size: 12px; }
 
-#screenVocabularyAdventure {
+.vocabulary-adventure-unified-home {
+  width: min(430px, calc(100% - 40px));
+  margin: 8px auto 0;
+  display: grid;
+  gap: 12px;
+}
+.vocabulary-adventure-unified-home[hidden] { display: none !important; }
+.vocabulary-adventure-unified-home .vocabulary-adventure-preview-entry {
+  width: 100%;
+  margin: 0;
+  border-style: solid;
+  min-height: 76px;
+}
+.vocabulary-adventure-preview-entry.is-challenge {
+  background: linear-gradient(135deg, #fff5dc, #fff0e8);
+  border-color: #e4b66f;
+}
+.vocabulary-adventure-preview-entry:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+#screenVocabularyAdventure,
+#screenVocabularyAdventureChallenge {
   position: fixed;
   inset: 0;
   z-index: 70;
@@ -38,8 +61,10 @@
   color: #25364a;
 }
 
-#screenVocabularyAdventure.active { display: flex; }
-body:has(#screenVocabularyAdventure.active) { padding-bottom: 0; overflow: hidden; }
+#screenVocabularyAdventure.active,
+#screenVocabularyAdventureChallenge.active { display: flex; }
+body:has(#screenVocabularyAdventure.active),
+body:has(#screenVocabularyAdventureChallenge.active) { padding-bottom: 0; overflow: hidden; }
 
 .vocabulary-adventure-topbar {
   flex: 0 0 auto;
@@ -519,6 +544,85 @@ body:has(#screenVocabularyAdventure.active) { padding-bottom: 0; overflow: hidde
   font-size: 13px;
   font-weight: 800;
 }
+
+.vocabulary-adventure-review-input {
+  width: min(540px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+.vocabulary-adventure-review-input input {
+  min-width: 0;
+  min-height: 54px;
+  padding: 10px 16px;
+  border: 2px solid #d8e8f3;
+  border-radius: 16px;
+  color: #2d526f;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+}
+.vocabulary-adventure-review-input button,
+.vocabulary-adventure-challenge-result-actions button {
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 15px;
+  background: #e7f0f8;
+  color: #315d7f;
+  font: inherit;
+  font-weight: 900;
+}
+.vocabulary-adventure-order-bank {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.vocabulary-adventure-order-bank button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #d1e2ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #315d7f;
+  font: inherit;
+  font-weight: 800;
+}
+.vocabulary-adventure-order-bank button:disabled { opacity: 0.35; }
+.vocabulary-adventure-challenge-result {
+  width: min(720px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: clamp(16px, 3vh, 28px);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 18px 46px rgba(59, 96, 129, 0.14);
+  text-align: center;
+}
+.vocabulary-adventure-challenge-result h2 { margin: 4px 0; color: #2b5574; }
+.vocabulary-adventure-challenge-score { margin: 4px 0 14px; color: #d2842a; font-size: 36px; font-weight: 950; }
+.vocabulary-adventure-challenge-wrong { margin-top: 14px; text-align: left; }
+.vocabulary-adventure-challenge-wrong h3 { color: #6d5360; }
+.vocabulary-adventure-challenge-wrong article {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: #fff4f2;
+  display: grid;
+  gap: 3px;
+}
+.vocabulary-adventure-challenge-wrong article span { color: #52697c; font-size: 13px; }
+.vocabulary-adventure-challenge-wrong article small { color: #7c6b72; line-height: 1.4; }
+.vocabulary-adventure-challenge-result-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.vocabulary-adventure-challenge-result-actions button.primary { background: #4f8fc2; color: #fff; }
 
 @keyframes vocabulary-adventure-pop {
   50% { transform: scale(1.025); }

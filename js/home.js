@@ -32,7 +32,9 @@ async function renderCheckInStrip() {
 // ══════════════════════════════════════
 async function loadHome() {
   updateUserBar();
-  if (typeof updateVocabularyAdventurePreviewEntry === 'function') updateVocabularyAdventurePreviewEntry();
+  if (typeof window.updateVocabularyAdventurePreviewEntry === 'function') {
+    await window.updateVocabularyAdventurePreviewEntry();
+  }
   if (currentUser === 'teacher') document.body.classList.add('is-teacher');
   else document.body.classList.remove('is-teacher');
   if (isTeacher()) return;

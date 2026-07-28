@@ -54,6 +54,32 @@ async function getTaskEntry(taskKey) {
   return { data, today, entry: today[taskKey] };
 }
 
+function isSharedVocabularyChallengeKey(taskKey) {
+  return taskKey === 'todayChallenge' || taskKey === 'mixedChallenge';
+}
+
+async function getVocabularyAdventureLegacyChallengeUsage() {
+  const data = await loadDailyTaskData();
+  const today = data[isoDate()] || {};
+  const entries = ['todayChallenge', 'mixedChallenge'].map(key => today[key] || {});
+  return {
+    attempts: entries.reduce((total, entry) => total + Math.max(0, Number(entry.attempts) || 0), 0),
+    bestScore: entries.reduce((best, entry) => Math.max(best, Number(entry.bestScore) || 0), 0)
+  };
+}
+
+async function getSharedVocabularyChallengeUsage() {
+  const legacy = await getVocabularyAdventureLegacyChallengeUsage();
+  if (typeof loadVocabularyAdventureState !== 'function'
+      || typeof VocabularyAdventureChallenge === 'undefined') return legacy;
+  const state = await loadVocabularyAdventureState(currentUser);
+  const daily = VocabularyAdventureChallenge.normalizeChallengeDaily(state.challengeDaily, isoDate());
+  return {
+    attempts: legacy.attempts + daily.attempts,
+    bestScore: Math.max(legacy.bestScore, daily.bestScore)
+  };
+}
+
 async function saveReviewComplete(taskKey) {
   const { data, entry } = await getTaskEntry(taskKey);
   entry.completed = true;
@@ -61,6 +87,10 @@ async function saveReviewComplete(taskKey) {
 }
 
 async function canStartChallenge(taskKey) {
+  if (isSharedVocabularyChallengeKey(taskKey)) {
+    const usage = await getSharedVocabularyChallengeUsage();
+    return usage.attempts < 2;
+  }
   const { entry } = await getChallengeTaskEntry(taskKey);
   return (entry.attempts || 0) < 2;
 }
@@ -203,6 +233,12 @@ async function reviewStatus(taskKey, defaultText) {
 }
 
 async function challengeStatus(taskKey) {
+  if (isSharedVocabularyChallengeKey(taskKey)) {
+    const usage = await getSharedVocabularyChallengeUsage();
+    if (usage.attempts >= 2) return { text: `今日最高 ${usage.bestScore || 0} 分`, state: 'locked' };
+    if (usage.attempts > 0) return { text: `最高 ${usage.bestScore || 0} 分 · 还可再来 ${2 - usage.attempts} 次`, state: 'done' };
+    return { text: '今日可挑战', state: '' };
+  }
   const { entry } = await getChallengeTaskEntry(taskKey);
   const attempts = entry.attempts || 0;
   if (attempts >= 2) return { text: `今日最高 ${entry.bestScore || 0} 分`, state: 'locked' };

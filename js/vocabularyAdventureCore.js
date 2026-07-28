@@ -144,7 +144,14 @@
         if (key && !Object.prototype.hasOwnProperty.call(words, key)) words[key] = normalizeWordState(rawState);
       });
     }
-    return { version: VERSION, words, session: normalizeSession(source.session) };
+    const normalized = { version: VERSION, words, session: normalizeSession(source.session) };
+    ['challengeSession', 'challengeDaily'].forEach(field => {
+      if (!isPlainObject(source[field])) return;
+      try {
+        normalized[field] = JSON.parse(JSON.stringify(source[field]));
+      } catch (_) {}
+    });
+    return normalized;
   }
 
   function collectVocabularyAdventureCandidates(batches) {

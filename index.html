@@ -21,7 +21,7 @@
     <button class="user-btn" id="uBtnBrother" onclick="switchUser('brother')">👦 弟弟</button>
   </div>
   <div class="current-mode" id="currentModeBadge"></div>
-  <div class="home-mini-row student-only">
+  <div class="home-mini-row student-only" id="homeCheckinRow">
     <div class="checkin-strip" id="checkinStrip"></div>
   </div>
   <div style="height:8px"></div>
@@ -33,12 +33,19 @@
       <span class="task-icon">🔁</span><span class="task-title">混合单词</span><span class="task-sub">老师混合词库</span>
     </button>
   </div>
-  <button class="vocabulary-adventure-preview-entry student-only" id="vocabularyAdventurePreviewEntry" type="button" onclick="openVocabularyAdventure()" hidden>
-    <span aria-hidden="true">🧭</span>
-    <span><strong>探险预览</strong><small>本地摸底播放器</small></span>
-    <span aria-hidden="true">›</span>
-  </button>
-  <button class="grammar-challenge-entry student-only" type="button" onclick="openGrammarChallengeList()">
+  <section class="vocabulary-adventure-unified-home student-only" id="vocabularyAdventureUnifiedHome" aria-label="词汇探险" hidden>
+    <button class="vocabulary-adventure-preview-entry student-only" id="vocabularyAdventurePreviewEntry" type="button" onclick="openVocabularyAdventure()" hidden>
+      <span aria-hidden="true">🧭</span>
+      <span><strong id="vocabularyAdventureHomeTitle">探险</strong><small id="vocabularyAdventureHomeSub">系统自动安排今日词汇</small></span>
+      <span aria-hidden="true">›</span>
+    </button>
+    <button class="vocabulary-adventure-preview-entry is-challenge" id="vocabularyAdventureChallengeEntry" type="button" onclick="openVocabularyAdventureChallenge()">
+      <span aria-hidden="true">🏁</span>
+      <span><strong id="vocabularyAdventureChallengeHomeTitle">挑战</strong><small id="vocabularyAdventureChallengeHomeSub">10 题综合挑战</small></span>
+      <span aria-hidden="true">›</span>
+    </button>
+  </section>
+  <button class="grammar-challenge-entry student-only" id="grammarChallengeHomeEntry" type="button" onclick="openGrammarChallengeList()">
     <span class="grammar-challenge-entry__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M5 5h14M8 5v4.5a4 4 0 0 0 8 0V5M7 19h10M12 13.5V19" />
@@ -47,7 +54,7 @@
     <span class="grammar-challenge-entry__title">语法挑战</span>
     <span class="grammar-challenge-entry__arrow" aria-hidden="true">›</span>
   </button>
-  <button class="grammar-challenge-entry vocabulary-tour-entry" type="button" onclick="openVocabularyReviewList()">
+  <button class="grammar-challenge-entry vocabulary-tour-entry" id="vocabularyTourHomeEntry" type="button" onclick="openVocabularyReviewList()">
     <span class="grammar-challenge-entry__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="3" />
@@ -58,7 +65,7 @@
     <span class="grammar-challenge-entry__title">新词导览</span>
     <span class="grammar-challenge-entry__arrow" aria-hidden="true">›</span>
   </button>
-  <nav class="bottom-feature-nav student-only" aria-label="主要功能">
+  <nav class="bottom-feature-nav student-only" id="studentFeatureNav" aria-label="主要功能">
     <button class="bottom-feature-nav__item" onclick="openWordCards()">
       <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3.604 7.197l7.138 -3.109c.997 -.434 2.156 .01 2.586 .991l2.916 6.695c.43 .982 -.03 2.13 -1.028 2.565l-7.138 3.109c-.996 .434 -2.155 -.01 -2.585 -.991l-2.916 -6.695c-.43 -.982 .03 -2.13 1.027 -2.565z" />
@@ -142,6 +149,33 @@
   <footer class="vocabulary-adventure-feedback">
     <div id="vocabularyAdventureFeedbackText"></div>
     <button type="button" id="vocabularyAdventureAction" hidden></button>
+  </footer>
+</div>
+
+<!-- ══ SCREEN: VOCABULARY ADVENTURE CHALLENGE ══ -->
+<div class="screen" id="screenVocabularyAdventureChallenge">
+  <header class="vocabulary-adventure-topbar">
+    <button type="button" class="vocabulary-adventure-exit" onclick="closeVocabularyAdventureChallenge()" aria-label="退出挑战">←</button>
+    <div class="vocabulary-adventure-progress">
+      <div class="vocabulary-adventure-progress-row">
+        <strong>挑战 · 10 题综合</strong>
+        <span id="vocabularyAdventureChallengeCount">1/10</span>
+      </div>
+      <div class="vocabulary-adventure-progress-track" aria-hidden="true">
+        <span id="vocabularyAdventureChallengeFill"></span>
+      </div>
+      <div class="vocabulary-adventure-progress-row is-secondary">
+        <span>无提示 · 正式计分</span>
+        <span>每日最多 2 次</span>
+      </div>
+    </div>
+  </header>
+  <main class="vocabulary-adventure-stage">
+    <section class="vocabulary-adventure-body" id="vocabularyAdventureChallengeBody" aria-live="polite"></section>
+  </main>
+  <footer class="vocabulary-adventure-feedback">
+    <div id="vocabularyAdventureChallengeFeedbackText"></div>
+    <button type="button" id="vocabularyAdventureChallengeAction" hidden></button>
   </footer>
 </div>
 
@@ -762,6 +796,7 @@
 <script src="js/vocabularyAdventure.js"></script>
 <script src="js/vocabularyAdventureReview.js"></script>
 <script src="js/vocabularyAdventurePlayer.js"></script>
+<script src="js/vocabularyAdventureChallenge.js"></script>
 <script src="js/review.js"></script>
 <script src="js/study.js"></script>
 <script src="js/quiz.js"></script>
