@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>词性地图随堂练习</title>
+  <style>
+    :root {
+      --page-bg: #fff4f7;
+      --panel: #fffdfc;
+      --title: #d97892;
+      --mint: #a8d8c8;
+      --mint-deep: #397c69;
+      --mint-soft: #dff3ea;
+      --knowledge: #fff0c9;
+      --line: #efdde4;
+      --text: #625b63;
+      --muted: #81747c;
+      --correct: #d7f3dc;
+      --wrong: #ffd9d9;
+      --feedback-height: 52px;
+      --tap: 46px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: var(--page-bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    button { font: inherit; min-height: var(--tap); cursor: pointer; }
+    button:focus-visible { outline: 3px solid #f3b6c7; outline-offset: 2px; }
+    .practice-app {
+      width: 100vw; height: 100dvh; overflow: hidden;
+      display: grid; grid-template-rows: auto minmax(0, 1fr) var(--feedback-height); gap: 10px;
+      padding: max(9px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right))
+        max(9px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+    }
+    .practice-header {
+      display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+      align-items: center; gap: 10px; min-width: 0; padding: 9px 12px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(220, 170, 180, .14);
+    }
+    h1 { margin: 0; color: var(--title); font-size: clamp(21px, 2.4vw, 31px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .knowledge-strip { min-width: 0; display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow: hidden; }
+    .knowledge-chip { padding: 5px 9px; border-radius: 999px; background: var(--knowledge); font-size: clamp(12px, 1.25vw, 15px); font-weight: 700; white-space: nowrap; }
+    .header-actions { display: flex; gap: 7px; align-items: center; }
+    .progress { padding: 8px 12px; border-radius: 999px; background: var(--mint-soft); color: var(--mint-deep); font-weight: 900; white-space: nowrap; }
+    .action { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--mint); color: #fff; font-weight: 800; }
+    .action.secondary { color: var(--mint-deep); background: var(--mint-soft); }
+    .practice-stage {
+      min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center;
+      padding: clamp(12px, 2vw, 24px); background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+    }
+    .question-card { width: min(920px, 100%); max-height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 12px; }
+    .category { margin: 0; color: var(--muted); font-weight: 800; }
+    .prompt { margin: 0; font-size: clamp(21px, 3vw, 35px); line-height: 1.35; overflow-wrap: anywhere; white-space: pre-line; }
+    .prompt-context { display: grid; gap: 7px; min-height: 0; }
+    .source-line, .answer-zone, .rule-line {
+      border-radius: 14px; padding: 8px 12px; overflow-wrap: anywhere;
+    }
+    .source-line { background: #fff8ef; font-size: clamp(16px, 1.8vw, 21px); font-weight: 800; }
+    .answer-zone { min-height: 48px; background: var(--mint-soft); color: var(--mint-deep); font-size: clamp(17px, 2vw, 23px); font-weight: 900; }
+    .rule-line { background: var(--knowledge); color: var(--muted); font-size: clamp(13px, 1.35vw, 16px); font-weight: 700; }
+    .options { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .options.order-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .options.classify-options { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .option {
+      min-width: 0; border: 2px solid var(--line); border-radius: 16px; padding: 10px 14px;
+      background: #fff8fb; color: var(--text); font-weight: 800; font-size: clamp(16px, 2vw, 22px); overflow-wrap: anywhere;
+    }
+    .option[aria-pressed="true"] { border-color: #e88fa3; background: #fff0f5; }
+    .option.correct-option { border-color: #6bb985; background: var(--correct); }
+    .option.wrong-option { border-color: #e28a8a; background: var(--wrong); }
+    .option.order-picked { opacity: .48; }
+    .classify-zone { display: grid; gap: 7px; }
+    .classify-targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 7px; }
+    .classify-target {
+      min-width: 0; min-height: 54px; border: 2px dashed #83baa9; border-radius: 13px;
+      padding: 6px 9px; background: #f7fffb; color: var(--mint-deep); font-weight: 900;
+    }
+    .classify-target span { display: block; margin-top: 3px; color: var(--text); font-size: .82em; font-weight: 750; overflow-wrap: anywhere; }
+    .question-actions { display: flex; justify-content: center; gap: 9px; }
+    .feedback {
+      height: var(--feedback-height); min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .feedback.correct { background: var(--correct); }
+    .feedback.wrong { background: var(--wrong); }
+    .completion {
+      border: 0; border-radius: 22px; padding: 24px; color: var(--text); background: var(--panel);
+      box-shadow: 0 20px 60px rgba(80, 55, 70, .25); text-align: center;
+    }
+    .completion::backdrop { background: rgba(80, 55, 70, .25); }
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --feedback-height: 40px; --tap: 38px; }
+      .practice-app { gap: 6px; padding: 6px; }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+    @media (orientation: portrait) and (max-width: 767px) {
+      .practice-app {
+        position: fixed; left: 0; top: 100dvh; width: 100dvh; height: 100vw;
+        transform: rotate(-90deg); transform-origin: top left;
+        --feedback-height: 40px; --tap: 38px; gap: 6px; padding: 6px;
+      }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="practice-header">
+      <h1 id="pageTitle"></h1>
+      <div class="knowledge-strip" id="knowledgeStrip" aria-label="知识摘要"></div>
+      <div class="header-actions">
+        <span class="progress" id="progressText" aria-live="polite"></span>
+        <button class="action" id="newRoundButton" type="button">重新开始</button>
+      </div>
+    </header>
+    <main class="practice-stage">
+      <section class="question-card" aria-live="polite">
+        <p class="category" id="categoryText"></p>
+        <div class="prompt-context">
+          <div class="source-line" id="sourceLine" hidden></div>
+          <h2 class="prompt" id="promptText"></h2>
+          <div class="rule-line" id="ruleLine" hidden></div>
+        </div>
+        <div class="options" id="options"></div>
+        <div class="answer-zone" id="answerZone" hidden></div>
+        <div class="question-actions">
+          <button class="action" id="checkButton" type="button">检查答案</button>
+          <button class="action secondary" id="showAnswerButton" type="button">显示答案</button>
+          <button class="action secondary" id="nextButton" type="button" disabled>下一题</button>
+        </div>
+      </section>
+    </main>
+    <footer class="feedback" id="feedback" aria-live="polite">△ 请选择答案。</footer>
+  </div>
+  <dialog class="completion" id="completionDialog" data-complete="false">
+    <h2 id="completionTitle">本轮完成</h2>
+    <p id="completionText"></p>
+    <button class="action" id="restartButton" type="button">重新开始</button>
+    <button class="action secondary" id="continueButton" type="button" hidden>完成</button>
+  </dialog>
+  <script id="practice-data" type="application/json">{"version":1,"title":"词性地图随堂练习","completionTitle":"词性地图练习完成","completion":"你已经能分清“词是什么”和“词在句子里做什么”。以后背单词时，先看词义，再判断基础词性，最后放进简单句验证。","restartLabel":"重新练习","continueLabel":"完成","knowledge":["词性：它是什么词？","句子成分：它在这句话里做什么？","先认种类，再看工作"],"round":{"size":20,"shuffle":false,"quotas":{"concept":2,"dual_id":4,"classify":4,"modifier":4,"correction":3,"mixed":3}},"scope":{"mode":"declared","allowedWords":[]},"questions":[{"id":"CP01","category":"concept","categoryLabel":"概念｜句子里的工作","type":"single","prompt":"哪一组说的是“句子成分”？","options":["主语、谓语、宾语","名词、动词、形容词","单数、复数、过去式","大写、小写、标点"],"answer":"主语、谓语、宾语","answerDisplay":"主语、谓语、宾语。","correctFeedback":"正确。主语、谓语、宾语表示词在句子里承担的工作。","wrongFeedback":"这题在判断“句中工作”，不是词的种类。","explanation":"句子成分回答“在这句话里做什么”。"},{"id":"CP02","category":"concept","categoryLabel":"概念｜词的种类","type":"single","prompt":"哪一组说的是“词性”？","options":["谁、做什么、什么","主语、谓语、宾语","名词、动词、形容词、副词","肯定、否定、疑问"],"answer":"名词、动词、形容词、副词","answerDisplay":"名词、动词、形容词、副词。","correctFeedback":"正确。词性表示一个词本身属于哪一类。","wrongFeedback":"这题在判断“词的种类”。","explanation":"词性回答“它是什么词”。"},{"id":"CP03","category":"dual_id","categoryLabel":"两张身份证｜boy","type":"single","source":"The boy reads books.","prompt":"boy 的词性和句中工作分别是什么？","options":["名词 / 主语","动词 / 谓语","名词 / 宾语","形容词 / 主语"],"answer":"名词 / 主语","answerDisplay":"boy = 名词 + 主语。","correctFeedback":"正确。boy 是名词；在这句话里是做动作的人，所以作主语。","wrongFeedback":"先看 boy 是什么词，再问谁在 reads。","explanation":"名词是词性，主语是句中工作。"},{"id":"CP04","category":"dual_id","categoryLabel":"两张身份证｜books","type":"single","source":"The boy reads books.","prompt":"books 的词性和句中工作分别是什么？","options":["名词 / 主语","名词 / 宾语","动词 / 宾语","形容词 / 宾语"],"answer":"名词 / 宾语","answerDisplay":"books = 名词 + 宾语。","correctFeedback":"正确。books 是名词；它是 reads 的对象，所以作宾语。","wrongFeedback":"问“读什么”，答案是 books。","explanation":"名词可以在句中作宾语。"},{"id":"CP05","category":"dual_id","categoryLabel":"两张身份证｜reads","type":"single","source":"The boy reads books.","prompt":"reads 的词性和句中工作分别是什么？","options":["动词 / 谓语核心","名词 / 主语","形容词 / 宾语","副词 / 谓语核心"],"answer":"动词 / 谓语核心","answerDisplay":"reads = 动词 + 谓语核心。","correctFeedback":"正确。reads 是动词，也是这句话谓语的核心。","wrongFeedback":"reads 表示动作，并回答 boy 做什么。","explanation":"动词是词性，谓语核心是句中工作。"},{"id":"CP06","category":"dual_id","categoryLabel":"同一种词｜换工作","type":"single","prompt":"哪一组说明“名词既可以作主语，也可以作宾语”？","options":["Cats chase mice. / Dogs like cats.","Cats are cute. / Cute cats run.","Run fast. / Fast cars run.","The dog is happy. / Happily is a dog."],"answer":"Cats chase mice. / Dogs like cats.","answerDisplay":"Cats chase mice. / Dogs like cats.","correctFeedback":"正确。第一句 Cats 是主语；第二句 cats 是宾语，但两者都是名词。","wrongFeedback":"找同一个 cats 在两句话中的不同工作。","explanation":"词性不因句中工作变化而消失。"},{"id":"CP07","category":"classify","categoryLabel":"点击分类｜名词区","type":"classify","prompt":"先点词卡，再把它放进“名词区”或“不是名词”。","options":["teacher","school","apple","run"],"targets":["名词区","不是名词"],"answerMap":{"teacher":"名词区","school":"名词区","apple":"名词区","run":"不是名词"},"correctFeedback":"正确。teacher、school、apple 用来给人、地方或事物命名。","wrongFeedback":"这题只判断“词性”，看看哪个词表示动作。","explanation":"run 在本题中作为动作词，不放进名词区。"},{"id":"CP08","category":"classify","categoryLabel":"点击分类｜动词区","type":"classify","prompt":"先点词卡，再把它放进“动词区”或“不是动词”。","options":["jump","read","is","beautiful"],"targets":["动词区","不是动词"],"answerMap":{"jump":"动词区","read":"动词区","is":"动词区","beautiful":"不是动词"},"correctFeedback":"正确。jump、read 表示动作，is 是状态核心。","wrongFeedback":"这题只判断“词性”，beautiful 是形容词。","explanation":"动词告诉我们做什么或处于什么状态。"},{"id":"CP09","category":"modifier","categoryLabel":"形容词｜帮助名词","type":"single","source":"The small dog has a red ball.","prompt":"哪两个词在说明名词“怎么样”？","options":["small / red","dog / ball","has / red","the / a"],"answer":"small / red","answerDisplay":"small / red。","correctFeedback":"正确。small 说明 dog，red 说明 ball；它们是形容词。","wrongFeedback":"分别找说明 dog 和 ball 的词。","explanation":"形容词常帮助名词。"},{"id":"CP10","category":"modifier","categoryLabel":"副词｜帮助动作","type":"single","source":"The rabbit runs quickly.","prompt":"quickly 主要说明什么？","options":["rabbit 是什么","runs 得怎么样","rabbit 有几个","runs 是谁的"],"answer":"runs 得怎么样","answerDisplay":"quickly 说明 runs。","correctFeedback":"正确。quickly 说明动作 runs 进行得怎么样，是副词。","wrongFeedback":"看 quickly 靠近并帮助哪一个动作。","explanation":"副词在本句中说明动作。"},{"id":"CP11","category":"modifier","categoryLabel":"形容词｜happy","type":"single","source":"The happy boy sings.","prompt":"happy 的词性和作用是什么？","options":["形容词 / 说明 boy","副词 / 说明 sings","名词 / 作主语","动词 / 作谓语"],"answer":"形容词 / 说明 boy","answerDisplay":"happy = 形容词，说明 boy。","correctFeedback":"正确。happy 是形容词，说明名词 boy。","wrongFeedback":"先看 happy 帮助的是 boy 还是 sings。","explanation":"形容词说明名词。"},{"id":"CP12","category":"modifier","categoryLabel":"副词｜loudly","type":"single","source":"The happy boy sings loudly.","prompt":"loudly 的词性和作用是什么？","options":["形容词 / 说明 boy","副词 / 说明 sings","名词 / 作宾语","动词 / 作主语"],"answer":"副词 / 说明 sings","answerDisplay":"loudly = 副词，说明 sings。","correctFeedback":"正确。loudly 是副词，说明唱得怎么样。","wrongFeedback":"loudly 帮助的是动作 sings。","explanation":"-ly 是常见线索，但仍要放回句子验证。"},{"id":"CP13","category":"correction","categoryLabel":"判断顺序｜一词两问","type":"single","prompt":"分析一个画线词时，哪一个顺序更合适？","options":["先问它是什么词，再看它在这句话里做什么","只背中文意思，不看句子","只看词尾就下结论","先数有几个字母"],"answer":"先问它是什么词，再看它在这句话里做什么","answerDisplay":"词性 → 句中工作。","correctFeedback":"正确。先判断基础词性，再结合句子判断它承担的工作。","wrongFeedback":"两张身份证要按顺序检查。","explanation":"先认种类，再看工作。"},{"id":"CP14","category":"correction","categoryLabel":"纠正误会｜主语不等于名词","type":"single","prompt":"为什么不能说“主语就是名词”？","options":["因为主语是句中工作，名词是词性","因为名词不能放句首","因为主语一定是动词","因为英语没有主语"],"answer":"因为主语是句中工作，名词是词性","answerDisplay":"主语是工作，名词是种类。","correctFeedback":"正确。两者来自不同分类角度，不能画等号。","wrongFeedback":"一个是“做什么工作”，一个是“什么种类”。","explanation":"词性和句子成分可以同时成立。"},{"id":"CP15","category":"correction","categoryLabel":"纠正误会｜谓语","type":"single","source":"The children can swim.","prompt":"哪一句解释更准确？","options":["swim 是动词；can swim 一起构成谓语","children 是谓语","can 是名词","所有动词在任何句子里都单独等于完整谓语"],"answer":"swim 是动词；can swim 一起构成谓语","answerDisplay":"swim 是动词，can swim 是谓语。","correctFeedback":"正确。词性看单词类别；谓语有时由不止一个词组成。","wrongFeedback":"不要把“动词”与“完整谓语”机械画等号。","explanation":"谓语是句中工作，可能由多个词一起承担。"},{"id":"CP16","category":"classify","categoryLabel":"点击分类｜四种词性","type":"classify","prompt":"把四个词分别放入名词、动词、形容词、副词区域。","options":["friend","help","kind","kindly"],"targets":["名词","动词","形容词","副词"],"answerMap":{"friend":"名词","help":"动词","kind":"形容词","kindly":"副词"},"correctFeedback":"正确。同一个词族可以出现不同词性。","wrongFeedback":"先看每个词的基本意思与用法，再看常见词尾。","explanation":"-ly 是线索，不是脱离句子的万能规则。"},{"id":"CP17","category":"mixed","categoryLabel":"综合地图｜完整标注","type":"single","source":"The clever girl answers quickly.","prompt":"哪一组标注全部正确？","options":["girl 名词+主语；answers 动词+谓语；clever 形容词；quickly 副词","girl 动词；answers 名词；clever 副词；quickly 形容词","girl 名词+宾语；answers 形容词；clever 动词；quickly 名词","所有词都是句子成分，没有词性"],"answer":"girl 名词+主语；answers 动词+谓语；clever 形容词；quickly 副词","answerDisplay":"girl 名词+主语；answers 动词+谓语；clever 形容词；quickly 副词。","correctFeedback":"正确。同一句里可以同时标出词性和句中工作。","wrongFeedback":"分别看词的种类和它在句中的任务。","explanation":"不是每一个词都要塞进主语、谓语、宾语。"},{"id":"CP18","category":"mixed","categoryLabel":"综合纠错｜apple","type":"single","source":"apple 是宾语，所以它不是名词。","prompt":"怎样改正最准确？","options":["apple 可以既是名词，又在某句话里作宾语","宾语一定是动词","名词不能作宾语","词性会因为位置变化而完全消失"],"answer":"apple 可以既是名词，又在某句话里作宾语","answerDisplay":"apple = 名词；在具体句子中可以作宾语。","correctFeedback":"正确。词性和句中工作可以同时成立。","wrongFeedback":"宾语是工作，名词是种类。","explanation":"两张身份证不会互相取消。"},{"id":"CP19","category":"mixed","categoryLabel":"句子侦探｜找错误","type":"single","source":"The young teacher speaks slowly.","prompt":"哪一项说错了？","options":["teacher 是名词，并作主语","speaks 是动词，并作谓语核心","young 是形容词，说明 teacher","slowly 是形容词，说明 teacher"],"answer":"slowly 是形容词，说明 teacher","answerDisplay":"slowly 是副词，说明 speaks。","correctFeedback":"正确。slowly 是副词，说明 speaks 得怎么样。","wrongFeedback":"检查 slowly 靠近并帮助的是哪一个动作。","explanation":"本句中 -ly 线索与句中作用一致。"},{"id":"CP20","category":"classify","categoryLabel":"终关｜双层地图","type":"classify","source":"The small birds eat seeds quietly.","prompt":"先点词卡，再放到同时写有“词性 + 句中工作”的目标区。","options":["small","birds","eat","seeds","quietly"],"targets":["形容词｜说明 birds","名词｜主语","动词｜谓语核心","名词｜宾语","副词｜说明 eat"],"answerMap":{"small":"形容词｜说明 birds","birds":"名词｜主语","eat":"动词｜谓语核心","seeds":"名词｜宾语","quietly":"副词｜说明 eat"},"correctFeedback":"正确。你同时使用了词性地图和句中工作地图。","wrongFeedback":"先判断词是什么，再看它靠近谁、帮助谁或承担什么骨架工作。","explanation":"small 和 quietly 不必强行归入主语、谓语、宾语三个格子。"}]}</script>
+  <script>
+    (() => {
+      "use strict";
+      const config = JSON.parse(document.getElementById("practice-data").textContent);
+      const byId = (id) => document.getElementById(id);
+      const challengeMode = config.interactionMode === "challenge-locked";
+      const ui = {
+        title: byId("pageTitle"), knowledge: byId("knowledgeStrip"), progress: byId("progressText"),
+        category: byId("categoryText"), prompt: byId("promptText"), source: byId("sourceLine"),
+        answerZone: byId("answerZone"), rule: byId("ruleLine"), options: byId("options"),
+        check: byId("checkButton"), show: byId("showAnswerButton"), next: byId("nextButton"),
+        feedback: byId("feedback"), dialog: byId("completionDialog"), completion: byId("completionText"),
+        completionTitle: byId("completionTitle"), continueButton: byId("continueButton")
+      };
+      const state = {
+        round: [], index: 0, selected: [], assignments: {}, activeOption: null, locked: false, judging: false,
+        solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: []
+      };
+
+      function shuffle(values) {
+        const copy = [...values];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+      function buildRound() {
+        if (config.round.shuffle === false) return config.questions.slice(0, config.round.size);
+        if (Array.isArray(config.round.groups)) {
+          return config.round.groups.flatMap((group) => {
+            const ids = new Set(group.ids || []);
+            let items = config.questions.filter((q) => ids.has(q.id));
+            if (group.shuffle !== false) items = shuffle(items);
+            return items;
+          }).slice(0, config.round.size);
+        }
+        const picked = [];
+        for (const [category, count] of Object.entries(config.round.quotas)) {
+          picked.push(...shuffle(config.questions.filter((q) => q.category === category)).slice(0, count));
+        }
+        return shuffle(picked);
+      }
+      function answerIndices(question) {
+        const answers = Array.isArray(question.answer) ? question.answer : [question.answer];
+        const used = new Set();
+        return answers.map((value) => {
+          if (typeof value === "number") return value;
+          const index = question.options.findIndex((option, optionIndex) => option === value && !used.has(optionIndex));
+          used.add(index); return index;
+        });
+      }
+      function answerValues(question) {
+        return answerIndices(question).map((index) => question.options[index]);
+      }
+      function expectedAssignments(question) {
+        return question.answerMap || {};
+      }
+      function selectedValues(question) {
+        return state.selected.map((index) => question.options[index]);
+      }
+      function isCorrect(question) {
+        if (question.type === "classify") {
+          const expected = expectedAssignments(question);
+          return question.options.every((option) => state.assignments[option] === expected[option]);
+        }
+        const selected = selectedValues(question);
+        const answers = answerValues(question);
+        if (question.type === "order") {
+          const indices = answerIndices(question);
+          return state.selected.length === indices.length && state.selected.every((value, index) => value === indices[index]);
+        }
+        if (question.type === "multi") return selected.length === answers.length && selected.every((value) => answers.includes(value));
+        return selected.length === 1 && selected[0] === answers[0];
+      }
+      function completeAnswer(question) {
+        if (question.type === "classify") {
+          return Object.entries(expectedAssignments(question)).map(([option, target]) => `${option} → ${target}`).join("；");
+        }
+        return question.answerDisplay || answerValues(question).join(question.type === "order" ? " " : "、");
+      }
+      function hasResponse(question) {
+        if (question.type === "classify") return question.options.every((option) => state.assignments[option]);
+        return state.selected.length > 0;
+      }
+      function feedback(type, message) {
+        ui.feedback.className = `feedback ${type || ""}`.trim();
+        ui.feedback.textContent = `${type === "correct" ? "✓" : type === "wrong" ? "×" : "△"} ${message}`;
+      }
+      function updateAnswerZone(question) {
+        if (question.type === "order") {
+          ui.answerZone.textContent = state.selected.length ? selectedValues(question).join(" ") : "按顺序点击词块，句子会在这里组成。";
+          return;
+        }
+        if (question.type !== "classify") return;
+        const zone = document.createElement("div");
+        zone.className = "classify-zone";
+        const hint = document.createElement("div");
+        hint.textContent = state.activeOption === null ? "先点词卡，再点目标区。" : `已选：${question.options[state.activeOption]}，请选择目标区。`;
+        const targets = document.createElement("div");
+        targets.className = "classify-targets";
+        for (const target of question.targets) {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "classify-target"; button.dataset.target = target;
+          const assigned = question.options.filter((option) => state.assignments[option] === target);
+          button.textContent = target;
+          const values = document.createElement("span");
+          values.textContent = assigned.length ? assigned.join(" · ") : "点击放入";
+          button.append(values);
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.activeOption === null) return;
+            const option = question.options[state.activeOption];
+            state.assignments[option] = target;
+            state.activeOption = null;
+            updateAnswerZone(question);
+            renderOptionStates(question);
+            feedback("", hasResponse(question) ? "分类完成，可以检查答案。" : "继续选择词卡并放入目标区。");
+          });
+          targets.append(button);
+        }
+        zone.append(hint, targets);
+        ui.answerZone.replaceChildren(zone);
+      }
+      function renderOptionStates(question) {
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          const index = Number(item.dataset.optionIndex);
+          const picked = state.selected.includes(index) || state.activeOption === index;
+          item.setAttribute("aria-pressed", String(picked));
+          item.classList.toggle("order-picked", question.type === "order" && picked);
+          item.disabled = challengeMode && state.locked;
+        });
+      }
+      function renderQuestion() {
+        const q = state.round[state.index];
+        state.selected = []; state.assignments = {}; state.activeOption = null; state.locked = false; state.judging = false;
+        ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
+        ui.category.textContent = q.categoryLabel || q.category;
+        ui.prompt.textContent = q.prompt;
+        ui.source.hidden = !q.source; ui.source.textContent = q.source || "";
+        ui.rule.hidden = !q.rule; ui.rule.textContent = q.rule || "";
+        ui.answerZone.hidden = !["order", "classify"].includes(q.type); updateAnswerZone(q);
+        ui.options.classList.toggle("order-options", q.type === "order");
+        ui.options.classList.toggle("classify-options", q.type === "classify");
+        ui.options.replaceChildren(...q.options.map((option, index) => {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "option"; button.dataset.optionIndex = String(index);
+          button.setAttribute("aria-pressed", "false"); button.textContent = option;
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.locked) return;
+            if (q.type === "classify") {
+              state.activeOption = index;
+            } else if (q.type === "multi") {
+              state.selected = state.selected.includes(index) ? state.selected.filter((item) => item !== index) : [...state.selected, index];
+            } else if (q.type === "order") {
+              if (state.selected.includes(index)) state.selected = state.selected.filter((item) => item !== index);
+              else state.selected.push(index);
+            } else state.selected = [index];
+            if (challengeMode) state.locked = true;
+            renderOptionStates(q);
+            updateAnswerZone(q);
+            if (challengeMode) {
+              ui.next.disabled = false;
+              feedback("", "答案已锁定，点击“下一题”判分。");
+            } else if (q.type === "classify") {
+              feedback("", `已选择 ${option}，请点击目标区。`);
+            } else feedback("", "已选择，点击“检查答案”。");
+          });
+          return button;
+        }));
+        ui.next.disabled = true; ui.next.hidden = false;
+        ui.check.hidden = challengeMode; ui.show.hidden = challengeMode;
+        ui.check.disabled = false; ui.show.disabled = false;
+        feedback("", q.type === "multi" ? "请选择全部正确答案。" : q.type === "order" ? "请按正确语序点击全部词块。" : q.type === "classify" ? "先点词卡，再点目标区。" : "请选择答案。");
+      }
+      function startRound() {
+        state.round = buildRound(); state.index = 0; state.selected = [];
+        state.solved = Array(state.round.length).fill(false); state.revealed = Array(state.round.length).fill(false);
+        state.attempts = Array(state.round.length).fill(0); state.firstTry = Array(state.round.length).fill(false);
+        state.wrongEver = Array(state.round.length).fill(false);
+        ui.dialog.dataset.complete = "false";
+        if (ui.dialog.open) ui.dialog.close();
+        renderQuestion();
+      }
+      function checkAnswer() {
+        if (!hasResponse(state.round[state.index])) return feedback("wrong", "请先完成作答。");
+        if (state.solved[state.index]) return;
+        const q = state.round[state.index];
+        state.attempts[state.index] += 1;
+        if (isCorrect(q)) {
+          state.solved[state.index] = true;
+          state.firstTry[state.index] = state.attempts[state.index] === 1 && !state.revealed[state.index];
+          ui.options.querySelectorAll(".option").forEach((item) => {
+            if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          });
+          feedback("correct", `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim());
+          ui.check.disabled = true; ui.show.disabled = true; ui.next.disabled = false;
+        } else {
+          state.wrongEver[state.index] = true;
+          state.selected.forEach((index) => ui.options.querySelector(`[data-option-index="${index}"]`)?.classList.add("wrong-option"));
+          feedback("wrong", q.wrongFeedback || "再看助动词、主语和动词原形。你可以继续修改。");
+          state.selected = [];
+          ui.options.querySelectorAll(".option").forEach((item) => { item.setAttribute("aria-pressed", "false"); item.classList.remove("order-picked"); });
+          updateAnswerZone(q);
+        }
+      }
+      function showAnswer() {
+        const q = state.round[state.index];
+        state.revealed[state.index] = true; state.solved[state.index] = true;
+        feedback("correct", `答案：${completeAnswer(q)}。${q.explanation || ""}`);
+        if (q.type === "classify") {
+          state.assignments = { ...expectedAssignments(q) };
+          ui.answerZone.hidden = false; updateAnswerZone(q); renderOptionStates(q);
+        } else {
+          ui.answerZone.hidden = false; ui.answerZone.textContent = completeAnswer(q);
+        }
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+        });
+        ui.check.disabled = true; ui.show.disabled = true;
+        ui.next.disabled = false;
+      }
+      function nextQuestion() {
+        if (state.index + 1 < state.round.length) { state.index += 1; renderQuestion(); return; }
+        showCompletion();
+      }
+      function showCompletion() {
+        const first = state.firstTry.filter(Boolean).length;
+        const final = state.solved.filter(Boolean).length;
+        const wrongIds = state.round.filter((_, index) => state.wrongEver[index]).map((question) => question.id);
+        ui.completionTitle.textContent = config.completionTitle || (challengeMode ? "挑战完成" : "本轮完成");
+        ui.completion.textContent = challengeMode
+          ? `${config.completion || "本轮完成。"} 正确 ${first} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`
+          : `${config.completion || "本轮完成。"} 首次正确 ${first} / ${state.round.length}，最终正确 ${final} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`;
+        ui.dialog.dataset.complete = "true";
+        if (typeof ui.dialog.showModal === "function") ui.dialog.showModal(); else ui.dialog.setAttribute("open", "");
+      }
+      function submitChallenge() {
+        const q = state.round[state.index];
+        if (state.judging || !hasResponse(q)) return;
+        state.judging = true; state.solved[state.index] = true; state.attempts[state.index] = 1;
+        const correct = isCorrect(q);
+        state.firstTry[state.index] = correct;
+        state.wrongEver[state.index] = !correct;
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          else if (state.selected.includes(Number(item.dataset.optionIndex))) item.classList.add("wrong-option");
+        });
+        const message = correct
+          ? `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim()
+          : `${q.wrongFeedback || "这次没有选对。"} 正确答案：${completeAnswer(q)}。${q.explanation || ""}`.trim();
+        feedback(correct ? "correct" : "wrong", message);
+        ui.next.disabled = true;
+        setTimeout(() => {
+          if (state.index + 1 < state.round.length) {
+            state.index += 1; renderQuestion();
+          } else showCompletion();
+        }, Number(config.feedbackDelayMs || 1000));
+      }
+
+      ui.title.textContent = config.title;
+      ui.knowledge.replaceChildren(...config.knowledge.map((text) => {
+        const chip = document.createElement("span"); chip.className = "knowledge-chip"; chip.textContent = text; return chip;
+      }));
+      byId("newRoundButton").hidden = challengeMode;
+      byId("newRoundButton").addEventListener("click", startRound);
+      byId("restartButton").addEventListener("click", startRound);
+      byId("restartButton").textContent = config.restartLabel || (challengeMode ? "重新挑战" : "重新练习");
+      if (config.continueLabel) {
+        ui.continueButton.hidden = false; ui.continueButton.textContent = config.continueLabel;
+        ui.continueButton.addEventListener("click", () => {
+          if (config.continueHref) location.href = config.continueHref;
+          else if (ui.dialog.open) ui.dialog.close();
+        });
+      }
+      ui.check.addEventListener("click", checkAnswer);
+      ui.show.addEventListener("click", showAnswer);
+      ui.next.addEventListener("click", challengeMode ? submitChallenge : nextQuestion);
+      window.__LESSON_PREP_QA__ = {
+        state: () => ({
+          mode: challengeMode ? "challenge-locked" : "practice", index: state.index, total: state.round.length,
+          complete: ui.dialog.dataset.complete === "true", id: state.round[state.index]?.id,
+          order: state.round.map((question) => question.id), selected: [...state.selected], locked: state.locked
+        }),
+        selectWrong: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = Object.fromEntries(q.options.map((option) => {
+              const expected = expectedAssignments(q)[option];
+              return [option, q.targets.find((target) => target !== expected) || q.targets[0]];
+            }));
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          const correct = new Set(answerIndices(q));
+          const wrongIndex = q.options.findIndex((_, index) => !correct.has(index));
+          state.selected = wrongIndex >= 0 ? [wrongIndex] : [];
+          if (challengeMode) { state.locked = true; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        solveCurrent: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = { ...expectedAssignments(q) };
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          state.selected = answerIndices(q).filter((index) => index >= 0);
+          if (challengeMode) { state.locked = true; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        restart: startRound
+      };
+      startRound();
+    })();
+  </script>
+</body>
+</html>

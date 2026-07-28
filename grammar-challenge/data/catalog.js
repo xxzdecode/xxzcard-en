@@ -2,6 +2,12 @@
   // 新增练习时：数据型练习使用 dataPath；复用随堂练习 UI 的独立页面使用 pagePath。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-07-30-possessive-pronouns-review',
+      date: '2026-07-30',
+      title: 'my 还是 mine？快速挑战',
+      pagePath: './practices/2026-07-30.html'
+    },
+    {
       id: 'grammar-2026-07-27-subject-object-review',
       date: '2026-07-27',
       title: '主格 · 宾格复习挑战',
