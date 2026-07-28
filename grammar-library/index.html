@@ -10,13 +10,13 @@
   <div class="app-shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">TEACHING ORDER · 逐知识点进度</p>
+        <p class="eyebrow">TEACHING ORDER · SUPABASE 正式进度</p>
         <h1>英语语法知识点库</h1>
-        <p class="hero-copy">按真实教学依赖浏览、检索和更新，不再按旧目录机械推进。</p>
+        <p class="hero-copy">按真实教学依赖浏览和检索。正式教学状态来自 Supabase；网页临时标记不会被当作实际上课完成。</p>
       </div>
       <div class="hero-actions">
         <button id="sourceViewButton" class="secondary-button" type="button">来源覆盖</button>
-        <button id="legacyImportButton" class="secondary-button" type="button" hidden>导入旧进度</button>
+        <button id="legacyImportButton" class="secondary-button" type="button" hidden>旧勾选转临时标记</button>
       </div>
     </header>
 
@@ -25,7 +25,7 @@
     <section class="toolbar" aria-label="知识点筛选">
       <label class="search-field">
         <span>搜索</span>
-        <input id="searchInput" type="search" placeholder="疑问词、时态、词性、例句…" autocomplete="off">
+        <input id="searchInput" type="search" placeholder="疑问词、时态、词性、topic key…" autocomplete="off">
       </label>
       <label>
         <span>分类</span>
@@ -42,10 +42,11 @@
         <span>状态</span>
         <select id="statusFilter">
           <option value="all">全部状态</option>
-          <option value="to_teach">待补讲</option>
+          <option value="confirmed_complete">已教授</option>
+          <option value="materials_ready">已备课待教授</option>
           <option value="needs_review">需复习确认</option>
+          <option value="to_teach">待补讲</option>
           <option value="not_started">未开始</option>
-          <option value="confirmed_complete">确认完成</option>
         </select>
       </label>
       <label>
@@ -66,7 +67,8 @@
     <main>
       <section class="summary-strip" aria-label="进度摘要">
         <div><strong id="visibleCount">0</strong><span>当前显示</span></div>
-        <div><strong id="completeCount">0</strong><span>确认完成</span></div>
+        <div><strong id="completeCount">0</strong><span>已教授</span></div>
+        <div><strong id="readyCount">0</strong><span>已备课待教授</span></div>
         <div><strong id="reviewCount">0</strong><span>需复习</span></div>
         <div><strong id="teachCount">0</strong><span>待补讲</span></div>
       </section>
