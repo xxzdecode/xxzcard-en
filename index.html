@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>英语提升计划</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles-vocabulary-adventure.css">
 </head>
 <body>
 
@@ -32,6 +33,11 @@
       <span class="task-icon">🔁</span><span class="task-title">混合单词</span><span class="task-sub">老师混合词库</span>
     </button>
   </div>
+  <button class="vocabulary-adventure-preview-entry student-only" id="vocabularyAdventurePreviewEntry" type="button" onclick="openVocabularyAdventure()" hidden>
+    <span aria-hidden="true">🧭</span>
+    <span><strong>探险预览</strong><small>本地摸底播放器</small></span>
+    <span aria-hidden="true">›</span>
+  </button>
   <button class="grammar-challenge-entry student-only" type="button" onclick="openGrammarChallengeList()">
     <span class="grammar-challenge-entry__icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -110,6 +116,33 @@
       <span>知识点库</span>
     </button>
   </nav>
+</div>
+
+<!-- ══ SCREEN: VOCABULARY ADVENTURE PREVIEW ══ -->
+<div class="screen" id="screenVocabularyAdventure">
+  <header class="vocabulary-adventure-topbar">
+    <button type="button" class="vocabulary-adventure-exit" onclick="closeVocabularyAdventure()" aria-label="退出探险">←</button>
+    <div class="vocabulary-adventure-progress">
+      <div class="vocabulary-adventure-progress-row">
+        <strong>第一站 · 摸底</strong>
+        <span id="vocabularyAdventureScreeningProgress">摸底 0 / 0</span>
+      </div>
+      <div class="vocabulary-adventure-progress-track" aria-hidden="true">
+        <span id="vocabularyAdventureProgressFill"></span>
+      </div>
+      <div class="vocabulary-adventure-progress-row is-secondary">
+        <span id="vocabularyAdventureSessionDate" hidden></span>
+        <span id="vocabularyAdventureTotalProgress">今日计划 0 / 0</span>
+      </div>
+    </div>
+  </header>
+  <main class="vocabulary-adventure-stage">
+    <section class="vocabulary-adventure-body" id="vocabularyAdventureBody" aria-live="polite"></section>
+  </main>
+  <footer class="vocabulary-adventure-feedback">
+    <div id="vocabularyAdventureFeedbackText"></div>
+    <button type="button" id="vocabularyAdventureAction" hidden></button>
+  </footer>
 </div>
 
 <!-- ══ SCREEN: VOCABULARY SCREENING ══ -->
@@ -727,6 +760,7 @@
 <script src="js/tasks.js"></script>
 <script src="js/vocabularyAdventureCore.js"></script>
 <script src="js/vocabularyAdventure.js"></script>
+<script src="js/vocabularyAdventurePlayer.js"></script>
 <script src="js/review.js"></script>
 <script src="js/study.js"></script>
 <script src="js/quiz.js"></script>

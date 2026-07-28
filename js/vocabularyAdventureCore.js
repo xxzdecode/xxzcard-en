@@ -16,6 +16,11 @@
     due: 5,
     stable: 6
   });
+  const SCREENING_TASK_TYPES = Object.freeze([
+    'wordToMeaning',
+    'audioToWord',
+    'meaningToWord'
+  ]);
 
   function normalizeAdventureWord(value) {
     return String(value == null ? '' : value).trim().toLocaleLowerCase().replace(/\s+/g, ' ');
@@ -217,7 +222,9 @@
       if (classification) review.push({ candidate: normalizedCandidate, wordState, ...classification });
     });
     review.sort(compareReviewEntries);
-    return { screening, review };
+    const urgentReview = review.filter(entry => entry.reason !== 'stable');
+    const stableReview = review.filter(entry => entry.reason === 'stable');
+    return { screening, urgentReview, stableReview, review };
   }
 
   function planItem(candidate, phase) {
@@ -256,17 +263,122 @@
 
     const totalTarget = screeningTarget + reviewTarget;
     let screeningCount = Math.min(screeningTarget, pools.screening.length);
-    let reviewCount = Math.min(reviewTarget, pools.review.length);
-    let remaining = Math.max(0, totalTarget - screeningCount - reviewCount);
+    let urgentReviewCount = Math.min(reviewTarget, pools.urgentReview.length);
+    let remaining = Math.max(0, totalTarget - screeningCount - urgentReviewCount);
     const extraScreening = Math.min(remaining, pools.screening.length - screeningCount);
     screeningCount += extraScreening;
     remaining -= extraScreening;
-    reviewCount += Math.min(remaining, pools.review.length - reviewCount);
+    const extraUrgentReview = Math.min(remaining, pools.urgentReview.length - urgentReviewCount);
+    urgentReviewCount += extraUrgentReview;
+    remaining -= extraUrgentReview;
+    const stableReviewCount = Math.min(remaining, pools.stableReview.length);
 
     return [
       ...pools.screening.slice(0, screeningCount).map(candidate => planItem(candidate, 'screening')),
-      ...pools.review.slice(0, reviewCount).map(entry => planItem(entry.candidate, 'review'))
+      ...pools.urgentReview.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review')),
+      ...pools.stableReview.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review'))
     ];
+  }
+
+  function stableAdventureHash(value) {
+    const text = String(value == null ? '' : value);
+    let hash = 2166136261;
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function deterministicAdventureShuffle(values, seed, identity) {
+    const getIdentity = typeof identity === 'function' ? identity : value => String(value);
+    return (Array.isArray(values) ? values : [])
+      .map((value, index) => ({
+        value,
+        index,
+        rank: stableAdventureHash(`${seed}|${getIdentity(value)}|${index}`)
+      }))
+      .sort((a, b) => a.rank - b.rank || a.index - b.index)
+      .map(entry => entry.value);
+  }
+
+  function assignVocabularyAdventureTaskType(options) {
+    const settings = isPlainObject(options) ? options : {};
+    const seed = `${settings.sessionDate || ''}|${adventureWordKey(settings.wordKey)}|${Number(settings.planIndex) || 0}`;
+    let index = (stableAdventureHash(seed) + Math.max(0, Number(settings.planIndex) || 0)) % SCREENING_TASK_TYPES.length;
+    if (SCREENING_TASK_TYPES[index] === settings.lastTaskType) {
+      index = (index + 1) % SCREENING_TASK_TYPES.length;
+    }
+    return SCREENING_TASK_TYPES[index];
+  }
+
+  function uniqueQuestionCandidates(candidates) {
+    const result = [];
+    const seen = new Set();
+    (Array.isArray(candidates) ? candidates : []).forEach(candidate => {
+      const key = adventureWordKey(candidate && (candidate.key || candidate.word));
+      const meaning = String(candidate && candidate.card && candidate.card.meaning || '').trim();
+      if (!key || !meaning || seen.has(key)) return;
+      seen.add(key);
+      result.push({ ...candidate, key });
+    });
+    return result;
+  }
+
+  function buildVocabularyAdventureQuestion(options) {
+    const settings = isPlainObject(options) ? options : {};
+    const candidates = uniqueQuestionCandidates(settings.candidates);
+    const wordKey = adventureWordKey(settings.wordKey);
+    const target = candidates.find(candidate => candidate.key === wordKey);
+    const taskType = SCREENING_TASK_TYPES.includes(settings.taskType)
+      ? settings.taskType
+      : assignVocabularyAdventureTaskType(settings);
+    if (!target) return { ok: false, code: 'WORD_NOT_VISIBLE', wordKey };
+
+    const seed = `${settings.sessionDate || ''}|${wordKey}|${Number(settings.planIndex) || 0}|${taskType}`;
+    const correctMeaning = String(target.card.meaning || '').trim();
+    const answer = taskType === 'wordToMeaning'
+      ? { key: correctMeaning, label: correctMeaning, correct: true }
+      : { key: wordKey, label: String(target.word || target.card.word || '').trim(), correct: true };
+    const distractors = [];
+    const seenAnswers = new Set([taskType === 'wordToMeaning' ? correctMeaning : wordKey]);
+
+    deterministicAdventureShuffle(candidates, `${seed}|distractors`, candidate => candidate.key)
+      .forEach(candidate => {
+        if (candidate.key === wordKey || distractors.length >= 3) return;
+        const meaning = String(candidate.card.meaning || '').trim();
+        const optionKey = taskType === 'wordToMeaning' ? meaning : candidate.key;
+        const label = taskType === 'wordToMeaning'
+          ? meaning
+          : String(candidate.word || candidate.card.word || '').trim();
+        if (!optionKey || !label || seenAnswers.has(optionKey)) return;
+        seenAnswers.add(optionKey);
+        distractors.push({ key: optionKey, label, correct: false });
+      });
+
+    const optionsList = deterministicAdventureShuffle(
+      [answer, ...distractors],
+      `${seed}|options`,
+      option => `${option.key}|${option.correct ? 'answer' : 'distractor'}`
+    );
+    if (optionsList.length < 2) {
+      return { ok: false, code: 'INSUFFICIENT_OPTIONS', wordKey, taskType };
+    }
+    const correctIndex = optionsList.findIndex(option => option.correct);
+    return {
+      ok: true,
+      taskType,
+      wordKey,
+      seed,
+      correctIndex,
+      options: optionsList,
+      prompt: taskType === 'wordToMeaning'
+        ? String(target.word || target.card.word || '').trim()
+        : taskType === 'meaningToWord'
+          ? correctMeaning
+          : '',
+      card: target.card
+    };
   }
 
   function updateVocabularyAdventureSessionCursor(sessionValue, requestedCursor, forceCompleted) {
@@ -332,10 +444,66 @@
     };
   }
 
+  function adventureResultError(code, message) {
+    const error = new Error(message);
+    error.code = code;
+    return error;
+  }
+
+  function prepareVocabularyAdventureResult(stateValue, submission) {
+    const state = normalizeVocabularyAdventureState(stateValue);
+    const input = isPlainObject(submission) ? submission : {};
+    const expectedCursor = Number(input.expectedCursor);
+    const wordKey = adventureWordKey(input.wordKey);
+    if (!state.session || state.session.completed) {
+      throw adventureResultError('SESSION_UNAVAILABLE', 'Adventure session is missing or completed');
+    }
+    if (!Number.isInteger(expectedCursor) || state.session.cursor !== expectedCursor) {
+      throw adventureResultError('CURSOR_MISMATCH', 'Adventure cursor changed before result submission');
+    }
+    const item = state.session.plan[state.session.cursor];
+    if (!item || item.phase !== 'screening') {
+      throw adventureResultError('NOT_SCREENING', 'Current adventure item is not a screening item');
+    }
+    if (item.status !== 'pending') {
+      throw adventureResultError('ALREADY_COMPLETED', 'Current adventure item is already completed');
+    }
+    if (!wordKey || item.wordKey !== wordKey) {
+      throw adventureResultError('WORD_MISMATCH', 'Adventure word does not match the current plan item');
+    }
+    if (!SCREENING_TASK_TYPES.includes(input.taskType)) {
+      throw adventureResultError('INVALID_TASK_TYPE', 'Adventure task type is not supported');
+    }
+    if (!RESULTS.has(input.result)) {
+      throw adventureResultError('INVALID_RESULT', 'Adventure result must be D, H, or F');
+    }
+
+    const nextWordState = applyAdventureResult(state.words[wordKey], input.result, input.reviewedAt);
+    nextWordState.lastTaskType = input.taskType;
+    const nextPlan = state.session.plan.map((planEntry, index) => index === state.session.cursor
+      ? {
+          ...planEntry,
+          taskType: input.taskType,
+          status: 'completed',
+          result: input.result
+        }
+      : { ...planEntry });
+    const nextSession = updateVocabularyAdventureSessionCursor(
+      { ...state.session, plan: nextPlan },
+      state.session.cursor + 1
+    );
+    return normalizeVocabularyAdventureState({
+      ...state,
+      words: { ...state.words, [wordKey]: nextWordState },
+      session: nextSession
+    });
+  }
+
   return Object.freeze({
     VERSION,
     INTERVAL_DAYS,
     REVIEW_PRIORITY,
+    SCREENING_TASK_TYPES,
     normalizeAdventureWord,
     adventureWordKey,
     localDateKey,
@@ -345,8 +513,13 @@
     collectVocabularyAdventureCandidates,
     classifyVocabularyAdventureCandidates,
     buildVocabularyAdventurePlan,
+    stableAdventureHash,
+    deterministicAdventureShuffle,
+    assignVocabularyAdventureTaskType,
+    buildVocabularyAdventureQuestion,
     resolveVocabularyAdventureSession,
     updateVocabularyAdventureSessionCursor,
-    applyAdventureResult
+    applyAdventureResult,
+    prepareVocabularyAdventureResult
   });
 });

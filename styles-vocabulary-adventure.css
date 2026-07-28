@@ -1,0 +1,382 @@
+.vocabulary-adventure-preview-entry {
+  width: min(400px, calc(100% - 40px));
+  min-height: 58px;
+  margin: 10px auto 0;
+  padding: 10px 16px;
+  border: 1px dashed #7d8fd1;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eef2ff, #e8f8f1);
+  color: #304b75;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(48, 75, 117, 0.1);
+}
+
+.vocabulary-adventure-preview-entry[hidden] { display: none !important; }
+.vocabulary-adventure-preview-entry > span:first-child { font-size: 26px; }
+.vocabulary-adventure-preview-entry > span:last-child { font-size: 26px; color: #7183af; }
+.vocabulary-adventure-preview-entry strong,
+.vocabulary-adventure-preview-entry small { display: block; }
+.vocabulary-adventure-preview-entry strong { font-size: 16px; }
+.vocabulary-adventure-preview-entry small { margin-top: 2px; color: #687a93; font-size: 12px; }
+
+#screenVocabularyAdventure {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  min-height: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  align-items: stretch;
+  background: linear-gradient(160deg, #edf5ff 0%, #f7fbff 50%, #e8f7ef 100%);
+  color: #25364a;
+}
+
+#screenVocabularyAdventure.active { display: flex; }
+body:has(#screenVocabularyAdventure.active) { padding-bottom: 0; overflow: hidden; }
+
+.vocabulary-adventure-topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(18px, env(safe-area-inset-right))
+    8px
+    max(18px, env(safe-area-inset-left));
+  border-bottom: 1px solid rgba(92, 121, 145, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+}
+
+.vocabulary-adventure-exit {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: #eaf3fb;
+  color: #3b6081;
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.vocabulary-adventure-progress { flex: 1 1 auto; min-width: 0; }
+.vocabulary-adventure-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #46647d;
+  font-size: 13px;
+}
+.vocabulary-adventure-progress-row strong { color: #294f6f; font-size: 15px; }
+.vocabulary-adventure-progress-row.is-secondary { min-height: 18px; margin-top: 3px; color: #72879a; font-size: 11px; }
+.vocabulary-adventure-progress-row.is-secondary span:first-child { color: #9a651a; font-weight: 700; }
+.vocabulary-adventure-progress-track {
+  height: 7px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce9f3;
+}
+.vocabulary-adventure-progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6aa9dd, #63b98d);
+  transition: width 180ms ease;
+}
+
+.vocabulary-adventure-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  overflow: hidden;
+}
+
+.vocabulary-adventure-body {
+  width: min(760px, 100%);
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vocabulary-adventure-question {
+  width: 100%;
+  max-height: 100%;
+  padding: clamp(18px, 3vh, 28px);
+  overflow: auto;
+  border: 1px solid rgba(82, 119, 145, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 18px 46px rgba(59, 96, 129, 0.14);
+}
+
+.vocabulary-adventure-question-label {
+  margin-bottom: clamp(10px, 2vh, 18px);
+  color: #70879a;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.vocabulary-adventure-prompt-text {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  margin-bottom: clamp(12px, 2vh, 20px);
+  color: #234d70;
+  font-size: clamp(27px, 5vw, 48px);
+  font-weight: 900;
+  line-height: 1.12;
+  text-align: center;
+}
+
+.vocabulary-adventure-audio-prompt {
+  min-width: 210px;
+  min-height: 60px;
+  margin: 0 auto clamp(12px, 2vh, 20px);
+  padding: 10px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e4f2ff, #dbeeff);
+  color: #285c87;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.vocabulary-adventure-audio-prompt span { font-size: 28px; }
+
+.vocabulary-adventure-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.vocabulary-adventure-options button {
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 2px solid #d8e8f3;
+  border-radius: 18px;
+  background: #f8fcff;
+  color: #2d526f;
+  font: inherit;
+  font-size: clamp(15px, 2vw, 18px);
+  font-weight: 800;
+  line-height: 1.3;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.vocabulary-adventure-options button:active { transform: scale(0.98); }
+.vocabulary-adventure-options button.is-correct {
+  border-color: #69b98f;
+  background: #e1f6ea;
+  color: #286548;
+  animation: vocabulary-adventure-pop 240ms ease;
+}
+.vocabulary-adventure-options button.is-wrong {
+  border-color: #e69a9a;
+  background: #fff0f0;
+  color: #9a4848;
+  animation: vocabulary-adventure-shake 220ms ease;
+}
+.vocabulary-adventure-options button:disabled { cursor: default; opacity: 0.62; }
+.vocabulary-adventure-options button.is-correct:disabled,
+.vocabulary-adventure-options button.is-wrong:disabled { opacity: 1; }
+
+.vocabulary-adventure-hint {
+  min-height: 48px;
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: #fff7d9;
+  color: #795d19;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 16px;
+  animation: vocabulary-adventure-fade 180ms ease;
+}
+.vocabulary-adventure-hint[hidden] { display: none; }
+.vocabulary-adventure-hint span { font-size: 28px; }
+.vocabulary-adventure-hint button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #66511e;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.vocabulary-adventure-feedback {
+  flex: 0 0 auto;
+  min-height: 72px;
+  padding:
+    10px
+    max(20px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  border-top: 1px solid rgba(92, 121, 145, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: #526d82;
+  font-size: 14px;
+  font-weight: 800;
+}
+.vocabulary-adventure-feedback > div { flex: 1 1 auto; max-width: 560px; text-align: center; }
+.vocabulary-adventure-feedback > div[data-tone="failed"] { color: #9a4848; }
+.vocabulary-adventure-feedback > div[data-tone="hinted"] { color: #8a6818; }
+.vocabulary-adventure-feedback > div[data-tone="direct"] { color: #286548; }
+.vocabulary-adventure-feedback button {
+  flex: 0 0 auto;
+  min-width: 132px;
+  min-height: 48px;
+  padding: 9px 20px;
+  border: 0;
+  border-radius: 16px;
+  background: #4f8fc2;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.vocabulary-adventure-feedback button[hidden] { display: none; }
+
+.vocabulary-adventure-result,
+.vocabulary-adventure-terminal,
+.vocabulary-adventure-loading {
+  width: min(680px, 100%);
+  max-height: 100%;
+  padding: clamp(20px, 4vh, 34px);
+  overflow: auto;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 46px rgba(59, 96, 129, 0.14);
+  text-align: center;
+  animation: vocabulary-adventure-fade 180ms ease;
+}
+.vocabulary-adventure-result-icon,
+.vocabulary-adventure-terminal-icon { font-size: 46px; }
+.vocabulary-adventure-result h2,
+.vocabulary-adventure-terminal h2 { margin: 10px 0 6px; color: #2b5574; font-size: 26px; }
+.vocabulary-adventure-result > p,
+.vocabulary-adventure-terminal > p { color: #647b8e; line-height: 1.55; }
+.vocabulary-adventure-result-title { margin-bottom: 12px; color: #955252; font-size: 17px; font-weight: 900; }
+
+.vocabulary-adventure-full-card {
+  text-align: left;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.vocabulary-adventure-card-heading {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eef7ff, #edf8f2);
+}
+.vocabulary-adventure-card-emoji { font-size: 42px; }
+.vocabulary-adventure-card-heading h2 { margin: 0; color: #244d6d; font-size: 30px; }
+.vocabulary-adventure-card-heading p { margin: 3px 0; color: #3b5266; font-size: 17px; font-weight: 800; }
+.vocabulary-adventure-card-heading small { color: #70879a; font-weight: 700; }
+.vocabulary-adventure-speak {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+.vocabulary-adventure-full-card section {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f7fafc;
+}
+.vocabulary-adventure-full-card h4 { margin: 0 0 5px; color: #71869a; font-size: 11px; letter-spacing: 0.05em; }
+.vocabulary-adventure-full-card p { margin: 3px 0; color: #3d5366; font-size: 13px; line-height: 1.45; }
+.vocabulary-adventure-full-card .vocabulary-adventure-tip { grid-column: 1 / -1; background: #fff8df; }
+
+@keyframes vocabulary-adventure-pop {
+  50% { transform: scale(1.025); }
+}
+@keyframes vocabulary-adventure-shake {
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+@keyframes vocabulary-adventure-fade {
+  from { opacity: 0; transform: translateY(5px); }
+}
+
+@media (max-width: 620px) {
+  .vocabulary-adventure-stage { padding: 10px 12px; }
+  .vocabulary-adventure-question { padding: 17px; border-radius: 22px; }
+  .vocabulary-adventure-options { grid-template-columns: 1fr; gap: 9px; }
+  .vocabulary-adventure-options button { min-height: 50px; }
+  .vocabulary-adventure-full-card { grid-template-columns: 1fr; }
+  .vocabulary-adventure-full-card section,
+  .vocabulary-adventure-full-card .vocabulary-adventure-tip { grid-column: 1; }
+  .vocabulary-adventure-feedback { min-height: 68px; }
+}
+
+@media (orientation: landscape) and (max-height: 720px) {
+  .vocabulary-adventure-topbar { padding-top: 7px; padding-bottom: 6px; }
+  .vocabulary-adventure-exit { width: 44px; height: 44px; }
+  .vocabulary-adventure-stage { padding-block: 8px; }
+  .vocabulary-adventure-question { padding: 14px 20px; }
+  .vocabulary-adventure-question-label { margin-bottom: 7px; }
+  .vocabulary-adventure-prompt-text { min-height: 42px; margin-bottom: 9px; font-size: 31px; }
+  .vocabulary-adventure-audio-prompt { min-height: 48px; margin-bottom: 9px; }
+  .vocabulary-adventure-options button { min-height: 48px; }
+  .vocabulary-adventure-feedback { min-height: 62px; padding-block: 7px; }
+  .vocabulary-adventure-card-heading { padding: 9px 12px; }
+  .vocabulary-adventure-card-emoji { font-size: 34px; }
+  .vocabulary-adventure-card-heading h2 { font-size: 25px; }
+  .vocabulary-adventure-full-card section { padding: 7px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vocabulary-adventure-progress-track span,
+  .vocabulary-adventure-options button,
+  .vocabulary-adventure-hint,
+  .vocabulary-adventure-result,
+  .vocabulary-adventure-terminal {
+    animation: none !important;
+    transition: none !important;
+  }
+}

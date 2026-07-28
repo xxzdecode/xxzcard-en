@@ -39,6 +39,17 @@
       return core.collectVocabularyAdventureCandidates(common);
     }
 
+    function currentVocabularyAdventureUser() {
+      const user = dependencies.getCurrentUser();
+      return ALLOWED_USERS.has(user) && !dependencies.isTeacherUser() ? user : '';
+    }
+
+    function resolveVisibleVocabularyAdventureCandidate(wordKey, candidates) {
+      const key = core.adventureWordKey(wordKey);
+      const pool = Array.isArray(candidates) ? candidates : collectVisibleVocabularyAdventureCandidates();
+      return pool.find(candidate => candidate.key === key) || null;
+    }
+
     async function loadVocabularyAdventureState(user) {
       const key = adventureStateKeyForUser(user);
       if (!key) return core.defaultVocabularyAdventureState();
@@ -73,13 +84,42 @@
       return { ...result, saved };
     }
 
+    async function loadVocabularyAdventurePlayerContext(today) {
+      const user = currentVocabularyAdventureUser();
+      if (!user) {
+        return {
+          action: 'unavailable',
+          saved: null,
+          user: '',
+          state: core.defaultVocabularyAdventureState(),
+          session: null,
+          candidates: []
+        };
+      }
+      const result = await loadOrCreateVocabularyAdventureSession(today);
+      return {
+        ...result,
+        user,
+        candidates: collectVisibleVocabularyAdventureCandidates()
+      };
+    }
+
+    async function saveCurrentVocabularyAdventureState(state) {
+      const user = currentVocabularyAdventureUser();
+      return user ? saveVocabularyAdventureState(user, state) : false;
+    }
+
     return {
       adventureStateKeyForUser,
+      currentVocabularyAdventureUser,
       collectVisibleVocabularyAdventureCandidates,
+      resolveVisibleVocabularyAdventureCandidate,
       loadVocabularyAdventureState,
       saveVocabularyAdventureState,
       previewVocabularyAdventurePlan,
-      loadOrCreateVocabularyAdventureSession
+      loadOrCreateVocabularyAdventureSession,
+      loadVocabularyAdventurePlayerContext,
+      saveCurrentVocabularyAdventureState
     };
   }
 

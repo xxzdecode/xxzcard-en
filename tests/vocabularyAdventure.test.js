@@ -160,6 +160,40 @@ const enoughDuePlan = core.buildVocabularyAdventurePlan({
 });
 assert.equal(enoughDuePlan.filter(item => item.wordKey.startsWith('stable-fill')).length, 0);
 
+const urgentFour = candidates(4, 'urgent-four');
+const stableTwenty = candidates(20, 'stable-twenty');
+const urgentBeforeStablePlan = core.buildVocabularyAdventurePlan({
+  candidates: [...screeningPool, ...urgentFour, ...stableTwenty]
+    .map((item, index) => ({ ...item, sourceIndex: index })),
+  state: reviewedState([...urgentFour, ...stableTwenty], candidate => (
+    candidate.key.startsWith('stable-twenty')
+      ? { intervalIndex: 5, nextReviewAt: '2026-09-01' }
+      : { nextReviewAt: TODAY }
+  )),
+  today: TODAY
+});
+assert.equal(urgentBeforeStablePlan.filter(item => item.phase === 'screening').length, 26);
+assert.equal(urgentBeforeStablePlan.filter(item => item.wordKey.startsWith('urgent-four')).length, 4);
+assert.equal(urgentBeforeStablePlan.filter(item => item.wordKey.startsWith('stable-twenty')).length, 0);
+
+const threeScreen = candidates(3, 'three-screen');
+const fiveUrgent = candidates(5, 'five-urgent');
+const thirtyStable = candidates(30, 'thirty-stable');
+const stableLastPlan = core.buildVocabularyAdventurePlan({
+  candidates: [...threeScreen, ...fiveUrgent, ...thirtyStable]
+    .map((item, index) => ({ ...item, sourceIndex: index })),
+  state: reviewedState([...fiveUrgent, ...thirtyStable], candidate => (
+    candidate.key.startsWith('thirty-stable')
+      ? { intervalIndex: 5, nextReviewAt: '2026-09-01' }
+      : { nextReviewAt: TODAY }
+  )),
+  today: TODAY
+});
+assert.equal(stableLastPlan.length, 30);
+assert.equal(stableLastPlan.filter(item => item.phase === 'screening').length, 3);
+assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('five-urgent')).length, 5);
+assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('thirty-stable')).length, 22);
+
 const sameDayState = {
   ...normalState,
   session: {

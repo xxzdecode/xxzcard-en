@@ -2,8 +2,9 @@
   "name": "xxzcard-en-tools",
   "private": true,
   "scripts": {
-    "test": "node tests/vocabularyAdventure.test.js && node tests/vocabularyReview.test.js && node tests/vocabularyLessonImporter.test.js && node tests/homeNavigationLayout.test.js",
+    "test": "node tests/vocabularyAdventure.test.js && node tests/vocabularyAdventurePlayer.test.js && node tests/vocabularyReview.test.js && node tests/vocabularyLessonImporter.test.js && node tests/homeNavigationLayout.test.js",
     "test:viewport": "node tests/vocabularyLessonViewport.mjs",
+    "test:adventure-viewport": "node tests/vocabularyAdventureViewport.mjs",
     "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js"
   },
   "dependencies": {
