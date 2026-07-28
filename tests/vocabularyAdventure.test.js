@@ -136,6 +136,14 @@ assert.deepEqual(priorityPool.review.map(item => item.reason), [
 assert.deepEqual(priorityPool.review.map(item => item.candidate.key), [
   'challenge', 'failed', 'hinted', 'severe', 'due', 'stable'
 ]);
+assert.deepEqual(
+  core.buildVocabularyAdventurePlan({
+    candidates: priorityCandidates,
+    state: priorityState,
+    today: TODAY
+  }).map(item => item.reviewReason),
+  ['challenge', 'failed', 'hinted', 'severeOverdue', 'due', 'stable']
+);
 
 const stableCandidates = core.collectVocabularyAdventureCandidates([batch('stable-order', ['due-one', 'stable-one'])]);
 const stableState = reviewedState(stableCandidates, candidate => candidate.key === 'stable-one'

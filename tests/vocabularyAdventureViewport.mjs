@@ -240,10 +240,13 @@ try {
     initialAdventureState: reviewBoundaryState
   });
   await boundary.page.locator('#vocabularyAdventurePreviewEntry').click();
-  await boundary.page.waitForSelector('.vocabulary-adventure-terminal');
-  assert.match(await boundary.page.locator('#vocabularyAdventureBody').innerText(), /第二站抗遗忘将在后续执行卡接入/);
+  await boundary.page.waitForFunction(() => (
+    document.querySelector('#vocabularyAdventureStageTitle')?.textContent === '第二站 · 抗遗忘'
+  ));
+  assert.equal(await boundary.page.locator('.vocabulary-adventure-question.is-review').count(), 1);
   assert.equal(boundary.state.get('vocab_adventure_v1_sister').session.plan[1].status, 'pending');
   assert.equal(boundary.state.get('vocab_adventure_v1_sister').session.completed, false);
+  assert.equal(boundary.writes.length, 0);
   await boundary.context.close();
 
   const brother = await openRealPage({

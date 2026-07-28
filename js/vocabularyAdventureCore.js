@@ -105,7 +105,10 @@
       batchName: typeof value.batchName === 'string' ? value.batchName : '',
       cardIndex: Number.isInteger(value.cardIndex) && value.cardIndex >= 0 ? value.cardIndex : 0,
       phase,
+      reviewReason: typeof value.reviewReason === 'string' ? value.reviewReason : '',
       taskType: typeof value.taskType === 'string' ? value.taskType : '',
+      confirmationTaskType: typeof value.confirmationTaskType === 'string' ? value.confirmationTaskType : '',
+      outcomeDetail: typeof value.outcomeDetail === 'string' ? value.outcomeDetail : '',
       status: value.status === 'completed' ? 'completed' : 'pending',
       result: RESULTS.has(value.result) ? value.result : ''
     };
@@ -227,7 +230,7 @@
     return { screening, urgentReview, stableReview, review };
   }
 
-  function planItem(candidate, phase) {
+  function planItem(candidate, phase, reviewReason) {
     return {
       wordKey: candidate.key,
       word: candidate.word,
@@ -235,7 +238,10 @@
       batchName: candidate.batchName || '',
       cardIndex: candidate.cardIndex,
       phase,
+      reviewReason: phase === 'review' ? String(reviewReason || '') : '',
       taskType: '',
+      confirmationTaskType: '',
+      outcomeDetail: '',
       status: 'pending',
       result: ''
     };
@@ -275,8 +281,8 @@
 
     return [
       ...pools.screening.slice(0, screeningCount).map(candidate => planItem(candidate, 'screening')),
-      ...pools.urgentReview.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review')),
-      ...pools.stableReview.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review'))
+      ...pools.urgentReview.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason)),
+      ...pools.stableReview.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason))
     ];
   }
 
@@ -499,6 +505,87 @@
     });
   }
 
+  function prepareVocabularyAdventureReviewResult(stateValue, submission) {
+    const state = normalizeVocabularyAdventureState(stateValue);
+    const input = isPlainObject(submission) ? submission : {};
+    const expectedCursor = Number(input.expectedCursor);
+    const wordKey = adventureWordKey(input.wordKey);
+    if (!state.session || state.session.completed) {
+      throw adventureResultError('SESSION_UNAVAILABLE', 'Adventure session is missing or completed');
+    }
+    if (!Number.isInteger(expectedCursor) || state.session.cursor !== expectedCursor) {
+      throw adventureResultError('CURSOR_MISMATCH', 'Adventure cursor changed before review submission');
+    }
+    const item = state.session.plan[state.session.cursor];
+    if (!item || item.phase !== 'review') {
+      throw adventureResultError('NOT_REVIEW', 'Current adventure item is not a review item');
+    }
+    if (state.session.plan.some(planEntry => planEntry.phase === 'screening' && planEntry.status !== 'completed')) {
+      throw adventureResultError('SCREENING_INCOMPLETE', 'Review cannot complete before all screening items');
+    }
+    if (item.status !== 'pending') {
+      throw adventureResultError('ALREADY_COMPLETED', 'Current adventure review item is already completed');
+    }
+    if (!wordKey || item.wordKey !== wordKey) {
+      throw adventureResultError('WORD_MISMATCH', 'Adventure word does not match the current review item');
+    }
+    if (typeof input.taskType !== 'string' || !input.taskType.trim()) {
+      throw adventureResultError('INVALID_TASK_TYPE', 'Adventure review task type is required');
+    }
+    if (!RESULTS.has(input.result)) {
+      throw adventureResultError('INVALID_RESULT', 'Adventure result must be D, H, or F');
+    }
+
+    const nextWordState = applyAdventureResult(state.words[wordKey], input.result, input.reviewedAt);
+    nextWordState.lastTaskType = input.taskType;
+    const nextPlan = state.session.plan.map((planEntry, index) => index === state.session.cursor
+      ? {
+          ...planEntry,
+          taskType: input.taskType,
+          confirmationTaskType: typeof input.confirmationTaskType === 'string'
+            ? input.confirmationTaskType
+            : '',
+          outcomeDetail: typeof input.outcomeDetail === 'string' ? input.outcomeDetail : '',
+          status: 'completed',
+          result: input.result
+        }
+      : { ...planEntry });
+    if (
+      state.session.cursor + 1 >= nextPlan.length
+      && nextPlan.some(planEntry => planEntry.status !== 'completed')
+    ) {
+      throw adventureResultError('PLAN_INCOMPLETE', 'Adventure session still contains incomplete plan items');
+    }
+    const nextSession = updateVocabularyAdventureSessionCursor(
+      { ...state.session, plan: nextPlan },
+      state.session.cursor + 1
+    );
+    return normalizeVocabularyAdventureState({
+      ...state,
+      words: { ...state.words, [wordKey]: nextWordState },
+      session: nextSession
+    });
+  }
+
+  function summarizeVocabularyAdventureSession(stateValue) {
+    const state = normalizeVocabularyAdventureState(stateValue);
+    const plan = state.session ? state.session.plan : [];
+    const completed = plan.filter(item => item.status === 'completed');
+    const resultCount = result => completed.filter(item => item.result === result).length;
+    return {
+      total: plan.length,
+      screeningCompleted: completed.filter(item => item.phase === 'screening').length,
+      reviewCompleted: completed.filter(item => item.phase === 'review').length,
+      reviewTotal: plan.filter(item => item.phase === 'review').length,
+      direct: resultCount('D'),
+      hinted: resultCount('H'),
+      failed: resultCount('F'),
+      usageWeak: completed.filter(item => item.outcomeDetail === 'usageWeak').length,
+      severeOverdueCompleted: completed.some(item => item.reviewReason === 'severeOverdue'),
+      completed: !!(state.session && state.session.completed)
+    };
+  }
+
   return Object.freeze({
     VERSION,
     INTERVAL_DAYS,
@@ -520,6 +607,8 @@
     resolveVocabularyAdventureSession,
     updateVocabularyAdventureSessionCursor,
     applyAdventureResult,
-    prepareVocabularyAdventureResult
+    prepareVocabularyAdventureResult,
+    prepareVocabularyAdventureReviewResult,
+    summarizeVocabularyAdventureSession
   });
 });
