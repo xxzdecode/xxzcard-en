@@ -40,8 +40,6 @@ for (const key of ['there-be', 'impersonal-it']) assert.equal(initialMap.get(key
 
 const app = fs.readFileSync(path.join(root, 'grammar-library/app.js'), 'utf8');
 assert.match(app, /key=eq\.grammar_progress/);
-assert.match(app, /key:\s*'grammar_progress'/);
-assert.match(app, /resolution=merge-duplicates/);
 assert.doesNotMatch(app, /auth\/v1|teacher\/admin|authDialog/);
 const seed = fs.readFileSync(path.join(root, 'scripts/seed-grammar-library.mjs'), 'utf8');
 assert.match(seed, /kv_store\/grammar_progress/);

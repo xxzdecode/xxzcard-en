@@ -2,7 +2,7 @@
   "name": "xxzcard-en-tools",
   "private": true,
   "scripts": {
-    "test": "node tests/vocabularyReview.test.js && node tests/vocabularyLessonImporter.test.js && node tests/homeNavigationLayout.test.js",
+    "test": "node tests/vocabularyAdventure.test.js && node tests/vocabularyReview.test.js && node tests/vocabularyLessonImporter.test.js && node tests/homeNavigationLayout.test.js",
     "test:viewport": "node tests/vocabularyLessonViewport.mjs",
     "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js"
   },
