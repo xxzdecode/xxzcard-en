@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://pnwxpuwsoprfehdvnlik.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBud3hwd3NvcHJmZWhkdm5saWsiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4MTI1MTkyMiwiZXhwIjoyMDk2ODI3OTIyfQ.aDdixCpy7l4NR3zK-WyOCvBmFLmZ7pbP8Pg4w8WYClg';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBud3hwdXdzb3ByZmVoZHZubGlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTE5MjIsImV4cCI6MjA5NjgyNzkyMn0.aDdixCpy7l4NR3zK-WyOCvBmFLmZ7pbP8Pg4w8WYClg';
 const TEMP_MARKS_STORAGE_KEY = 'grammar_library_temp_marks_v1';
 const LEGACY_PROGRESS_KEYS = ['grammarProgress', 'grammar-progress', 'grammar_checked', 'englishGrammarProgress', 'eng_grammar_progress'];
 
