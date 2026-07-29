@@ -222,6 +222,10 @@ try {
   assert.equal(await run.page.locator('#homeQuickActions').isHidden(), true);
   assert.equal(await run.page.locator('#vocabularyAdventurePreviewEntry').isVisible(), true);
   assert.equal(await run.page.locator('#vocabularyAdventureChallengeEntry').isVisible(), true);
+  assert.equal(await run.page.locator('#grammarChallengeHomeEntry').isVisible(), true);
+  assert.equal(await run.page.locator('#vocabularyTourHomeEntry').isVisible(), true);
+  assert.equal(await run.page.locator('#homeCheckinRow').isVisible(), true);
+  assert.equal(await run.page.locator('#studentFeatureNav').isVisible(), true);
   await run.page.locator('#vocabularyAdventureChallengeEntry').click();
   await run.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
   assert.equal(run.state.get('vocab_adventure_v1_sister').challengeSession.items.length, 10);
@@ -272,7 +276,17 @@ try {
   await run.page.locator('#uBtnBrother').click();
   await run.page.waitForFunction(() => document.getElementById('currentModeBadge').textContent.includes('弟弟'));
   assert.equal(run.state.has('vocab_adventure_v1_brother'), false);
+  await run.page.waitForFunction(() => document.getElementById('vocabularyAdventureChallengeEntry').disabled);
   assert.equal(await run.page.locator('#vocabularyAdventureChallengeEntry').isDisabled(), true);
+  await run.page.evaluate(async () => {
+    currentUser = 'teacher';
+    localStorage.setItem('wc_user', 'teacher');
+    document.body.classList.add('is-teacher');
+    updateUserBar();
+    await loadHome();
+  });
+  assert.equal(await run.page.locator('#vocabularyAdventureUnifiedHome').isHidden(), true);
+  assert.equal(await run.page.locator('.teacher-home-nav').isVisible(), true);
   await run.context.close();
 
   const compact = await openPage({ width: 1024, height: 768 });

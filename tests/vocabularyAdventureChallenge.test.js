@@ -231,7 +231,7 @@ assert.throws(() => challenge.prepareChallengeExit(exitState, { today }), /CHALL
 
 assert.equal(challenge.challengeHomeStatus({
   state,
-  candidates: candidates.slice(0, 10),
+  candidates: [...candidates.slice(0, 9), candidates[13]],
   today
 }).state, 'insufficient', 'one pending word leaves only nine eligible candidates');
 

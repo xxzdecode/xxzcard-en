@@ -54,7 +54,7 @@ test('reuses the website parser and enforces the complete current format', async
 });
 
 test('accepts a complete Windows CRLF import file', async () => {
-  const source = (await validText()).replaceAll('\n', '\r\n');
+  const source = (await validText()).replaceAll('\r\n', '\n').replaceAll('\n', '\r\n');
   const parsed = await parseAndValidateCards(source);
   assert.equal(parsed.cards.length, 2);
   assert.equal(parsed.uniqueWordCount, 2);

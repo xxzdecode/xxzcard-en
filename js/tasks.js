@@ -55,13 +55,35 @@ async function getTaskEntry(taskKey) {
 }
 
 function isSharedVocabularyChallengeKey(taskKey) {
-  return taskKey === 'todayChallenge' || taskKey === 'mixedChallenge';
+  return taskKey === 'todayChallenge'
+    || taskKey === 'mixedChallenge'
+    || isLocalBatchChallenge(taskKey);
+}
+
+function getLocalBatchChallengeEntries() {
+  const entries = [];
+  if (typeof localStorage === 'undefined') return entries;
+  const prefix = ['wc_batch_challenge_v1', currentUser, isoDate(), 'batchChallenge_'].join('_');
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const storageKey = localStorage.key(index);
+      if (!storageKey || !storageKey.startsWith(prefix)) continue;
+      const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      if (saved && typeof saved === 'object' && !Array.isArray(saved)) entries.push(saved);
+    }
+  } catch (e) {
+    console.warn('Unable to read local batch challenge records', e);
+  }
+  return entries;
 }
 
 async function getVocabularyAdventureLegacyChallengeUsage() {
   const data = await loadDailyTaskData();
   const today = data[isoDate()] || {};
-  const entries = ['todayChallenge', 'mixedChallenge'].map(key => today[key] || {});
+  const entries = [
+    ...['todayChallenge', 'mixedChallenge'].map(key => today[key] || {}),
+    ...getLocalBatchChallengeEntries()
+  ];
   return {
     attempts: entries.reduce((total, entry) => total + Math.max(0, Number(entry.attempts) || 0), 0),
     bestScore: entries.reduce((best, entry) => Math.max(best, Number(entry.bestScore) || 0), 0)
