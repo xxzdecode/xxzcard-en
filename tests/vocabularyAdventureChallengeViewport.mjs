@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { webkit } from 'playwright';
+import { devices, webkit } from 'playwright';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -11,17 +11,19 @@ const resultDir = path.join(root, 'test-results');
 fs.mkdirSync(resultDir, { recursive: true });
 
 const cards = Array.from({ length: 12 }, (_, index) => {
-  const word = `trail${index}`;
+  const word = index === 0 ? 'electroencephalographically' : `trail${index}`;
   return {
     word,
-    meaning: `探险词${index}`,
+    meaning: index === 0
+      ? '用脑电图方式进行记录和分析的超长测试释义，用来确认窄屏能够自然换行'
+      : `探险词${index}`,
     pos: 'n.',
     phonetic: `/treɪl${index}/`,
     emoji: '🌲',
     morphology: [],
     collocations: [{
       phrase: `${word} practice`,
-      example: `We use ${word} in this example today`
+      example: `We use ${word} in this deliberately long example sentence today so narrow screens must wrap every line safely`
     }],
     irregularForms: [],
     synonyms: [],
@@ -84,13 +86,19 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
 const browser = await webkit.launch();
 
-async function openPage(viewport, preview = true, failedAdventureWrites = []) {
-  const context = await browser.newContext({ viewport });
-  await context.addInitScript(() => localStorage.setItem('wc_user', 'sister'));
-  const state = new Map([
+async function openPage(
+  viewport,
+  preview = true,
+  failedAdventureWrites = [],
+  user = 'sister',
+  sharedState = null
+) {
+  const context = await browser.newContext(viewport.contextOptions || (viewport.viewport ? viewport : { viewport }));
+  await context.addInitScript(selectedUser => localStorage.setItem('wc_user', selectedUser), user);
+  const state = sharedState || new Map([
     ['main', structuredClone(mainData)],
-    ['vocab_adventure_v1_sister', structuredClone(initialAdventureState)],
-    ['daily_task_sister', {}]
+    [`vocab_adventure_v1_${user}`, structuredClone(initialAdventureState)],
+    [`daily_task_${user}`, {}]
   ]);
   const page = await context.newPage();
   const errors = [];
@@ -142,8 +150,8 @@ async function openPage(viewport, preview = true, failedAdventureWrites = []) {
   return { context, page, state, errors };
 }
 
-async function answerCurrent(page, state, correct = true) {
-  const saved = state.get('vocab_adventure_v1_sister');
+async function answerCurrent(page, state, correct = true, user = 'sister') {
+  const saved = state.get(`vocab_adventure_v1_${user}`);
   const session = saved.challengeSession;
   const item = session.items[session.cursor];
   const question = item.question;
@@ -207,7 +215,10 @@ try {
   assert.equal(saveFailure.state.get('vocab_adventure_v1_sister').challengeSession.correctCount, 1);
   await saveFailure.context.close();
 
-  const run = await openPage({ width: 1180, height: 820 });
+  const run = await openPage({
+    name: 'ipad11-landscape',
+    contextOptions: devices['iPad (gen 11) landscape']
+  });
   try {
     await run.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
   } catch (error) {
@@ -269,7 +280,7 @@ try {
   assert.equal(layout.overflow, false);
   assert.equal(layout.overlap, false);
   assert.ok(layout.minButton >= 44);
-  await run.page.screenshot({ path: path.join(resultDir, 'vocabulary-adventure-challenge-1180x820.png'), fullPage: true });
+  await run.page.screenshot({ path: path.join(resultDir, 'vocabulary-adventure-challenge-ipad11-landscape-944x656.png'), fullPage: true });
 
   await run.page.getByRole('button', { name: '返回词汇首页' }).click();
   await run.page.waitForSelector('#screenHome.active');
@@ -301,7 +312,237 @@ try {
   assert.ok(compactLayout.challengeHeight >= 44);
   await compact.context.close();
 
-  console.log('vocabulary adventure card 4 WebKit challenge viewport tests passed');
+  const sharedState = new Map([
+    ['main', structuredClone(mainData)],
+    ['vocab_adventure_v1_sister', structuredClone(initialAdventureState)],
+    ['vocab_adventure_v1_brother', structuredClone(initialAdventureState)],
+    ['daily_task_sister', {}],
+    ['daily_task_brother', {}]
+  ]);
+  const [sister, brother] = await Promise.all([
+    openPage({ width: 1180, height: 820 }, true, [2], 'sister', sharedState),
+    openPage({ width: 1180, height: 820 }, true, [], 'brother', sharedState)
+  ]);
+  await Promise.all([
+    sister.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible'),
+    brother.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible')
+  ]);
+  await Promise.all([
+    sister.page.locator('#vocabularyAdventureChallengeEntry').click(),
+    brother.page.locator('#vocabularyAdventureChallengeEntry').click()
+  ]);
+  await Promise.all([
+    sister.page.waitForSelector('#screenVocabularyAdventureChallenge.active'),
+    brother.page.waitForSelector('#screenVocabularyAdventureChallenge.active')
+  ]);
+
+  const sisterStart = structuredClone(sharedState.get('vocab_adventure_v1_sister').challengeSession);
+  const brotherStart = structuredClone(sharedState.get('vocab_adventure_v1_brother').challengeSession);
+  assert.equal(sisterStart.cursor, 0);
+  assert.equal(brotherStart.cursor, 0);
+  assert.notEqual(sisterStart.seed, brotherStart.seed);
+  assert.notDeepEqual(
+    sisterStart.items.map(item => item.wordKey),
+    brotherStart.items.map(item => item.wordKey)
+  );
+
+  await Promise.all([
+    answerCurrent(sister.page, sharedState, false, 'sister'),
+    answerCurrent(brother.page, sharedState, true, 'brother')
+  ]);
+  assert.equal(sharedState.get('vocab_adventure_v1_sister').challengeSession.cursor, 0);
+  assert.equal(sharedState.get('vocab_adventure_v1_brother').challengeSession.cursor, 1);
+  assert.equal(sharedState.get('vocab_adventure_v1_brother').challengeSession.wrongItems.length, 0);
+  assert.match(
+    await sister.page.locator('#vocabularyAdventureChallengeFeedbackText').textContent(),
+    /保存失败/
+  );
+
+  await sister.page.evaluate(() => { sbOnline = true; });
+  await sister.page.locator('#vocabularyAdventureChallengeAction').click();
+  await sister.page.waitForFunction(() => (
+    document.getElementById('vocabularyAdventureChallengeAction')?.textContent === '下一题'
+  ));
+  const sisterAfterRetry = sharedState.get('vocab_adventure_v1_sister');
+  const sisterWrongKey = sisterAfterRetry.challengeSession.items[0].wordKey;
+  assert.equal(sisterAfterRetry.challengeSession.cursor, 1);
+  assert.equal(sisterAfterRetry.challengeSession.wrongItems.length, 1);
+  assert.ok(sisterAfterRetry.words[sisterWrongKey].challengeFlagAt);
+  assert.equal(
+    sharedState.get('vocab_adventure_v1_brother').words[sisterWrongKey].challengeFlagAt,
+    ''
+  );
+
+  const brotherQuestion = structuredClone(
+    sharedState.get('vocab_adventure_v1_brother').challengeSession.items[1].question
+  );
+  await brother.page.reload({ waitUntil: 'networkidle' });
+  await brother.page.waitForFunction(() => typeof window.openVocabularyAdventureChallenge === 'function');
+  await brother.page.evaluate(() => openVocabularyAdventureChallenge());
+  await brother.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
+  assert.deepEqual(
+    sharedState.get('vocab_adventure_v1_brother').challengeSession.items[1].question,
+    brotherQuestion
+  );
+  assert.equal(sharedState.get('vocab_adventure_v1_sister').challengeSession.cursor, 1);
+
+  sister.page.once('dialog', dialog => dialog.accept());
+  await sister.page.locator('#screenVocabularyAdventureChallenge .vocabulary-adventure-exit').click();
+  await sister.page.waitForSelector('#screenHome.active');
+  assert.equal(sharedState.get('vocab_adventure_v1_sister').challengeSession.status, 'abandoned');
+  assert.equal(sharedState.get('vocab_adventure_v1_sister').challengeDaily.attempts, 1);
+  assert.equal(sharedState.get('vocab_adventure_v1_brother').challengeSession.status, 'active');
+  assert.equal(sharedState.get('vocab_adventure_v1_brother').challengeSession.cursor, 1);
+
+  while (sharedState.get('vocab_adventure_v1_brother').challengeSession.status === 'active') {
+    await answerCurrent(brother.page, sharedState, true, 'brother');
+    await brother.page.locator('#vocabularyAdventureChallengeAction').click();
+  }
+  assert.equal(sharedState.get('vocab_adventure_v1_brother').challengeDaily.attempts, 1);
+  assert.equal(sharedState.get('vocab_adventure_v1_brother').challengeDaily.bestScore, 100);
+  assert.equal(sharedState.get('vocab_adventure_v1_brother').challengeSession.wrongItems.length, 0);
+  assert.equal(sharedState.get('vocab_adventure_v1_sister').challengeDaily.bestScore, 0);
+  assert.equal(sharedState.get('vocab_adventure_v1_sister').challengeSession.wrongItems.length, 1);
+  await Promise.all([sister.context.close(), brother.context.close()]);
+
+  const deviceState = new Map([
+    ['main', structuredClone(mainData)],
+    ['vocab_adventure_v1_sister', structuredClone(initialAdventureState)],
+    ['daily_task_sister', {}]
+  ]);
+  const deviceA = await openPage({ width: 1024, height: 768 }, true, [], 'sister', deviceState);
+  await deviceA.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  await deviceA.page.locator('#vocabularyAdventureChallengeEntry').click();
+  await deviceA.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
+  await answerCurrent(deviceA.page, deviceState, true, 'sister');
+  await deviceA.page.locator('#vocabularyAdventureChallengeAction').click();
+  const deviceAQuestion = structuredClone(
+    deviceState.get('vocab_adventure_v1_sister').challengeSession.items[1].question
+  );
+  await deviceA.context.close();
+
+  const deviceB = await openPage({ width: 1024, height: 768 }, true, [], 'sister', deviceState);
+  await deviceB.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  await deviceB.page.locator('#vocabularyAdventureChallengeEntry').click();
+  await deviceB.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
+  assert.equal(deviceState.get('vocab_adventure_v1_sister').challengeSession.cursor, 1);
+  assert.deepEqual(
+    deviceState.get('vocab_adventure_v1_sister').challengeSession.items[1].question,
+    deviceAQuestion
+  );
+  assert.equal(await deviceB.page.locator('#vocabularyAdventureChallengeCount').textContent(), '2/10');
+  await deviceB.context.close();
+
+  const phone = await openPage({ width: 393, height: 852 });
+  await phone.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  const phoneHome = await phone.page.evaluate(() => ({
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    adventureVisible: !!document.getElementById('vocabularyAdventurePreviewEntry')?.getClientRects().length,
+    challengeVisible: !!document.getElementById('vocabularyAdventureChallengeEntry')?.getClientRects().length,
+    adventureHeight: document.getElementById('vocabularyAdventurePreviewEntry').getBoundingClientRect().height,
+    challengeHeight: document.getElementById('vocabularyAdventureChallengeEntry').getBoundingClientRect().height
+  }));
+  assert.equal(phoneHome.overflow, false);
+  assert.equal(phoneHome.adventureVisible, true);
+  assert.equal(phoneHome.challengeVisible, true);
+  assert.ok(phoneHome.adventureHeight >= 44);
+  assert.ok(phoneHome.challengeHeight >= 44);
+  await phone.page.locator('#vocabularyAdventureChallengeEntry').click();
+  await phone.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
+
+  const seenInteractions = new Set();
+  while (phone.state.get('vocab_adventure_v1_sister').challengeSession.status === 'active') {
+    const phoneSession = phone.state.get('vocab_adventure_v1_sister').challengeSession;
+    const question = phoneSession.items[phoneSession.cursor].question;
+    seenInteractions.add(question.interaction);
+    const questionLayout = await phone.page.evaluate(() => {
+      const screen = document.getElementById('screenVocabularyAdventureChallenge');
+      const top = screen.querySelector('.vocabulary-adventure-topbar').getBoundingClientRect();
+      const stage = screen.querySelector('.vocabulary-adventure-stage').getBoundingClientRect();
+      const feedback = screen.querySelector('.vocabulary-adventure-feedback').getBoundingClientRect();
+      const controls = [...screen.querySelectorAll('button,input')]
+        .map(control => control.getBoundingClientRect())
+        .filter(rect => rect.width > 0 && rect.height > 0);
+      return {
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        topStageOverlap: top.bottom > stage.top + 1,
+        stageFeedbackOverlap: stage.bottom > feedback.top + 1,
+        minControl: Math.min(...controls.map(rect => rect.height))
+      };
+    });
+    assert.equal(questionLayout.overflow, false);
+    assert.equal(questionLayout.topStageOverlap, false);
+    assert.equal(questionLayout.stageFeedbackOverlap, false);
+    assert.ok(questionLayout.minControl >= 44);
+
+    if (question.interaction === 'input') {
+      const input = phone.page.locator('#vocabularyAdventureChallengeInput');
+      await input.focus();
+      await phone.page.setViewportSize({ width: 393, height: 560 });
+      const keyboardLayout = await phone.page.evaluate(() => {
+        const inputRect = document.getElementById('vocabularyAdventureChallengeInput').getBoundingClientRect();
+        const confirmRect = document.querySelector('.vocabulary-adventure-review-input button').getBoundingClientRect();
+        const feedbackRect = document.querySelector('#screenVocabularyAdventureChallenge .vocabulary-adventure-feedback').getBoundingClientRect();
+        return {
+          inputVisible: inputRect.top >= 0 && inputRect.bottom <= window.innerHeight,
+          confirmVisible: confirmRect.top >= 0 && confirmRect.bottom <= window.innerHeight,
+          feedbackVisible: feedbackRect.top < window.innerHeight && feedbackRect.bottom <= window.innerHeight
+        };
+      });
+      assert.equal(keyboardLayout.inputVisible, true);
+      assert.equal(keyboardLayout.confirmVisible, true);
+      assert.equal(keyboardLayout.feedbackVisible, true);
+      await phone.page.setViewportSize({ width: 393, height: 852 });
+    }
+
+    await answerCurrent(phone.page, phone.state, false);
+    await phone.page.locator('#vocabularyAdventureChallengeAction').click();
+  }
+  assert.ok(seenInteractions.has('choice'));
+  assert.ok(seenInteractions.has('input'));
+  assert.ok(seenInteractions.has('order'));
+  await phone.page.waitForSelector('.vocabulary-adventure-challenge-result');
+  const phoneResult = await phone.page.evaluate(() => {
+    const result = document.querySelector('.vocabulary-adventure-challenge-result');
+    result.scrollTop = result.scrollHeight;
+    const actions = result.querySelector('.vocabulary-adventure-challenge-result-actions').getBoundingClientRect();
+    const actionButtons = [...result.querySelectorAll('.vocabulary-adventure-challenge-result-actions button')]
+      .map(button => button.getBoundingClientRect());
+    const wrongItems = [...result.querySelectorAll('.vocabulary-adventure-challenge-wrong article')];
+    const lastWrong = wrongItems.at(-1)?.getBoundingClientRect();
+    const resultRect = result.getBoundingClientRect();
+    return {
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      scrollable: result.scrollHeight >= result.clientHeight,
+      actionsReachable: actions.height > 0
+        && actions.top >= resultRect.top - 1
+        && actions.bottom <= resultRect.bottom + 1,
+      minActionHeight: Math.min(...actionButtons.map(rect => rect.height)),
+      lastWrongReachable: !lastWrong || (
+        lastWrong.top >= resultRect.top - 1
+        && lastWrong.bottom <= resultRect.bottom + 1
+      )
+    };
+  });
+  assert.equal(phoneResult.overflow, false);
+  assert.equal(phoneResult.actionsReachable, true);
+  assert.equal(phoneResult.lastWrongReachable, true);
+  assert.ok(phoneResult.minActionHeight >= 44);
+  await phone.page.locator('.vocabulary-adventure-challenge-result-actions').scrollIntoViewIfNeeded();
+  await phone.page.waitForTimeout(150);
+  const phoneScreenshotReachability = await phone.page.evaluate(() => {
+    const result = document.querySelector('.vocabulary-adventure-challenge-result').getBoundingClientRect();
+    const actions = document.querySelector('.vocabulary-adventure-challenge-result-actions').getBoundingClientRect();
+    return actions.top >= result.top - 1 && actions.bottom <= result.bottom + 1;
+  });
+  assert.equal(phoneScreenshotReachability, true);
+  await phone.page.screenshot({
+    path: path.join(resultDir, 'vocabulary-adventure-challenge-iphone16-portrait-393x852.png'),
+    fullPage: false
+  });
+  await phone.context.close();
+
+  console.log('vocabulary adventure card 5 WebKit challenge, isolation and viewport tests passed');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

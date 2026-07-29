@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { webkit } from 'playwright';
+import { devices, webkit } from 'playwright';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -77,7 +77,7 @@ async function openRealPage({
   initialAdventureState = null,
   failAdventureWrites = 0
 }) {
-  const context = await browser.newContext({ viewport });
+  const context = await browser.newContext(viewport.contextOptions || (viewport.viewport ? viewport : { viewport }));
   await context.addInitScript(({ selectedUser }) => {
     localStorage.setItem('wc_user', selectedUser);
   }, { selectedUser: user });
@@ -261,7 +261,11 @@ try {
 
   for (const viewport of [
     { width: 1024, height: 768, name: '1024x768' },
-    { width: 1180, height: 820, name: '1180x820' }
+    { width: 1180, height: 820, name: '1180x820' },
+    {
+      name: 'ipad11-landscape-944x656',
+      contextOptions: devices['iPad (gen 11) landscape']
+    }
   ]) {
     const run = await openRealPage({ viewport });
     const { page } = run;
@@ -272,6 +276,12 @@ try {
     await page.locator('#vocabularyAdventurePreviewEntry').click();
     await page.waitForSelector('#screenVocabularyAdventure.active');
     await page.waitForSelector('#vocabularyAdventureOptions button');
+    if (viewport.name === 'ipad11-landscape-944x656') {
+      await page.screenshot({
+        path: path.join(resultDir, 'vocabulary-adventure-card-2-ipad11-landscape-question-944x656.png'),
+        fullPage: false
+      });
+    }
 
     const questionLayout = await page.evaluate(() => {
       const options = [...document.querySelectorAll('#vocabularyAdventureOptions button')];

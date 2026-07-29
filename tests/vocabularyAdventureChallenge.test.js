@@ -156,6 +156,41 @@ assert.equal(wrong.state.words[firstItem.wordKey].intervalIndex, previousWord.in
 assert.equal(wrong.state.words[firstItem.wordKey].reviewCount, previousWord.reviewCount);
 assert.equal(JSON.stringify(wrong.state.session), adventureSnapshot, 'frozen adventure plan must not change');
 
+const sisterSameWordState = challenge.normalizeChallengeState({
+  ...state,
+  challengeSession: first.session
+}, today);
+const brotherSameWordState = challenge.normalizeChallengeState({
+  ...state,
+  challengeSession: first.session
+}, today);
+const brotherSnapshot = structuredClone(brotherSameWordState);
+const sisterSameWordWrong = challenge.prepareChallengeAnswer(sisterSameWordState, {
+  today,
+  expectedCursor: 0,
+  wordKey: firstItem.wordKey,
+  answer: wrongAnswer,
+  answeredAt: '2026-07-29T02:30:00.000Z'
+}).state;
+assert.ok(sisterSameWordWrong.words[firstItem.wordKey].challengeFlagAt);
+assert.deepEqual(
+  brotherSameWordState,
+  brotherSnapshot,
+  'sister answering the same wordKey must not mutate brother state'
+);
+const brotherSameWordCorrect = challenge.prepareChallengeAnswer(brotherSameWordState, {
+  today,
+  expectedCursor: 0,
+  wordKey: firstItem.wordKey,
+  answer: correctAnswerFor(firstItem),
+  answeredAt: '2026-07-29T02:31:00.000Z'
+}).state;
+assert.equal(brotherSameWordCorrect.words[firstItem.wordKey].challengeFlagAt, '');
+assert.equal(brotherSameWordCorrect.challengeSession.cursor, 1);
+assert.equal(sisterSameWordWrong.challengeSession.cursor, 1);
+assert.equal(sisterSameWordWrong.challengeSession.wrongItems.length, 1);
+assert.equal(brotherSameWordCorrect.challengeSession.wrongItems.length, 0);
+
 assert.throws(() => challenge.prepareChallengeAnswer(wrong.state, {
   today,
   expectedCursor: 0,

@@ -7,6 +7,7 @@
     "test:adventure-viewport": "node tests/vocabularyAdventureViewport.mjs",
     "test:adventure-review-viewport": "node tests/vocabularyAdventureReviewViewport.mjs",
     "test:adventure-challenge-viewport": "node tests/vocabularyAdventureChallengeViewport.mjs",
+    "test:adventure-mvp-qa": "node tests/vocabularyAdventureChallengeViewport.mjs",
     "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js"
   },
   "dependencies": {
