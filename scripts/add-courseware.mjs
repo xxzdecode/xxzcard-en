@@ -34,7 +34,7 @@ const HELP_TEXT = `随堂练习上传脚本
   --file <path>          待上传的完整单文件 HTML（必选）
   --description <text>  练习说明，默认“课堂互动练习”
   --date <YY.MM.DD>      覆盖本地当天日期，例如 26.07.16
-  --title <text>         覆盖练习标题及文件基础名称
+  --title <text>         练习名称；未带日期时自动补为 YY.MM.DD｜练习名称
   --id <text>            覆盖练习 ID；重复时直接报错
   --icon <text>          图标名称，默认 screen
   --tone <text>          色调名称，默认 purple
@@ -139,6 +139,19 @@ function validateTitle(title) {
   return normalized;
 }
 
+function ensureDatePrefix(title, dateDisplay) {
+  const normalized = validateTitle(title);
+  const expectedPrefix = `${dateDisplay}｜`;
+  if (normalized.startsWith(expectedPrefix)) return normalized;
+
+  const existingDate = /^(\d{2}\.\d{2}\.\d{2})｜/.exec(normalized);
+  if (existingDate) {
+    fail(`标题日期 ${existingDate[1]} 与 --date ${dateDisplay} 不一致`);
+  }
+
+  return `${expectedPrefix}${normalized}`;
+}
+
 function toDataFile(items) {
   return `${DATA_HEADER}window.CLASSROOM_PRACTICE_ITEMS = ${JSON.stringify(items, null, 2)};\n// Legacy alias: keep existing integrations and historical pages working.\nwindow.COURSEWARE_ITEMS = window.CLASSROOM_PRACTICE_ITEMS;\n`;
 }
@@ -229,7 +242,9 @@ async function preparePlan(options) {
 
   const source = await validateSource(options.file);
   const date = parseDate(options.date ? requireText(options.date, '日期') : formatLocalDate());
-  const baseTitle = validateTitle(options.title || date.display);
+  const baseTitle = options.title
+    ? ensureDatePrefix(options.title, date.display)
+    : validateTitle(date.display);
   const description = options.description === undefined
     ? DEFAULTS.description
     : requireText(options.description, '描述');
