@@ -22,7 +22,16 @@ function createStorage(records) {
 }
 
 async function main() {
-  const today = '2026-07-29';
+  const toLocalISO = value => (
+    value.getFullYear()
+    + '-' + String(value.getMonth() + 1).padStart(2, '0')
+    + '-' + String(value.getDate()).padStart(2, '0')
+  );
+  const now = new Date();
+  const today = toLocalISO(now);
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = toLocalISO(yesterdayDate);
   const dailyByUser = {
     sister: {
       [today]: {
@@ -42,7 +51,7 @@ async function main() {
     localStorage: createStorage({
       [`wc_batch_challenge_v1_sister_${today}_batchChallenge_101`]:
         JSON.stringify({ attempts: 1, bestScore: 90, checkedIn: true }),
-      [`wc_batch_challenge_v1_sister_2026-07-28_batchChallenge_101`]:
+      [`wc_batch_challenge_v1_sister_${yesterday}_batchChallenge_101`]:
         JSON.stringify({ attempts: 2, bestScore: 100, checkedIn: true }),
       [`wc_batch_challenge_v1_brother_${today}_batchChallenge_101`]:
         JSON.stringify({ attempts: 2, bestScore: 100, checkedIn: true })

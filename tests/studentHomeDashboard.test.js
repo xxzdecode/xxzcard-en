@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const homeSource = fs.readFileSync(path.join(root, 'js', 'home.js'), 'utf8');
-const styles = fs.readFileSync(path.join(root, 'styles-home-nav.css'), 'utf8');
+const styles = fs.readFileSync(path.join(root, 'styles-student-home-dashboard.css'), 'utf8');
 
 const dashboardStart = html.indexOf('<section id="studentDashboard"');
 const dashboardEnd = html.indexOf('<nav class="bottom-feature-nav student-only"', dashboardStart);
@@ -14,6 +14,7 @@ const dashboard = dashboardStart >= 0 && dashboardEnd > dashboardStart
   ? html.slice(dashboardStart, dashboardEnd)
   : '';
 assert.ok(dashboard, 'student dashboard should exist');
+assert.match(dashboard, /class="student-dashboard student-home-dashboard student-only"/);
 assert.ok(dashboard.indexOf('今日复习') < dashboard.indexOf('挑战测验'));
 assert.ok(dashboard.indexOf('挑战测验') < dashboard.indexOf('今日新课'));
 assert.match(dashboard, /student-home-card--adventure[^>]*id="vocabularyAdventurePreviewEntry"/);
@@ -27,10 +28,25 @@ assert.doesNotMatch(html, /id="homeQuickActions"|id="todayWordBtn"|id="mixedWord
 const buttons = [...dashboard.matchAll(/<button\b/g)];
 assert.equal(buttons.length, 5, 'dashboard should expose five task cards');
 assert.equal((dashboard.match(/student-home-card-grid/g) || []).length, 2);
+for (const asset of [
+  'vocabulary-adventure-scene.png',
+  'word-challenge-scene.png',
+  'grammar-challenge-scene.png',
+  'classroom-practice-scene.png',
+  'new-word-guide-scene.png'
+]) {
+  assert.match(dashboard, new RegExp(`assets/student-home/card6/scenes/${asset}`));
+}
+assert.doesNotMatch(dashboard, /<svg\b/);
+assert.match(dashboard, /id="studentHomeRotatePrompt"[\s\S]*请将 iPad 横过来使用[\s\S]*横屏可以完整看到今天的学习任务/);
 assert.match(styles, /\.student-home-card--adventure\s*\{[^}]*height:/s);
 assert.match(styles, /\.student-home-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/s);
+assert.match(styles, /@import url\("\.\/assets\/student-home\/card6\/docs\/student-home-tokens\.css"\)/);
+assert.match(styles, /wood-plaque-blank\.png/);
+assert.match(styles, /@media \(min-width: 768px\) and \(max-width: 1366px\) and \(orientation: landscape\)/);
+assert.match(styles, /width:\s*min\(1180px,\s*calc\(100vw - 48px\)\)/);
+assert.match(styles, /@media \(min-width: 768px\) and \(orientation: portrait\)/);
 assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
-assert.doesNotMatch(styles, /background-image:\s*url\(/);
 
 function fakeElement() {
   return {
@@ -47,7 +63,8 @@ function fakeElement() {
 
 const elements = Object.fromEntries([
   'studentSummaryName',
-  'studentSummaryAvatar',
+  'studentSummaryAvatarImage',
+  'studentSummaryAvatarFallback',
   'studentRewardUnavailable',
   'studentRewardValues',
   'studentTotalCoins',
@@ -80,7 +97,8 @@ context.renderStudentRewardSummary({
   todayMaxCoins: 30
 });
 assert.equal(elements.studentSummaryName.textContent, '弟弟');
-assert.equal(elements.studentSummaryAvatar.textContent, '👦');
+assert.equal(elements.studentSummaryAvatarImage.hidden, true);
+assert.equal(elements.studentSummaryAvatarFallback.hidden, false);
 assert.equal(elements.studentRewardUnavailable.hidden, true);
 assert.equal(elements.studentRewardValues.hidden, false);
 assert.equal(elements.studentTotalCoins.textContent, '12.5');

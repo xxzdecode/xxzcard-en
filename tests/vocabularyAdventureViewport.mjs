@@ -98,6 +98,7 @@ async function openRealPage({
   page.on('console', message => {
     if (message.type() === 'error') errors.push(message.text());
   });
+  await page.route(/\/assets\/student-home\/card6\/.*\.png$/, route => route.abort());
   await page.route('**/rest/v1/kv_store*', async route => {
     const request = route.request();
     if (request.method() === 'POST') {
@@ -137,6 +138,15 @@ async function openRealPage({
   await page.goto(`${baseUrl}/${query}`, { waitUntil: 'commit' });
   try {
     await page.waitForFunction(() => typeof window.openVocabularyAdventure === 'function');
+    await page.evaluate(() => { sbOnline = true; });
+    if (user === 'teacher') {
+      await page.waitForFunction(() => document.body.classList.contains('is-teacher'));
+    } else {
+      await page.waitForSelector('#studentDashboard:visible');
+      await page.waitForFunction(expectedName => (
+        document.getElementById('currentModeBadge')?.textContent.includes(expectedName)
+      ), user === 'brother' ? '弟弟' : '姐姐');
+    }
   } catch (error) {
     throw new Error(`real page did not initialize: ${errors.join(' | ') || error.message}`);
   }
@@ -305,15 +315,11 @@ try {
     assert.ok(questionLayout.stageBottom <= questionLayout.footerBottom);
     assert.ok(questionLayout.footerBottom <= questionLayout.viewportHeight + 1);
 
-    const wrongIndices = await page.evaluate(() => {
-      const question = window.VocabularyAdventureCore.buildVocabularyAdventureQuestion({
-        candidates: collectVisibleVocabularyAdventureCandidates(),
-        sessionDate: document.querySelector('#vocabularyAdventureSessionDate').textContent.replace(/^继续\s+/, '') || window.VocabularyAdventureCore.localDateKey(new Date()),
-        wordKey: 'apple',
-        planIndex: 0
-      });
-      return question.options.map((_, index) => index).filter(index => index !== question.correctIndex);
-    });
+    const wrongIndices = await page.locator('#vocabularyAdventureOptions button').evaluateAll(buttons => (
+      buttons
+        .filter(button => !['apple', '苹果'].includes(button.textContent.trim()))
+        .map(button => Number(button.dataset.optionIndex))
+    ));
     assert.ok(wrongIndices.length >= 2);
     await page.locator(`#vocabularyAdventureOptions button[data-option-index="${wrongIndices[0]}"]`).click();
     await page.waitForSelector('#vocabularyAdventureHint:visible');

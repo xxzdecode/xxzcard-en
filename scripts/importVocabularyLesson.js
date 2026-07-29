@@ -154,8 +154,9 @@ function writeGeneratedAssets(registry) {
 
 function updateServiceWorkerCache(registry) {
   const source = fs.readFileSync(SERVICE_WORKER_PATH, 'utf8');
-  const digest = crypto.createHash('sha256').update(JSON.stringify(registry)).digest('hex').slice(0, 10);
-  const cacheName = `vocabulary-review-v21-layoutfix-${digest}`;
+  const current = source.match(/const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v(\d+)(?:-[^']+)?';/);
+  if (!current) fail('service-worker.js 中未找到可递增的标准缓存版本。');
+  const cacheName = `vocabulary-review-v${Number(current[1]) + 1}`;
   const updated = source.replace(
     /const VOCABULARY_REVIEW_CACHE = '[^']+';/,
     `const VOCABULARY_REVIEW_CACHE = '${cacheName}';`

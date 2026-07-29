@@ -1,0 +1,336 @@
+{
+  "version": 2,
+  "source": "approved Card 6 references",
+  "assets": [
+    {
+      "file": "decorations/challenge-flag-peak.png",
+      "width": 187,
+      "height": 311,
+      "note": "Challenge mountain and checkered flag."
+    },
+    {
+      "file": "decorations/classroom-desk.png",
+      "width": 418,
+      "height": 252,
+      "note": "Classroom desk scene."
+    },
+    {
+      "file": "decorations/explorer-dog.png",
+      "width": 188,
+      "height": 203,
+      "note": "Explorer dog character."
+    },
+    {
+      "file": "decorations/grammar-books.png",
+      "width": 376,
+      "height": 266,
+      "note": "Grammar books and pencil."
+    },
+    {
+      "file": "decorations/new-word-cards.png",
+      "width": 411,
+      "height": 258,
+      "note": "New-word cards, magnifier and signpost."
+    },
+    {
+      "file": "decorations/route-node-1.png",
+      "width": 108,
+      "height": 133,
+      "note": "Blue route node 1."
+    },
+    {
+      "file": "decorations/route-node-2.png",
+      "width": 109,
+      "height": 133,
+      "note": "Blue route node 2."
+    },
+    {
+      "file": "decorations/route-node-lock.png",
+      "width": 116,
+      "height": 134,
+      "note": "Locked route node."
+    },
+    {
+      "file": "decorations/treasure-chest.png",
+      "width": 128,
+      "height": 96,
+      "note": "Treasure chest."
+    },
+    {
+      "file": "reference-cards/classroom-practice-card.png",
+      "width": 437,
+      "height": 303,
+      "note": "Exact reference crop; fixed text, use only when copy is fixed."
+    },
+    {
+      "file": "reference-cards/grammar-challenge-card.png",
+      "width": 443,
+      "height": 333,
+      "note": "Exact reference crop; fixed text, use only when copy is fixed."
+    },
+    {
+      "file": "reference-cards/new-word-guide-card.png",
+      "width": 443,
+      "height": 303,
+      "note": "Exact reference crop; fixed text, use only when copy is fixed."
+    },
+    {
+      "file": "reference-cards/vocabulary-adventure-card.png",
+      "width": 887,
+      "height": 390,
+      "note": "Exact reference crop; fixed text, use only when copy is fixed."
+    },
+    {
+      "file": "reference-cards/word-challenge-card.png",
+      "width": 437,
+      "height": 333,
+      "note": "Exact reference crop; fixed text, use only when copy is fixed."
+    },
+    {
+      "file": "scenes/classroom-practice-scene.png",
+      "width": 1024,
+      "height": 1536,
+      "note": "Generated illustration layer for the corresponding module."
+    },
+    {
+      "file": "scenes/grammar-challenge-scene.png",
+      "width": 1024,
+      "height": 1536,
+      "note": "Generated illustration layer for the corresponding module."
+    },
+    {
+      "file": "scenes/new-word-guide-scene.png",
+      "width": 1024,
+      "height": 1536,
+      "note": "Generated illustration layer for the corresponding module."
+    },
+    {
+      "file": "scenes/vocabulary-adventure-scene.png",
+      "width": 1024,
+      "height": 1536,
+      "note": "Generated illustration layer for the corresponding module."
+    },
+    {
+      "file": "scenes/word-challenge-scene.png",
+      "width": 1024,
+      "height": 1536,
+      "note": "Generated illustration layer for the corresponding module."
+    },
+    {
+      "file": "ui/bottom-nav/bottom-nav-strip.png",
+      "width": 844,
+      "height": 185,
+      "note": "Exact full bottom navigation strip; fixed labels."
+    },
+    {
+      "file": "ui/bottom-nav/mini-games-button.png",
+      "width": 271,
+      "height": 177,
+      "note": "Exact mini-games button tile."
+    },
+    {
+      "file": "ui/bottom-nav/mini-games-icon.png",
+      "width": 180,
+      "height": 126,
+      "note": "Gamepad icon for HTML label usage."
+    },
+    {
+      "file": "ui/bottom-nav/phonetics-button.png",
+      "width": 271,
+      "height": 177,
+      "note": "Exact phonetics button tile."
+    },
+    {
+      "file": "ui/bottom-nav/phonetics-icon.png",
+      "width": 189,
+      "height": 126,
+      "note": "Headphones/phonetics icon for HTML label usage."
+    },
+    {
+      "file": "ui/bottom-nav/word-card-button.png",
+      "width": 252,
+      "height": 177,
+      "note": "Exact word-card button tile."
+    },
+    {
+      "file": "ui/bottom-nav/word-card-icon.png",
+      "width": 179,
+      "height": 125,
+      "note": "Word-card icon for HTML label usage."
+    },
+    {
+      "file": "ui/coins-rewards/coin-large.png",
+      "width": 79,
+      "height": 87,
+      "note": "Large gold coin icon."
+    },
+    {
+      "file": "ui/coins-rewards/coin-small.png",
+      "width": 64,
+      "height": 68,
+      "note": "Small gold coin icon."
+    },
+    {
+      "file": "ui/coins-rewards/reward-10-coins-pill.png",
+      "width": 240,
+      "height": 76,
+      "note": "Exact 10-coins badge; fixed text reference."
+    },
+    {
+      "file": "ui/coins-rewards/reward-max-10-pill.png",
+      "width": 194,
+      "height": 61,
+      "note": "Exact max-10-coins badge; fixed text reference."
+    },
+    {
+      "file": "ui/coins-rewards/star-small.png",
+      "width": 37,
+      "height": 37,
+      "note": "Small yellow reward star."
+    },
+    {
+      "file": "ui/profile/header-stats-reference.png",
+      "width": 892,
+      "height": 165,
+      "note": "Full header visual reference; values are dynamic and should remain HTML."
+    },
+    {
+      "file": "ui/profile/learning-badge.png",
+      "width": 149,
+      "height": 51,
+      "note": "Learning-achiever badge."
+    },
+    {
+      "file": "ui/profile/sister-avatar.png",
+      "width": 148,
+      "height": 151,
+      "note": "Sister profile avatar from approved design."
+    },
+    {
+      "file": "ui/profile/today-progress-bar.png",
+      "width": 197,
+      "height": 55,
+      "note": "Today coin progress bar visual reference."
+    },
+    {
+      "file": "ui/quiz/back-button.png",
+      "width": 66,
+      "height": 63,
+      "note": "Circular back button."
+    },
+    {
+      "file": "ui/quiz/explorer-dog.png",
+      "width": 187,
+      "height": 215,
+      "note": "Quiz explorer dog character."
+    },
+    {
+      "file": "ui/quiz/hint-button.png",
+      "width": 98,
+      "height": 100,
+      "note": "Hint button."
+    },
+    {
+      "file": "ui/quiz/map-button.png",
+      "width": 150,
+      "height": 60,
+      "note": "Explore-map pill button."
+    },
+    {
+      "file": "ui/quiz/next-question-button.png",
+      "width": 404,
+      "height": 120,
+      "note": "Large next-question button."
+    },
+    {
+      "file": "ui/quiz/progress-stars.png",
+      "width": 211,
+      "height": 93,
+      "note": "Quiz progress stars."
+    },
+    {
+      "file": "ui/quiz/reward-preview.png",
+      "width": 133,
+      "height": 96,
+      "note": "Reward-preview gift area."
+    },
+    {
+      "file": "ui/quiz/route-header.png",
+      "width": 665,
+      "height": 219,
+      "note": "Top route header reference."
+    },
+    {
+      "file": "ui/quiz/speaker-button.png",
+      "width": 74,
+      "height": 77,
+      "note": "Speaker button."
+    },
+    {
+      "file": "ui/quiz/treasure-sign.png",
+      "width": 133,
+      "height": 144,
+      "note": "Vocabulary-treasure wooden sign."
+    },
+    {
+      "file": "ui/quiz/wordbook-button.png",
+      "width": 103,
+      "height": 100,
+      "note": "Wordbook button."
+    },
+    {
+      "file": "ui/section-titles/challenge-quiz.png",
+      "width": 207,
+      "height": 67,
+      "note": "Exact title plaque from approved design."
+    },
+    {
+      "file": "ui/section-titles/title-classroom-practice.png",
+      "width": 195,
+      "height": 65,
+      "note": "Exact module title lettering; optional visual reference or fixed-title asset."
+    },
+    {
+      "file": "ui/section-titles/title-grammar-challenge.png",
+      "width": 214,
+      "height": 60,
+      "note": "Exact module title lettering; optional visual reference or fixed-title asset."
+    },
+    {
+      "file": "ui/section-titles/title-new-word-guide.png",
+      "width": 216,
+      "height": 65,
+      "note": "Exact module title lettering; optional visual reference or fixed-title asset."
+    },
+    {
+      "file": "ui/section-titles/title-vocabulary-adventure.png",
+      "width": 264,
+      "height": 83,
+      "note": "Exact module title lettering; optional visual reference or fixed-title asset."
+    },
+    {
+      "file": "ui/section-titles/title-word-challenge.png",
+      "width": 184,
+      "height": 60,
+      "note": "Exact module title lettering; optional visual reference or fixed-title asset."
+    },
+    {
+      "file": "ui/section-titles/today-new-lesson.png",
+      "width": 207,
+      "height": 66,
+      "note": "Exact title plaque from approved design."
+    },
+    {
+      "file": "ui/section-titles/today-review.png",
+      "width": 207,
+      "height": 66,
+      "note": "Exact title plaque from approved design."
+    },
+    {
+      "file": "ui/section-titles/wood-plaque-blank.png",
+      "width": 207,
+      "height": 66,
+      "note": "Blank wooden plaque. Overlay real HTML title text."
+    }
+  ]
+}

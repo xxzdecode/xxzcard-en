@@ -1,0 +1,519 @@
+@import url("./assets/student-home/card6/docs/student-home-tokens.css");
+
+/* Card 6 v2: the approved asset package supplies the illustration language.
+   Dynamic values, labels, state, and all five entries remain live HTML. */
+body:not(.is-teacher) #screenHome.active {
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  background: var(--card6-page-sky);
+}
+
+body:not(.is-teacher) #screenHome .home-header,
+body:not(.is-teacher) #screenHome .current-mode {
+  display: none;
+}
+
+body:not(.is-teacher) #screenHome .user-bar {
+  padding-top: max(14px, env(safe-area-inset-top));
+  padding-bottom: 10px;
+}
+
+.student-dashboard {
+  width: min(calc(100% - 24px), 820px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--card6-section-gap);
+  margin: 2px auto 0;
+}
+
+.student-summary-card {
+  min-height: 92px;
+  padding: 11px 16px;
+  border: 1px solid var(--card6-card-border);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .9);
+  box-shadow: var(--card6-card-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.student-summary-card__identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-summary-card__avatar {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #fff7dc;
+  box-shadow: 0 5px 16px rgba(71, 114, 144, .18);
+  display: grid;
+  place-items: center;
+  color: var(--card6-title-blue);
+  font-size: 27px;
+  font-weight: 900;
+}
+
+.student-summary-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.student-summary-card__identity > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.student-summary-card__identity strong {
+  color: #253c58;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.student-summary-card__badge {
+  width: 94px;
+  height: auto;
+}
+
+.student-summary-card__rewards {
+  min-width: 144px;
+  color: #5f7182;
+}
+
+.student-summary-card__pending {
+  min-height: 50px;
+  padding: 6px 11px;
+  border-radius: 18px;
+  background: #f7f5ed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #718596;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.student-summary-card__pending img {
+  width: 31px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.student-summary-card__values {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+}
+
+.student-summary-card__values:not([hidden]) {
+  display: grid;
+}
+
+.student-summary-card__values > span:not(.student-summary-card__progress) {
+  display: grid;
+  gap: 2px;
+}
+
+.student-summary-card__values small {
+  color: #718596;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.student-summary-card__values strong {
+  color: #2d6f43;
+  font-size: 18px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.student-summary-card__values strong img {
+  width: 19px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.student-summary-card__values strong b {
+  font: inherit;
+}
+
+.student-summary-card__progress {
+  grid-column: 1 / -1;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce4e7;
+}
+
+.student-summary-card__progress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: #5abc43;
+  transition: width 180ms ease;
+}
+
+.student-home-section {
+  width: 100%;
+}
+
+.student-home-section h2 {
+  width: 156px;
+  height: 50px;
+  margin: 0 0 -9px 12px;
+  position: relative;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: url("./assets/student-home/card6/ui/section-titles/wood-plaque-blank.png") center / 100% 100% no-repeat;
+}
+
+.student-home-section h2 span {
+  padding: 2px 12px 5px;
+  color: #fffdf2;
+  font-size: 19px;
+  line-height: 1;
+  letter-spacing: .04em;
+  text-align: center;
+  text-shadow: 0 2px 2px rgba(90, 43, 15, .35);
+}
+
+.student-home-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.student-home-card {
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  border: 4px solid var(--card6-card-border);
+  border-radius: var(--card6-card-radius);
+  background: #fff;
+  color: var(--card6-text);
+  box-shadow: var(--card6-card-shadow);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  isolation: isolate;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.student-home-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255,255,255,.82) 0%, rgba(255,255,255,.42) 42%, transparent 70%);
+}
+
+.student-home-card:active:not(:disabled) {
+  transform: scale(.985);
+  box-shadow: 0 7px 18px rgba(50, 94, 119, .15);
+}
+
+.student-home-card:focus-visible {
+  outline: 3px solid #275f9d;
+  outline-offset: 3px;
+}
+
+.student-home-card:disabled {
+  cursor: not-allowed;
+  filter: saturate(.78);
+}
+
+.student-home-card:disabled::before {
+  content: "今日不可用";
+  position: absolute;
+  inset: 12px 12px auto auto;
+  z-index: 4;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(55, 67, 80, .82);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.student-home-card__copy {
+  position: absolute;
+  inset: 18px auto auto 20px;
+  z-index: 3;
+  max-width: 58%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.student-home-card__copy strong {
+  color: var(--card6-title-blue);
+  font-size: clamp(25px, 5vw, 38px);
+  font-weight: 950;
+  line-height: 1.05;
+  letter-spacing: .01em;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .75);
+}
+
+.student-home-card__copy small {
+  color: var(--card6-text);
+  font-size: clamp(13px, 2.5vw, 18px);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.student-home-card__reward,
+.student-home-card__status {
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 250, 230, .94);
+  box-shadow: 0 2px 8px rgba(100, 69, 20, .13);
+  color: #d36a17;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: clamp(10px, 2vw, 13px);
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.student-home-card__reward img {
+  width: 20px;
+  height: 21px;
+  object-fit: contain;
+}
+
+.student-home-card__status {
+  background: rgba(255, 255, 255, .86);
+  color: #35648b;
+}
+
+.student-home-card__scene {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  object-fit: cover;
+  object-position: center 62%;
+}
+
+.student-home-card--adventure {
+  height: clamp(250px, 42vw, 340px);
+}
+
+.student-home-card--adventure .student-home-card__copy {
+  top: 38px;
+}
+
+.student-home-card__route {
+  position: absolute;
+  inset: auto auto 15px 18px;
+  z-index: 3;
+  min-height: 32px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .9);
+  color: #1b5794;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.student-home-card__route b {
+  margin: 0 6px;
+  color: #3d84d5;
+  font-size: 18px;
+}
+
+.student-home-card--compact {
+  height: clamp(190px, 33vw, 260px);
+}
+
+.student-home-card--compact .student-home-card__copy {
+  inset: 17px 12px auto 16px;
+  max-width: none;
+}
+
+.student-home-card--compact .student-home-card__copy strong {
+  font-size: clamp(20px, 3.7vw, 30px);
+}
+
+.student-home-card--compact .student-home-card__copy small {
+  max-width: 75%;
+  font-size: clamp(11px, 2vw, 15px);
+}
+
+.student-home-card--compact .student-home-card__scene {
+  object-position: center 64%;
+}
+
+.student-home-card--grammar .student-home-card__copy strong { color: var(--card6-title-purple); }
+.student-home-card--classroom .student-home-card__copy strong { color: var(--card6-title-green); }
+.student-home-card--tour .student-home-card__copy strong { color: var(--card6-title-orange); }
+
+.bottom-feature-nav.student-only {
+  width: min(calc(100% - 24px), 820px);
+  padding: 7px 10px;
+  border: 1px solid var(--card6-card-border);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: var(--card6-card-shadow);
+  color: #345c92;
+}
+
+.bottom-feature-nav.student-only > .bottom-feature-nav__item {
+  min-height: 76px;
+}
+
+.bottom-feature-nav.student-only .bottom-feature-nav__icon {
+  width: 66px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.student-home-notice {
+  position: sticky;
+  bottom: 12px;
+  z-index: 10;
+  width: min(92%, 420px);
+  min-height: 48px;
+  margin: -8px auto 0;
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 255, 255, .88);
+  border-radius: 999px;
+  background: rgba(45, 66, 84, .94);
+  box-shadow: 0 8px 24px rgba(37, 56, 72, .25);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.student-home-notice[hidden] {
+  display: none;
+}
+
+.student-home-rotate-prompt {
+  display: none;
+}
+
+@media (max-width: 430px) {
+  .student-dashboard,
+  .bottom-feature-nav.student-only {
+    width: calc(100% - 16px);
+  }
+
+  .student-dashboard { gap: 16px; }
+  .student-summary-card { min-height: 82px; padding: 9px 11px; border-radius: 23px; }
+  .student-summary-card__avatar { width: 56px; height: 56px; }
+  .student-summary-card__identity { gap: 8px; }
+  .student-summary-card__identity strong { font-size: 19px; }
+  .student-summary-card__badge { width: 78px; }
+  .student-summary-card__rewards { min-width: 126px; }
+  .student-summary-card__pending { padding-inline: 7px; font-size: 11px; }
+  .student-summary-card__pending img { width: 26px; height: 29px; }
+  .student-home-section h2 { width: 140px; height: 45px; margin-left: 9px; }
+  .student-home-section h2 span { font-size: 17px; }
+  .student-home-card-grid { gap: 7px; }
+  .student-home-card { border-width: 3px; border-radius: 23px; }
+  .student-home-card--adventure { height: 255px; }
+  .student-home-card--compact { height: 202px; }
+  .student-home-card--compact .student-home-card__copy { inset: 14px 8px auto 12px; gap: 5px; }
+  .student-home-card--compact .student-home-card__copy small { max-width: 92%; }
+  .student-home-card__reward,
+  .student-home-card__status { padding: 3px 7px; }
+  .student-home-card::after {
+    background: linear-gradient(90deg, rgba(255,255,255,.86) 0%, rgba(255,255,255,.38) 55%, transparent 84%);
+  }
+  .bottom-feature-nav.student-only .bottom-feature-nav__icon { width: 54px; height: 38px; }
+}
+
+@media (max-width: 350px) {
+  .student-home-card-grid { gap: 5px; }
+  .student-home-card--compact { height: 190px; }
+  .student-home-card--compact .student-home-card__copy strong { font-size: 18px; }
+  .student-home-card--compact .student-home-card__copy small { font-size: 10px; }
+  .student-home-card--compact .student-home-card__reward,
+  .student-home-card--compact .student-home-card__status { font-size: 9px; }
+}
+
+@media (min-width: 700px) {
+  .student-dashboard { gap: 24px; }
+  .student-summary-card { padding-inline: 24px; }
+  .student-home-card-grid { gap: 18px; }
+  .student-home-section h2 { margin-left: 18px; }
+}
+
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  .student-dashboard,
+  .bottom-feature-nav.student-only {
+    width: min(1180px, calc(100vw - 48px));
+    margin-inline: auto;
+  }
+
+  .student-home-card--adventure {
+    height: clamp(300px, 34vw, 390px);
+  }
+
+  .student-home-card--compact {
+    height: clamp(245px, 25vw, 310px);
+  }
+}
+
+@media (min-width: 768px) and (orientation: portrait) {
+  .student-home-rotate-prompt {
+    position: fixed;
+    inset: auto 24px 24px;
+    z-index: 30;
+    min-height: 88px;
+    padding: 17px 24px;
+    border: 2px solid rgba(255,255,255,.96);
+    border-radius: 28px;
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--card6-card-shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--card6-text);
+    text-align: center;
+  }
+
+  .student-home-rotate-prompt strong {
+    color: var(--card6-title-blue);
+    font-size: 21px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-home-card,
+  .student-summary-card__progress i {
+    transition: none;
+  }
+}

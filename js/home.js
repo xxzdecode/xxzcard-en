@@ -35,9 +35,11 @@ function renderStudentRewardSummary(summary) {
   const settings = summary && typeof summary === 'object' ? summary : {};
   const user = currentUser === 'brother' ? 'brother' : 'sister';
   const name = document.getElementById('studentSummaryName');
-  const avatar = document.getElementById('studentSummaryAvatar');
+  const avatarImage = document.getElementById('studentSummaryAvatarImage');
+  const avatarFallback = document.getElementById('studentSummaryAvatarFallback');
   if (name) name.textContent = user === 'brother' ? '弟弟' : '姐姐';
-  if (avatar) avatar.textContent = user === 'brother' ? '👦' : '👧';
+  if (avatarImage) avatarImage.hidden = user === 'brother';
+  if (avatarFallback) avatarFallback.hidden = user !== 'brother';
 
   const available = settings.available === true
     && Number.isFinite(Number(settings.totalCoins))

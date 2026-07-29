@@ -1,0 +1,24 @@
+/* Card 6 visual tokens based on the approved student-home reference. */
+:root {
+  --card6-page-sky: #AEE5F8;
+  --card6-hero-blue: #DDF3FF;
+  --card6-word-blue: #D6EEFF;
+  --card6-grammar-lavender: #E6DDFF;
+  --card6-practice-green: #E0F3D8;
+  --card6-new-word-yellow: #FFF0C8;
+  --card6-wood: #A96834;
+  --card6-title-blue: #164F9A;
+  --card6-title-purple: #4B2C96;
+  --card6-title-green: #177C38;
+  --card6-title-orange: #E9670B;
+  --card6-text: #173866;
+  --card6-coin: #F5A900;
+  --card6-card-radius: 32px;
+  --card6-section-gap: 18px;
+  --card6-card-border: rgba(255,255,255,.92);
+  --card6-card-shadow: 0 10px 26px rgba(65,119,145,.16);
+}
+.card6-art { width:100%; height:100%; object-fit:contain; object-position:center; pointer-events:none; user-select:none; }
+@media (min-width:768px) and (max-width:1366px) and (orientation:landscape) {
+  .student-home-dashboard { width:min(1180px, calc(100vw - 48px)); margin-inline:auto; }
+}

@@ -5,6 +5,12 @@ homeNavigationStylesheet.href = 'styles-home-nav.css';
 homeNavigationStylesheet.dataset.homeNavigationLayout = 'three-columns';
 document.head.appendChild(homeNavigationStylesheet);
 
+const studentHomeDashboardStylesheet = document.createElement('link');
+studentHomeDashboardStylesheet.rel = 'stylesheet';
+studentHomeDashboardStylesheet.href = 'styles-student-home-dashboard.css';
+studentHomeDashboardStylesheet.dataset.studentHomeDashboard = 'card6-v2';
+document.head.appendChild(studentHomeDashboardStylesheet);
+
 // EXPOSE TO WINDOW (required by inline event handlers)
 // ══════════════════════════════════════
 Object.assign(window, {

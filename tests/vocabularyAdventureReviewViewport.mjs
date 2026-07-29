@@ -124,6 +124,28 @@ async function openReview({
   const context = await browser.newContext({ ...contextOptions, serviceWorkers: 'block' });
   await context.addInitScript(({ selectedUser }) => {
     localStorage.setItem('wc_user', selectedUser);
+    let reviewApi;
+    Object.defineProperty(globalThis, 'VocabularyAdventureReview', {
+      configurable: true,
+      get() {
+        return reviewApi;
+      },
+      set(value) {
+        reviewApi = {
+          ...value,
+          buildVocabularyAdventureReviewQuestion(input) {
+            const question = value.buildVocabularyAdventureReviewQuestion(input);
+            globalThis.__actualReviewQuestion = question;
+            return question;
+          },
+          buildVocabularyAdventureMeaningConfirmation(input) {
+            const question = value.buildVocabularyAdventureMeaningConfirmation(input);
+            globalThis.__actualMeaningConfirmation = question;
+            return question;
+          }
+        };
+      }
+    });
   }, { selectedUser: user });
   const state = new Map([
     ['main', structuredClone(mainData)],
@@ -136,6 +158,7 @@ async function openReview({
   page.on('console', message => {
     if (message.type() === 'error') errors.push(message.text());
   });
+  await page.route(/\/assets\/student-home\/card6\/.*\.png$/, route => route.abort());
   await page.route('**/rest/v1/kv_store*', async route => {
     const request = route.request();
     if (request.method() === 'POST') {
@@ -162,6 +185,12 @@ async function openReview({
     });
   });
   await page.goto(`${baseUrl}/?previewVocabularyAdventure=1`, { waitUntil: 'commit' });
+  await page.waitForFunction(
+    () => typeof window.openVocabularyAdventure === 'function',
+    null,
+    { timeout: 60000 }
+  );
+  await page.evaluate(() => { sbOnline = true; });
   await page.waitForSelector('#vocabularyAdventurePreviewEntry:visible');
   await page.locator('#vocabularyAdventurePreviewEntry').click();
   await page.waitForFunction(() => (
@@ -172,20 +201,42 @@ async function openReview({
 
 async function currentQuestion(page, taskType) {
   return page.evaluate(type => {
-    const state = JSON.parse(localStorage.getItem(`wc_sb_vocab_adventure_v1_${localStorage.getItem('wc_user')}`));
-    const item = state.session.plan[state.session.cursor];
-    const candidates = collectVisibleVocabularyAdventureCandidates();
-    return VocabularyAdventureReview.buildVocabularyAdventureReviewQuestion({
-      session: state.session,
-      planItem: item,
-      planIndex: state.session.cursor,
-      wordState: state.words[item.wordKey],
-      card: candidates.find(candidate => candidate.key === item.wordKey).card,
-      allCards: candidates,
-      userKey: localStorage.getItem('wc_user'),
-      taskType: type
-    });
+    const question = globalThis.__actualReviewQuestion;
+    if (!question || question.questionType !== type) {
+      throw new Error(`missing captured review question for ${type}`);
+    }
+    return question;
   }, taskType);
+}
+
+async function visibleMatchPairs(page) {
+  return page.locator('.vocabulary-adventure-match-board button').evaluateAll(buttons => {
+    const groups = new Map();
+    for (const button of buttons) {
+      const id = button.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+      if (!id) continue;
+      const key = id.split(':')[0];
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(id);
+    }
+    return [...groups.values()].filter(ids => ids.length === 2);
+  });
+}
+
+async function visibleChoiceIndices(page, question) {
+  const correctOption = question.options[question.correctIndex];
+  const correctLabel = typeof correctOption === 'object' ? correctOption.label : correctOption;
+  return page.locator('#vocabularyAdventureReviewOptions button').evaluateAll((buttons, expected) => {
+    const entries = buttons.map(button => ({
+      index: Number(button.dataset.optionIndex),
+      label: button.textContent.trim()
+    }));
+    const correct = entries.find(entry => entry.label === String(expected).trim());
+    return {
+      correct: correct?.index ?? -1,
+      wrong: entries.filter(entry => entry.index !== correct?.index).map(entry => entry.index)
+    };
+  }, correctLabel);
 }
 
 async function answerCorrect(run, taskType) {
@@ -194,7 +245,9 @@ async function answerCorrect(run, taskType) {
   assert.equal(question.ok, true);
   assert.equal(question.questionType, taskType);
   if (question.interaction === 'choice') {
-    await page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${question.correctIndex}"]`).click();
+    const indices = await visibleChoiceIndices(page, question);
+    assert.notEqual(indices.correct, -1);
+    await page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${indices.correct}"]`).click();
   } else if (question.interaction === 'input') {
     await page.locator('#vocabularyAdventureReviewInput').fill(question.answer);
     await page.getByRole('button', { name: '确认' }).click();
@@ -204,12 +257,13 @@ async function answerCorrect(run, taskType) {
       await submitVocabularyAdventureReviewOrder();
     }, question.answer);
   } else if (question.interaction === 'match') {
-    await page.evaluate(async pairs => {
-      for (const pair of pairs) {
-        await selectVocabularyAdventureMatchCard(`${pair.key}:visual`);
-        await selectVocabularyAdventureMatchCard(`${pair.key}:word`);
+    const pairs = await visibleMatchPairs(page);
+    await page.evaluate(async idsByPair => {
+      for (const pair of idsByPair) {
+        await selectVocabularyAdventureMatchCard(pair[0]);
+        await selectVocabularyAdventureMatchCard(pair[1]);
       }
-    }, question.pairs);
+    }, pairs);
   } else {
     assert.fail(`unknown interaction ${question.interaction}`);
   }
@@ -242,7 +296,17 @@ try {
 
   for (const taskType of taskTypes) {
     const run = await openReview({ taskType });
-    const question = await answerCorrect(run, taskType);
+    let question;
+    try {
+      question = await answerCorrect(run, taskType);
+    } catch (error) {
+      const diagnostics = await run.page.evaluate(() => ({
+        label: document.querySelector('.vocabulary-adventure-question-label')?.textContent,
+        feedback: document.querySelector('#vocabularyAdventureFeedbackText')?.textContent,
+        action: document.querySelector('#vocabularyAdventureAction')?.textContent
+      }));
+      throw new Error(`${taskType}: ${error.message}\n${JSON.stringify(diagnostics)}`);
+    }
     const saved = run.state.get('vocab_adventure_v1_sister');
     assert.equal(saved.words.apple.reviewCount, 2);
     assert.equal(saved.words.apple.intervalIndex, 2);
@@ -268,16 +332,16 @@ try {
   for (const expectedResult of ['H', 'F']) {
     const run = await openReview({ taskType: 'wordToMeaning' });
     const question = await currentQuestion(run.page, 'wordToMeaning');
-    const wrong = question.options.map((_, index) => index).filter(index => index !== question.correctIndex);
-    await run.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${wrong[0]}"]`).click();
+    const indices = await visibleChoiceIndices(run.page, question);
+    await run.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${indices.wrong[0]}"]`).click();
     await run.page.waitForSelector('#vocabularyAdventureReviewHint:visible');
-    const secondIndex = expectedResult === 'H' ? question.correctIndex : wrong[1];
+    const secondIndex = expectedResult === 'H' ? indices.correct : indices.wrong[1];
     await run.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${secondIndex}"]`).click();
     if (expectedResult === 'F') {
       await run.page.waitForSelector('.vocabulary-adventure-full-card');
     } else {
       await run.page.waitForFunction(() => (
-        document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('已记录为 H')
+        document.querySelector('#vocabularyAdventureAction')?.textContent === '继续'
       ));
     }
     const saved = run.state.get('vocab_adventure_v1_sister');
@@ -289,37 +353,25 @@ try {
   }
 
   const visualConfirmation = await openReview({ taskType: 'visualMatch' });
-  const visualQuestion = await currentQuestion(visualConfirmation.page, 'visualMatch');
-  await visualConfirmation.page.evaluate(async pairs => {
-    await selectVocabularyAdventureMatchCard(`${pairs[0].key}:visual`);
-    await selectVocabularyAdventureMatchCard(`${pairs[1].key}:word`);
-    await selectVocabularyAdventureMatchCard(`${pairs[0].key}:word`);
-    await selectVocabularyAdventureMatchCard(`${pairs[1].key}:visual`);
-    for (const pair of pairs) {
-      await selectVocabularyAdventureMatchCard(`${pair.key}:visual`);
-      await selectVocabularyAdventureMatchCard(`${pair.key}:word`);
+  const visualPairs = await visibleMatchPairs(visualConfirmation.page);
+  await visualConfirmation.page.evaluate(async idsByPair => {
+    await selectVocabularyAdventureMatchCard(idsByPair[0][0]);
+    await selectVocabularyAdventureMatchCard(idsByPair[1][1]);
+    await selectVocabularyAdventureMatchCard(idsByPair[0][1]);
+    await selectVocabularyAdventureMatchCard(idsByPair[1][0]);
+    for (const pair of idsByPair) {
+      await selectVocabularyAdventureMatchCard(pair[0]);
+      await selectVocabularyAdventureMatchCard(pair[1]);
     }
-  }, visualQuestion.pairs);
+  }, visualPairs);
   await visualConfirmation.page.waitForFunction(() => (
     document.querySelector('.vocabulary-adventure-question-label')?.textContent.includes('配对后')
   ));
-  const visualMeaning = await visualConfirmation.page.evaluate(() => {
-    const state = JSON.parse(localStorage.getItem('wc_sb_vocab_adventure_v1_sister'));
-    const item = state.session.plan[state.session.cursor];
-    const candidates = collectVisibleVocabularyAdventureCandidates();
-    return VocabularyAdventureReview.buildVocabularyAdventureMeaningConfirmation({
-      session: state.session,
-      planItem: item,
-      planIndex: state.session.cursor,
-      wordState: state.words[item.wordKey],
-      card: candidates.find(candidate => candidate.key === item.wordKey).card,
-      allCards: candidates,
-      userKey: 'sister'
-    });
-  });
-  await visualConfirmation.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${visualMeaning.correctIndex}"]`).click();
+  const visualMeaning = await visualConfirmation.page.evaluate(() => globalThis.__actualMeaningConfirmation);
+  const visualMeaningIndices = await visibleChoiceIndices(visualConfirmation.page, visualMeaning);
+  await visualConfirmation.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${visualMeaningIndices.correct}"]`).click();
   await visualConfirmation.page.waitForFunction(() => (
-    document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('已记录为 H')
+    document.querySelector('#vocabularyAdventureAction')?.textContent === '继续'
   ));
   const visualSaved = visualConfirmation.state.get('vocab_adventure_v1_sister');
   assert.equal(visualSaved.words.apple.lastResult, 'H');
@@ -339,26 +391,14 @@ try {
     };
   });
   const usageQuestion = await currentQuestion(usageWeak.page, 'exampleCloze');
-  const wrongUsage = usageQuestion.options.findIndex((_, index) => index !== usageQuestion.correctIndex);
-  await usageWeak.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${wrongUsage}"]`).click();
+  const usageIndices = await visibleChoiceIndices(usageWeak.page, usageQuestion);
+  await usageWeak.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${usageIndices.wrong[0]}"]`).click();
   await usageWeak.page.waitForFunction(() => (
     document.querySelector('.vocabulary-adventure-question-label')?.textContent.includes('基础意义确认')
   ));
-  const confirmation = await usageWeak.page.evaluate(() => {
-    const state = JSON.parse(localStorage.getItem('wc_sb_vocab_adventure_v1_sister'));
-    const item = state.session.plan[state.session.cursor];
-    const candidates = collectVisibleVocabularyAdventureCandidates();
-    return VocabularyAdventureReview.buildVocabularyAdventureMeaningConfirmation({
-      session: state.session,
-      planItem: item,
-      planIndex: state.session.cursor,
-      wordState: state.words[item.wordKey],
-      card: candidates.find(candidate => candidate.key === item.wordKey).card,
-      allCards: candidates,
-      userKey: 'sister'
-    });
-  });
-  await usageWeak.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${confirmation.correctIndex}"]`).click();
+  const confirmation = await usageWeak.page.evaluate(() => globalThis.__actualMeaningConfirmation);
+  const confirmationIndices = await visibleChoiceIndices(usageWeak.page, confirmation);
+  await usageWeak.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${confirmationIndices.correct}"]`).click();
   await usageWeak.page.waitForFunction(() => (
     document.querySelector('#vocabularyAdventureAction')?.textContent === '重新保存'
   ));
@@ -384,27 +424,14 @@ try {
 
   const usageFailed = await openReview({ taskType: 'collocationCloze' });
   const usageFailedQuestion = await currentQuestion(usageFailed.page, 'collocationCloze');
-  const wrongFirst = usageFailedQuestion.options.findIndex((_, index) => index !== usageFailedQuestion.correctIndex);
-  await usageFailed.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${wrongFirst}"]`).click();
+  const usageFailedIndices = await visibleChoiceIndices(usageFailed.page, usageFailedQuestion);
+  await usageFailed.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${usageFailedIndices.wrong[0]}"]`).click();
   await usageFailed.page.waitForFunction(() => (
     document.querySelector('.vocabulary-adventure-question-label')?.textContent.includes('基础意义确认')
   ));
-  const confirmationFailed = await usageFailed.page.evaluate(() => {
-    const state = JSON.parse(localStorage.getItem('wc_sb_vocab_adventure_v1_sister'));
-    const item = state.session.plan[state.session.cursor];
-    const candidates = collectVisibleVocabularyAdventureCandidates();
-    return VocabularyAdventureReview.buildVocabularyAdventureMeaningConfirmation({
-      session: state.session,
-      planItem: item,
-      planIndex: state.session.cursor,
-      wordState: state.words[item.wordKey],
-      card: candidates.find(candidate => candidate.key === item.wordKey).card,
-      allCards: candidates,
-      userKey: 'sister'
-    });
-  });
-  const wrongConfirmation = confirmationFailed.options.findIndex((_, index) => index !== confirmationFailed.correctIndex);
-  await usageFailed.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${wrongConfirmation}"]`).click();
+  const confirmationFailed = await usageFailed.page.evaluate(() => globalThis.__actualMeaningConfirmation);
+  const confirmationFailedIndices = await visibleChoiceIndices(usageFailed.page, confirmationFailed);
+  await usageFailed.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${confirmationFailedIndices.wrong[0]}"]`).click();
   try {
     await usageFailed.page.waitForSelector('.vocabulary-adventure-full-card');
   } catch (error) {
@@ -432,7 +459,8 @@ try {
     };
   });
   const retryQuestion = await currentQuestion(retry.page, 'wordToMeaning');
-  await retry.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${retryQuestion.correctIndex}"]`).click();
+  const retryIndices = await visibleChoiceIndices(retry.page, retryQuestion);
+  await retry.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${retryIndices.correct}"]`).click();
   await retry.page.waitForFunction(() => (
     document.querySelector('#vocabularyAdventureAction')?.textContent === '重新保存'
   ));

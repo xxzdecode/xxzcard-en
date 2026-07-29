@@ -1,11 +1,12 @@
-// Supersedes v21 with the Card 6 student-home structure and cached layout update.
+// Supersedes v22 with the approved Card 6 v2 assets and iPad layout contract.
 importScripts('./data/vocabularyLessonAssets.js');
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v22';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v23';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './styles-home-nav.css',
+  './styles-student-home-dashboard.css',
   './styles-vocabulary-lesson.css',
   './styles-vocabulary-lesson-016.css',
   './js/config.js',
@@ -41,6 +42,19 @@ const VOCABULARY_REVIEW_ASSETS = [
   './grammar-library/data/topics.json',
   './grammar-library/data/source-coverage.json',
   './grammar-library/data/initial-progress.json',
+  './assets/student-home/card6/docs/student-home-tokens.css',
+  './assets/student-home/card6/scenes/vocabulary-adventure-scene.png',
+  './assets/student-home/card6/scenes/word-challenge-scene.png',
+  './assets/student-home/card6/scenes/grammar-challenge-scene.png',
+  './assets/student-home/card6/scenes/classroom-practice-scene.png',
+  './assets/student-home/card6/scenes/new-word-guide-scene.png',
+  './assets/student-home/card6/ui/section-titles/wood-plaque-blank.png',
+  './assets/student-home/card6/ui/coins-rewards/coin-large.png',
+  './assets/student-home/card6/ui/profile/learning-badge.png',
+  './assets/student-home/card6/ui/profile/sister-avatar.png',
+  './assets/student-home/card6/ui/bottom-nav/word-card-icon.png',
+  './assets/student-home/card6/ui/bottom-nav/phonetics-icon.png',
+  './assets/student-home/card6/ui/bottom-nav/mini-games-icon.png',
   './assets/vocabulary-review/line.webp',
   './assets/vocabulary-review/cucumber.webp',
   './assets/vocabulary-review/bonnet.webp',

@@ -114,6 +114,7 @@ async function openPage(
       errors.push(`${response.status()} ${response.url()}`);
     }
   });
+  await page.route(/\/assets\/student-home\/card6\/.*\.png$/, route => route.abort());
   await page.route('**/rest/v1/kv_store*', async route => {
     const request = route.request();
     if (request.method() === 'POST') {
@@ -148,6 +149,7 @@ async function openPage(
   });
   await page.goto(`${baseUrl}/${preview ? '?previewVocabularyAdventure=1' : ''}`, { waitUntil: 'commit' });
   await page.waitForFunction(() => typeof window.openVocabularyAdventureChallenge === 'function');
+  await page.waitForFunction(() => typeof sbOnline !== 'undefined' && sbOnline === true);
   await page.waitForFunction(() => document.getElementById('currentModeBadge')?.textContent.includes('当前：'));
   return { context, page, state, errors };
 }

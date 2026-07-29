@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const baseStyles = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
 const layoutStyles = fs.readFileSync(path.join(root, 'styles-home-nav.css'), 'utf8');
+const dashboardStyles = fs.readFileSync(path.join(root, 'styles-student-home-dashboard.css'), 'utf8');
 const mainScript = fs.readFileSync(path.join(root, 'js/main.js'), 'utf8');
 const reviewScript = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
@@ -39,12 +40,14 @@ assert.match(baseStyles, /\.vocabulary-tour-entry\s*\{/);
 assert.match(layoutStyles, /\.bottom-feature-nav\.student-only\s*\{[^}]*margin:\s*18px auto 6px[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
 assert.match(layoutStyles, />\s*\.bottom-feature-nav__item\s*\{[^}]*grid-column:\s*auto/s);
 assert.doesNotMatch(layoutStyles, /repeat\(6/);
-assert.match(layoutStyles, /\.student-home-card-grid\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(dashboardStyles, /\.student-home-card-grid\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
 
 assert.match(mainScript, /href\s*=\s*'styles-home-nav\.css'/);
+assert.match(mainScript, /href\s*=\s*'styles-student-home-dashboard\.css'/);
 assert.match(mainScript, /homeNavigationLayout\s*=\s*'three-columns'/);
-assert.match(serviceWorker, /vocabulary-review-v22/);
+assert.match(serviceWorker, /vocabulary-review-v23/);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
+assert.match(serviceWorker, /'\.\/styles-student-home-dashboard\.css'/);
 assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson\.css'/);
 assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson-016\.css'/);
 

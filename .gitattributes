@@ -1,0 +1,3 @@
+# Preserve the approved Card 6 asset package byte-for-byte so its bundled
+# SHA256SUMS remain valid after checkout on Windows.
+assets/student-home/card6/** -text
