@@ -93,3 +93,15 @@
 - 未修改老师端首页布局。
 - 未新增金币结算、评分、商城、等级、Card 7 或其他产品功能。
 - 原始五张 PNG 保留，不作为首页运行时资源。
+
+## 5. 提交、推送与线上核验
+
+- 实现提交：`45c6b4f8d39156059c16efbb03717e0c8331ff50`
+- 已推送到远程 `main`。
+- GitHub Pages 构建状态：`built`。
+- 线上地址：`https://xxzdecode.github.io/xxzcard-en/`
+- 线上核验：
+  - 首页 HTTP 200；
+  - 首页已引用 `js/lazyFeatures.js` 和 WebP 主图；
+  - `service-worker.js` HTTP 200，内容为 `xxzcard-app-shell-v32`；
+  - 五张首页 WebP 均为 HTTP 200，线上 `Content-Length` 与本地文件一致。
