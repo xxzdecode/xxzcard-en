@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { devices, webkit } from 'playwright';
+const { devices, webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -119,7 +120,8 @@ async function openReview({
   viewport = { width: 1024, height: 768 },
   user = 'sister'
 }) {
-  const context = await browser.newContext(viewport.contextOptions || (viewport.viewport ? viewport : { viewport }));
+  const contextOptions = viewport.contextOptions || (viewport.viewport ? viewport : { viewport });
+  const context = await browser.newContext({ ...contextOptions, serviceWorkers: 'block' });
   await context.addInitScript(({ selectedUser }) => {
     localStorage.setItem('wc_user', selectedUser);
   }, { selectedUser: user });
@@ -159,7 +161,7 @@ async function openReview({
       body: JSON.stringify(state.has(key) ? [{ value: state.get(key) }] : [])
     });
   });
-  await page.goto(`${baseUrl}/?previewVocabularyAdventure=1`, { waitUntil: 'networkidle' });
+  await page.goto(`${baseUrl}/?previewVocabularyAdventure=1`, { waitUntil: 'commit' });
   await page.waitForSelector('#vocabularyAdventurePreviewEntry:visible');
   await page.locator('#vocabularyAdventurePreviewEntry').click();
   await page.waitForFunction(() => (
@@ -403,7 +405,17 @@ try {
   });
   const wrongConfirmation = confirmationFailed.options.findIndex((_, index) => index !== confirmationFailed.correctIndex);
   await usageFailed.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${wrongConfirmation}"]`).click();
-  await usageFailed.page.waitForSelector('.vocabulary-adventure-full-card');
+  try {
+    await usageFailed.page.waitForSelector('.vocabulary-adventure-full-card');
+  } catch (error) {
+    const diagnostics = await usageFailed.page.evaluate(() => ({
+      body: document.getElementById('vocabularyAdventureBody')?.innerText,
+      feedback: document.getElementById('vocabularyAdventureFeedbackText')?.innerText,
+      action: document.getElementById('vocabularyAdventureAction')?.innerText,
+      localState: localStorage.getItem('wc_sb_vocab_adventure_v1_sister')
+    }));
+    throw new Error(`${error.message}\n${JSON.stringify({ diagnostics, errors: usageFailed.errors }, null, 2)}`);
+  }
   const usageFailedSaved = usageFailed.state.get('vocab_adventure_v1_sister');
   assert.equal(usageFailedSaved.words.apple.lastResult, 'F');
   assert.equal(usageFailedSaved.words.apple.intervalIndex, 0);

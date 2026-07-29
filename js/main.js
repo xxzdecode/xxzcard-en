@@ -33,6 +33,7 @@ Object.assign(window, {
   openGrammarChallengeList, closeGrammarChallengeList, openGrammarChallenge, closeGrammarChallenge,
   openThemeQuizList, openThemeQuiz, closeThemeQuiz,
   openTeacherWordCards, returnToTeacherHome, closeBatchDetail, closeBatchImport, closeMergeSelect,
+  renderStudentRewardSummary, openStudentClassroomPractice,
   openCoursewareList, openCourseware, closeCourseware,
   openGrammarLibrary, closeGrammarLibrary,
   openWordDedupe, closeWordDedupe,

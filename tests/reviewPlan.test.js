@@ -116,11 +116,8 @@ assert.match(taskEngineSource, /startTodayChallenge\(\)[\s\S]*startTask\(\{ sour
 assert.match(taskEngineSource, /startMixedReview\(\)[\s\S]*startTask\(\{ source: 'mixed', mode: 'review' \}\)/);
 assert.match(taskEngineSource, /startBatchReview\(batchId\)[\s\S]*startTask\(\{ source: 'batch', mode: 'review', batchId \}\)/);
 assert.match(taskEngineSource, /async function startReviewTask[\s\S]*buildReviewSteps\(deck\)/);
-const homeQuickActions = indexSource.match(/<div class="task-grid student-only" id="homeQuickActions">([\s\S]*?)<\/div>/)[1];
-assert.equal((homeQuickActions.match(/<button /g) || []).length, 2, 'home should expose two word task entries');
-assert.match(homeQuickActions, /onclick="openWordTaskMenu\('today'\)"[\s\S]*今日单词/);
-assert.match(homeQuickActions, /onclick="openWordTaskMenu\('mixed'\)"[\s\S]*混合单词/);
-assert.doesNotMatch(homeQuickActions, /mixedReviewBtn|mixedChallengeBtn|今日温习|今日挑战/);
+assert.doesNotMatch(indexSource, /id="homeQuickActions"|id="todayWordBtn"|id="mixedWordBtn"/);
+assert.match(indexSource, /id="studentDashboard"[\s\S]*今日复习[\s\S]*挑战测验[\s\S]*今日新课/);
 const wordTaskMenu = indexSource.match(/<div class="screen" id="screenWordTaskMenu"[\s\S]*?<\/div>\s*<\/div>/)[0];
 assert.equal((wordTaskMenu.match(/<button /g) || []).length, 3, 'word task screen should contain back, review, and challenge buttons');
 assert.match(wordTaskMenu, /onclick="startWordTaskMenuReview\(\)"[\s\S]*今日温习/);

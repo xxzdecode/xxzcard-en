@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { devices, webkit } from 'playwright';
+const { devices, webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -77,7 +78,8 @@ async function openRealPage({
   initialAdventureState = null,
   failAdventureWrites = 0
 }) {
-  const context = await browser.newContext(viewport.contextOptions || (viewport.viewport ? viewport : { viewport }));
+  const contextOptions = viewport.contextOptions || (viewport.viewport ? viewport : { viewport });
+  const context = await browser.newContext({ ...contextOptions, serviceWorkers: 'block' });
   await context.addInitScript(({ selectedUser }) => {
     localStorage.setItem('wc_user', selectedUser);
   }, { selectedUser: user });
@@ -132,7 +134,7 @@ async function openRealPage({
     });
   });
   const query = preview ? '?previewVocabularyAdventure=1' : '';
-  await page.goto(`${baseUrl}/${query}`, { waitUntil: 'networkidle' });
+  await page.goto(`${baseUrl}/${query}`, { waitUntil: 'commit' });
   try {
     await page.waitForFunction(() => typeof window.openVocabularyAdventure === 'function');
   } catch (error) {
@@ -173,7 +175,8 @@ function adventureWordState(lastResult = 'D') {
 
 try {
   const hidden = await openRealPage({ viewport: { width: 1024, height: 768 }, preview: false });
-  assert.equal(await hidden.page.locator('#vocabularyAdventurePreviewEntry').isHidden(), true);
+  assert.equal(await hidden.page.locator('#vocabularyAdventurePreviewEntry').isVisible(), true);
+  assert.equal(await hidden.page.locator('#studentDashboard').isVisible(), true);
   await hidden.context.close();
 
   const teacher = await openRealPage({ viewport: { width: 1024, height: 768 }, user: 'teacher' });
@@ -270,8 +273,8 @@ try {
     const run = await openRealPage({ viewport });
     const { page } = run;
     await page.waitForSelector('#vocabularyAdventurePreviewEntry:visible');
-    assert.equal(await page.getByRole('button', { name: /今日单词/ }).isHidden(), true);
-    assert.equal(await page.getByRole('button', { name: /混合单词/ }).isHidden(), true);
+    assert.equal(await page.getByRole('button', { name: /今日单词/ }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: /混合单词/ }).count(), 0);
 
     await page.locator('#vocabularyAdventurePreviewEntry').click();
     await page.waitForSelector('#screenVocabularyAdventure.active');

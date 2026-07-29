@@ -299,9 +299,11 @@ assert.doesNotMatch(
 );
 
 assert.match(tasksSource, /getSharedVocabularyChallengeUsage/);
-assert.match(html, /id="vocabularyAdventureUnifiedHome"[^>]*hidden/);
+assert.match(html, /id="studentDashboard"/);
 assert.match(html, /id="vocabularyAdventureChallengeEntry"/);
 assert.match(html, /id="screenVocabularyAdventureChallenge"/);
+assert.match(source, /const enabled = !!studentUser\(\)/);
+assert.doesNotMatch(source, /if \(!previewEnabled\(\) \|\| !studentUser\(\)\) return/);
 assert.doesNotMatch(serviceWorker, /vocabularyAdventureChallenge/);
 
 console.log('vocabulary adventure challenge tests passed');

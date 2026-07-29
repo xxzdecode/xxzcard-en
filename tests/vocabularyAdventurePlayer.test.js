@@ -270,11 +270,15 @@ for (const expected of ['apple', '苹果', 'an apple', 'apples', 'fruit', 'apple
   const playerSource = fs.readFileSync(path.join(root, 'js', 'vocabularyAdventurePlayer.js'), 'utf8');
   const screeningSource = fs.readFileSync(path.join(root, 'js', 'vocabularyScreening.js'), 'utf8');
   const serviceWorkerSource = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
-  assert.match(indexSource, /id="todayWordBtn"/);
-  assert.match(indexSource, /id="mixedWordBtn"/);
-  assert.match(indexSource, /id="vocabularyAdventurePreviewEntry"[^>]*hidden/);
+  assert.doesNotMatch(indexSource, /id="todayWordBtn"/);
+  assert.doesNotMatch(indexSource, /id="mixedWordBtn"/);
+  assert.match(indexSource, /id="studentDashboard"/);
+  assert.match(indexSource, /id="vocabularyAdventurePreviewEntry"/);
+  assert.doesNotMatch(indexSource, /id="vocabularyAdventurePreviewEntry"[^>]*hidden/);
   assert.match(indexSource, /id="screenVocabularyAdventure"/);
   assert.match(homeSource, /updateVocabularyAdventurePreviewEntry/);
+  assert.doesNotMatch(homeSource, /updateHomeTaskButtons\(batches\)/);
+  assert.doesNotMatch(playerSource, /if \(!previewEnabled\(\) \|\| !\['sister', 'brother'\]\.includes\(currentUserValue\(\)\)\) return/);
   assert.match(screeningSource, /const VOCABULARY_SCREENING_ENABLED = false/);
   assert.doesNotMatch(playerSource, /Math\.random/);
   assert.doesNotMatch(serviceWorkerSource, /vocabularyAdventure|styles-vocabulary-adventure/);

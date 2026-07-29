@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { webkit } from 'playwright';
+const { webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -38,14 +39,14 @@ const baseUrl = `http://127.0.0.1:${address.port}`;
 const browser = await webkit.launch();
 
 async function openHarness(viewport) {
-  const context = await browser.newContext({ viewport });
+  const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
   const page = await context.newPage();
   const consoleErrors = [];
   page.on('console', message => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
   page.on('pageerror', error => consoleErrors.push(error.message));
-  await page.goto(`${baseUrl}/tests/fixtures/vocabularyLessonHarness.html`, { waitUntil: 'networkidle' });
+  await page.goto(`${baseUrl}/tests/fixtures/vocabularyLessonHarness.html`, { waitUntil: 'commit' });
   await page.waitForFunction(() => typeof window.jumpVocabularyLessonBatch === 'function');
   await page.waitForSelector('#vocabularyLessonCard');
   return { context, page, consoleErrors };

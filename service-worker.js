@@ -1,6 +1,6 @@
-// Supersedes vocabulary-review-v20-task016 with vocabulary tour ordering and layout fixes.
+// Supersedes v21 with the Card 6 student-home structure and cached layout update.
 importScripts('./data/vocabularyLessonAssets.js');
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v21-layoutfix-0b6a7a0488';
+const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v22';
 const VOCABULARY_REVIEW_ASSETS = [
   './',
   './index.html',

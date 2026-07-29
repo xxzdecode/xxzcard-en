@@ -30,18 +30,67 @@ async function renderCheckInStrip() {
 // ══════════════════════════════════════
 // HOME
 // ══════════════════════════════════════
+function renderStudentRewardSummary(summary) {
+  if (isTeacher()) return;
+  const settings = summary && typeof summary === 'object' ? summary : {};
+  const user = currentUser === 'brother' ? 'brother' : 'sister';
+  const name = document.getElementById('studentSummaryName');
+  const avatar = document.getElementById('studentSummaryAvatar');
+  if (name) name.textContent = user === 'brother' ? '弟弟' : '姐姐';
+  if (avatar) avatar.textContent = user === 'brother' ? '👦' : '👧';
+
+  const available = settings.available === true
+    && Number.isFinite(Number(settings.totalCoins))
+    && Number.isFinite(Number(settings.todayCoins));
+  const unavailable = document.getElementById('studentRewardUnavailable');
+  const values = document.getElementById('studentRewardValues');
+  if (unavailable) unavailable.hidden = available;
+  if (values) values.hidden = !available;
+  if (!available) return;
+
+  const totalCoins = Math.max(0, Number(settings.totalCoins));
+  const todayMaxCoins = Math.max(1, Number(settings.todayMaxCoins) || 30);
+  const todayCoins = Math.max(0, Math.min(todayMaxCoins, Number(settings.todayCoins)));
+  const total = document.getElementById('studentTotalCoins');
+  const today = document.getElementById('studentTodayCoins');
+  const max = document.getElementById('studentTodayMaxCoins');
+  const progress = document.getElementById('studentTodayCoinsProgress');
+  const progressbar = progress && progress.parentElement;
+  if (total) total.textContent = String(totalCoins);
+  if (today) today.textContent = String(todayCoins);
+  if (max) max.textContent = String(todayMaxCoins);
+  if (progress) progress.style.width = `${(todayCoins / todayMaxCoins) * 100}%`;
+  if (progressbar) {
+    progressbar.setAttribute('aria-valuemax', String(todayMaxCoins));
+    progressbar.setAttribute('aria-valuenow', String(todayCoins));
+  }
+}
+
+function openStudentClassroomPractice() {
+  if (isTeacher()) return;
+  const notice = document.getElementById('studentHomeNotice');
+  if (!notice) return;
+  notice.textContent = '今天的随堂练习还没有发布';
+  notice.hidden = false;
+}
+
 async function loadHome() {
   updateUserBar();
-  if (typeof window.updateVocabularyAdventurePreviewEntry === 'function') {
-    await window.updateVocabularyAdventurePreviewEntry();
-  }
   if (currentUser === 'teacher') document.body.classList.add('is-teacher');
   else document.body.classList.remove('is-teacher');
   if (isTeacher()) return;
 
-  renderCheckInStrip();
-  const batches = getVisibleBatchesNewestFirst();
-  await updateHomeTaskButtons(batches);
+  // Card 6 only exposes a read-only reward rendering boundary. Card 7 will
+  // supply real totals; until then, never present placeholder values as data.
+  renderStudentRewardSummary({ available: false, todayMaxCoins: 30 });
+  const notice = document.getElementById('studentHomeNotice');
+  if (notice) {
+    notice.hidden = true;
+    notice.textContent = '';
+  }
+  if (typeof window.updateVocabularyAdventurePreviewEntry === 'function') {
+    await window.updateVocabularyAdventurePreviewEntry();
+  }
 }
 
 async function refreshTeacherWordCards() {

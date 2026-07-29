@@ -13,7 +13,7 @@ const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf
 const studentNav = html.match(/<nav class="bottom-feature-nav student-only"[\s\S]*?<\/nav>/)?.[0] || '';
 const teacherNav = html.match(/<nav class="teacher-home-nav teacher-only"[\s\S]*?<\/nav>/)?.[0] || '';
 const activeStudentNav = studentNav.replace(/<!--[\s\S]*?-->/g, '');
-const vocabularyTourEntry = html.match(/<button class="grammar-challenge-entry vocabulary-tour-entry"[\s\S]*?<\/button>/)?.[0] || '';
+const vocabularyTourEntry = html.match(/<button class="student-home-card[^"]*student-home-card--tour"[\s\S]*?<\/button>/)?.[0] || '';
 
 assert.match(studentNav, /生词检验已停用/);
 assert.match(vocabularyTourEntry, /onclick="openVocabularyReviewList\(\)"/);
@@ -31,8 +31,6 @@ assert.deepEqual(
   ['单词卡', '随堂练习', '知识点库']
 );
 assert.match(reviewScript, /upgradeVocabularyLessonEntryLabels/);
-assert.match(reviewScript, /grammar-challenge-entry__title/);
-assert.match(reviewScript, /label\.textContent = '新词导览'/);
 assert.doesNotMatch(activeStudentNav, /openVocabularyReviewList|生词巩固/);
 assert.doesNotMatch(teacherNav, /openVocabularyReviewList|生词巩固/);
 
@@ -40,11 +38,12 @@ assert.match(baseStyles, /\.teacher-home-nav\s*\{[^}]*grid-template-columns:\s*r
 assert.match(baseStyles, /\.vocabulary-tour-entry\s*\{/);
 assert.match(layoutStyles, /\.bottom-feature-nav\.student-only\s*\{[^}]*margin:\s*18px auto 6px[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
 assert.match(layoutStyles, />\s*\.bottom-feature-nav__item\s*\{[^}]*grid-column:\s*auto/s);
-assert.doesNotMatch(layoutStyles, /repeat\(6|span\s+[23]/);
+assert.doesNotMatch(layoutStyles, /repeat\(6/);
+assert.match(layoutStyles, /\.student-home-card-grid\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
 
 assert.match(mainScript, /href\s*=\s*'styles-home-nav\.css'/);
 assert.match(mainScript, /homeNavigationLayout\s*=\s*'three-columns'/);
-assert.match(serviceWorker, /vocabulary-review-v20-task016/);
+assert.match(serviceWorker, /vocabulary-review-v22/);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
 assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson\.css'/);
 assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson-016\.css'/);

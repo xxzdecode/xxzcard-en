@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { devices, webkit } from 'playwright';
+const { devices, webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -93,7 +94,8 @@ async function openPage(
   user = 'sister',
   sharedState = null
 ) {
-  const context = await browser.newContext(viewport.contextOptions || (viewport.viewport ? viewport : { viewport }));
+  const contextOptions = viewport.contextOptions || (viewport.viewport ? viewport : { viewport });
+  const context = await browser.newContext({ ...contextOptions, serviceWorkers: 'block' });
   await context.addInitScript(selectedUser => localStorage.setItem('wc_user', selectedUser), user);
   const state = sharedState || new Map([
     ['main', structuredClone(mainData)],
@@ -144,7 +146,7 @@ async function openPage(
       body: JSON.stringify(typeof value === 'undefined' ? [] : [{ value }])
     });
   });
-  await page.goto(`${baseUrl}/${preview ? '?previewVocabularyAdventure=1' : ''}`, { waitUntil: 'networkidle' });
+  await page.goto(`${baseUrl}/${preview ? '?previewVocabularyAdventure=1' : ''}`, { waitUntil: 'commit' });
   await page.waitForFunction(() => typeof window.openVocabularyAdventureChallenge === 'function');
   await page.waitForFunction(() => document.getElementById('currentModeBadge')?.textContent.includes('当前：'));
   return { context, page, state, errors };
@@ -155,13 +157,16 @@ async function answerCurrent(page, state, correct = true, user = 'sister') {
   const session = saved.challengeSession;
   const item = session.items[session.cursor];
   const question = item.question;
+  await page.waitForFunction(expected => (
+    document.getElementById('vocabularyAdventureChallengeCount')?.textContent === expected
+  ), `${session.cursor + 1}/10`);
   if (question.interaction === 'choice') {
     const selected = correct
       ? question.correctIndex
       : (question.correctIndex + 1) % question.options.length;
     await page.locator('#vocabularyAdventureChallengeBody .vocabulary-adventure-options button').nth(selected).click();
   } else if (question.interaction === 'input') {
-    await page.locator('#vocabularyAdventureChallengeInput').fill(correct ? question.answer : '__wrong__');
+    await page.locator('#vocabularyAdventureChallengeInput').fill(correct ? question.answer : 'wrong');
     await page.getByRole('button', { name: '确认' }).click();
   } else {
     const answer = correct ? question.answer : [...question.answer].reverse();
@@ -173,19 +178,16 @@ async function answerCurrent(page, state, correct = true, user = 'sister') {
 
 try {
   const hidden = await openPage({ width: 1024, height: 768 }, false);
-  assert.equal(await hidden.page.locator('#vocabularyAdventureUnifiedHome').isHidden(), true);
-  assert.equal(await hidden.page.locator('#homeQuickActions').isVisible(), true);
-  assert.equal(await hidden.page.locator('#todayWordBtn').isVisible(), true);
-  assert.equal(await hidden.page.locator('#mixedWordBtn').isVisible(), true);
-  await hidden.page.locator('#todayWordBtn').click();
-  await hidden.page.waitForSelector('#screenWordTaskMenu.active');
-  await hidden.page.locator('#wordTaskChallengeBtn').click();
-  await hidden.page.waitForSelector('#screenDailyQuiz.active');
-  assert.equal(await hidden.page.locator('#dqCount').textContent(), '1/10');
+  assert.equal(await hidden.page.locator('#studentDashboard').isVisible(), true);
+  assert.equal(await hidden.page.locator('#homeQuickActions').count(), 0);
+  assert.equal(await hidden.page.locator('#todayWordBtn').count(), 0);
+  assert.equal(await hidden.page.locator('#mixedWordBtn').count(), 0);
+  assert.equal(await hidden.page.locator('#vocabularyAdventurePreviewEntry').isVisible(), true);
+  assert.equal(await hidden.page.locator('#vocabularyAdventureChallengeEntry').isVisible(), true);
   await hidden.context.close();
 
   const saveFailure = await openPage({ width: 1024, height: 768 }, true, [1, 3]);
-  await saveFailure.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  await saveFailure.page.waitForSelector('#studentDashboard:visible');
   await saveFailure.page.locator('#vocabularyAdventureChallengeEntry').click();
   await saveFailure.page.waitForFunction(() => (
     document.getElementById('vocabularyAdventureChallengeAction')?.textContent === '重新保存'
@@ -220,22 +222,22 @@ try {
     contextOptions: devices['iPad (gen 11) landscape']
   });
   try {
-    await run.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+    await run.page.waitForSelector('#studentDashboard:visible');
   } catch (error) {
     const diagnostics = await run.page.evaluate(() => ({
-      wrapper: document.getElementById('vocabularyAdventureUnifiedHome')?.outerHTML,
+      wrapper: document.getElementById('studentDashboard')?.outerHTML,
       currentUser: window.currentUser,
       preview: window.isVocabularyAdventurePreviewEnabled?.(location.search, localStorage),
       updater: String(window.updateVocabularyAdventurePreviewEntry || '').slice(0, 120)
     }));
     throw new Error(`${error.message}\n${JSON.stringify({ diagnostics, errors: run.errors }, null, 2)}`);
   }
-  assert.equal(await run.page.locator('#homeQuickActions').isHidden(), true);
+  assert.equal(await run.page.locator('#homeQuickActions').count(), 0);
   assert.equal(await run.page.locator('#vocabularyAdventurePreviewEntry').isVisible(), true);
   assert.equal(await run.page.locator('#vocabularyAdventureChallengeEntry').isVisible(), true);
   assert.equal(await run.page.locator('#grammarChallengeHomeEntry').isVisible(), true);
   assert.equal(await run.page.locator('#vocabularyTourHomeEntry').isVisible(), true);
-  assert.equal(await run.page.locator('#homeCheckinRow').isVisible(), true);
+  assert.equal(await run.page.locator('#studentClassroomPracticeEntry').isVisible(), true);
   assert.equal(await run.page.locator('#studentFeatureNav').isVisible(), true);
   await run.page.locator('#vocabularyAdventureChallengeEntry').click();
   await run.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
@@ -249,7 +251,7 @@ try {
   await run.page.locator('#vocabularyAdventureChallengeAction').click();
 
   const beforeRefresh = structuredClone(run.state.get('vocab_adventure_v1_sister').challengeSession.items[1].question);
-  await run.page.reload({ waitUntil: 'networkidle' });
+  await run.page.reload({ waitUntil: 'commit' });
   await run.page.waitForFunction(() => typeof window.openVocabularyAdventureChallenge === 'function');
   await run.page.evaluate(() => openVocabularyAdventureChallenge());
   await run.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
@@ -296,12 +298,12 @@ try {
     updateUserBar();
     await loadHome();
   });
-  assert.equal(await run.page.locator('#vocabularyAdventureUnifiedHome').isHidden(), true);
+  assert.equal(await run.page.locator('#studentDashboard').isHidden(), true);
   assert.equal(await run.page.locator('.teacher-home-nav').isVisible(), true);
   await run.context.close();
 
   const compact = await openPage({ width: 1024, height: 768 });
-  await compact.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  await compact.page.waitForSelector('#studentDashboard:visible');
   const compactLayout = await compact.page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     adventureHeight: document.getElementById('vocabularyAdventurePreviewEntry').getBoundingClientRect().height,
@@ -324,8 +326,8 @@ try {
     openPage({ width: 1180, height: 820 }, true, [], 'brother', sharedState)
   ]);
   await Promise.all([
-    sister.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible'),
-    brother.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible')
+    sister.page.waitForSelector('#studentDashboard:visible'),
+    brother.page.waitForSelector('#studentDashboard:visible')
   ]);
   await Promise.all([
     sister.page.locator('#vocabularyAdventureChallengeEntry').click(),
@@ -376,7 +378,7 @@ try {
   const brotherQuestion = structuredClone(
     sharedState.get('vocab_adventure_v1_brother').challengeSession.items[1].question
   );
-  await brother.page.reload({ waitUntil: 'networkidle' });
+  await brother.page.reload({ waitUntil: 'commit' });
   await brother.page.waitForFunction(() => typeof window.openVocabularyAdventureChallenge === 'function');
   await brother.page.evaluate(() => openVocabularyAdventureChallenge());
   await brother.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
@@ -411,7 +413,7 @@ try {
     ['daily_task_sister', {}]
   ]);
   const deviceA = await openPage({ width: 1024, height: 768 }, true, [], 'sister', deviceState);
-  await deviceA.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  await deviceA.page.waitForSelector('#studentDashboard:visible');
   await deviceA.page.locator('#vocabularyAdventureChallengeEntry').click();
   await deviceA.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
   await answerCurrent(deviceA.page, deviceState, true, 'sister');
@@ -422,7 +424,7 @@ try {
   await deviceA.context.close();
 
   const deviceB = await openPage({ width: 1024, height: 768 }, true, [], 'sister', deviceState);
-  await deviceB.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  await deviceB.page.waitForSelector('#studentDashboard:visible');
   await deviceB.page.locator('#vocabularyAdventureChallengeEntry').click();
   await deviceB.page.waitForSelector('#screenVocabularyAdventureChallenge.active');
   assert.equal(deviceState.get('vocab_adventure_v1_sister').challengeSession.cursor, 1);
@@ -434,7 +436,7 @@ try {
   await deviceB.context.close();
 
   const phone = await openPage({ width: 393, height: 852 });
-  await phone.page.waitForSelector('#vocabularyAdventureUnifiedHome:visible');
+  await phone.page.waitForSelector('#studentDashboard:visible');
   const phoneHome = await phone.page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     adventureVisible: !!document.getElementById('vocabularyAdventurePreviewEntry')?.getClientRects().length,

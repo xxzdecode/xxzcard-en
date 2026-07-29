@@ -454,9 +454,9 @@
     }
 
     async function updateVocabularyAdventurePreviewEntry() {
-      const wrapper = element('vocabularyAdventureUnifiedHome');
+      const wrapper = element('studentDashboard');
       const adventureButton = element('vocabularyAdventurePreviewEntry');
-      const enabled = previewEnabled() && !!studentUser();
+      const enabled = !!studentUser();
       if (wrapper) wrapper.hidden = !enabled;
       if (adventureButton) adventureButton.hidden = !enabled;
       toggleLegacyHome(enabled);
@@ -469,25 +469,25 @@
           ? getVocabularyAdventureLegacyChallengeUsage()
           : Promise.resolve({ attempts: 0, bestScore: 0 })
       ]);
-      if (user !== studentUser() || !previewEnabled()) return;
+      if (user !== studentUser()) return;
 
       const candidates = collectVisibleVocabularyAdventureCandidates();
       const session = state.session;
       const adventureTitle = element('vocabularyAdventureHomeTitle');
       const adventureSub = element('vocabularyAdventureHomeSub');
+      const adventureStatus = element('vocabularyAdventureHomeStatus');
       if (adventureTitle) {
-        adventureTitle.textContent = session && session.completed
-          ? '查看今日总结'
-          : session && !session.completed
-            ? '继续探险'
-            : '探险';
+        adventureTitle.textContent = '词汇探险';
       }
       if (adventureSub) {
-        adventureSub.textContent = session
+        adventureSub.textContent = '完成今日路线';
+      }
+      if (adventureStatus) {
+        adventureStatus.textContent = session
           ? session.completed
-            ? '今日探险已完成'
-            : `已完成 ${session.cursor}/${session.plan.length}`
-          : '系统自动安排今日词汇';
+            ? '今日已完成'
+            : `继续探险 · ${session.cursor}/${session.plan.length}`
+          : '未开始';
       }
 
       const status = challengeHomeStatus({
@@ -503,8 +503,9 @@
       if (challengeButton) {
         challengeButton.disabled = status.state === 'locked' || status.state === 'insufficient';
         challengeButton.dataset.state = status.state;
+        challengeButton.setAttribute('aria-label', `单词挑战，${status.text}，最高10金币`);
       }
-      if (challengeTitle) challengeTitle.textContent = status.state === 'continue' ? '继续挑战' : '挑战';
+      if (challengeTitle) challengeTitle.textContent = '单词挑战';
       if (challengeSub) challengeSub.textContent = status.text;
     }
 
@@ -681,7 +682,7 @@
     }
 
     async function openVocabularyAdventureChallenge(forceNew) {
-      if (!previewEnabled() || !studentUser()) return;
+      if (!studentUser()) return;
       resetRuntime();
       runtime.user = studentUser();
       showScreen('screenVocabularyAdventureChallenge');

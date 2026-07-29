@@ -168,7 +168,7 @@
     function updateVocabularyAdventurePreviewEntry() {
       const entry = element('vocabularyAdventurePreviewEntry');
       if (!entry) return;
-      entry.hidden = !(previewEnabled() && ['sister', 'brother'].includes(currentUserValue()));
+      entry.hidden = !['sister', 'brother'].includes(currentUserValue());
     }
 
     function resetVocabularyAdventurePlayerRuntime() {
@@ -861,7 +861,7 @@
     }
 
     async function openVocabularyAdventure() {
-      if (!previewEnabled() || !['sister', 'brother'].includes(currentUserValue())) return;
+      if (!['sister', 'brother'].includes(currentUserValue())) return;
       resetVocabularyAdventurePlayerRuntime();
       showScreen('screenVocabularyAdventure');
       setPlayerBody('<div class="vocabulary-adventure-loading">正在准备今日探险…</div>', 'loading');
