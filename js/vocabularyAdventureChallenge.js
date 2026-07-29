@@ -69,163 +69,14 @@
     const answered = value.status === 'answered';
     return {
       wordKey,
-      taskType: typeof value.taskType === 'string' ? value.taskType : String(question.questionType || question.taskType || ''),
+      taskType: typeof value.taskType === 'string'
+        ? value.taskType
+        : String(question.questionType || question.taskType || ''),
       question,
       status: answered ? 'answered' : 'pending',
       userAnswer: answered ? clone(value.userAnswer) : null,
       correct: answered ? value.correct === true : null,
       answeredAt: answered && typeof value.answeredAt === 'string' ? value.answeredAt : ''
-    };
-  }
-
-  function normalizeChallengeSession(value) {
-    if (!plainObject(value) || !localDate(value.date)) return null;
-    const items = Array.isArray(value.items) ? value.items.map(normalizeChallengeItem).filter(Boolean) : [];
-    if (items.length !== CHALLENGE_LIMIT) return null;
-    let cursor = Math.max(0, Math.min(items.length, count(value.cursor)));
-    const answeredCount = items.filter(item => item.status === 'answered').length;
-    cursor = Math.max(cursor, answeredCount);
-    const status = value.status === 'completed'
-      ? 'completed'
-      : value.status === 'abandoned'
-        ? 'abandoned'
-        : 'active';
-    return {
-      date: value.date,
-      attemptIndex: Math.max(1, count(value.attemptIndex) || 1),
-      seed: String(value.seed || ''),
-      status,
-      items,
-      cursor: status === 'completed' ? items.length : cursor,
-      correctCount: items.filter(item => item.correct === true).length,
-      wrongCount: items.filter(item => item.correct === false).length,
-      wrongItems: items.filter(item => item.correct === false).map(item => ({
-        wordKey: item.wordKey,
-        taskType: item.taskType,
-        userAnswer: userAnswerText(item.question, item.userAnswer),
-        correctAnswer: correctAnswerText(item.question)
-      })),
-      startedAt: typeof value.startedAt === 'string' ? value.startedAt : '',
-      updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : '',
-      completedAt: typeof value.completedAt === 'string' ? value.completedAt : ''
-    };
-  }
-
-  function normalizeChallengeState(value, today) {
-    const state = core.normalizeVocabularyAdventureState(value);
-    state.challengeDaily = normalizeChallengeDaily(state.challengeDaily, today);
-    state.challengeSession = normalizeChallengeSession(state.challengeSession);
-    return state;
-  }
-
-  function challengeCandidatePriority(wordState, today) {
-    if (wordState.challengeFlagAt) return 5;
-    if (wordState.lastResult === 'F') return 0;
-    if (wordState.lastResult === 'H') return 1;
-    if (wordState.nextReviewAt && wordState.nextReviewAt <= today) return 2;
-    if (wordState.intervalIndex >= 4) return 4;
-    return 3;
-  }
-
-  function collectChallengeCandidates(candidates, stateValue, today) {
-    const state = core.normalizeVocabularyAdventureState(stateValue);
-    return (Array.isArray(candidates) ? candidates : [])
-      .filter(candidate => {
-        const wordState = state.words[core.adventureWordKey(candidate && candidate.key)];
-        return candidate && candidate.card && wordState && wordState.reviewCount > 0;
-      })
-      .map(candidate => ({
-        ...candidate,
-        challengePriority: challengeCandidatePriority(state.words[candidate.key], today)
-      }));
-  }
-
-  function serializeQuestion(value) {
-    const question = clone(value);
-    delete question.card;
-    delete question.attemptedTypes;
-    question.questionType = question.questionType || question.taskType;
-    delete question.taskType;
-    return question;
-  }
-
-  function buildQuestionForCandidate(context, desiredType) {
-    const registry = review.VocabularyAdventureReviewTypes;
-    const start = CHALLENGE_TYPES.indexOf(desiredType);
-    const ordered = [...CHALLENGE_TYPES.slice(start), ...CHALLENGE_TYPES.slice(0, start)];
-    for (const taskType of ordered) {
-      const builder = registry[taskType];
-      if (!builder) continue;
-      const question = builder.build({ ...context, taskType });
-      if (question && question.ok && question.interaction !== 'match') {
-        return serializeQuestion({ ...question, questionType: taskType, requiresUsageConfirmation: false });
-      }
-    }
-    return null;
-  }
-
-  function buildChallengeSession(options) {
-    const settings = plainObject(options) ? options : {};
-    const today = String(settings.today || '');
-    const userKey = String(settings.userKey || '');
-    const attemptIndex = Math.max(1, count(settings.attemptIndex) || 1);
-    const candidates = collectChallengeCandidates(settings.candidates, settings.state, today);
-    if (candidates.length < CHALLENGE_LIMIT) {
-      return { ok: false, code: 'INSUFFICIENT_CHALLENGE_WORDS', available: candidates.length };
-    }
-    const seed = `${today}|${userKey}|challenge|${attemptIndex}`;
-    const ordered = [];
-    [...new Set(candidates.map(candidate => candidate.challengePriority))].sort((a, b) => a - b).forEach(priority => {
-      ordered.push(...core.deterministicAdventureShuffle(
-        candidates.filter(candidate => candidate.challengePriority === priority),
-        `${seed}|priority:${priority}`,
-        candidate => candidate.key
-      ));
-    });
-    const targets = ordered.slice(0, CHALLENGE_LIMIT);
-    const items = [];
-    for (let index = 0; index < targets.length; index += 1) {
-      const candidate = targets[index];
-      const desiredOffset = (core.stableAdventureHash(`${seed}|types`) + index) % CHALLENGE_TYPES.length;
-      const desiredType = CHALLENGE_TYPES[desiredOffset];
-      const question = buildQuestionForCandidate({
-        session: { date: today },
-        planItem: { wordKey: candidate.key, taskType: desiredType },
-        planIndex: index,
-        wordState: core.normalizeVocabularyAdventureState(settings.state).words[candidate.key],
-        allCards: candidates,
-        userKey: `${userKey}|attempt:${attemptIndex}`,
-        reason: 'due'
-      }, desiredType);
-      if (!question) {
-        return { ok: false, code: 'NO_SAFE_CHALLENGE_QUESTION', wordKey: candidate.key };
-      }
-      items.push({
-        wordKey: candidate.key,
-        taskType: question.questionType,
-        question,
-        status: 'pending',
-        userAnswer: null,
-        correct: null,
-        answeredAt: ''
-      });
-    }
-    return {
-      ok: true,
-      session: {
-        date: today,
-        attemptIndex,
-        seed,
-        status: 'active',
-        items,
-        cursor: 0,
-        correctCount: 0,
-        wrongCount: 0,
-        wrongItems: [],
-        startedAt: String(settings.startedAt || new Date().toISOString()),
-        updatedAt: String(settings.startedAt || new Date().toISOString()),
-        completedAt: ''
-      }
     };
   }
 
@@ -259,6 +110,174 @@
     return '';
   }
 
+  function normalizeChallengeSession(value) {
+    if (!plainObject(value) || !localDate(value.date)) return null;
+    const items = Array.isArray(value.items) ? value.items.map(normalizeChallengeItem).filter(Boolean) : [];
+    if (items.length !== CHALLENGE_LIMIT) return null;
+
+    let cursor = Math.max(0, Math.min(items.length, count(value.cursor)));
+    const answeredCount = items.filter(item => item.status === 'answered').length;
+    cursor = Math.max(cursor, answeredCount);
+    const status = value.status === 'completed'
+      ? 'completed'
+      : value.status === 'abandoned'
+        ? 'abandoned'
+        : 'active';
+
+    return {
+      date: value.date,
+      attemptIndex: Math.max(1, count(value.attemptIndex) || 1),
+      seed: String(value.seed || ''),
+      status,
+      items,
+      cursor: status === 'completed' ? items.length : cursor,
+      correctCount: items.filter(item => item.correct === true).length,
+      wrongCount: items.filter(item => item.correct === false).length,
+      wrongItems: items.filter(item => item.correct === false).map(item => ({
+        wordKey: item.wordKey,
+        taskType: item.taskType,
+        userAnswer: userAnswerText(item.question, item.userAnswer),
+        correctAnswer: correctAnswerText(item.question)
+      })),
+      startedAt: typeof value.startedAt === 'string' ? value.startedAt : '',
+      updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : '',
+      completedAt: typeof value.completedAt === 'string' ? value.completedAt : ''
+    };
+  }
+
+  function normalizeChallengeState(value, today) {
+    const state = core.normalizeVocabularyAdventureState(value);
+    state.challengeDaily = normalizeChallengeDaily(state.challengeDaily, today);
+    state.challengeSession = normalizeChallengeSession(state.challengeSession);
+    return state;
+  }
+
+  function challengeCandidatePriority(wordState, today) {
+    if (wordState.lastResult === 'F') return 0;
+    if (wordState.lastResult === 'H') return 1;
+    if (wordState.nextReviewAt && wordState.nextReviewAt <= today) return 2;
+    if (wordState.intervalIndex >= 4) return 4;
+    return 3;
+  }
+
+  function collectChallengeCandidates(candidates, stateValue, today) {
+    const state = core.normalizeVocabularyAdventureState(stateValue);
+    return (Array.isArray(candidates) ? candidates : [])
+      .filter(candidate => {
+        const key = core.adventureWordKey(candidate && candidate.key);
+        const wordState = state.words[key];
+        return candidate
+          && candidate.card
+          && wordState
+          && wordState.reviewCount > 0
+          && !wordState.challengeFlagAt;
+      })
+      .map(candidate => ({
+        ...candidate,
+        challengePriority: challengeCandidatePriority(state.words[core.adventureWordKey(candidate.key)], today)
+      }));
+  }
+
+  function serializeQuestion(value) {
+    const question = clone(value);
+    delete question.card;
+    delete question.attemptedTypes;
+    question.questionType = question.questionType || question.taskType;
+    delete question.taskType;
+    return question;
+  }
+
+  function buildQuestionForCandidate(context, desiredType) {
+    const registry = review.VocabularyAdventureReviewTypes;
+    const start = Math.max(0, CHALLENGE_TYPES.indexOf(desiredType));
+    const ordered = [...CHALLENGE_TYPES.slice(start), ...CHALLENGE_TYPES.slice(0, start)];
+    for (const taskType of ordered) {
+      const builder = registry[taskType];
+      if (!builder) continue;
+      const question = builder.build({ ...context, taskType });
+      if (question && question.ok && question.interaction !== 'match') {
+        return serializeQuestion({
+          ...question,
+          questionType: taskType,
+          requiresUsageConfirmation: false
+        });
+      }
+    }
+    return null;
+  }
+
+  function buildChallengeSession(options) {
+    const settings = plainObject(options) ? options : {};
+    const today = String(settings.today || '');
+    const userKey = String(settings.userKey || '');
+    const attemptIndex = Math.max(1, count(settings.attemptIndex) || 1);
+    const candidates = collectChallengeCandidates(settings.candidates, settings.state, today);
+    if (candidates.length < CHALLENGE_LIMIT) {
+      return { ok: false, code: 'INSUFFICIENT_CHALLENGE_WORDS', available: candidates.length };
+    }
+
+    const seed = `${today}|${userKey}|challenge|${attemptIndex}`;
+    const ordered = [];
+    [...new Set(candidates.map(candidate => candidate.challengePriority))]
+      .sort((a, b) => a - b)
+      .forEach(priority => {
+        ordered.push(...core.deterministicAdventureShuffle(
+          candidates.filter(candidate => candidate.challengePriority === priority),
+          `${seed}|priority:${priority}`,
+          candidate => candidate.key
+        ));
+      });
+
+    const targets = ordered.slice(0, CHALLENGE_LIMIT);
+    const items = [];
+    const normalizedState = core.normalizeVocabularyAdventureState(settings.state);
+    for (let index = 0; index < targets.length; index += 1) {
+      const candidate = targets[index];
+      const desiredOffset = (core.stableAdventureHash(`${seed}|types`) + index) % CHALLENGE_TYPES.length;
+      const desiredType = CHALLENGE_TYPES[desiredOffset];
+      const question = buildQuestionForCandidate({
+        session: { date: today },
+        planItem: { wordKey: candidate.key, taskType: desiredType },
+        planIndex: index,
+        wordState: normalizedState.words[candidate.key],
+        allCards: candidates,
+        userKey: `${userKey}|attempt:${attemptIndex}`,
+        reason: 'due'
+      }, desiredType);
+      if (!question) {
+        return { ok: false, code: 'NO_SAFE_CHALLENGE_QUESTION', wordKey: candidate.key };
+      }
+      items.push({
+        wordKey: candidate.key,
+        taskType: question.questionType,
+        question,
+        status: 'pending',
+        userAnswer: null,
+        correct: null,
+        answeredAt: ''
+      });
+    }
+
+    const startedAt = String(settings.startedAt || new Date().toISOString());
+    return {
+      ok: true,
+      session: {
+        date: today,
+        attemptIndex,
+        seed,
+        status: 'active',
+        items,
+        cursor: 0,
+        correctCount: 0,
+        wrongCount: 0,
+        wrongItems: [],
+        startedAt,
+        updatedAt: startedAt,
+        completedAt: ''
+      }
+    };
+  }
+
   function prepareChallengeAnswer(stateValue, submission) {
     const input = plainObject(submission) ? submission : {};
     const today = String(input.today || '');
@@ -266,9 +285,11 @@
     const session = state.challengeSession;
     if (!session || session.status !== 'active') throw new Error('CHALLENGE_NOT_ACTIVE');
     if (session.cursor !== Number(input.expectedCursor)) throw new Error('CHALLENGE_CURSOR_MISMATCH');
+
     const item = session.items[session.cursor];
     if (!item || item.status !== 'pending') throw new Error('CHALLENGE_ITEM_NOT_PENDING');
     if (item.wordKey !== core.adventureWordKey(input.wordKey)) throw new Error('CHALLENGE_WORD_MISMATCH');
+
     const correct = review.gradeVocabularyAdventureReviewQuestion(item.question, input.answer);
     const next = clone(state);
     const nextSession = next.challengeSession;
@@ -281,6 +302,7 @@
     nextSession.updatedAt = nextItem.answeredAt;
     nextSession.correctCount += correct ? 1 : 0;
     nextSession.wrongCount += correct ? 0 : 1;
+
     if (!correct) {
       const previousWordState = next.words[nextItem.wordKey] || {};
       next.words[nextItem.wordKey] = {
@@ -294,6 +316,7 @@
         correctAnswer: correctAnswerText(nextItem.question)
       });
     }
+
     const completed = nextSession.cursor >= nextSession.items.length;
     if (completed) {
       nextSession.status = 'completed';
@@ -302,6 +325,7 @@
       const score = Math.round((nextSession.correctCount / CHALLENGE_LIMIT) * 100);
       next.challengeDaily.bestScore = Math.max(next.challengeDaily.bestScore, score);
     }
+
     return {
       state: normalizeChallengeState(next, today),
       correct,
@@ -318,11 +342,18 @@
     if (!state.challengeSession || state.challengeSession.status !== 'active') {
       throw new Error('CHALLENGE_NOT_ACTIVE');
     }
+
     const next = clone(state);
+    const exitedAt = String(input.exitedAt || new Date().toISOString());
     next.challengeSession.status = 'abandoned';
-    next.challengeSession.updatedAt = String(input.exitedAt || new Date().toISOString());
-    next.challengeSession.completedAt = next.challengeSession.updatedAt;
+    next.challengeSession.updatedAt = exitedAt;
+    next.challengeSession.completedAt = exitedAt;
     next.challengeDaily.attempts = Math.min(DAILY_LIMIT, next.challengeDaily.attempts + 1);
+
+    // Keep the existing challenge rule: exiting consumes one attempt and records
+    // the score achieved so far against the fixed ten-question denominator.
+    const score = Math.round((next.challengeSession.correctCount / CHALLENGE_LIMIT) * 100);
+    next.challengeDaily.bestScore = Math.max(next.challengeDaily.bestScore, score);
     return normalizeChallengeState(next, today);
   }
 
@@ -336,24 +367,52 @@
     const active = state.challengeSession
       && state.challengeSession.date === today
       && state.challengeSession.status === 'active';
-    if (active) return { state: 'continue', attempts, bestScore, text: `继续挑战 · ${state.challengeSession.cursor}/${CHALLENGE_LIMIT}` };
-    if (attempts >= DAILY_LIMIT) return { state: 'locked', attempts, bestScore, text: `今日最高 ${bestScore} 分` };
+
+    if (active) {
+      return {
+        state: 'continue',
+        attempts,
+        bestScore,
+        text: `继续挑战 · ${state.challengeSession.cursor}/${CHALLENGE_LIMIT}`
+      };
+    }
+    if (attempts >= DAILY_LIMIT) {
+      return { state: 'locked', attempts, bestScore, text: `今日最高 ${bestScore} 分` };
+    }
+
     const available = collectChallengeCandidates(settings.candidates, state, today).length;
     if (available < CHALLENGE_LIMIT) {
-      return { state: 'insufficient', attempts, bestScore, available, text: `已摸底 ${available}/10 个词` };
+      return {
+        state: 'insufficient',
+        attempts,
+        bestScore,
+        available,
+        text: `已摸底且无待复查 ${available}/10 个词`
+      };
     }
-    if (attempts > 0) return { state: 'ready', attempts, bestScore, text: `最高 ${bestScore} 分 · 还可 ${DAILY_LIMIT - attempts} 次` };
+    if (attempts > 0) {
+      return {
+        state: 'ready',
+        attempts,
+        bestScore,
+        text: `最高 ${bestScore} 分 · 还可 ${DAILY_LIMIT - attempts} 次`
+      };
+    }
     return { state: 'ready', attempts, bestScore, text: '10 题综合挑战 · 今日可挑战' };
   }
 
   function escapeHtml(value) {
     return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function createVocabularyAdventureChallengeBrowserApi() {
     if (typeof window === 'undefined' || typeof document === 'undefined') return {};
+
     const runtime = {
       user: '',
       state: null,
@@ -380,18 +439,18 @@
     }
 
     function studentUser() {
-      return typeof currentUser !== 'undefined' && ['sister', 'brother'].includes(currentUser) ? currentUser : '';
+      return typeof currentUser !== 'undefined' && ['sister', 'brother'].includes(currentUser)
+        ? currentUser
+        : '';
     }
 
     function toggleLegacyHome(hidden) {
-      ['homeQuickActions', 'grammarChallengeHomeEntry', 'vocabularyTourHomeEntry', 'studentFeatureNav', 'homeCheckinRow']
-        .forEach(id => {
-          const node = element(id);
-          if (node) {
-            node.hidden = hidden;
-            node.style.display = hidden ? 'none' : '';
-          }
-        });
+      // The preview replaces only the old vocabulary quick actions. Grammar,
+      // vocabulary tour, check-in and the bottom feature navigation stay usable.
+      const node = element('homeQuickActions');
+      if (!node) return;
+      node.hidden = hidden;
+      node.style.display = hidden ? 'none' : '';
     }
 
     async function updateVocabularyAdventurePreviewEntry() {
@@ -402,6 +461,7 @@
       if (adventureButton) adventureButton.hidden = !enabled;
       toggleLegacyHome(enabled);
       if (!enabled) return;
+
       const user = studentUser();
       const [state, legacy] = await Promise.all([
         loadVocabularyAdventureState(user),
@@ -410,6 +470,7 @@
           : Promise.resolve({ attempts: 0, bestScore: 0 })
       ]);
       if (user !== studentUser() || !previewEnabled()) return;
+
       const candidates = collectVisibleVocabularyAdventureCandidates();
       const session = state.session;
       const adventureTitle = element('vocabularyAdventureHomeTitle');
@@ -428,6 +489,7 @@
             : `已完成 ${session.cursor}/${session.plan.length}`
           : '系统自动安排今日词汇';
       }
+
       const status = challengeHomeStatus({
         state,
         candidates,
@@ -467,7 +529,9 @@
       if (button) {
         button.hidden = !label;
         button.textContent = label || '';
-        button.onclick = handler && typeof window[handler] === 'function' ? window[handler] : null;
+        button.onclick = handler && typeof window[handler] === 'function'
+          ? window[handler]
+          : null;
       }
     }
 
@@ -490,7 +554,9 @@
       const countNode = element('vocabularyAdventureChallengeCount');
       const fill = element('vocabularyAdventureChallengeFill');
       if (!session) return;
-      if (countNode) countNode.textContent = `${Math.min(session.cursor + 1, CHALLENGE_LIMIT)}/${CHALLENGE_LIMIT}`;
+      if (countNode) {
+        countNode.textContent = `${Math.min(session.cursor + 1, CHALLENGE_LIMIT)}/${CHALLENGE_LIMIT}`;
+      }
       if (fill) fill.style.width = `${(session.cursor / CHALLENGE_LIMIT) * 100}%`;
     }
 
@@ -514,12 +580,14 @@
       const item = currentItem();
       const body = element('vocabularyAdventureChallengeBody');
       if (!item || !body) return;
+
       const question = item.question;
       runtime.order = [];
       const audio = ['audioToWord', 'audioSpelling'].includes(question.questionType)
         ? '<button type="button" class="vocabulary-adventure-audio-prompt" onclick="speakVocabularyAdventureChallengeWord()">🔊 再听一次</button>'
         : '';
       let interaction = '';
+
       if (question.interaction === 'choice') {
         interaction = `<div class="vocabulary-adventure-options">${question.options.map((option, index) => `
           <button type="button" onclick="answerVocabularyAdventureChallengeChoice(${index})">${escapeHtml(option.label)}</button>
@@ -541,6 +609,7 @@
           </div>
         </div>`;
       }
+
       body.innerHTML = `<div class="vocabulary-adventure-question">
         <div class="vocabulary-adventure-instruction">挑战 · 无提示</div>
         <h2>${escapeHtml(questionPrompt(question))}</h2>
@@ -557,6 +626,7 @@
       const session = currentSession();
       const body = element('vocabularyAdventureChallengeBody');
       if (!session || !body) return;
+
       const daily = normalizeChallengeDaily(runtime.state.challengeDaily, session.date);
       const totalAttempts = Math.min(DAILY_LIMIT, runtime.legacy.attempts + daily.attempts);
       const bestScore = Math.max(runtime.legacy.bestScore || 0, daily.bestScore);
@@ -581,7 +651,9 @@
         </div>` : '<p>全部答对，没有错题。</p>'}
         <div class="vocabulary-adventure-challenge-result-actions">
           <button type="button" onclick="closeVocabularyAdventureChallenge()">返回词汇首页</button>
-          ${totalAttempts < DAILY_LIMIT ? '<button type="button" class="primary" onclick="startAnotherVocabularyAdventureChallenge()">再挑战一次</button>' : ''}
+          ${totalAttempts < DAILY_LIMIT
+            ? '<button type="button" class="primary" onclick="startAnotherVocabularyAdventureChallenge()">再挑战一次</button>'
+            : ''}
         </div>
       </div>`;
       const fill = element('vocabularyAdventureChallengeFill');
@@ -599,10 +671,12 @@
 
     function renderUnavailable(message) {
       const body = element('vocabularyAdventureChallengeBody');
-      if (body) body.innerHTML = `<div class="vocabulary-adventure-terminal">
-        <div class="vocabulary-adventure-terminal-icon">⚠️</div>
-        <h2>暂时不能挑战</h2><p>${escapeHtml(message)}</p>
-      </div>`;
+      if (body) {
+        body.innerHTML = `<div class="vocabulary-adventure-terminal">
+          <div class="vocabulary-adventure-terminal-icon">⚠️</div>
+          <h2>暂时不能挑战</h2><p>${escapeHtml(message)}</p>
+        </div>`;
+      }
       setFeedback('', '', '返回首页', 'closeVocabularyAdventureChallenge');
     }
 
@@ -612,6 +686,7 @@
       runtime.user = studentUser();
       showScreen('screenVocabularyAdventureChallenge');
       const today = core.localDateKey(new Date());
+
       try {
         const [loaded, legacy] = await Promise.all([
           loadVocabularyAdventureState(runtime.user),
@@ -622,6 +697,7 @@
         runtime.state = normalizeChallengeState(loaded, today);
         runtime.legacy = legacy;
         runtime.candidates = collectVisibleVocabularyAdventureCandidates();
+
         const status = challengeHomeStatus({
           state: runtime.state,
           candidates: runtime.candidates,
@@ -630,8 +706,13 @@
           legacyBestScore: legacy.bestScore
         });
         if (!forceNew && status.state === 'continue') return renderCurrent();
-        if (status.attempts >= DAILY_LIMIT) return renderUnavailable('今天的 2 次挑战已经完成，明天再来。');
-        if (status.available < CHALLENGE_LIMIT) return renderUnavailable('可挑战词不足 10 个，请先完成探险。');
+        if (status.attempts >= DAILY_LIMIT) {
+          return renderUnavailable('今天的 2 次挑战已经完成，明天再来。');
+        }
+        if (status.available < CHALLENGE_LIMIT) {
+          return renderUnavailable('可挑战词不足 10 个，请先完成探险待复查。');
+        }
+
         const built = buildChallengeSession({
           candidates: runtime.candidates,
           state: runtime.state,
@@ -640,11 +721,22 @@
           attemptIndex: status.attempts + 1,
           startedAt: new Date().toISOString()
         });
-        if (!built.ok) return renderUnavailable('当前词卡暂时无法生成完整的 10 题挑战。');
-        runtime.prepared = normalizeChallengeState({ ...runtime.state, challengeSession: built.session }, today);
+        if (!built.ok) {
+          return renderUnavailable('当前词卡暂时无法生成完整的 10 题挑战。');
+        }
+
+        runtime.prepared = normalizeChallengeState({
+          ...runtime.state,
+          challengeSession: built.session
+        }, today);
         runtime.preparedMeta = { kind: 'initial' };
         if (!await saveCurrentVocabularyAdventureState(runtime.prepared)) {
-          setFeedback('挑战计划保存失败，尚未开始。', 'failed', '重新保存', 'retryVocabularyAdventureChallengeSave');
+          setFeedback(
+            '挑战计划保存失败，尚未开始。',
+            'failed',
+            '重新保存',
+            'retryVocabularyAdventureChallengeSave'
+          );
           return;
         }
         runtime.state = runtime.prepared;
@@ -662,9 +754,13 @@
       const session = currentSession();
       const item = currentItem();
       if (!session || !item) return;
-      element('vocabularyAdventureChallengeBody')?.querySelectorAll('button,input').forEach(control => {
-        control.disabled = true;
-      });
+
+      element('vocabularyAdventureChallengeBody')
+        ?.querySelectorAll('button,input')
+        .forEach(control => {
+          control.disabled = true;
+        });
+
       try {
         const prepared = prepareChallengeAnswer(runtime.state, {
           today: session.date,
@@ -679,9 +775,15 @@
         const saved = await saveCurrentVocabularyAdventureState(runtime.prepared);
         runtime.saving = false;
         if (!saved) {
-          setFeedback('保存失败，本题没有计入成绩。', 'failed', '重新保存', 'retryVocabularyAdventureChallengeSave');
+          setFeedback(
+            '保存失败，本题没有计入成绩。',
+            'failed',
+            '重新保存',
+            'retryVocabularyAdventureChallengeSave'
+          );
           return;
         }
+
         runtime.state = runtime.prepared;
         runtime.prepared = null;
         runtime.preparedMeta = null;
@@ -689,8 +791,14 @@
         const detail = prepared.correct
           ? '回答正确'
           : `回答错误。${card.word || item.wordKey}：${card.meaning || ''}；正确答案：${prepared.correctAnswer}`;
-        setFeedback(detail, prepared.correct ? 'direct' : 'failed', prepared.completed ? '查看结果' : '下一题', 'nextVocabularyAdventureChallenge');
+        setFeedback(
+          detail,
+          prepared.correct ? 'direct' : 'failed',
+          prepared.completed ? '查看结果' : '下一题',
+          'nextVocabularyAdventureChallenge'
+        );
       } catch (error) {
+        runtime.saving = false;
         console.error('Unable to prepare vocabulary challenge answer', error);
         setFeedback('当前题无法提交，请返回后重试。', 'failed', '', '');
       }
@@ -702,15 +810,24 @@
       const saved = await saveCurrentVocabularyAdventureState(runtime.prepared);
       runtime.saving = false;
       if (!saved) {
-        setFeedback('仍然保存失败，请检查网络后重试。', 'failed', '重新保存', 'retryVocabularyAdventureChallengeSave');
+        setFeedback(
+          '仍然保存失败，请检查网络后重试。',
+          'failed',
+          '重新保存',
+          'retryVocabularyAdventureChallengeSave'
+        );
         return;
       }
+
       const meta = runtime.preparedMeta;
       runtime.state = runtime.prepared;
       runtime.prepared = null;
       runtime.preparedMeta = null;
-      if (meta && meta.kind === 'initial') renderCurrent();
-      else setFeedback(
+      if (meta && meta.kind === 'initial') {
+        renderCurrent();
+        return;
+      }
+      setFeedback(
         meta && meta.correct ? '回答正确' : `回答错误。正确答案：${meta && meta.correctAnswer || ''}`,
         meta && meta.correct ? 'direct' : 'failed',
         meta && meta.completed ? '查看结果' : '下一题',
@@ -732,7 +849,9 @@
       const answer = element('vocabularyAdventureChallengeOrderAnswer');
       if (!item || !answer) return;
       const byId = new Map(item.question.tokens.map(token => [token.id, token.label]));
-      answer.textContent = runtime.order.length ? runtime.order.map(id => byId.get(id)).join(item.taskType === 'letterOrder' ? '' : ' ') : '点击下方卡片完成排列';
+      answer.textContent = runtime.order.length
+        ? runtime.order.map(id => byId.get(id)).join(item.taskType === 'letterOrder' ? '' : ' ')
+        : '点击下方卡片完成排列';
       document.querySelectorAll('#vocabularyAdventureChallengeBody [data-token]').forEach(button => {
         button.disabled = runtime.order.includes(button.dataset.token);
       });
@@ -750,7 +869,9 @@
 
     function submitVocabularyAdventureChallengeOrder() {
       const item = currentItem();
-      if (item && runtime.order.length === item.question.answer.length) submitAnswer([...runtime.order]);
+      if (item && runtime.order.length === item.question.answer.length) {
+        submitAnswer([...runtime.order]);
+      }
     }
 
     function nextVocabularyAdventureChallenge() {
