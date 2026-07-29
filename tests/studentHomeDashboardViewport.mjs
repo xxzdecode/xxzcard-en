@@ -4,7 +4,7 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const { devices, webkit } = createRequire(import.meta.url)('playwright');
+const { chromium, devices, webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -74,11 +74,20 @@ const browser = await webkit.launch();
 
 async function openHome(user, contextOptions) {
   const context = await browser.newContext({ ...contextOptions, serviceWorkers: 'block' });
-  await context.addInitScript(selectedUser => localStorage.setItem('wc_user', selectedUser), user);
+  await context.addInitScript(({ selectedUser, mirror }) => {
+    localStorage.setItem('wc_user', selectedUser);
+    localStorage.setItem('wc_sb_main', JSON.stringify(mirror));
+  }, { selectedUser: user, mirror: mainData });
   const state = new Map([
     ['main', structuredClone(mainData)],
     [`vocab_adventure_v1_${user}`, structuredClone(adventureState)],
-    [`daily_task_${user}`, {}]
+    [`daily_task_${user}`, {}],
+    [`student_reward_v1_${user}`, {
+      version: 1,
+      user,
+      totalCoins: user === 'brother' ? 417 : 406,
+      daily: {}
+    }]
   ]);
   const page = await context.newPage();
   const errors = [];
@@ -112,14 +121,28 @@ async function openHome(user, contextOptions) {
     });
   });
   await page.goto(baseUrl, { waitUntil: 'commit' });
-  await page.waitForFunction(expected => (
-    document.getElementById('studentSummaryName')?.textContent === expected
-      || (expected === '老师' && document.body.classList.contains('is-teacher'))
-  ), user === 'brother' ? '弟弟' : user === 'teacher' ? '老师' : '姐姐');
+  try {
+    await page.waitForFunction(expected => (
+      document.getElementById('studentSummaryName')?.textContent === expected
+        || (expected === '老师' && document.body.classList.contains('is-teacher'))
+    ), user === 'brother' ? '弟弟' : user === 'teacher' ? '老师' : '姐姐');
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      readyState: document.readyState,
+      currentName: document.getElementById('studentSummaryName')?.textContent || '',
+      bodyClass: document.body.className
+    }));
+    throw new Error(`student home init failed for ${user}: ${JSON.stringify({ state, errors })}`, { cause: error });
+  }
   await page.waitForFunction(() => Boolean(document.querySelector('link[data-student-home-dashboard]')?.sheet));
   if (user !== 'teacher') {
-    await page.waitForFunction(() => [...document.querySelectorAll('.student-home-card__scene')]
-      .every(image => image.complete && image.naturalWidth > 0));
+    assert.equal(await page.locator('#fbLoading').isVisible().catch(() => false), false);
+    const scenes = page.locator('.student-home-card__scene');
+    for (let index = 0; index < await scenes.count(); index += 1) {
+      await scenes.nth(index).scrollIntoViewIfNeeded();
+      await scenes.nth(index).evaluate(image => image.decode());
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
   }
   return { context, page, errors };
 }
@@ -131,7 +154,12 @@ async function assertStudentHome(page, expectedName, {
 }) {
   await page.waitForSelector('#studentDashboard:visible');
   assert.equal(await page.locator('#studentSummaryName').textContent(), expectedName);
-  assert.equal(await page.locator('#studentRewardUnavailable').innerText(), '金币统计准备中');
+  await page.waitForSelector('#studentRewardValues:visible');
+  assert.equal(await page.locator('#studentRewardUnavailable').isHidden(), true);
+  assert.equal(
+    await page.locator('#studentTotalCoins').textContent(),
+    expectedName === '弟弟' ? '417' : '406'
+  );
   assert.equal(await page.locator('#homeQuickActions').count(), 0);
   assert.equal(await page.locator('#todayWordBtn').count(), 0);
   assert.equal(await page.locator('#mixedWordBtn').count(), 0);
@@ -142,11 +170,11 @@ async function assertStudentHome(page, expectedName, {
   assert.deepEqual(
     await page.locator('.student-home-card__scene').evaluateAll(images => images.map(image => image.getAttribute('src'))),
     [
-      'assets/student-home/card6/scenes/vocabulary-adventure-scene.png',
-      'assets/student-home/card6/scenes/word-challenge-scene.png',
-      'assets/student-home/card6/scenes/grammar-challenge-scene.png',
-      'assets/student-home/card6/scenes/classroom-practice-scene.png',
-      'assets/student-home/card6/scenes/new-word-guide-scene.png'
+      'assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
+      'assets/student-home/card6/scenes/word-challenge-scene.webp',
+      'assets/student-home/card6/scenes/grammar-challenge-scene.webp',
+      'assets/student-home/card6/scenes/classroom-practice-scene.webp',
+      'assets/student-home/card6/scenes/new-word-guide-scene.webp'
     ]
   );
   const layout = await page.evaluate(() => {
@@ -157,21 +185,38 @@ async function assertStudentHome(page, expectedName, {
     const tour = document.getElementById('vocabularyTourHomeEntry').getBoundingClientRect();
     return {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      verticalOverflow: document.documentElement.scrollHeight > document.documentElement.clientHeight,
       adventureHeight: adventure.height,
       compactHeight: word.height,
       dashboardWidth: document.getElementById('studentDashboard').getBoundingClientRect().width,
       innerWidth: window.innerWidth,
       innerHeight: window.innerHeight,
+      challengeSameColumn: Math.abs(word.left - grammar.left) < 2,
+      lessonSameColumn: Math.abs(classroom.left - tour.left) < 2,
       challengeSameRow: Math.abs(word.top - grammar.top) < 2,
       lessonSameRow: Math.abs(classroom.top - tour.top) < 2,
       minTouch: Math.min(...[...document.querySelectorAll('#studentDashboard button, #studentFeatureNav button')]
-        .map(button => button.getBoundingClientRect().height))
+        .map(button => button.getBoundingClientRect().height)),
+      maxVisibleBottom: Math.max(
+        ...[...document.querySelectorAll('#studentDashboard button, #studentFeatureNav button')]
+          .map(button => button.getBoundingClientRect().bottom)
+      )
     };
   });
   assert.equal(layout.overflow, false);
+  if (orientation === 'landscape') {
+    assert.equal(layout.verticalOverflow, false);
+    assert.ok(layout.maxVisibleBottom <= layout.innerHeight);
+  }
   assert.ok(layout.adventureHeight > layout.compactHeight);
-  assert.equal(layout.challengeSameRow, true);
-  assert.equal(layout.lessonSameRow, true);
+  assert.equal(
+    orientation === 'landscape' ? layout.challengeSameColumn : layout.challengeSameRow,
+    true
+  );
+  assert.equal(
+    orientation === 'landscape' ? layout.lessonSameColumn : layout.lessonSameRow,
+    true
+  );
   assert.ok(layout.minTouch >= 44);
   assert.equal(
     layout.innerWidth > layout.innerHeight,
@@ -182,10 +227,10 @@ async function assertStudentHome(page, expectedName, {
   assert.equal(await page.locator('#studentHomeRotatePrompt').isVisible(), expectRotatePrompt);
 }
 
-const iphonePortrait = {
+const iphone16Portrait = {
   ...devices['iPhone 13'],
-  viewport: { width: 390, height: 844 },
-  screen: { width: 390, height: 844 }
+  viewport: { width: 393, height: 852 },
+  screen: { width: 393, height: 852 }
 };
 const ipadBase = {
   userAgent: devices['iPad (gen 11)'].userAgent,
@@ -199,26 +244,71 @@ const ipadViewport = (width, height) => ({
   screen: { width, height }
 });
 
+async function assertCachedHomeWorksOffline() {
+  const offlineBrowser = await chromium.launch();
+  const context = await offlineBrowser.newContext({
+    ...ipadViewport(1180, 820),
+    serviceWorkers: 'allow'
+  });
+  try {
+    await context.addInitScript(mirror => {
+      localStorage.setItem('wc_user', 'sister');
+      localStorage.setItem('wc_sb_main', JSON.stringify(mirror));
+      localStorage.setItem('wc_sb_student_reward_v1_sister', JSON.stringify({
+        version: 1,
+        user: 'sister',
+        totalCoins: 406,
+        daily: {}
+      }));
+    }, mainData);
+    const page = await context.newPage();
+    await page.goto(baseUrl, { waitUntil: 'load' });
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+      return true;
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+    await context.setOffline(true);
+    const startedAt = Date.now();
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
+    await page.waitForFunction(() => document.getElementById('studentSummaryName')?.textContent === '姐姐');
+    await page.waitForFunction(() => document.getElementById('studentTotalCoins')?.textContent === '406');
+    assert.ok(Date.now() - startedAt < 5000);
+    assert.equal(await page.locator('#studentDashboard').isVisible(), true);
+    assert.equal(await page.locator('#studentTotalCoins').textContent(), '406');
+    await context.setOffline(false);
+  } finally {
+    await context.close();
+    await offlineBrowser.close();
+  }
+}
+
 try {
-  const sister = await openHome('sister', iphonePortrait);
+  if (process.env.STUDENT_HOME_OFFLINE_ONLY === '1') {
+    await assertCachedHomeWorksOffline();
+    console.log('student home offline cache test passed');
+  } else {
+  const sister = await openHome('sister', iphone16Portrait);
   await assertStudentHome(sister.page, '姐姐', { orientation: 'portrait' });
-  await sister.page.screenshot({ path: path.join(resultDir, 'sister-home-iphone-portrait.png'), fullPage: true });
+  await sister.page.screenshot({ path: path.join(resultDir, 'sister-home-iphone16-portrait-393x852.png'), fullPage: true });
   await sister.page.locator('#studentClassroomPracticeEntry').click();
-  await sister.page.waitForSelector('#studentHomeNotice:visible');
-  assert.equal(await sister.page.locator('#studentHomeNotice').textContent(), '今天的随堂练习还没有发布');
-  await sister.page.screenshot({ path: path.join(resultDir, 'classroom-practice-unpublished.png'), fullPage: true });
+  await sister.page.waitForSelector('#screenCourseware.active');
+  assert.equal(await sister.page.locator('#coursewareListTitle').textContent(), '选择随堂练习');
+  assert.equal(await sister.page.locator('#coursewareList .game-entry').count(), 13);
+  await sister.page.screenshot({ path: path.join(resultDir, 'classroom-practice-student-directory.png'), fullPage: true });
   assert.deepEqual(sister.errors, []);
   await sister.context.close();
 
-  const brother = await openHome('brother', iphonePortrait);
+  const brother = await openHome('brother', iphone16Portrait);
   await assertStudentHome(brother.page, '弟弟', { orientation: 'portrait' });
-  assert.equal(await brother.page.locator('#studentSummaryAvatarImage').isHidden(), true);
-  assert.equal(await brother.page.locator('#studentSummaryAvatarFallback').textContent(), '弟');
-  await brother.page.screenshot({ path: path.join(resultDir, 'brother-home-iphone-portrait.png'), fullPage: true });
+  assert.equal(await brother.page.locator('#studentSummaryAvatarImage').isVisible(), true);
+  assert.match(await brother.page.locator('#studentSummaryAvatarImage').getAttribute('src'), /brother-avatar\.png$/);
+  await brother.page.screenshot({ path: path.join(resultDir, 'brother-home-iphone16-portrait-393x852.png'), fullPage: true });
   assert.deepEqual(brother.errors, []);
   await brother.context.close();
 
-  const teacher = await openHome('teacher', iphonePortrait);
+  const teacher = await openHome('teacher', iphone16Portrait);
   assert.equal(await teacher.page.locator('#studentDashboard').isHidden(), true);
   assert.equal(await teacher.page.locator('#studentFeatureNav').isHidden(), true);
   assert.equal(await teacher.page.locator('.teacher-home-nav').isVisible(), true);
@@ -226,63 +316,23 @@ try {
     await teacher.page.locator('.teacher-home-nav .bottom-feature-nav__item span').allTextContents(),
     ['单词卡', '随堂练习', '知识点库']
   );
-  await teacher.page.screenshot({ path: path.join(resultDir, 'teacher-home-iphone-portrait.png'), fullPage: true });
+  await teacher.page.screenshot({ path: path.join(resultDir, 'teacher-home-iphone16-portrait-393x852.png'), fullPage: true });
   assert.deepEqual(teacher.errors, []);
   await teacher.context.close();
-
-  const ipad1024 = await openHome('sister', ipadViewport(1024, 768));
-  await assertStudentHome(ipad1024.page, '姐姐', {
-    orientation: 'landscape',
-    minimumDashboardWidth: 970
-  });
-  await ipad1024.page.screenshot({ path: path.join(resultDir, 'sister-home-ipad-landscape-1024x768.png'), fullPage: true });
-  assert.deepEqual(ipad1024.errors, []);
-  await ipad1024.context.close();
 
   const ipadAir = await openHome('sister', ipadViewport(1180, 820));
   await assertStudentHome(ipadAir.page, '姐姐', {
     orientation: 'landscape',
     minimumDashboardWidth: 1128
   });
-  await ipadAir.page.screenshot({ path: path.join(resultDir, 'sister-home-ipad-air-landscape-1180x820.png'), fullPage: true });
+  await ipadAir.page.screenshot({ path: path.join(resultDir, 'sister-home-ipad-air11-landscape-1180x820.png'), fullPage: true });
   assert.deepEqual(ipadAir.errors, []);
   await ipadAir.context.close();
 
-  const ipad1194 = await openHome('sister', ipadViewport(1194, 834));
-  await assertStudentHome(ipad1194.page, '姐姐', {
-    orientation: 'landscape',
-    minimumDashboardWidth: 1140
-  });
-  assert.deepEqual(ipad1194.errors, []);
-  await ipad1194.context.close();
-
-  const brotherIpad = await openHome('brother', ipadViewport(1180, 820));
-  await assertStudentHome(brotherIpad.page, '弟弟', {
-    orientation: 'landscape',
-    minimumDashboardWidth: 1128
-  });
-  await brotherIpad.page.screenshot({ path: path.join(resultDir, 'brother-home-ipad-landscape-1180x820.png'), fullPage: true });
-  assert.deepEqual(brotherIpad.errors, []);
-  await brotherIpad.context.close();
-
-  const ipadPortrait = await openHome('sister', ipadViewport(820, 1180));
-  await assertStudentHome(ipadPortrait.page, '姐姐', {
-    orientation: 'portrait',
-    expectRotatePrompt: true
-  });
-  assert.equal(
-    await ipadPortrait.page.locator('#studentHomeRotatePrompt strong').innerText(),
-    '请将 iPad 横过来使用'
-  );
-  assert.equal(
-    await ipadPortrait.page.locator('#studentHomeRotatePrompt span').innerText(),
-    '横屏可以完整看到今天的学习任务'
-  );
-  await ipadPortrait.page.screenshot({ path: path.join(resultDir, 'ipad-portrait-rotate-prompt.png'), fullPage: true });
-  assert.deepEqual(ipadPortrait.errors, []);
-  await ipadPortrait.context.close();
+  await assertCachedHomeWorksOffline();
 
   console.log(`student home dashboard viewport tests passed: ${resultDir}`);
+  }
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

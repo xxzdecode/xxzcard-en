@@ -1,61 +1,3 @@
-// Load the focused home-navigation override after the shared stylesheet.
-const homeNavigationStylesheet = document.createElement('link');
-homeNavigationStylesheet.rel = 'stylesheet';
-homeNavigationStylesheet.href = 'styles-home-nav.css';
-homeNavigationStylesheet.dataset.homeNavigationLayout = 'three-columns';
-document.head.appendChild(homeNavigationStylesheet);
-
-const studentHomeDashboardStylesheet = document.createElement('link');
-studentHomeDashboardStylesheet.rel = 'stylesheet';
-studentHomeDashboardStylesheet.href = 'styles-student-home-dashboard.css';
-studentHomeDashboardStylesheet.dataset.studentHomeDashboard = 'card6-v2';
-document.head.appendChild(studentHomeDashboardStylesheet);
-
-// EXPOSE TO WINDOW (required by inline event handlers)
-// ══════════════════════════════════════
-Object.assign(window, {
-  switchUser, showScreen, showNewBatch, showImportMore, previewParse, confirmImport,
-  startStudy, toggleFlip, judge,
-  startGlobalPool, startGlobalRandom, startGlobalDailyQuiz,
-  startDailyQuiz, selectDQOpt, confirmDQAnswer, nextDQ, speakWord,
-  showMergeSelect, startMergeStudy, startMergeMode, startMergeDailyQuiz,
-  startTodayReview, startTodayChallenge, startMixedReview, startMixedChallenge,
-  openWordTaskMenu, closeWordTaskMenu, startWordTaskMenuReview, startWordTaskMenuChallenge,
-  startBatchReview, startBatchChallenge, finishReviewToSource, confirmExitChallenge,
-  openVocabularyAdventure, closeVocabularyAdventure, answerVocabularyAdventure,
-  answerVocabularyAdventureReviewChoice, submitVocabularyAdventureReviewInput,
-  selectVocabularyAdventureReviewToken, clearVocabularyAdventureReviewOrder,
-  submitVocabularyAdventureReviewOrder, selectVocabularyAdventureMatchCard,
-  retryVocabularyAdventureResultSave, retryVocabularyAdventureInitialSave,
-  nextVocabularyAdventure, speakVocabularyAdventureCurrent,
-  openVocabularyAdventureChallenge, closeVocabularyAdventureChallenge,
-  startAnotherVocabularyAdventureChallenge, answerVocabularyAdventureChallengeChoice,
-  submitVocabularyAdventureChallengeInput, selectVocabularyAdventureChallengeToken,
-  clearVocabularyAdventureChallengeOrder, submitVocabularyAdventureChallengeOrder,
-  nextVocabularyAdventureChallenge, retryVocabularyAdventureChallengeSave,
-  speakVocabularyAdventureChallengeWord,
-  startReviewMatchPlay, nextWrongReviewCard,
-  openStudentWordCard, studentWordNav, showTeacherMixSelect, selectTaskAssignmentOption,
-  openGrammarChallengeList, closeGrammarChallengeList, openGrammarChallenge, closeGrammarChallenge,
-  openThemeQuizList, openThemeQuiz, closeThemeQuiz,
-  openTeacherWordCards, returnToTeacherHome, closeBatchDetail, closeBatchImport, closeMergeSelect,
-  renderStudentRewardSummary, openStudentClassroomPractice,
-  openCoursewareList, openCourseware, closeCourseware,
-  openGrammarLibrary, closeGrammarLibrary,
-  openWordDedupe, closeWordDedupe,
-  openVocabularyReviewList, closeVocabularyReviewList, startVocabularyReview, closeVocabularyReviewPlayer,
-  setVocabularyReviewMode, changeVocabularyReviewWord, speakVocabularyReviewWord,
-  shuffleVocabularyReviewCards, markVocabularyReviewWordRemembered, restoreVocabularyReviewWord,
-  openVocabularyScreening, startVocabularyScreening, answerVocabularyScreening,
-  retryVocabularyScreeningDerivation, closeVocabularyScreening,
-  openWordCards, openPhonemeTraining, speakEnglish,
-  showRename, confirmRename, onTitleTap, showSync, confirmSync, showPush, togglePush,
-  toggleEditPanel, showWordSelector, openCardEditor, editNav, saveCardEdit, deleteCard,
-  doDictionarySearch, openDictionaryResult, openBatchWordCard, jumpToWordLink,
-  closeAllModals, deleteBatch, goDetail, retryResult,
-  pinInput, pinDel, cancelPin,
-});
-
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
@@ -64,3 +6,9 @@ Object.assign(window, {
   appData = await initData();
   await loadHome();
 })();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  }, { once: true });
+}

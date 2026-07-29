@@ -104,6 +104,10 @@ body:not(.is-teacher) #screenHome .user-bar {
   text-align: center;
 }
 
+.student-summary-card__pending[hidden] {
+  display: none;
+}
+
 .student-summary-card__pending img {
   width: 31px;
   height: 34px;
@@ -470,18 +474,152 @@ body:not(.is-teacher) #screenHome .user-bar {
 }
 
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
-  .student-dashboard,
-  .bottom-feature-nav.student-only {
-    width: min(1180px, calc(100vw - 48px));
-    margin-inline: auto;
+  body:not(.is-teacher) {
+    height: 100dvh;
+    min-height: 100dvh;
+    padding-bottom: 0;
+    overflow: hidden;
   }
 
-  .student-home-card--adventure {
-    height: clamp(300px, 34vw, 390px);
+  body:not(.is-teacher) #screenHome.active {
+    width: 100%;
+    height: 100dvh;
+    padding: max(8px, env(safe-area-inset-top)) 24px max(8px, env(safe-area-inset-bottom));
+    overflow: hidden;
+    position: relative;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) 62px;
+    gap: 7px;
   }
 
+  body:not(.is-teacher) #screenHome .user-bar {
+    width: auto;
+    padding: 0;
+    position: absolute;
+    top: max(20px, calc(env(safe-area-inset-top) + 12px));
+    right: 42px;
+    z-index: 12;
+    gap: 5px;
+  }
+
+  body:not(.is-teacher) #screenHome .user-btn {
+    width: 82px;
+    height: 36px;
+    flex: none;
+    font-size: 12px;
+  }
+
+  .student-dashboard {
+    width: min(1180px, 100%);
+    height: 100%;
+    min-height: 0;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: 64px minmax(0, 1fr);
+    gap: 6px 10px;
+  }
+
+  .student-summary-card {
+    grid-column: 1 / -1;
+    min-height: 0;
+    height: 64px;
+    padding: 5px 300px 5px 10px;
+    border-radius: 22px;
+  }
+
+  .student-summary-card__avatar { width: 52px; height: 52px; border-width: 3px; }
+  .student-summary-card__identity { gap: 8px; }
+  .student-summary-card__identity strong { font-size: 18px; }
+  .student-summary-card__badge { width: 76px; }
+  .student-summary-card__rewards { min-width: 136px; margin-left: auto; }
+  .student-summary-card__values { gap: 2px 9px; }
+  .student-summary-card__values strong { font-size: 15px; }
+  .student-summary-card__progress { height: 5px; }
+
+  .student-home-section {
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: 28px minmax(0, 1fr);
+  }
+
+  .student-home-section h2 {
+    width: 124px;
+    height: 32px;
+    margin: 0 0 -4px 8px;
+  }
+
+  .student-home-section h2 span { padding-bottom: 4px; font-size: 15px; }
+
+  .student-home-card-grid {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .student-home-card,
+  .student-home-card--adventure,
   .student-home-card--compact {
-    height: clamp(245px, 25vw, 310px);
+    height: 100%;
+    min-height: 0;
+    border-width: 3px;
+    border-radius: 22px;
+  }
+
+  .student-home-card__copy,
+  .student-home-card--adventure .student-home-card__copy,
+  .student-home-card--compact .student-home-card__copy {
+    inset: 13px 10px auto 13px;
+    max-width: 72%;
+    gap: 4px;
+  }
+
+  .student-home-card__copy strong,
+  .student-home-card--compact .student-home-card__copy strong {
+    font-size: clamp(19px, 2.1vw, 27px);
+  }
+
+  .student-home-card__copy small,
+  .student-home-card--compact .student-home-card__copy small {
+    max-width: 100%;
+    font-size: clamp(10px, 1.15vw, 14px);
+  }
+
+  .student-home-card__reward,
+  .student-home-card__status {
+    min-height: 22px;
+    padding: 2px 7px;
+    font-size: clamp(9px, .95vw, 11px);
+  }
+
+  .student-home-card__reward img { width: 16px; height: 17px; }
+  .student-home-card__route { inset: auto auto 9px 11px; min-height: 25px; font-size: 10px; }
+
+  .bottom-feature-nav.student-only {
+    width: min(1180px, 100%);
+    max-width: 1180px;
+    height: 62px;
+    margin: 0 auto;
+    padding: 3px 10px;
+    border-radius: 22px;
+    align-self: end;
+  }
+
+  .bottom-feature-nav.student-only > .bottom-feature-nav__item {
+    min-height: 54px;
+    padding: 2px 4px;
+    gap: 1px;
+  }
+
+  .bottom-feature-nav.student-only .bottom-feature-nav__icon {
+    width: 48px;
+    height: 32px;
+  }
+
+  .bottom-feature-nav.student-only .bottom-feature-nav__item span {
+    font-size: 11px;
   }
 }
 

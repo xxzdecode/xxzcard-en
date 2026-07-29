@@ -27,7 +27,7 @@ assert.match(studyScript, /motion\.style\.transform = `translateX/);
 assert.doesNotMatch(studyScript, /(?:wrapper|w)\.style\.transform\s*=/);
 assert.match(studyScript, /addEventListener\('touchcancel'/);
 
-assert.match(serviceWorker, /const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v\d+[^']*'/);
-assert.match(serviceWorker, /'\.\/js\/study\.js'/);
+assert.match(serviceWorker, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v\d+'/);
+assert.doesNotMatch(serviceWorker, /'\.\/js\/study\.js'/);
 
 console.log('study card flip tests passed');

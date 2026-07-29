@@ -15,7 +15,6 @@ try {
 const ROOT = path.resolve(__dirname, '..');
 const REGISTRY_PATH = path.join(ROOT, 'data', 'vocabularyLessonVisuals.json');
 const ASSET_LIST_PATH = path.join(ROOT, 'data', 'vocabularyLessonAssets.js');
-const SERVICE_WORKER_PATH = path.join(ROOT, 'service-worker.js');
 const SUPPORTED_TYPES = new Set(['scene', 'compound', 'concept', 'emoji']);
 
 function fail(message) {
@@ -152,20 +151,6 @@ function writeGeneratedAssets(registry) {
   return assets;
 }
 
-function updateServiceWorkerCache(registry) {
-  const source = fs.readFileSync(SERVICE_WORKER_PATH, 'utf8');
-  const current = source.match(/const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v(\d+)(?:-[^']+)?';/);
-  if (!current) fail('service-worker.js 中未找到可递增的标准缓存版本。');
-  const cacheName = `vocabulary-review-v${Number(current[1]) + 1}`;
-  const updated = source.replace(
-    /const VOCABULARY_REVIEW_CACHE = '[^']+';/,
-    `const VOCABULARY_REVIEW_CACHE = '${cacheName}';`
-  );
-  if (updated === source) fail('service-worker.js 中未找到缓存版本常量。');
-  fs.writeFileSync(SERVICE_WORKER_PATH, updated);
-  return cacheName;
-}
-
 async function main() {
   const input = process.argv[2];
   if (!input) fail('用法：npm run vocabulary:lesson-import -- <视觉包目录>');
@@ -236,7 +221,7 @@ async function main() {
   registry.lessons.sort((a, b) => a.lessonId.localeCompare(b.lessonId));
   writeJson(REGISTRY_PATH, registry);
   const cachedAssets = writeGeneratedAssets(registry);
-  const cacheName = updateServiceWorkerCache(registry);
+  const cacheName = 'xxzcard-runtime-on-demand';
 
   manifest.status = 'completed';
   manifest.importedAt = lessonRecord.importedAt;

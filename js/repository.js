@@ -351,8 +351,8 @@ function showLoading(msg) {
   if (!el) {
     el = document.createElement('div');
     el.id = 'fbLoading';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.88);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;font-size:15px;color:#4A90C4;font-weight:700;gap:10px';
-    el.innerHTML = '<div style="font-size:32px">☁️</div><div id="fbLoadingMsg"></div>';
+    el.style.cssText = 'position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.94);display:flex;align-items:center;justify-content:center;z-index:999;font-size:14px;color:#4A90C4;font-weight:700;gap:7px;padding:9px 14px;border:1px solid rgba(74,144,196,0.2);border-radius:999px;box-shadow:0 5px 18px rgba(55,105,145,0.15);pointer-events:none;white-space:nowrap';
+    el.innerHTML = '<div aria-hidden="true">☁️</div><div id="fbLoadingMsg"></div>';
     document.body.appendChild(el);
   }
   document.getElementById('fbLoadingMsg').textContent = msg || '加载中…';
@@ -363,18 +363,48 @@ function hideLoading() {
   if (el) el.style.display = 'none';
 }
 
+function normalizePhonemeLibraryIfAvailable(data) {
+  if (typeof normalizePhonemeLibrary === 'function') normalizePhonemeLibrary(data);
+}
+
 async function initData() {
-  showLoading('连接云端…');
+  const local = getMirrorValue('main');
+  if (local && typeof local === 'object') {
+    const data = cloneForStorage(local);
+    if (!data.pin) data.pin = null;
+    if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
+    if (!Array.isArray(data.taskAssignments)) data.taskAssignments = [];
+    normalizePhonemeLibraryIfAvailable(data);
+    normalizeAppData(data);
+    Promise.resolve().then(async () => {
+      try {
+        const remote = await sbGetRemote('main');
+        if (!remote || typeof remote !== 'object') return;
+        normalizePhonemeLibraryIfAvailable(remote);
+        normalizeAppData(remote);
+        setMainSnapshot(remote);
+        appData = remote;
+        const home = document.getElementById('screenHome');
+        if (home && home.classList.contains('active')) await loadHome();
+      } catch(e) {
+        // The local mirror is already rendered; background failure must not block it.
+      }
+    });
+    if (sbOnline) syncSupabaseMirrorIfDue(false);
+    return data;
+  }
+
+  showLoading('正在准备首页…');
   let data = await loadData();
   if (!data) {
     data = { batches: [], pin: null };
     data.batches.push(makeBatch('六月号复习卷四·选择题', DEFAULT_CARDS));
-    await saveData(data);
+    if (sbOnline) await saveData(data);
   }
   if (!data.pin) data.pin = null;
   if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
   if (!Array.isArray(data.taskAssignments)) data.taskAssignments = [];
-  normalizePhonemeLibrary(data);
+  normalizePhonemeLibraryIfAvailable(data);
   normalizeAppData(data);
   if (sbOnline) syncSupabaseMirrorIfDue(false);
   hideLoading();
@@ -548,10 +578,11 @@ function normalizeBatch(batch) {
 
 function normalizeAppData(data) {
   if (!data || !Array.isArray(data.batches)) return false;
-  normalizePhonemeLibrary(data);
+  normalizePhonemeLibraryIfAvailable(data);
   let changed = false;
   data.batches.forEach(batch => {
     if (normalizeBatch(batch)) changed = true;
+    if (typeof isCurrentEnglishCard !== 'function' || typeof normalizeCardDictionary !== 'function') return;
     (batch.cards || []).forEach(card => {
       if (isCurrentEnglishCard(card)) normalizeCardDictionary(card);
       else console.warn('Skipped unsupported English card data in batch', batch.id || batch.name || 'unknown');

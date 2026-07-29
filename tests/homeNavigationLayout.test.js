@@ -42,13 +42,14 @@ assert.match(layoutStyles, />\s*\.bottom-feature-nav__item\s*\{[^}]*grid-column:
 assert.doesNotMatch(layoutStyles, /repeat\(6/);
 assert.match(dashboardStyles, /\.student-home-card-grid\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
 
-assert.match(mainScript, /href\s*=\s*'styles-home-nav\.css'/);
-assert.match(mainScript, /href\s*=\s*'styles-student-home-dashboard\.css'/);
-assert.match(mainScript, /homeNavigationLayout\s*=\s*'three-columns'/);
-assert.match(serviceWorker, /vocabulary-review-v23/);
+assert.match(html, /<link rel="stylesheet" href="styles-home-nav\.css"/);
+assert.match(html, /<link rel="stylesheet" href="styles-student-home-dashboard\.css"/);
+assert.doesNotMatch(mainScript, /createElement\('link'\)/);
+assert.match(serviceWorker, /xxzcard-app-shell-v32/);
+assert.match(serviceWorker, /brother-avatar\.png/);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
 assert.match(serviceWorker, /'\.\/styles-student-home-dashboard\.css'/);
-assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson\.css'/);
-assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson-016\.css'/);
+assert.doesNotMatch(serviceWorker, /styles-vocabulary-lesson-016/);
+assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 
 console.log('home navigation layout tests passed');

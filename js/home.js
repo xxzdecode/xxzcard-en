@@ -4,6 +4,40 @@ function todayISO() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+
+const STUDENT_REWARD_KEY_PREFIX = 'student_reward_v1_';
+const STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX = 'classroom_practice_daily_v1_';
+
+function studentRewardKey(user) {
+  return STUDENT_REWARD_KEY_PREFIX + (user === 'brother' ? 'brother' : 'sister');
+}
+
+function applyStudentRewardRecord(reward) {
+  if (isTeacher()) return;
+  const day = reward && reward.daily && typeof reward.daily === 'object'
+    ? reward.daily[todayISO()]
+    : null;
+  renderStudentRewardSummary({
+    available: Boolean(reward && Number.isFinite(Number(reward.totalCoins))),
+    totalCoins: reward ? Number(reward.totalCoins) : 0,
+    todayCoins: day && Number.isFinite(Number(day.coins)) ? Number(day.coins) : 0,
+    todayMaxCoins: 30
+  });
+}
+
+function loadStudentRewardSummary() {
+  if (isTeacher()) return;
+  const key = studentRewardKey(currentUser);
+  applyStudentRewardRecord(getMirrorValue(key));
+  Promise.resolve().then(async () => {
+    try {
+      const remote = await sbGetRemote(key);
+      if (remote && typeof remote === 'object') applyStudentRewardRecord(remote);
+    } catch (error) {
+      // The mirrored reward is already visible; refresh failures stay non-blocking.
+    }
+  });
+}
 async function markCheckIn(kind) { // kind: 'study' | 'quiz'
   if (isTeacher()) return;
   if (!canWriteCloudData()) return;
@@ -36,10 +70,11 @@ function renderStudentRewardSummary(summary) {
   const user = currentUser === 'brother' ? 'brother' : 'sister';
   const name = document.getElementById('studentSummaryName');
   const avatarImage = document.getElementById('studentSummaryAvatarImage');
-  const avatarFallback = document.getElementById('studentSummaryAvatarFallback');
   if (name) name.textContent = user === 'brother' ? '弟弟' : '姐姐';
-  if (avatarImage) avatarImage.hidden = user === 'brother';
-  if (avatarFallback) avatarFallback.hidden = user !== 'brother';
+  if (avatarImage) {
+    avatarImage.src = `assets/student-home/card6/ui/profile/${user}-avatar.png`;
+    avatarImage.hidden = false;
+  }
 
   const available = settings.available === true
     && Number.isFinite(Number(settings.totalCoins))
@@ -68,12 +103,48 @@ function renderStudentRewardSummary(summary) {
   }
 }
 
-function openStudentClassroomPractice() {
+async function openStudentClassroomPractice() {
   if (isTeacher()) return;
   const notice = document.getElementById('studentHomeNotice');
-  if (!notice) return;
-  notice.textContent = '今天的随堂练习还没有发布';
-  notice.hidden = false;
+  if (notice) {
+    notice.textContent = '';
+    notice.hidden = true;
+  }
+  if (typeof openCoursewareList === 'function') await openCoursewareList();
+}
+
+function applyStudentClassroomPracticeHomeRecord(record) {
+  if (isTeacher()) return;
+  const status = document.getElementById('studentClassroomPracticeStatus');
+  const entry = document.getElementById('studentClassroomPracticeEntry');
+  const statusText = record && record.status === 'completed'
+    ? '今日已完成'
+    : record
+      ? '继续今日练习'
+      : '今天可选 1 项';
+  if (status) status.textContent = statusText;
+  if (entry) {
+    entry.setAttribute('aria-label', `随堂练习，${statusText}，一天一次`);
+    entry.dataset.dailyStatus = record ? record.status : 'available';
+  }
+}
+
+function refreshStudentClassroomPracticeHome() {
+  if (isTeacher()) return;
+  const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + currentUser;
+  const local = getMirrorValue(key);
+  applyStudentClassroomPracticeHomeRecord(
+    local && typeof local === 'object' ? local[todayISO()] : null
+  );
+  Promise.resolve().then(async () => {
+    try {
+      const remote = await sbGetRemote(key);
+      const record = remote && typeof remote === 'object' ? remote[todayISO()] : null;
+      applyStudentClassroomPracticeHomeRecord(record);
+    } catch (error) {
+      // The mirrored daily status is already visible; refresh failures stay non-blocking.
+    }
+  });
 }
 
 async function loadHome() {
@@ -82,14 +153,13 @@ async function loadHome() {
   else document.body.classList.remove('is-teacher');
   if (isTeacher()) return;
 
-  // Card 6 only exposes a read-only reward rendering boundary. Card 7 will
-  // supply real totals; until then, never present placeholder values as data.
-  renderStudentRewardSummary({ available: false, todayMaxCoins: 30 });
+  await loadStudentRewardSummary();
   const notice = document.getElementById('studentHomeNotice');
   if (notice) {
     notice.hidden = true;
     notice.textContent = '';
   }
+  await refreshStudentClassroomPracticeHome();
   if (typeof window.updateVocabularyAdventurePreviewEntry === 'function') {
     await window.updateVocabularyAdventurePreviewEntry();
   }
@@ -143,6 +213,7 @@ async function refreshTeacherWordCards() {
 
 async function openTeacherWordCards() {
   if (!isTeacher()) return;
+  if (typeof loadFeatureGroup === 'function') await loadFeatureGroup('teacherTools');
   showScreen('screenTeacherWordCards');
   await refreshTeacherWordCards();
 }

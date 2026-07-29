@@ -1,170 +1,95 @@
-# 执行卡 6｜本地执行与 GPT 交接日志
+# 执行卡 6｜学生首页性能与功能补充交接
 
-## 1. 执行基线
+## 1. 执行基线与固定设备
 
 - 正式仓库：`xxzdecode/xxzcard-en`
-- 实际起始 SHA：`75fdeb0c27647d98ed7ea86d24feb6d76e5548f8`
+- 本轮起始 SHA：`dc8df5d`
 - 执行分支：`codex/student-home-dashboard-card-6`
-- 视觉参考：
-  - `C:\Users\xxz\Desktop\童趣英语学习冒险乐园.png`
-  - `C:\Users\xxz\Desktop\6ed629e8-f752-46e6-9dd6-eb291f8dbd57.png`
-- 边界：只执行 Card 6；未推送、未部署，未实现 Card 7。
+- 固定验收设备：
+  - iPad Air 11 横屏：`1180 × 820`
+  - iPhone 16 竖屏：`393 × 852`
+- 不再把 1024×768、1194×834 或其他 iPad 尺寸列为本项目验收目标。
 
-## 2. 实际完成
+## 2. 已完成
 
-### 2.1 学生首页
+### 2.1 学生首页布局
 
-- 学生首页正式改为固定顺序：
-  1. 今日复习
-  2. 挑战测验
-  3. 今日新课
-  4. 底部原有功能
-- 词汇探险为整行主视觉卡；单词挑战/语法挑战、随堂练习/新词导览分别保持双列。
-- 五个模块直接使用 v2 素材包 `scenes/` PNG，不再存在首页大型内联 SVG；没有外链素材、没有引入 UI 框架。
-- 模块以外使用素材令牌规定的浅蓝纯色背景。
-- 手机极窄屏仍保持两列；iPad 横屏使用 `min(1180px, calc(100vw - 48px))`，不再锁死为 820px。
-- iPad 竖屏显示非阻塞横屏提示，横屏后由 CSS 媒体查询自动隐藏。
-- 所有入口继续使用真实 `button`，触控高度不低于 44px，并支持 `prefers-reduced-motion`。
+- iPad Air 11 横屏使用三列：左列词汇探险占满，中列单词挑战/语法挑战上下排列，右列随堂练习/新词导览上下排列。
+- 顶部信息栏与底部三个入口横跨三列；`#screenHome.active` 使用 `100dvh` 和 `overflow:hidden`。
+- `1180×820` 下页面无横向/纵向滚动，五个学习模块、头像/姓名/金币/切换用户和三个底部入口均在首屏。
+- iPhone 16 竖屏保持纵向滚动和双卡排列，不套用 iPad 三列压缩。
+- 老师首页 DOM 和视觉未改，回归测试确认仍显示老师的三个原入口。
 
-### 2.2 入口与状态
+### 2.2 首页图片与头像
 
-- 词汇探险继续调用 `openVocabularyAdventure()`。
-- 单词挑战继续调用 `openVocabularyAdventureChallenge()`，名称固定为“单词挑战”。
-- 语法挑战继续调用 `openGrammarChallengeList()`。
-- 新词导览继续调用 `openVocabularyReviewList()`。
-- 新增 `openStudentClassroomPractice()`：只显示非阻塞提示“今天的随堂练习还没有发布”，不进入老师列表，不绕过 `isTeacher()`。
-- 新学生首页成为默认布局，不再依赖 URL/localStorage 预览开关；旧预览解析函数保留，避免后续兼容清理扩大本卡范围。
-- 姐姐/弟弟的探险、挑战读取仍使用各自现有状态键；没有新增共享状态。
+- 五张原始 PNG 保留为源素材，运行时改用按卡片比例生成的 WebP。
+- 所有首页图片补充固有 `width`/`height` 和 `decoding="async"`；主图使用 `fetchpriority="high"`，其余场景图使用懒加载。
+- 姐姐和弟弟头像分别替换为用户提供的新图片，并生成 512×512 运行时 PNG。
 
-### 2.3 首页旧入口与刷新
+| 场景 | 原 PNG | 新 WebP |
+| --- | ---: | ---: |
+| 词汇探险 | 2,709,269 B | 197,864 B |
+| 单词挑战 | 2,455,281 B | 75,146 B |
+| 语法挑战 | 2,401,243 B | 83,228 B |
+| 随堂练习 | 2,354,844 B | 46,954 B |
+| 新词导览 | 2,260,515 B | 69,562 B |
+| 合计 | 12,181,152 B | 472,754 B |
 
-- 从首页 DOM 移除 `homeQuickActions`、`todayWordBtn`、`mixedWordBtn`。
-- `loadHome()` 不再调用 `updateHomeTaskButtons()`，也不再加载首页旧快捷入口所需批次状态。
-- 旧任务函数、旧数据键、单词本详情入口和兼容逻辑均保留。
-- 底部“单词卡 / 音标训练 / 专项小游戏”功能和顺序未改。
-- 老师首页入口和行为未改，学生仪表板对老师隐藏。
+五张首页场景图合计减少约 96.1%。
 
-### 2.4 金币只读边界
+### 2.3 CSS、数据与脚本首屏
 
-- 新增 `renderStudentRewardSummary({ totalCoins, todayCoins, todayMaxCoins, available })`。
-- 当前没有正式金币数据源，因此首页只显示“金币统计准备中”。
-- 没有写入假金币，没有 Supabase/数据库改动，没有结算逻辑。
+- `styles-home-nav.css`、`styles-student-home-dashboard.css` 已直接放入 `index.html` 的 `<head>`，删除 `main.js` 动态插入，避免无样式闪动。
+- `initData()` 改为 local-first：存在 `wc_sb_main` 镜像时立即渲染，Supabase 后台静默刷新；首次无镜像时仅显示不拦截点击的顶部轻提示。
+- 初始同步脚本由三十多个收敛为 8 个核心脚本；探险、语法、随堂练习、老师工具、具体播放器和新词模块按入口加载。
+- 保留既有内联 `onclick` 调用方式；动态脚本加载后仍进入原函数。
 
-### 2.5 离线缓存
+### 2.4 随堂练习
 
-- `styles-student-home-dashboard.css`、素材令牌和首页实际使用的 PNG 均加入预缓存，缓存版本从 `v22` 升到标准格式 `v23`。
-- 继续使用 `vN` 格式，保证 `publish-vocabulary-review-images.py` 能识别和递增版本。
-- `importVocabularyLesson.js` 同步升级为读取当前数字并递增，避免再次生成发布脚本无法识别的旧式带后缀缓存名。
+- 学生无需老师发布即可打开与老师相同的随堂练习目录并自行选择。
+- 每位学生每天只能选择一项；未完成时只能继续当天所选项，完成后当天其他项锁定。
+- 同源练习页完成标记由 iframe 观察器识别，并写入 `classroom_practice_daily_v1_<student>`。
+- 老师端保持不限次数、原目录和原入口。
+- 本轮不为随堂练习结算金币，不修改题目评分逻辑。
 
-## 3. 测试与视觉证据
+### 2.5 金币
 
-### 3.1 自动化
+- Supabase 原 `main` 数据中没有 417/406 金币字段，也没有既有独立金币键。
+- 已按用户确认的当前余额建立：
+  - `student_reward_v1_brother.totalCoins = 417`
+  - `student_reward_v1_sister.totalCoins = 406`
+- 学生首页只读展示以上余额和当天记录；未新增金币奖励/扣减/商城逻辑。
 
-- `npm test`：通过。
-- `node --test "tests/**/*.test.js" "tests/**/*.test.mjs"`：34/34 通过。
-- `python -m unittest tests.test_publish_vocabulary_review_images`：6/6 通过。
-- `tests/vocabularyAdventureChallengeViewport.mjs`：通过。
-- `tests/vocabularyAdventureViewport.mjs`：通过。
-- `tests/vocabularyAdventureReviewViewport.mjs`：通过。
-- `tests/vocabularyLessonViewport.mjs`：通过。
-- `tests/studentHomeDashboardViewport.mjs`：通过。
+### 2.6 Service Worker
 
-WebKit 视口测试在本机需要：
+- 缓存升级为 `xxzcard-app-shell-v32` / `xxzcard-runtime-v32`，首页启动时非阻塞注册。
+- install 只逐项缓存最小 app shell、五张 WebP、头像、金币、木牌和底部图标；使用 `Promise.allSettled`，单个非关键资源失败不再使安装整体失败。
+- 不再预缓存全部 vocabulary-review、新词课件、courseware 和专项资源；这些资源进入对应功能时由同源 `cache-first` 按需缓存。
+- 页面导航使用缓存首页立即响应并后台刷新；Supabase GET 使用带 5 秒超时和缓存回退的 network-first。
+- activate 清理旧 `xxzcard-*` 与 `vocabulary-review-*` 缓存。
 
-```powershell
-$env:NODE_PATH='C:\Users\xxz\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules'
-```
+## 3. 验收证据
 
-本轮安装了与项目 Playwright 版本对应的 WebKit 2311。测试显式禁用 Service Worker，避免多个独立 WebKit 上下文争用缓存；Service Worker 资源清单和版本由静态测试覆盖。
+截图目录（本地验收产物，不进入 Git）：
 
-### 3.2 Card 6 验收截图
+`D:\xxz-work\projects\xxzcard-en\.codex-backups\card6-visual-qa`
 
-目录：
+- `sister-home-ipad-air11-landscape-1180x820.png`
+- `sister-home-iphone16-portrait-393x852.png`
+- `brother-home-iphone16-portrait-393x852.png`
+- `teacher-home-iphone16-portrait-393x852.png`
+- `classroom-practice-student-directory.png`
 
-```text
-D:\xxz-work\projects\xxzcard-en\.codex-backups\card6-visual-qa
-```
+自动化结果：
 
-- `sister-home-iphone-portrait.png`
-- `brother-home-iphone-portrait.png`
-- `teacher-home-iphone-portrait.png`
-- `sister-home-ipad-landscape-1024x768.png`
-- `sister-home-ipad-air-landscape-1180x820.png`
-- `brother-home-ipad-landscape-1180x820.png`
-- `ipad-portrait-rotate-prompt.png`
-- `classroom-practice-unpublished.png`
+- `npm test`：全部通过。
+- `tests/studentHomeDashboardViewport.mjs`：固定两档设备、入口可见性、无溢出、老师端不受影响均通过。
+- `STUDENT_HOME_OFFLINE_ONLY=1 tests/studentHomeDashboardViewport.mjs`：已有缓存后断网恢复首页通过，包含 5 秒内恢复断言。
+- 人工检查两张固定设备截图：图片清晰、文字未截断、iPad 首屏完整、iPhone 可正常纵向浏览。
 
-人工检查结果：
+## 4. 未修改边界
 
-- 三个分区清晰，词汇探险层级最高。
-- 两组双卡在手机/iPad 均保持两列。
-- 五张 v2 场景图均已真实加载；主卡和双列卡使用响应式裁切，没有外链素材。
-- 文字未截断，页面无横向溢出，底部三个入口可见。
-- 1024×768、1180×820、1194×834 三个横屏用例都断言 `innerWidth > innerHeight`，两组双卡保持两列。
-- 820×1180 竖屏用例显示指定提示，横屏用例提示自动消失。
-- 老师端没有学生仪表板。
-- 未发布提示为页面内非阻塞状态条。
-
-## 4. 执行中发现并处理的问题
-
-1. 初始分支改名因 `.git/logs` 权限失败；随后从同一 HEAD 正常创建正式分支 `codex/student-home-dashboard-card-6`，工作内容没有丢失。
-2. 本地缺少项目 `sharp`/Playwright 模块和 WebKit 浏览器；复用 Codex bundled Node 模块，并安装对应 WebKit。
-3. Windows 沙箱内启动 WebKit出现 `spawn EPERM`；在获准的沙箱外环境运行。
-4. 旧视口测试仍断言“预览关闭时显示今日单词/混合单词”，与 Card 6 冲突；更新为正式默认首页契约。
-5. 多 WebKit 上下文会被 Service Worker 和 `networkidle` 等待拖慢；视口测试改为阻止 Service Worker、在 navigation commit 后显式等待应用元素。
-6. 挑战视口测试存在“下一题”后立即操作旧题的竞态；增加题号同步等待。抗遗忘视口曾出现一次末段等待超时，带诊断重跑后完整通过，未发现产品错误。
-7. v2 素材的 `coin-small.png` 保留了原图“今日”局部文字，正式页面改用同包内干净的 `coin-large.png` 缩放显示。
-8. 跨过午夜后，共享挑战测试因硬编码 `2026-07-29` 失败；改为运行当天/前一天，消除跨日假失败。
-9. 多上下文回归会重复加载约 20MB 首页 PNG；探险/抗遗忘/挑战用例拦截与目标页无关的首页 PNG，并显式等待页面 API/模拟可写状态。
-10. 抗遗忘测试原先二次重建随机题来推断选项，可能与播放器实际题目不一致；改为捕获播放器实际问题并按页面真实选项定位。
-
-## 5. 明确未完成 / 下一接口
-
-- 未实现真实累计金币、今日金币、30 金币结算或任何写入。
-- 未实现学生随堂练习分配、20 题流程、两次机会、评分或金币。
-- 未改造探险答题页视觉；第二张参考图只用于探险风格理解，Card 6 实施范围仍是学生首页。
-- 未实现商城、兑换、等级、经验、签到、连续奖励、合作奖励或排行榜。
-- 未推送、未部署、未做线上验证。
-- 下一步应由 Card 7 接入真实奖励与学生随堂练习数据，再调用本卡提供的只读渲染接口。
-
-## 6. 最终提交
-
-最终提交 SHA 在本日志所在提交完成后，以交付回报中的 `git rev-parse HEAD` 为准。
-
-## 7. v2 素材使用审计
-
-### 7.1 正式页面实际使用
-
-- `docs/student-home-tokens.css`
-- `scenes/vocabulary-adventure-scene.png`
-- `scenes/word-challenge-scene.png`
-- `scenes/grammar-challenge-scene.png`
-- `scenes/classroom-practice-scene.png`
-- `scenes/new-word-guide-scene.png`
-- `ui/section-titles/wood-plaque-blank.png`（覆盖真实 HTML 栏目标题）
-- `ui/coins-rewards/coin-large.png`
-- `ui/profile/sister-avatar.png`
-- `ui/profile/learning-badge.png`
-- `ui/bottom-nav/word-card-icon.png`
-- `ui/bottom-nav/phonetics-icon.png`
-- `ui/bottom-nav/mini-games-icon.png`
-
-完整 v2 包保存在 `assets/student-home/card6/`，共 63 个文件，SHA256 清单 62/62 校验通过。
-
-### 7.2 未用于正式 DOM / CSS
-
-- `reference-cards/`、`references/`、`preview-contact-sheet.png`：只用于视觉比对，避免把整卡或整页贴成截图。
-- `ui/quiz/`：属于探险答题页可复用素材，本轮不扩大到答题页视觉改造。
-- `decorations/`：五张正式 scene 已包含完整构图，重复叠加会偏离冻结视觉。
-- 带字栏目木牌和五个模块标题字：栏目统一使用空白木牌加 HTML；模块标题必须保持 HTML。
-- 底部整块按钮和整条导航图：使用图标版加真实 HTML 标签和 `button`，才能保持响应式与无障碍。
-- 固定文字奖励胶囊、顶部统计参考、进度条参考：奖励数据和状态必须为 HTML，且 Card 7 尚未提供真实数据。
-- `coin-small.png`：裁切中含“今日”残字，改用同包 `coin-large.png`。
-- `sister-avatar.png` 仅适用于姐姐；素材包没有弟弟头像，弟弟暂用无 emoji 的 HTML“弟”字回退，避免错误显示姐姐头像。
-
-### 7.3 横屏与剩余视觉差异
-
-- 强制横屏验收视口：1024×768、1180×820、1194×834。
-- 交付截图为 full-page，像素分别为 1024×1396、1180×1515；浏览器内部视口断言仍是上述横屏尺寸。
-- 剩余差异：顶部用户切换保留现有项目结构；弟弟没有包内专属头像；scene 为竖幅合成图，宽卡中采用响应式 `object-fit: cover` 裁切，不做像素级截图粘贴。
-- 老师首页、学生状态隔离、五个入口函数、未发布提示和 Card 7 边界均保持不变。
+- 未修改词汇探险、单词挑战、语法挑战和新词导览的业务含义、评分或奖励。
+- 未修改老师端首页布局。
+- 未新增金币结算、评分、商城、等级、Card 7 或其他产品功能。
+- 原始五张 PNG 保留，不作为首页运行时资源。

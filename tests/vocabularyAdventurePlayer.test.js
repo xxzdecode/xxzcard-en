@@ -281,7 +281,8 @@ for (const expected of ['apple', '苹果', 'an apple', 'apples', 'fruit', 'apple
   assert.doesNotMatch(playerSource, /if \(!previewEnabled\(\) \|\| !\['sister', 'brother'\]\.includes\(currentUserValue\(\)\)\) return/);
   assert.match(screeningSource, /const VOCABULARY_SCREENING_ENABLED = false/);
   assert.doesNotMatch(playerSource, /Math\.random/);
-  assert.doesNotMatch(serviceWorkerSource, /vocabularyAdventure|styles-vocabulary-adventure/);
+  assert.match(serviceWorkerSource, /styles-vocabulary-adventure/);
+  assert.doesNotMatch(serviceWorkerSource, /vocabularyAdventurePlayer/);
 
   console.log('vocabulary adventure player tests passed');
 })().catch(error => {

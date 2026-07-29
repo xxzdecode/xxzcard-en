@@ -1,111 +1,47 @@
-// Supersedes v22 with the approved Card 6 v2 assets and iPad layout contract.
-importScripts('./data/vocabularyLessonAssets.js');
-const VOCABULARY_REVIEW_CACHE = 'vocabulary-review-v23';
-const VOCABULARY_REVIEW_ASSETS = [
-  './',
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v32';
+const RUNTIME_CACHE = 'xxzcard-runtime-v32';
+const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
+const APP_SHELL = [
   './index.html',
   './styles.css',
+  './styles-vocabulary-adventure.css',
   './styles-home-nav.css',
   './styles-student-home-dashboard.css',
-  './styles-vocabulary-lesson.css',
-  './styles-vocabulary-lesson-016.css',
+  './assets/student-home/card6/docs/student-home-tokens.css',
   './js/config.js',
   './js/state.js',
   './js/repository.js',
   './js/utils.js',
-  './js/dictionary.js',
   './js/auth.js',
   './js/home.js',
-  './js/themeQuizzes.js',
-  './js/courseware-data.js',
-  './js/courseware.js',
-  './js/grammarLibrary.js',
-  './js/batch.js',
-  './js/import.js',
-  './js/tasks.js',
-  './js/review.js',
-  './js/study.js',
-  './js/quiz.js',
-  './js/questionTypes.js',
-  './js/taskEngine.js',
-  './js/merge.js',
-  './js/wordDedupe.js',
-  './js/vocabularyReviewData.js',
-  './js/vocabularyReview.js',
-  './js/vocabularyLesson016.js',
-  './js/vocabularyScreeningData.js',
-  './js/vocabularyScreening.js',
+  './js/lazyFeatures.js',
   './js/main.js',
-  './grammar-library/index.html',
-  './grammar-library/styles.css',
-  './grammar-library/app.js',
-  './grammar-library/data/topics.json',
-  './grammar-library/data/source-coverage.json',
-  './grammar-library/data/initial-progress.json',
-  './assets/student-home/card6/docs/student-home-tokens.css',
-  './assets/student-home/card6/scenes/vocabulary-adventure-scene.png',
-  './assets/student-home/card6/scenes/word-challenge-scene.png',
-  './assets/student-home/card6/scenes/grammar-challenge-scene.png',
-  './assets/student-home/card6/scenes/classroom-practice-scene.png',
-  './assets/student-home/card6/scenes/new-word-guide-scene.png',
+  './assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
+  './assets/student-home/card6/scenes/word-challenge-scene.webp',
+  './assets/student-home/card6/scenes/grammar-challenge-scene.webp',
+  './assets/student-home/card6/scenes/classroom-practice-scene.webp',
+  './assets/student-home/card6/scenes/new-word-guide-scene.webp',
   './assets/student-home/card6/ui/section-titles/wood-plaque-blank.png',
   './assets/student-home/card6/ui/coins-rewards/coin-large.png',
   './assets/student-home/card6/ui/profile/learning-badge.png',
   './assets/student-home/card6/ui/profile/sister-avatar.png',
+  './assets/student-home/card6/ui/profile/brother-avatar.png',
   './assets/student-home/card6/ui/bottom-nav/word-card-icon.png',
   './assets/student-home/card6/ui/bottom-nav/phonetics-icon.png',
-  './assets/student-home/card6/ui/bottom-nav/mini-games-icon.png',
-  './assets/vocabulary-review/line.webp',
-  './assets/vocabulary-review/cucumber.webp',
-  './assets/vocabulary-review/bonnet.webp',
-  './assets/vocabulary-review/messy.webp',
-  './assets/vocabulary-review/polish.webp',
-  './assets/vocabulary-review/puddle.webp',
-  './assets/vocabulary-review/soapy.webp',
-  './assets/vocabulary-review/sponge.webp',
-  './assets/vocabulary-review/naughty.webp',
-  './assets/vocabulary-review/handsome.webp',
-  './assets/vocabulary-review/mirror.webp',
-  './assets/vocabulary-review/lab.webp',
-  './assets/vocabulary-review/poor.webp',
-  './assets/vocabulary-review/ship.webp',
-  './assets/vocabulary-review/tidy.webp',
-  './assets/vocabulary-review/mess.webp',
-  './assets/vocabulary-review/weak.webp',
-  './assets/vocabulary-review/culture.webp',
-  './assets/vocabulary-review/divide.webp',
-  './assets/vocabulary-review/foreign.webp',
-  './assets/vocabulary-review/collect.webp',
-  './assets/vocabulary-review/information.webp',
-  './assets/vocabulary-review/tradition.webp',
-  './assets/vocabulary-review/festival.webp',
-  './assets/vocabulary-review/celebration.webp',
-  './assets/vocabulary-review/origami.webp',
-  './assets/vocabulary-review/challenging.webp',
-  './assets/vocabulary-review/practice.webp',
-  './assets/vocabulary-review/nervous.webp',
-  './assets/vocabulary-review/power.webp',
-  './assets/vocabulary-review/go.webp',
-  './assets/vocabulary-review/despite.webp',
-  './assets/vocabulary-review/difficulty.webp',
-  './assets/vocabulary-review/insist.webp',
-  './assets/vocabulary-review/task.webp',
-  './assets/vocabulary-review/hold.webp',
-  './assets/vocabulary-review/speech.webp',
-  './assets/vocabulary-review/contest.webp',
-  './assets/vocabulary-review/exhibit.webp',
-  './assets/vocabulary-review/numerous.webp',
-  './assets/vocabulary-review/valuable.webp',
-  ...(self.VOCABULARY_LESSON_ASSETS || [])
+  './assets/student-home/card6/ui/bottom-nav/mini-games-icon.png'
 ];
-const VOCABULARY_REVIEW_URLS = new Set(
-  VOCABULARY_REVIEW_ASSETS.map(path => new URL(path, self.location.href).href)
-);
+
+async function cacheIndividually(cacheName, urls) {
+  const cache = await caches.open(cacheName);
+  await Promise.allSettled(urls.map(async url => {
+    const response = await fetch(url, { cache: 'no-cache' });
+    if (response.ok) await cache.put(url, response);
+  }));
+}
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(VOCABULARY_REVIEW_CACHE)
-      .then(cache => cache.addAll(VOCABULARY_REVIEW_ASSETS))
+    cacheIndividually(APP_SHELL_CACHE, APP_SHELL)
       .then(() => self.skipWaiting())
   );
 });
@@ -113,38 +49,78 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys
-          .filter(key => key.startsWith('vocabulary-review-') && key !== VOCABULARY_REVIEW_CACHE)
-          .map(key => caches.delete(key))
-      ))
+      .then(keys => Promise.all(keys
+        .filter(key => CACHE_PREFIXES.some(prefix => key.startsWith(prefix)))
+        .filter(key => ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key))
+        .map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
 
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response && response.ok) {
+    const cache = await caches.open(RUNTIME_CACHE);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
+
+async function navigationStaleWhileRevalidate(request) {
+  const cache = await caches.open(APP_SHELL_CACHE);
+  const shellUrl = new URL('./index.html', self.location.href).href;
+  const cached = await cache.match(shellUrl);
+  const update = fetch(request, { cache: 'no-cache' })
+    .then(async response => {
+      if (response && response.ok) await cache.put(shellUrl, response.clone());
+      return response;
+    });
+  if (cached) {
+    update.catch(() => {});
+    return cached;
+  }
+  return await update;
+}
+
+async function apiNetworkFirst(request) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(request, { signal: controller.signal });
+    if (response && response.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  const appRoot = new URL('./', self.location.href);
+  const isNavigation = event.request.mode === 'navigate'
+    && url.origin === appRoot.origin
+    && url.pathname.startsWith(appRoot.pathname);
+  const isSupabaseApi = url.hostname.endsWith('.supabase.co');
 
-  const requestUrl = new URL(event.request.url);
-  const isCachedAsset = VOCABULARY_REVIEW_URLS.has(requestUrl.href);
-  const isAppNavigation = event.request.mode === 'navigate'
-    && requestUrl.origin === self.location.origin
-    && requestUrl.pathname.startsWith(new URL('./', self.location.href).pathname);
-  if (!isCachedAsset && !isAppNavigation) return;
-
-  const cacheKey = isAppNavigation
-    ? new URL('./index.html', self.location.href).href
-    : event.request;
-  event.respondWith(
-    fetch(event.request, { cache: 'no-cache' })
-      .then(response => {
-        if (response && response.ok) {
-          const copy = response.clone();
-          caches.open(VOCABULARY_REVIEW_CACHE)
-            .then(cache => cache.put(cacheKey, copy));
-        }
-        return response;
-      })
-      .catch(() => caches.match(cacheKey))
-  );
+  if (isNavigation) {
+    event.respondWith(navigationStaleWhileRevalidate(event.request));
+    return;
+  }
+  if (isSupabaseApi) {
+    event.respondWith(apiNetworkFirst(event.request));
+    return;
+  }
+  if (url.origin === self.location.origin) {
+    event.respondWith(cacheFirst(event.request));
+  }
 });

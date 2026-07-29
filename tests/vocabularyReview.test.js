@@ -144,9 +144,9 @@ assert.match(task016Styles, /max-height:\s*850px/);
 assert.match(placeholder, /<svg/);
 assert.doesNotMatch(placeholder, /<text|watermark/i);
 
-assert.match(serviceWorker, /vocabulary-review-v23/);
-assert.match(serviceWorker, /'\.\/styles-vocabulary-lesson-016\.css'/);
-assert.match(serviceWorker, /'\.\/js\/vocabularyLesson016\.js'/);
-assert.match(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
+assert.match(serviceWorker, /xxzcard-app-shell-v32/);
+assert.doesNotMatch(serviceWorker, /styles-vocabulary-lesson-016/);
+assert.doesNotMatch(serviceWorker, /vocabularyLesson016/);
+assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 
 console.log('unified vocabulary lesson tests passed');
