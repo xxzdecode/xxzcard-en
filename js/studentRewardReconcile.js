@@ -3,6 +3,20 @@
   root.__studentRewardReconciliationInstalled = true;
   const reconciled = new Set();
 
+  const style = document.createElement('style');
+  style.id = 'studentRewardReconciliationStyles';
+  style.textContent = `
+    .student-summary-card__values{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px}
+    .student-summary-card__rewards{min-width:210px}
+    .student-summary-card__values small{white-space:nowrap}
+    @media(max-width:430px){
+      .student-summary-card__rewards{min-width:142px}
+      .student-summary-card__values{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .student-breakthrough-value{grid-column:1/-1;display:flex!important;align-items:center;justify-content:space-between}
+    }
+  `;
+  document.head.appendChild(style);
+
   function todayKey() {
     const date = new Date();
     return date.getFullYear() + '-'
