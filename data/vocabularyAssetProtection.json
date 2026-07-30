@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-07-30T22:18:00+08:00",
+  "reason": "Protect all generated New Word Guide visuals before migrating wordbooks to a shared master vocabulary library.",
+  "gitArchiveBranch": "archive/pre-master-library-2026-07-30",
+  "gitArchiveCommit": "fda6c0443763c6b81d551266cf950cb0644b718b",
+  "supabaseArchiveId": "pre_master_library_2026_07_30_2218",
+  "protectedRoots": [
+    "assets/vocabulary-lessons/"
+  ],
+  "protectedRegistries": [
+    "data/vocabularyLessonVisuals.json",
+    "data/vocabularyLessonAssets.js"
+  ],
+  "rules": [
+    "Wordbook archive or deletion must never delete files under assets/vocabulary-lessons/.",
+    "Visual lookup is keyed by the English word and remains reusable from any current or future category wordbook.",
+    "Before removing an image, confirm that no item in data/vocabularyLessonVisuals.json references its main image or thumbnail.",
+    "The archive branch is the immutable pre-migration recovery point for all code and image assets."
+  ]
+}
