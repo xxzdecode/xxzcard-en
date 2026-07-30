@@ -34,10 +34,12 @@ assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
 assert.match(lazy, /requestIdleCallback/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v40/);
+assert.match(serviceWorker, /xxzcard-app-shell-v41/);
+assert.match(main, /loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardLayoutGuard\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardReconcile\.js'\)/);
+assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.match(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
 assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
 assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)/);
