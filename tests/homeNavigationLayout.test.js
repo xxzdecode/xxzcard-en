@@ -45,7 +45,10 @@ assert.match(dashboardStyles, /\.student-home-card-grid\s*\{[^}]*repeat\(2,\s*mi
 assert.match(html, /<link rel="stylesheet" href="styles-home-nav\.css"/);
 assert.match(html, /<link rel="stylesheet" href="styles-student-home-dashboard\.css"/);
 assert.doesNotMatch(mainScript, /createElement\('link'\)/);
-assert.match(serviceWorker, /xxzcard-app-shell-v32/);
+const appShellVersion = serviceWorker.match(/const APP_SHELL_CACHE = 'xxzcard-app-shell-v(\d+)';/);
+const runtimeVersion = serviceWorker.match(/const RUNTIME_CACHE = 'xxzcard-runtime-v(\d+)';/);
+assert.ok(appShellVersion, 'service worker must declare an app-shell cache version');
+assert.equal(runtimeVersion?.[1], appShellVersion[1], 'app-shell and runtime cache versions must stay aligned');
 assert.match(serviceWorker, /brother-avatar\.png/);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
 assert.match(serviceWorker, /'\.\/styles-student-home-dashboard\.css'/);
