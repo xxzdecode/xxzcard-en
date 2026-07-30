@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v40';
-const RUNTIME_CACHE = 'xxzcard-runtime-v40';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v41';
+const RUNTIME_CACHE = 'xxzcard-runtime-v41';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -10,6 +10,7 @@ const APP_SHELL = [
   './assets/student-home/card6/docs/student-home-tokens.css',
   './js/config.js',
   './js/state.js',
+  './js/masterVocabularyLibrary.js',
   './js/repository.js',
   './js/utils.js',
   './js/auth.js',
