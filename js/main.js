@@ -5,6 +5,7 @@
   try {
     if (typeof loadFeatureScript === 'function') {
       await loadFeatureScript('js/studentRewards.js');
+      await loadFeatureScript('js/studentRewardLayoutGuard.js');
       await loadFeatureScript('js/studentRewardReconcile.js');
     }
   } catch (error) {
