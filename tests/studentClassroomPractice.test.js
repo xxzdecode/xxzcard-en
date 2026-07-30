@@ -61,8 +61,8 @@ vm.runInContext(source, context);
 
 (async () => {
   await context.openCoursewareList();
-  assert.equal(elements.coursewareListTitle.textContent, '选择随堂练习');
-  assert.equal(elements.coursewareBookTitle.textContent, '任选 1 项 · 每天只能完成一次');
+  assert.equal(elements.coursewareListTitle.textContent, '今日随堂练习');
+  assert.equal(elements.coursewareBookTitle.textContent, '正在读取今日安排');
   assert.match(elements.coursewareList.innerHTML, /练习 A/);
   assert.doesNotMatch(elements.coursewareList.innerHTML, /disabled/);
 
@@ -74,11 +74,12 @@ vm.runInContext(source, context);
   assert.equal(screens.at(-1), 'screenCoursewarePlayer');
 
   await context.openCoursewareList();
+  assert.equal(elements.coursewareBookTitle.textContent, '继续今天的练习');
   assert.match(elements.coursewareList.innerHTML, /继续今日练习/);
-  assert.match(elements.coursewareList.innerHTML, /今日已选择其他练习/);
+  assert.match(elements.coursewareList.innerHTML, /今日已安排其他练习/);
 
   await context.openCourseware('practice-b');
-  assert.match(alerts.at(-1), /一天只能选择一项/);
+  assert.match(alerts.at(-1), /一天只能完成一项/);
   assert.equal(elements.coursewareFrame.src, 'a.html');
 
   await context.markStudentCoursewareCompleted();
