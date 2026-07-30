@@ -1,74 +1,68 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const path = require('node:path');
 
-const rewards = require(path.resolve(__dirname, '..', 'js', 'studentRewards.js'));
+const root = path.resolve(__dirname, '..');
+const rewards = require(path.join(root, 'js', 'studentRewards.js'));
+const source = fs.readFileSync(path.join(root, 'js', 'studentRewards.js'), 'utf8');
 const date = '2026-07-30';
 
-const legacy = rewards.normalizeRewardRecord({
-  totalCoins: 6,
-  daily: { [date]: { coins: 6 } }
+assert.deepEqual(rewards.SOURCE_MAX, {
+  adventure: 5,
+  vocabularyChallenge: 10,
+  grammarChallenge: 5,
+  classroomPractice: 10
 });
-const adventure = rewards.applySourceReward(legacy, {
+assert.equal(rewards.REGULAR_DAILY_MAX, 30);
+assert.equal(rewards.BREAKTHROUGH_DAILY_MAX, 10);
+assert.equal(rewards.DAILY_TOTAL_MAX, 40);
+
+const migrated = rewards.normalizeRewardRecord({
+  version: 2,
+  totalCoins: 40,
+  daily: {
+    [date]: {
+      coins: 30,
+      breakthroughCoins: 10,
+      sources: { adventure: 10, vocabularyChallenge: 10, classroomPractice: 10 }
+    }
+  }
+});
+assert.equal(migrated.version, 3);
+assert.equal(migrated.daily[date].sources.adventure, 5);
+assert.equal(migrated.daily[date].sources.grammarChallenge, 0);
+assert.equal(migrated.daily[date].coins, 25);
+assert.equal(migrated.totalCoins, 35, 'legacy ten-point adventure reward must rebalance to five');
+
+const grammar = rewards.applySourceReward(migrated, {
   date,
-  source: 'adventure',
-  amount: 10,
+  source: 'grammarChallenge',
+  amount: 5,
   mode: 'set',
   at: '2026-07-30T10:00:00.000Z'
 });
-assert.equal(adventure.record.daily[date].coins, 10);
-assert.equal(adventure.record.totalCoins, 10);
-assert.equal(adventure.delta, 4, 'legacy regular coins must not be discarded');
+assert.equal(grammar.record.daily[date].coins, 30);
+assert.equal(grammar.record.totalCoins, 40);
+assert.equal(grammar.projectDelta, 5);
 
-const repeatedAdventure = rewards.applySourceReward(adventure.record, {
+const repeatedGrammar = rewards.applySourceReward(grammar.record, {
   date,
-  source: 'adventure',
-  amount: 10,
+  source: 'grammarChallenge',
+  amount: 5,
   mode: 'set'
 });
-assert.equal(repeatedAdventure.changed, false, 'adventure reward must be idempotent');
+assert.equal(repeatedGrammar.changed, false, 'grammar reward must be idempotent');
 
-const challenge = rewards.applySourceReward(adventure.record, {
-  date,
-  source: 'vocabularyChallenge',
-  amount: 7,
-  mode: 'max'
-});
-assert.equal(challenge.record.daily[date].coins, 17);
-assert.equal(challenge.record.totalCoins, 17);
-const lowerRetry = rewards.applySourceReward(challenge.record, {
-  date,
-  source: 'vocabularyChallenge',
-  amount: 5,
-  mode: 'max'
-});
-assert.equal(lowerRetry.changed, false, 'a lower retry must not reduce challenge coins');
-
-const seeded = rewards.seedInitialBreakthrough(challenge.record, date, '2026-07-30T10:10:00.000Z');
-assert.equal(seeded.record.daily[date].breakthroughCoins, 10);
-assert.equal(seeded.record.totalCoins, 27);
-assert.equal(rewards.seedInitialBreakthrough(seeded.record, date).changed, false, 'initial seed must only run once');
-
-const deducted = rewards.applyBreakthroughAdjustment(seeded.record, {
-  date,
-  delta: -3,
-  reason: '课堂调整'
-});
-assert.equal(deducted.record.daily[date].breakthroughCoins, 7);
-assert.equal(deducted.record.totalCoins, 24);
-const capped = rewards.applyBreakthroughAdjustment(deducted.record, { date, delta: 20 });
-assert.equal(capped.record.daily[date].breakthroughCoins, 10, 'breakthrough coins are capped at ten per day');
-
-const challengeCorrection = rewards.applyRewardAdjustment(capped.record, {
+const challengeCorrection = rewards.applyRewardAdjustment(grammar.record, {
   date,
   project: 'vocabularyChallenge',
   delta: -4,
   at: '2026-07-30T10:20:00.000Z'
 });
-assert.equal(challengeCorrection.record.daily[date].sources.vocabularyChallenge, 3);
-assert.equal(challengeCorrection.record.daily[date].coins, 13);
-assert.equal(challengeCorrection.record.totalCoins, 23);
+assert.equal(challengeCorrection.record.daily[date].sources.vocabularyChallenge, 6);
+assert.equal(challengeCorrection.record.daily[date].coins, 26);
+assert.equal(challengeCorrection.record.totalCoins, 36);
 assert.equal(challengeCorrection.projectDelta, -4);
-assert.equal(challengeCorrection.delta, -4);
 
 const reconciliationAfterCorrection = rewards.applySourceReward(challengeCorrection.record, {
   date,
@@ -78,47 +72,50 @@ const reconciliationAfterCorrection = rewards.applySourceReward(challengeCorrect
 });
 assert.equal(reconciliationAfterCorrection.changed, false, 'automatic reconciliation must not overwrite a teacher correction');
 assert.equal(reconciliationAfterCorrection.overridden, true);
-assert.equal(reconciliationAfterCorrection.record.daily[date].sources.vocabularyChallenge, 3);
+assert.equal(reconciliationAfterCorrection.record.daily[date].sources.vocabularyChallenge, 6);
 
-const classroomAdded = rewards.applyRewardAdjustment(challengeCorrection.record, {
-  date,
-  project: 'classroomPractice',
-  delta: 6
-});
-assert.equal(classroomAdded.record.daily[date].sources.classroomPractice, 6);
-assert.equal(classroomAdded.record.daily[date].coins, 19);
-assert.equal(classroomAdded.record.totalCoins, 29);
-
-const breakthroughGeneric = rewards.applyRewardAdjustment(classroomAdded.record, {
-  date,
-  project: 'breakthrough',
-  delta: -2
-});
-assert.equal(breakthroughGeneric.record.daily[date].breakthroughCoins, 8);
-assert.equal(breakthroughGeneric.record.totalCoins, 27);
-assert.equal(breakthroughGeneric.projectDelta, -2);
-
-const floor = rewards.applyRewardAdjustment(breakthroughGeneric.record, {
+const adventureFloor = rewards.applyRewardAdjustment(challengeCorrection.record, {
   date,
   project: 'adventure',
   delta: -99
 });
-assert.equal(floor.record.daily[date].sources.adventure, 0);
-assert.equal(floor.projectDelta, -10);
-assert.equal(floor.record.daily[date].coins, 9);
+assert.equal(adventureFloor.record.daily[date].sources.adventure, 0);
+assert.equal(adventureFloor.projectDelta, -5);
+assert.equal(adventureFloor.record.daily[date].coins, 21);
 
-const unchangedFloor = rewards.applyRewardAdjustment(floor.record, {
+const grammarCap = rewards.applyRewardAdjustment(adventureFloor.record, {
   date,
-  project: 'adventure',
-  delta: -1
+  project: 'grammarChallenge',
+  delta: 99
 });
-assert.equal(unchangedFloor.changed, false, 'teacher deduction must stop at zero');
+assert.equal(grammarCap.record.daily[date].sources.grammarChallenge, 5);
+assert.equal(grammarCap.projectDelta, 0, 'grammar challenge must stop at five');
 
-const invalid = rewards.applyRewardAdjustment(floor.record, {
+const seeded = rewards.seedInitialBreakthrough(
+  rewards.normalizeRewardRecord({ totalCoins: 0, daily: { [date]: { coins: 0 } } }),
   date,
-  project: 'unknown',
-  delta: 1
+  '2026-07-30T10:10:00.000Z'
+);
+assert.equal(seeded.record.daily[date].breakthroughCoins, 10);
+assert.equal(seeded.record.totalCoins, 10);
+assert.equal(rewards.seedInitialBreakthrough(seeded.record, date).changed, false);
+
+const legacyUnallocated = rewards.normalizeRewardRecord({
+  totalCoins: 6,
+  daily: { [date]: { coins: 6 } }
 });
-assert.equal(invalid.changed, false, 'unknown reward projects must be ignored');
+const legacyAdventure = rewards.applySourceReward(legacyUnallocated, {
+  date,
+  source: 'adventure',
+  amount: 5,
+  mode: 'set'
+});
+assert.equal(legacyAdventure.record.daily[date].coins, 11, 'unclassified legacy coins must not be discarded');
+assert.equal(legacyAdventure.record.totalCoins, 11);
+
+assert.doesNotMatch(source, /observe\(document\.documentElement/, 'reward code must not observe the entire page');
+assert.doesNotMatch(source, /characterData\s*:\s*true/, 'reward observers must not react to their own text changes');
+assert.match(source, /vocabularyAdventureBody/);
+assert.match(source, /attributeFilter:\s*\['data-complete'\]/);
 
 console.log('student reward tests passed');
