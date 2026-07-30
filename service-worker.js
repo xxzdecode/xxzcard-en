@@ -1,12 +1,11 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v50';
-const RUNTIME_CACHE = 'xxzcard-runtime-v50';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v49';
+const RUNTIME_CACHE = 'xxzcard-runtime-v49';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
   './styles.css',
   './styles-vocabulary-adventure.css',
   './styles-vocabulary-adventure-v2.css',
-  './styles-vocabulary-adventure-colors.css',
   './styles-home-nav.css',
   './styles-student-home-dashboard.css',
   './assets/student-home/card6/docs/student-home-tokens.css',
@@ -44,12 +43,6 @@ const APP_SHELL = [
   './js/vocabularyAdventurePlayer.js',
   './js/vocabularyAdventureChallenge.js',
   './js/vocabularyAdventureVisualV2.js',
-  './assets/vocabulary-adventure/forest-landscape.webp',
-  './assets/vocabulary-adventure/forest-portrait.webp',
-  './assets/vocabulary-adventure/fox.webp',
-  './assets/vocabulary-adventure/speech-bubble.webp',
-  './assets/vocabulary-adventure/audio-button.webp',
-  './assets/vocabulary-adventure/continue-button.webp',
   './assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
   './assets/student-home/card6/scenes/word-challenge-scene.webp',
   './assets/student-home/card6/scenes/grammar-challenge-scene.webp',
