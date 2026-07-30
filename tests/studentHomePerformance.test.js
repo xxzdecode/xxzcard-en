@@ -34,7 +34,7 @@ assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
 assert.match(lazy, /requestIdleCallback/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v35/);
+assert.match(serviceWorker, /xxzcard-app-shell-v39/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardReconcile\.js'\)/);
 assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
@@ -45,6 +45,7 @@ assert.doesNotMatch(serviceWorker, /assets\/vocabulary-review\//);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 assert.doesNotMatch(serviceWorker, /courseware\//);
 assert.match(serviceWorker, /navigationNetworkFirst/);
+assert.match(serviceWorker, /staticNetworkFirst/);
 assert.doesNotMatch(serviceWorker, /navigationStaleWhileRevalidate/);
 assert.match(serviceWorker, /apiNetworkFirst/);
 assert.match(serviceWorker, /cacheFirst/);
