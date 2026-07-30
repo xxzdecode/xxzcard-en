@@ -36,6 +36,8 @@ assert.match(lazy, /requestIdleCallback/);
 
 assert.match(serviceWorker, /xxzcard-app-shell-v35/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
+assert.match(main, /loadFeatureScript\('js\/studentRewardReconcile\.js'\)/);
+assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
 assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)/);
 assert.match(serviceWorker, /Promise\.allSettled/);
 assert.doesNotMatch(serviceWorker, /cache\.addAll/);
