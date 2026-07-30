@@ -5,6 +5,7 @@
   try {
     if (typeof loadFeatureScript === 'function') {
       await loadFeatureScript('js/studentRewards.js');
+      await loadFeatureScript('js/studentRewardReconcile.js');
     }
   } catch (error) {
     console.warn('student reward enhancements unavailable', error && (error.message || error));
