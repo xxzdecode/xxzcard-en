@@ -55,10 +55,12 @@
         });
 
       // Warm the word-card scripts while the main Supabase data is loading.
-      // The entry stays usable even if this optional preload fails.
+      // Viewing stays cache-first, while the final helper restores remote-fresh
+      // records for study modes that can write known/unknown progress.
       if (typeof loadFeatureGroup === 'function') {
         teacherToolsWarmup = loadFeatureGroup('teacherTools')
           .then(() => loadFeatureScript('js/wordCardPerformance.js'))
+          .then(() => loadFeatureScript('js/wordCardStudySafety.js'))
           .catch(error => {
             console.warn('word-card warmup unavailable', error && (error.message || error));
             return null;
