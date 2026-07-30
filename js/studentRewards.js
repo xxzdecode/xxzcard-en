@@ -17,6 +17,12 @@
     vocabularyChallenge: 10,
     classroomPractice: 10
   });
+  const REWARD_PROJECTS = Object.freeze({
+    breakthrough: Object.freeze({ label: '突破金币', max: BREAKTHROUGH_DAILY_MAX, regular: false }),
+    adventure: Object.freeze({ label: '词汇探险', max: SOURCE_MAX.adventure, regular: true }),
+    vocabularyChallenge: Object.freeze({ label: '单词挑战', max: SOURCE_MAX.vocabularyChallenge, regular: true }),
+    classroomPractice: Object.freeze({ label: '随堂练习', max: SOURCE_MAX.classroomPractice, regular: true })
+  });
   const STUDENTS = Object.freeze([
     { key: 'sister', name: '姐姐' },
     { key: 'brother', name: '弟弟' }
@@ -40,8 +46,16 @@
     const sources = source.sources && typeof source.sources === 'object' && !Array.isArray(source.sources)
       ? { ...source.sources }
       : {};
+    const rawOverrides = source.teacherSourceOverrides && typeof source.teacherSourceOverrides === 'object'
+      && !Array.isArray(source.teacherSourceOverrides)
+      ? source.teacherSourceOverrides
+      : {};
+    const teacherSourceOverrides = {};
     Object.keys(SOURCE_MAX).forEach(key => {
       sources[key] = clampInteger(sources[key], 0, SOURCE_MAX[key]);
+      if (Object.prototype.hasOwnProperty.call(rawOverrides, key)) {
+        teacherSourceOverrides[key] = clampInteger(rawOverrides[key], 0, SOURCE_MAX[key]);
+      }
     });
     const sourceTotal = Object.keys(SOURCE_MAX).reduce((sum, key) => sum + sources[key], 0);
     const legacyCoins = clampInteger(source.coins, 0, REGULAR_DAILY_MAX);
@@ -50,6 +64,7 @@
       ...source,
       coins,
       sources,
+      teacherSourceOverrides,
       breakthroughCoins: clampInteger(source.breakthroughCoins, 0, BREAKTHROUGH_DAILY_MAX),
       updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : ''
     };
@@ -87,6 +102,9 @@
       return { record, changed: false, delta: 0 };
     }
     const day = normalizeDay(record.daily[date]);
+    if (Object.prototype.hasOwnProperty.call(day.teacherSourceOverrides, source)) {
+      return { record, changed: false, delta: 0, overridden: true };
+    }
     const current = clampInteger(day.sources[source], 0, SOURCE_MAX[source]);
     const requested = clampInteger(settings.amount, 0, SOURCE_MAX[source]);
     const nextValue = settings.mode === 'max' ? Math.max(current, requested) : requested;
@@ -126,7 +144,7 @@
     const requestedDelta = Math.round(Number(settings.delta) || 0);
     const nextValue = clampInteger(day.breakthroughCoins + requestedDelta, 0, BREAKTHROUGH_DAILY_MAX);
     const delta = nextValue - day.breakthroughCoins;
-    if (!delta) return { record, changed: false, delta: 0 };
+    if (!delta) return { record, changed: false, delta: 0, projectDelta: 0 };
     const now = String(settings.at || new Date().toISOString());
     record.daily[date] = {
       ...day,
@@ -137,14 +155,63 @@
     record.transactions.push({
       id: `${date}:breakthrough:${now}`,
       date,
-      kind: 'breakthrough',
-      source: 'teacher',
+      kind: settings.kind || 'breakthrough',
+      source: settings.source || 'teacher',
       delta,
+      projectDelta: delta,
       reason: String(settings.reason || '').trim(),
       at: now
     });
     record.transactions = record.transactions.slice(-100);
-    return { record, changed: true, delta };
+    return { record, changed: true, delta, projectDelta: delta };
+  }
+
+  function applyRewardAdjustment(recordValue, options) {
+    const settings = options && typeof options === 'object' ? options : {};
+    const project = String(settings.project || settings.source || '');
+    if (project === 'breakthrough') {
+      return applyBreakthroughAdjustment(recordValue, {
+        ...settings,
+        source: 'teacher',
+        kind: 'teacher-adjustment'
+      });
+    }
+
+    const record = normalizeRewardRecord(recordValue);
+    if (!Object.prototype.hasOwnProperty.call(SOURCE_MAX, project)) {
+      return { record, changed: false, delta: 0, projectDelta: 0 };
+    }
+
+    const date = String(settings.date || dateKey());
+    const day = normalizeDay(record.daily[date]);
+    const current = clampInteger(day.sources[project], 0, SOURCE_MAX[project]);
+    const requestedDelta = Math.round(Number(settings.delta) || 0);
+    const nextValue = clampInteger(current + requestedDelta, 0, SOURCE_MAX[project]);
+    const projectDelta = nextValue - current;
+    if (!projectDelta) return { record, changed: false, delta: 0, projectDelta: 0 };
+
+    const nextCoins = clampInteger(day.coins + projectDelta, 0, REGULAR_DAILY_MAX);
+    const delta = nextCoins - day.coins;
+    const now = String(settings.at || new Date().toISOString());
+    record.daily[date] = {
+      ...day,
+      coins: nextCoins,
+      sources: { ...day.sources, [project]: nextValue },
+      teacherSourceOverrides: { ...day.teacherSourceOverrides, [project]: nextValue },
+      updatedAt: now
+    };
+    record.totalCoins = Math.max(0, record.totalCoins + delta);
+    record.transactions.push({
+      id: `${date}:${project}:teacher:${now}`,
+      date,
+      kind: 'teacher-adjustment',
+      source: project,
+      delta,
+      projectDelta,
+      at: now
+    });
+    record.transactions = record.transactions.slice(-100);
+    return { record, changed: true, delta, projectDelta };
   }
 
   function seedInitialBreakthrough(recordValue, date, at) {
@@ -239,16 +306,32 @@
       style.textContent = `
         .student-summary-card__values .student-breakthrough-value strong{display:flex;align-items:baseline;gap:4px}
         .student-breakthrough-value b{font-size:1.05em}
-        .teacher-breakthrough-panel{width:min(760px,calc(100% - 28px));margin:16px auto 90px;padding:18px;border:1px solid #eadde6;border-radius:20px;background:#fff;box-shadow:0 8px 24px rgba(80,55,75,.08)}
-        .teacher-breakthrough-panel h2{margin:0 0 6px;color:#6b4e7a}
-        .teacher-breakthrough-panel p{margin:4px 0;color:#847780}
-        .teacher-breakthrough-controls{display:grid;grid-template-columns:minmax(120px,1fr) minmax(100px,.7fr) minmax(160px,1.4fr) auto auto;gap:10px;align-items:end;margin-top:14px}
-        .teacher-breakthrough-controls label{display:grid;gap:5px;font-size:12px;color:#7f727b}
-        .teacher-breakthrough-controls select,.teacher-breakthrough-controls input{min-height:44px;border:1px solid #dfd1da;border-radius:12px;padding:8px 10px;background:#fff;color:#594f56;font:inherit}
-        .teacher-breakthrough-controls button{min-height:44px;border:0;border-radius:12px;padding:8px 14px;font-weight:800;cursor:pointer}
-        .teacher-breakthrough-add{background:#a8d8c8;color:#244e42}.teacher-breakthrough-subtract{background:#f6d6dd;color:#7c3d50}
-        #teacherBreakthroughStatus{min-height:22px;margin-top:10px;font-weight:700;color:#5f9f8c}
-        @media(max-width:760px){.teacher-breakthrough-controls{grid-template-columns:1fr 1fr}.teacher-breakthrough-controls label:nth-child(3){grid-column:1/-1}}
+        .teacher-reward-panel{width:min(900px,calc(100% - 24px));margin:12px auto 28px;padding:12px 14px;border:1px solid #eadde6;border-radius:16px;background:#fff;box-shadow:0 6px 18px rgba(80,55,75,.07)}
+        .teacher-reward-panel__row{display:grid;grid-template-columns:minmax(190px,.75fr) minmax(0,1.7fr);gap:14px;align-items:end}
+        .teacher-reward-panel__summary{min-width:0;align-self:center}
+        .teacher-reward-panel h2{margin:0;color:#6b4e7a;font-size:18px;line-height:1.2;white-space:nowrap}
+        .teacher-reward-panel p{margin:5px 0 0;color:#847780;font-size:13px;line-height:1.35}
+        .teacher-reward-controls{display:grid;grid-template-columns:minmax(112px,.85fr) minmax(138px,1.15fr) 78px 68px 68px;gap:8px;align-items:end}
+        .teacher-reward-controls label{display:grid;gap:4px;min-width:0;font-size:11px;color:#7f727b}
+        .teacher-reward-controls select,.teacher-reward-controls input{width:100%;height:40px;border:1px solid #dfd1da;border-radius:10px;padding:6px 9px;background:#fff;color:#594f56;font:inherit;outline:none}
+        .teacher-reward-controls select:focus,.teacher-reward-controls input:focus{border-color:#a8d8c8;box-shadow:0 0 0 3px rgba(168,216,200,.2)}
+        .teacher-reward-controls button{height:40px;border:0;border-radius:10px;padding:6px 10px;font-weight:800;cursor:pointer;white-space:nowrap}
+        .teacher-reward-controls button:disabled{opacity:.55;cursor:wait}
+        .teacher-reward-add{background:#a8d8c8;color:#244e42}.teacher-reward-subtract{background:#f6d6dd;color:#7c3d50}
+        #teacherRewardStatus{min-height:18px;margin-top:7px;text-align:right;font-size:12px;font-weight:700;color:#5f9f8c}
+        @media(max-width:760px){
+          .teacher-reward-panel{padding:11px 12px}
+          .teacher-reward-panel__row{grid-template-columns:1fr;gap:9px}
+          .teacher-reward-panel__summary{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+          .teacher-reward-panel__summary p{margin:0;text-align:right}
+          .teacher-reward-controls{grid-template-columns:1fr 1.25fr 72px 62px 62px;gap:6px}
+        }
+        @media(max-width:540px){
+          .teacher-reward-controls{grid-template-columns:1fr 1fr 70px}
+          .teacher-reward-controls button{grid-row:2}
+          .teacher-reward-add{grid-column:2}.teacher-reward-subtract{grid-column:3}
+          #teacherRewardStatus{text-align:left}
+        }
         .vocabulary-adventure-earned-coins{font-size:clamp(24px,4vw,42px);font-weight:900;color:#b77a1d;margin:12px 0}
       `;
       document.head.appendChild(style);
@@ -309,76 +392,123 @@
       return { ok: true, record: result.record, delta: result.delta };
     }
 
-    async function adjustBreakthrough(user, delta, reason) {
+    async function adjustRewardProject(user, project, delta) {
       const student = user === 'brother' ? 'brother' : 'sister';
       const current = await loadReward(student);
-      const result = applyBreakthroughAdjustment(current, {
+      const result = applyRewardAdjustment(current, {
         date: dateKey(),
-        delta,
-        reason
+        project,
+        delta
       });
       if (result.changed && !await saveReward(student, result.record)) {
-        return { ok: false, record: current, delta: 0 };
+        return { ok: false, record: current, delta: 0, projectDelta: 0 };
       }
-      return { ok: true, record: result.record, delta: result.delta };
+      return { ok: true, record: result.record, delta: result.delta, projectDelta: result.projectDelta };
+    }
+
+    async function adjustBreakthrough(user, delta) {
+      return adjustRewardProject(user, 'breakthrough', delta);
+    }
+
+    function selectedTeacherProject() {
+      const value = String(document.getElementById('teacherRewardProject')?.value || 'breakthrough');
+      return Object.prototype.hasOwnProperty.call(REWARD_PROJECTS, value) ? value : 'breakthrough';
+    }
+
+    function projectValue(day, project) {
+      return project === 'breakthrough'
+        ? day.breakthroughCoins
+        : clampInteger(day.sources[project], 0, SOURCE_MAX[project]);
     }
 
     async function refreshTeacherPanel() {
-      const panel = document.getElementById('teacherBreakthroughPanel');
+      const panel = document.getElementById('teacherRewardPanel');
       if (!panel) return;
       await ensureInitialBreakthrough();
-      const user = document.getElementById('teacherBreakthroughStudent')?.value === 'brother' ? 'brother' : 'sister';
+      const user = document.getElementById('teacherRewardStudent')?.value === 'brother' ? 'brother' : 'sister';
+      const project = selectedTeacherProject();
       const record = await loadReward(user);
       const day = normalizeDay(record.daily[dateKey()]);
-      const current = document.getElementById('teacherBreakthroughCurrent');
+      const meta = REWARD_PROJECTS[project];
+      const current = document.getElementById('teacherRewardCurrent');
+      const status = document.getElementById('teacherRewardStatus');
       if (current) {
-        current.textContent = `今日突破金币 ${day.breakthroughCoins} / ${BREAKTHROUGH_DAILY_MAX} · 累计金币 ${record.totalCoins}`;
+        current.textContent = `${meta.label} ${projectValue(day, project)} / ${meta.max} · 今日常规 ${day.coins} / ${REGULAR_DAILY_MAX} · 累计 ${record.totalCoins}`;
       }
+      if (status) status.textContent = '';
+    }
+
+    function setTeacherButtonsDisabled(disabled) {
+      ['teacherRewardAdd', 'teacherRewardSubtract'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.disabled = Boolean(disabled);
+      });
     }
 
     async function applyTeacherAdjustment(direction) {
-      const studentSelect = document.getElementById('teacherBreakthroughStudent');
-      const amountInput = document.getElementById('teacherBreakthroughAmount');
-      const reasonInput = document.getElementById('teacherBreakthroughReason');
-      const status = document.getElementById('teacherBreakthroughStatus');
+      const studentSelect = document.getElementById('teacherRewardStudent');
+      const amountInput = document.getElementById('teacherRewardAmount');
+      const status = document.getElementById('teacherRewardStatus');
       const user = studentSelect?.value === 'brother' ? 'brother' : 'sister';
-      const amount = clampInteger(amountInput?.value, 1, BREAKTHROUGH_DAILY_MAX);
-      const result = await adjustBreakthrough(user, direction * amount, reasonInput?.value || '老师手动调整');
-      if (status) {
-        status.textContent = result.ok
-          ? (result.delta ? `已${result.delta > 0 ? '增加' : '扣除'} ${Math.abs(result.delta)} 个突破金币` : '已达到当天可调整范围')
-          : '保存失败，请检查网络后重试';
+      const project = selectedTeacherProject();
+      const meta = REWARD_PROJECTS[project];
+      const amount = clampInteger(amountInput?.value, 1, meta.max);
+      setTeacherButtonsDisabled(true);
+      try {
+        const result = await adjustRewardProject(user, project, direction * amount);
+        if (status) {
+          if (!result.ok) status.textContent = '保存失败，请检查网络后重试';
+          else if (result.projectDelta) {
+            status.textContent = `已${result.projectDelta > 0 ? '增加' : '扣除'} ${Math.abs(result.projectDelta)} 个${meta.label}`;
+          } else {
+            status.textContent = direction > 0 ? '该项目已到今日上限' : '该项目已经是 0';
+          }
+        }
+        if (amountInput) amountInput.value = '1';
+        const record = result.record || await loadReward(user);
+        const day = normalizeDay(record.daily[dateKey()]);
+        const current = document.getElementById('teacherRewardCurrent');
+        if (current) {
+          current.textContent = `${meta.label} ${projectValue(day, project)} / ${meta.max} · 今日常规 ${day.coins} / ${REGULAR_DAILY_MAX} · 累计 ${record.totalCoins}`;
+        }
+      } finally {
+        setTeacherButtonsDisabled(false);
       }
-      if (amountInput) amountInput.value = '1';
-      await refreshTeacherPanel();
     }
 
     function installTeacherPanel() {
       if (!(typeof root.isTeacher === 'function' && root.isTeacher())) return;
-      if (document.getElementById('teacherBreakthroughPanel')) {
+      const legacyPanel = document.getElementById('teacherBreakthroughPanel');
+      if (legacyPanel) legacyPanel.remove();
+      if (document.getElementById('teacherRewardPanel')) {
         refreshTeacherPanel();
         return;
       }
       const nav = document.querySelector('.teacher-home-nav');
       if (!nav) return;
       const panel = document.createElement('section');
-      panel.id = 'teacherBreakthroughPanel';
-      panel.className = 'teacher-breakthrough-panel teacher-only';
+      panel.id = 'teacherRewardPanel';
+      panel.className = 'teacher-reward-panel teacher-only';
       panel.innerHTML = `
-        <h2>突破金币</h2>
-        <p id="teacherBreakthroughCurrent">正在读取今日金币…</p>
-        <div class="teacher-breakthrough-controls">
-          <label>学生<select id="teacherBreakthroughStudent"><option value="sister">姐姐</option><option value="brother">弟弟</option></select></label>
-          <label>数量<input id="teacherBreakthroughAmount" type="number" min="1" max="10" value="1" inputmode="numeric"></label>
-          <label>备注<input id="teacherBreakthroughReason" type="text" maxlength="40" placeholder="例如：课堂突破"></label>
-          <button type="button" class="teacher-breakthrough-add" id="teacherBreakthroughAdd">增加</button>
-          <button type="button" class="teacher-breakthrough-subtract" id="teacherBreakthroughSubtract">扣除</button>
+        <div class="teacher-reward-panel__row">
+          <div class="teacher-reward-panel__summary">
+            <h2>金币调整</h2>
+            <p id="teacherRewardCurrent">正在读取今日金币…</p>
+          </div>
+          <div class="teacher-reward-controls">
+            <label><span>学生</span><select id="teacherRewardStudent"><option value="sister">姐姐</option><option value="brother">弟弟</option></select></label>
+            <label><span>项目</span><select id="teacherRewardProject"><option value="breakthrough">突破金币</option><option value="adventure">词汇探险</option><option value="vocabularyChallenge">单词挑战</option><option value="classroomPractice">随堂练习</option></select></label>
+            <label><span>数量</span><input id="teacherRewardAmount" type="number" min="1" max="10" value="1" inputmode="numeric"></label>
+            <button type="button" class="teacher-reward-add" id="teacherRewardAdd">增加</button>
+            <button type="button" class="teacher-reward-subtract" id="teacherRewardSubtract">扣除</button>
+          </div>
         </div>
-        <div id="teacherBreakthroughStatus" role="status" aria-live="polite"></div>`;
+        <div id="teacherRewardStatus" role="status" aria-live="polite"></div>`;
       nav.insertAdjacentElement('afterend', panel);
-      document.getElementById('teacherBreakthroughStudent')?.addEventListener('change', refreshTeacherPanel);
-      document.getElementById('teacherBreakthroughAdd')?.addEventListener('click', () => applyTeacherAdjustment(1));
-      document.getElementById('teacherBreakthroughSubtract')?.addEventListener('click', () => applyTeacherAdjustment(-1));
+      document.getElementById('teacherRewardStudent')?.addEventListener('change', refreshTeacherPanel);
+      document.getElementById('teacherRewardProject')?.addEventListener('change', refreshTeacherPanel);
+      document.getElementById('teacherRewardAdd')?.addEventListener('click', () => applyTeacherAdjustment(1));
+      document.getElementById('teacherRewardSubtract')?.addEventListener('click', () => applyTeacherAdjustment(-1));
       refreshTeacherPanel();
     }
 
@@ -533,8 +663,11 @@
 
     root.recordStudentRewardSource = recordSource;
     root.recordStudentBreakthroughAdjustment = adjustBreakthrough;
+    root.recordStudentRewardAdjustment = adjustRewardProject;
     root.refreshTeacherBreakthroughPanel = refreshTeacherPanel;
+    root.refreshTeacherRewardPanel = refreshTeacherPanel;
     root.applyTeacherBreakthroughChange = applyTeacherAdjustment;
+    root.applyTeacherRewardChange = applyTeacherAdjustment;
   }
 
   return Object.freeze({
@@ -543,11 +676,13 @@
     BREAKTHROUGH_DAILY_MAX,
     INITIAL_BREAKTHROUGH_DATE,
     SOURCE_MAX,
+    REWARD_PROJECTS,
     dateKey,
     normalizeDay,
     normalizeRewardRecord,
     applySourceReward,
     applyBreakthroughAdjustment,
+    applyRewardAdjustment,
     seedInitialBreakthrough,
     install
   });
