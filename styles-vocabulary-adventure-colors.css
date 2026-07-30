@@ -1,0 +1,27 @@
+/* Restore the established colorful answer palette without changing card geometry. */
+#screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 1) {
+  border-color:#b8dccb;
+  background:#eefaf3;
+}
+#screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 2) {
+  border-color:#ead29b;
+  background:#fff8e8;
+}
+#screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 3) {
+  border-color:#adcaf1;
+  background:#edf5ff;
+}
+#screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 4) {
+  border-color:#d3c4e8;
+  background:#f7f2fc;
+}
+#screenVocabularyAdventure .vocabulary-adventure-options button.is-correct {
+  border-color:#56b987;
+  background:#ddf6e8;
+  color:#246746;
+}
+#screenVocabularyAdventure .vocabulary-adventure-options button.is-wrong {
+  border-color:#e5aa9c;
+  background:#fff2ef;
+  color:#9b5d50;
+}
