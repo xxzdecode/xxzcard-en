@@ -4,7 +4,8 @@ const FEATURE_GROUPS = {
     'js/vocabularyAdventure.js',
     'js/vocabularyAdventureReview.js',
     'js/vocabularyAdventurePlayer.js',
-    'js/vocabularyAdventureChallenge.js'
+    'js/vocabularyAdventureChallenge.js',
+    'js/vocabularyAdventureVisualV2.js'
   ],
   grammarChallenge: ['grammar-challenge/data/catalog.js', 'js/grammarChallenges.js'],
   themeQuiz: ['js/themeQuizzes.js'],
