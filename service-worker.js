@@ -17,6 +17,7 @@ const APP_SHELL = [
   './js/lazyFeatures.js',
   './js/main.js',
   './js/studentRewards.js',
+  './js/studentRewardReconcile.js',
   './assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
   './assets/student-home/card6/scenes/word-challenge-scene.webp',
   './assets/student-home/card6/scenes/grammar-challenge-scene.webp',
