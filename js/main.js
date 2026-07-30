@@ -2,6 +2,13 @@
 // INIT
 // ══════════════════════════════════════
 (async () => {
+  try {
+    if (typeof loadFeatureScript === 'function') {
+      await loadFeatureScript('js/studentRewards.js');
+    }
+  } catch (error) {
+    console.warn('student reward enhancements unavailable', error && (error.message || error));
+  }
   if (currentUser === 'teacher') { document.body.classList.add('is-teacher'); }
   appData = await initData();
   await loadHome();
