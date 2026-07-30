@@ -40,8 +40,6 @@ const APP_SHELL = [
   './js/vocabularyAdventureCore.js',
   './js/vocabularyAdventure.js',
   './js/vocabularyAdventureReview.js',
-  './js/vocabularyAdventurePlayer.js',
-  './js/vocabularyAdventureChallenge.js',
   './js/vocabularyAdventureVisualV2.js',
   './assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
   './assets/student-home/card6/scenes/word-challenge-scene.webp',

@@ -2,7 +2,6 @@
   'use strict';
 
   const SCREEN_ID = 'screenVocabularyAdventure';
-  const LAYOUT_STYLESHEET = 'styles-vocabulary-adventure-v2.css';
   const WRAPPED_FUNCTIONS = [
     'openVocabularyAdventure',
     'answerVocabularyAdventure',
@@ -14,300 +13,193 @@
     'clearVocabularyAdventureReviewOrder',
     'retryVocabularyAdventureResultSave'
   ];
+  const state = { refreshQueued:false, transitionRunning:false, lastTransitionAt:-1 };
 
-  const state = {
-    refreshTimer: 0,
-    installAttempts: 0,
-    autoAdvanceTimer: 0,
-    transitionRunning: false,
-    lastTransitionAt: -1
-  };
-
-  function screen() {
-    return document.getElementById(SCREEN_ID);
-  }
-
-  function byId(id) {
-    return document.getElementById(id);
-  }
-
-  function ensureLayoutStylesheet() {
-    // Remove every legacy V2 stylesheet/override. Those rules changed the original
-    // topbar, progress bar, question card and option palette.
-    document.querySelectorAll('link[data-vav2-styles]').forEach(link => link.remove());
-    const oldOverride = document.getElementById('vav2SafeOverrides');
-    if (oldOverride) oldOverride.remove();
-
-    if (document.querySelector(`link[data-vav2-layout][href="${LAYOUT_STYLESHEET}"]`)) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = LAYOUT_STYLESHEET;
-    link.dataset.vav2Layout = '1';
-    document.head.appendChild(link);
-  }
-
-  function ensureGuide() {
-    const root = screen();
-    if (!root) return null;
-
-    root.classList.add('vocabulary-adventure-v2-incremental');
-    root.classList.remove('vocabulary-adventure-v2');
-    root.querySelectorAll('.vav2-fox, .vav2-fox-bubble').forEach(node => node.remove());
-
-    let panel = root.querySelector('.vav2-guide-panel');
-    if (!panel) {
-      panel = document.createElement('aside');
-      panel.className = 'vav2-guide-panel';
-      panel.setAttribute('aria-live', 'polite');
-      panel.innerHTML = `
-        <div class="vav2-guide-bubble" hidden></div>
-        <div class="vav2-guide-fox" aria-hidden="true"></div>`;
-      root.appendChild(panel);
-    }
-    return panel;
-  }
-
+  function screen() { return document.getElementById(SCREEN_ID); }
+  function byId(id) { return document.getElementById(id); }
   function visible(element) {
     if (!element || element.hidden) return false;
     const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
     return !style || (style.display !== 'none' && style.visibility !== 'hidden');
   }
 
-  function questionLabel() {
+  function ensureGuide() {
     const root = screen();
-    const label = root && root.querySelector('.vocabulary-adventure-question-label');
-    return label ? label.textContent.trim() : '';
+    if (!root) return null;
+    root.classList.add('vocabulary-adventure-v2-incremental');
+    root.querySelectorAll('.vav2-fox,.vav2-fox-bubble').forEach(node => node.remove());
+    let panel = root.querySelector('.vav2-guide-panel');
+    if (!panel) {
+      panel = document.createElement('aside');
+      panel.className = 'vav2-guide-panel';
+      panel.setAttribute('aria-live','polite');
+      panel.innerHTML = '<div class="vav2-guide-bubble" hidden></div><img class="vav2-guide-fox" src="assets/vocabulary-adventure/fox.webp" width="746" height="928" alt="">';
+      root.appendChild(panel);
+    }
+    return panel;
   }
 
-  function hintText() {
-    const label = questionLabel();
-    if (/听/.test(label)) return '注意单词开头和结尾的声音，再试一次。';
-    if (/看意思/.test(label)) return '先想一想这个意思会出现在哪种情境里。';
-    if (/看单词/.test(label)) return '先轻声读一遍，再想想它通常表达什么。';
-    if (/音标/.test(label)) return '慢一点看音标，把声音分成两小段来想。';
-    if (/拼|字母/.test(label)) return '先想读音，再检查每一段声音对应的字母。';
-    return '再看一看、想一想，然后重新试一次。';
-  }
-
-  function setBubble(panel, text, allowReplay) {
+  function setBubble(panel, sourceHint, allowReplay) {
     if (!panel) return;
     const bubble = panel.querySelector('.vav2-guide-bubble');
     if (!bubble) return;
-
-    if (!text) {
+    if (!sourceHint) {
       bubble.hidden = true;
       bubble.replaceChildren();
       return;
     }
 
-    bubble.replaceChildren(document.createTextNode(text));
+    const copy = sourceHint.cloneNode(true);
+    copy.querySelectorAll('button').forEach(button => button.remove());
+    bubble.replaceChildren(...copy.childNodes);
     if (allowReplay && typeof window.speakVocabularyAdventureCurrent === 'function') {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'vav2-bubble-audio';
       button.textContent = '🔊 再听一次';
-      button.addEventListener('click', () => window.speakVocabularyAdventureCurrent());
-      bubble.appendChild(document.createElement('br'));
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        window.speakVocabularyAdventureCurrent();
+      });
       bubble.appendChild(button);
     }
     bubble.hidden = false;
   }
 
+  function prepareTopbarContent() {
+    const root = screen();
+    if (!root) return;
+    const title = byId('vocabularyAdventureStageTitle');
+    if (title) title.textContent = '词汇探险';
+    ['vocabularyAdventureScreeningProgress','vocabularyAdventureTotalProgress','vocabularyAdventureSessionDate'].forEach(id => {
+      const node = byId(id);
+      if (node) node.hidden = true;
+    });
+    const secondary = root.querySelector('.vocabulary-adventure-progress-row.is-secondary');
+    if (secondary) secondary.hidden = true;
+  }
+
   function preparePrimaryAudio() {
     const root = screen();
     if (!root) return false;
-
-    const controls = [...root.querySelectorAll('.vocabulary-adventure-audio-prompt')];
-    controls.forEach((control, index) => {
+    const controls = [...root.querySelectorAll('.vocabulary-adventure-audio-prompt')].filter(control => !control.closest('[hidden]'));
+    controls.forEach((control,index) => {
       control.hidden = index > 0;
-      control.classList.toggle('vav2-primary-audio', index === 0);
+      control.classList.toggle('vav2-primary-audio',index === 0);
       if (index === 0) {
-        control.innerHTML = '<span aria-hidden="true">🔊</span><b>听读音</b>';
-        control.setAttribute('aria-label', '听读音');
+        control.innerHTML = '<span aria-hidden="true"></span><b>听读音</b>';
+        control.setAttribute('aria-label','听读音');
       }
     });
-
     const question = root.querySelector('.vocabulary-adventure-question');
-    if (question) question.classList.toggle('vav2-has-primary-audio', controls.length > 0);
+    if (question) question.classList.toggle('vav2-has-primary-audio',controls.length > 0);
     return controls.length > 0;
-  }
-
-  function prepareResultAudio() {
-    const root = screen();
-    if (!root) return;
-    const controls = [...root.querySelectorAll('.vocabulary-adventure-speak')];
-    controls.forEach((control, index) => {
-      control.hidden = index > 0;
-      control.classList.toggle('vav2-result-audio', index === 0);
-      if (index === 0) control.setAttribute('aria-label', '听读音');
-    });
   }
 
   function prepareHint(panel, hasPrimaryAudio) {
     const root = screen();
     if (!root) return;
-    const hints = [...root.querySelectorAll(
-      '.vocabulary-adventure-hint:not([hidden]), .vocabulary-adventure-review-hint:not([hidden])'
-    )];
-
-    root.querySelectorAll('.vocabulary-adventure-hint, .vocabulary-adventure-review-hint')
-      .forEach(hint => hint.classList.toggle('vav2-hint-source', hints.includes(hint)));
-
-    if (!hints.length) {
-      setBubble(panel, '', false);
-      return;
-    }
-
-    // Listening questions already have the fixed “听读音” button. Non-listening
-    // questions get exactly one “再听一次” inside the fox bubble after a hint.
-    setBubble(panel, hintText(), !hasPrimaryAudio);
+    const allHints = [...root.querySelectorAll('.vocabulary-adventure-hint,.vocabulary-adventure-review-hint')];
+    const visibleHints = allHints.filter(visible);
+    allHints.forEach(hint => hint.classList.toggle('vav2-hint-source',visibleHints.includes(hint)));
+    setBubble(panel,visibleHints[0] || null,!hasPrimaryAudio && visibleHints.length > 0);
+    const feedback = byId('vocabularyAdventureFeedbackText');
+    if (visibleHints.length && feedback && feedback.dataset.tone === 'hinted') feedback.textContent = '';
   }
 
-  function prepareMainTopbar() {
-    const title = byId('vocabularyAdventureStageTitle');
-    if (title) title.textContent = '词汇探险';
+  function prepareResultAudio(panel) {
+    const root = screen();
+    if (!root) return;
+    const controls = [...root.querySelectorAll('.vocabulary-adventure-speak')];
+    controls.forEach((control,index) => { control.hidden = index > 0; });
+    if (root.querySelector('.vocabulary-adventure-result,.vocabulary-adventure-summary,.vav2-final-panel')) setBubble(panel,null,false);
   }
 
   function prepareActionPosition() {
     const root = screen();
     const action = byId('vocabularyAdventureAction');
-    if (!root || !action) return;
-    root.classList.toggle('vav2-action-visible', visible(action));
-  }
-
-  function progressNumbers() {
-    const text = (byId('vocabularyAdventureTotalProgress') || {}).textContent || '';
-    const match = text.match(/(\d+)\s*\/\s*(\d+)/);
-    return match ? { done: Number(match[1]), total: Number(match[2]) } : { done: 0, total: 0 };
-  }
-
-  function prepareResults(panel) {
-    const root = screen();
-    if (!root) return;
-    const result = root.querySelector('.vocabulary-adventure-result');
-    const summary = root.querySelector('.vocabulary-adventure-summary, .vav2-final-panel');
-    if (result || summary) setBubble(panel, '', false);
-    prepareResultAudio();
+    if (root && action) root.classList.toggle('vav2-action-visible',visible(action));
   }
 
   function refresh() {
-    window.clearTimeout(state.refreshTimer);
-    state.refreshTimer = 0;
+    state.refreshQueued = false;
     const root = screen();
     if (!root) return;
-
-    ensureLayoutStylesheet();
-    prepareMainTopbar();
+    prepareTopbarContent();
     const panel = ensureGuide();
     const hasPrimaryAudio = preparePrimaryAudio();
-    prepareHint(panel, hasPrimaryAudio);
-    prepareResults(panel);
+    prepareHint(panel,hasPrimaryAudio);
+    prepareResultAudio(panel);
     prepareActionPosition();
   }
 
-  function scheduleRefresh(delay) {
-    window.clearTimeout(state.refreshTimer);
-    state.refreshTimer = window.setTimeout(refresh, Number(delay) || 0);
+  function queueRefresh() {
+    if (state.refreshQueued) return;
+    state.refreshQueued = true;
+    queueMicrotask(refresh);
   }
 
   function afterResult(result) {
-    if (result && typeof result.finally === 'function') {
-      return result.finally(() => {
-        scheduleRefresh(0);
-        window.setTimeout(refresh, 90);
-      });
-    }
-    scheduleRefresh(0);
-    window.setTimeout(refresh, 90);
+    if (result && typeof result.finally === 'function') return result.finally(queueRefresh);
+    queueRefresh();
     return result;
   }
 
   function wrapAfter(name) {
     const original = window[name];
-    if (typeof original !== 'function' || original.vav2IncrementalWrapped) return false;
-    const wrapped = function wrappedVocabularyAdventureAction() {
-      let result;
-      try {
-        result = original.apply(this, arguments);
-      } catch (error) {
-        scheduleRefresh(0);
-        throw error;
-      }
-      return afterResult(result);
+    if (typeof original !== 'function' || original.vav2IncrementalWrapped) return;
+    const wrapped = function wrappedAdventureAction() {
+      try { return afterResult(original.apply(this,arguments)); }
+      catch (error) { queueRefresh(); throw error; }
     };
     wrapped.vav2IncrementalWrapped = true;
     wrapped.vav2IncrementalOriginal = original;
     window[name] = wrapped;
-    return true;
+  }
+
+  function progressNumbers() {
+    const text = (byId('vocabularyAdventureTotalProgress') || {}).textContent || '';
+    const match = text.match(/(\d+)\s*\/\s*(\d+)/);
+    return match ? { done:Number(match[1]),total:Number(match[2]) } : { done:0,total:0 };
   }
 
   function showTransition(callback) {
     const root = screen();
-    if (!root) {
-      callback();
-      return;
-    }
+    if (!root) { callback(); return; }
     const overlay = document.createElement('div');
     overlay.className = 'vav2-transition';
-    overlay.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('aria-hidden','true');
     root.appendChild(overlay);
-    window.setTimeout(() => {
-      overlay.remove();
-      callback();
-    }, 480);
+    window.setTimeout(() => { overlay.remove(); callback(); },480);
   }
 
   function wrapNext() {
     const original = window.nextVocabularyAdventure;
-    if (typeof original !== 'function' || original.vav2IncrementalWrapped) return false;
-    const wrapped = function wrappedNextVocabularyAdventure() {
+    if (typeof original !== 'function' || original.vav2IncrementalWrapped) return;
+    const wrapped = function wrappedNextAdventure() {
       const context = this;
       const args = arguments;
       const progress = progressNumbers();
-      const boundary = progress.done > 0 && progress.done < progress.total && progress.done % 10 === 0
-        ? progress.done
-        : 0;
-
-      if (!boundary || state.lastTransitionAt === boundary || state.transitionRunning) {
-        return afterResult(original.apply(context, args));
-      }
-
+      const boundary = progress.done > 0 && progress.done < progress.total && progress.done % 10 === 0 ? progress.done : 0;
+      if (!boundary || state.lastTransitionAt === boundary || state.transitionRunning) return afterResult(original.apply(context,args));
       state.lastTransitionAt = boundary;
       state.transitionRunning = true;
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve,reject) => {
         showTransition(() => {
           let result;
-          try {
-            result = original.apply(context, args);
-          } catch (error) {
-            state.transitionRunning = false;
-            scheduleRefresh(0);
-            reject(error);
-            return;
-          }
-          Promise.resolve(result).then(resolve, reject).finally(() => {
-            state.transitionRunning = false;
-            scheduleRefresh(0);
-          });
+          try { result = original.apply(context,args); }
+          catch (error) { state.transitionRunning = false; queueRefresh(); reject(error); return; }
+          Promise.resolve(result).then(resolve,reject).finally(() => { state.transitionRunning = false; queueRefresh(); });
         });
       });
     };
     wrapped.vav2IncrementalWrapped = true;
     wrapped.vav2IncrementalOriginal = original;
     window.nextVocabularyAdventure = wrapped;
-    return true;
   }
 
-  function installWrappers() {
-    WRAPPED_FUNCTIONS.forEach(wrapAfter);
-    wrapNext();
-    state.installAttempts += 1;
-    if (state.installAttempts < 8) window.setTimeout(installWrappers, 250);
-  }
-
-  window.__VOCABULARY_ADVENTURE_VISUAL_V2_INCREMENTAL__ = true;
-  ensureLayoutStylesheet();
+  WRAPPED_FUNCTIONS.forEach(wrapAfter);
+  wrapNext();
   refresh();
-  installWrappers();
-  window.setTimeout(refresh, 120);
+  window.refreshVocabularyAdventureVisualV2 = queueRefresh;
 })();
