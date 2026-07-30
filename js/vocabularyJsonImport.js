@@ -1,4 +1,8 @@
-(function installVocabularyJsonImport(global) {
+(function attachVocabularyJsonImport(root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  if (root) root.VocabularyJsonImport = api;
+})(typeof window !== 'undefined' ? window : null, function createVocabularyJsonImport() {
   'use strict';
 
   const CARD_FIELDS = Object.freeze([
@@ -6,110 +10,197 @@
     'collocations', 'irregularForms', 'synonyms', 'wordFamily', 'tip'
   ]);
   const ARRAY_FIELDS = new Set(['morphology', 'collocations', 'irregularForms', 'synonyms', 'wordFamily']);
-  const META_KEYS = new Set(['schemaVersion', 'name', 'wordbookName', 'bookPurpose', 'purpose', 'categoryId', 'categoryName', 'description', 'cards', 'wordbook']);
+  const CATEGORY_KEYS = new Set(['category', 'categories', 'categoryId', 'categoryName']);
+  const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'wordbook', 'masterPatch']);
+  const WORDBOOK_KEYS = new Set(['id', 'name', 'bookType', 'bookPurpose', 'purpose', 'description', 'cardRefs']);
+  const REF_KEYS = new Set(['wordKey', 'overrides']);
+  const PATCH_KEYS = new Set(['create', 'setIfEmpty', 'appendUnique']);
+  const OPERATION_KEYS = new Set(['wordKey', 'fields']);
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
   }
 
-  function extractJsonPayload(payload) {
-    if (Array.isArray(payload)) return { cards: payload, meta: {} };
-    if (!payload || typeof payload !== 'object') {
-      throw new Error('JSON 顶层必须是卡片数组或包含 cards 的对象');
-    }
-    if (Array.isArray(payload.cards)) {
-      return {
-        cards: payload.cards,
-        meta: {
-          name: String(payload.name || payload.wordbookName || payload.categoryName || ''),
-          bookPurpose: String(payload.bookPurpose || payload.purpose || ''),
-          categoryId: String(payload.categoryId || '')
-        }
-      };
-    }
-    if (payload.wordbook && typeof payload.wordbook === 'object' && Array.isArray(payload.wordbook.cards)) {
-      return {
-        cards: payload.wordbook.cards,
-        meta: {
-          name: String(payload.wordbook.name || payload.name || payload.categoryName || ''),
-          bookPurpose: String(payload.wordbook.bookPurpose || payload.bookPurpose || payload.purpose || ''),
-          categoryId: String(payload.categoryId || '')
-        }
-      };
-    }
-    throw new Error('JSON 中没有找到 cards 数组');
-  }
-
-  function normalizeJsonCard(rawCard, index) {
-    const label = `第 ${index + 1} 张卡`;
-    if (!rawCard || typeof rawCard !== 'object' || Array.isArray(rawCard)) {
+  function assertPlainObject(value, label) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
       throw new Error(`${label}必须是 JSON 对象`);
     }
-    const unknownFields = Object.keys(rawCard).filter(key => !CARD_FIELDS.includes(key));
-    if (unknownFields.length) {
-      throw new Error(`${label}包含不支持的字段：${unknownFields.join('、')}`);
+  }
+
+  function rejectUnknownKeys(value, allowed, label) {
+    const unknown = Object.keys(value).filter(key => !allowed.has(key));
+    if (!unknown.length) return;
+    const categoryKeys = unknown.filter(key => CATEGORY_KEYS.has(key));
+    if (categoryKeys.length) {
+      throw new Error(`${label}不得包含分类字段：${categoryKeys.join('、')}。分类关系请在 data/vocabularyCategories.json 中独立维护`);
     }
+    throw new Error(`${label}包含不支持的字段：${unknown.join('、')}`);
+  }
+
+  function normalizeString(value) {
+    return value == null ? '' : String(value).trim();
+  }
+
+  function normalizeCard(rawCard, label) {
+    assertPlainObject(rawCard, label);
+    rejectUnknownKeys(rawCard, new Set(CARD_FIELDS), label);
+    const missing = CARD_FIELDS.filter(field => !Object.prototype.hasOwnProperty.call(rawCard, field));
+    if (missing.length) throw new Error(`${label}缺少字段：${missing.join('、')}`);
     const card = {};
     CARD_FIELDS.forEach(field => {
       const value = rawCard[field];
       if (ARRAY_FIELDS.has(field)) {
-        if (value == null || value === '') card[field] = [];
-        else if (Array.isArray(value)) card[field] = clone(value);
-        else throw new Error(`${label}的 ${field} 必须是 JSON 数组`);
+        if (!Array.isArray(value)) throw new Error(`${label}.${field} 必须是 JSON 数组`);
+        card[field] = clone(value);
       } else {
-        card[field] = value == null ? '' : String(value).trim();
+        card[field] = normalizeString(value);
       }
     });
     if (!card.word || !card.meaning) throw new Error(`${label}的 word 和 meaning 为必填字段`);
     return card;
   }
 
-  function parseVocabularyJson(text) {
+  function normalizeOverrides(rawOverrides, label) {
+    assertPlainObject(rawOverrides, label);
+    rejectUnknownKeys(rawOverrides, new Set(CARD_FIELDS), label);
+    const overrides = {};
+    Object.entries(rawOverrides).forEach(([field, value]) => {
+      if (ARRAY_FIELDS.has(field)) {
+        if (!Array.isArray(value)) throw new Error(`${label}.${field} 必须是 JSON 数组`);
+        overrides[field] = clone(value);
+      } else {
+        overrides[field] = normalizeString(value);
+      }
+    });
+    return overrides;
+  }
+
+  function normalizeRef(rawRef, index) {
+    const label = `wordbook.cardRefs[${index}]`;
+    if (typeof rawRef === 'string') {
+      const wordKey = normalizeString(rawRef).toLocaleLowerCase();
+      if (!wordKey) throw new Error(`${label}不能为空`);
+      return { wordKey };
+    }
+    assertPlainObject(rawRef, label);
+    rejectUnknownKeys(rawRef, REF_KEYS, label);
+    const wordKey = normalizeString(rawRef.wordKey).toLocaleLowerCase();
+    if (!wordKey) throw new Error(`${label}.wordKey 为必填字段`);
+    const result = { wordKey };
+    if (Object.prototype.hasOwnProperty.call(rawRef, 'overrides')) {
+      result.overrides = normalizeOverrides(rawRef.overrides, `${label}.overrides`);
+    }
+    return result;
+  }
+
+  function normalizeSetIfEmptyFields(rawFields, label) {
+    assertPlainObject(rawFields, label);
+    rejectUnknownKeys(rawFields, new Set(CARD_FIELDS.filter(field => field !== 'word')), label);
+    const fields = {};
+    Object.entries(rawFields).forEach(([field, value]) => {
+      if (ARRAY_FIELDS.has(field)) {
+        if (!Array.isArray(value)) throw new Error(`${label}.${field} 必须是 JSON 数组`);
+        fields[field] = clone(value);
+      } else {
+        fields[field] = normalizeString(value);
+      }
+    });
+    if (!Object.keys(fields).length) throw new Error(`${label}至少需要一个字段`);
+    return fields;
+  }
+
+  function normalizeAppendUniqueFields(rawFields, label) {
+    assertPlainObject(rawFields, label);
+    rejectUnknownKeys(rawFields, ARRAY_FIELDS, label);
+    const fields = {};
+    Object.entries(rawFields).forEach(([field, value]) => {
+      if (!Array.isArray(value)) throw new Error(`${label}.${field} 必须是 JSON 数组`);
+      fields[field] = clone(value);
+    });
+    if (!Object.keys(fields).length) throw new Error(`${label}至少需要一个数组字段`);
+    return fields;
+  }
+
+  function normalizeOperation(rawOperation, index, operationName) {
+    const label = `masterPatch.${operationName}[${index}]`;
+    assertPlainObject(rawOperation, label);
+    rejectUnknownKeys(rawOperation, OPERATION_KEYS, label);
+    const wordKey = normalizeString(rawOperation.wordKey).toLocaleLowerCase();
+    if (!wordKey) throw new Error(`${label}.wordKey 为必填字段`);
+    const fields = operationName === 'appendUnique'
+      ? normalizeAppendUniqueFields(rawOperation.fields, `${label}.fields`)
+      : normalizeSetIfEmptyFields(rawOperation.fields, `${label}.fields`);
+    return { wordKey, fields };
+  }
+
+  function parseReferenceImportPayload(payload) {
+    if (Array.isArray(payload)) {
+      throw new Error('旧完整卡片 JSON 数组已停用。请使用 schemaVersion: 2 的引用式单词本导入包');
+    }
+    assertPlainObject(payload, 'JSON 顶层');
+    if (Object.prototype.hasOwnProperty.call(payload, 'cards')) {
+      throw new Error('旧 cards 完整卡片 JSON 已停用。请重新生成引用式导入包，不要导入旧颜色 JSON');
+    }
+    rejectUnknownKeys(payload, TOP_LEVEL_KEYS, 'JSON 顶层');
+    if (Number(payload.schemaVersion) !== 2) throw new Error('引用式导入包 schemaVersion 必须为 2');
+
+    assertPlainObject(payload.wordbook, 'wordbook');
+    rejectUnknownKeys(payload.wordbook, WORDBOOK_KEYS, 'wordbook');
+    const id = normalizeString(payload.wordbook.id);
+    const name = normalizeString(payload.wordbook.name);
+    if (!id) throw new Error('wordbook.id 为必填字段，用于保证重复导入幂等');
+    if (!name) throw new Error('wordbook.name 为必填字段');
+    if (payload.wordbook.bookType && payload.wordbook.bookType !== 'reference') {
+      throw new Error('wordbook.bookType 只能是 reference');
+    }
+    if (!Array.isArray(payload.wordbook.cardRefs)) throw new Error('wordbook.cardRefs 必须是 JSON 数组');
+    const cardRefs = payload.wordbook.cardRefs.map(normalizeRef);
+    if (!cardRefs.length) throw new Error('wordbook.cardRefs 至少需要一个引用');
+    const purpose = payload.wordbook.bookPurpose || payload.wordbook.purpose || 'common';
+    if (!['common', 'support'].includes(purpose)) throw new Error('wordbook.bookPurpose 只能是 common 或 support');
+
+    const rawPatch = payload.masterPatch == null ? {} : payload.masterPatch;
+    assertPlainObject(rawPatch, 'masterPatch');
+    rejectUnknownKeys(rawPatch, PATCH_KEYS, 'masterPatch');
+    ['create', 'setIfEmpty', 'appendUnique'].forEach(key => {
+      if (rawPatch[key] != null && !Array.isArray(rawPatch[key])) {
+        throw new Error(`masterPatch.${key} 必须是 JSON 数组`);
+      }
+    });
+
+    return {
+      schemaVersion: 2,
+      wordbook: {
+        id,
+        name,
+        bookPurpose: purpose,
+        description: normalizeString(payload.wordbook.description),
+        cardRefs
+      },
+      masterPatch: {
+        create: (rawPatch.create || []).map((card, index) => normalizeCard(card, `masterPatch.create[${index}]`)),
+        setIfEmpty: (rawPatch.setIfEmpty || []).map((operation, index) => normalizeOperation(operation, index, 'setIfEmpty')),
+        appendUnique: (rawPatch.appendUnique || []).map((operation, index) => normalizeOperation(operation, index, 'appendUnique'))
+      }
+    };
+  }
+
+  function parseReferenceImportJson(text) {
     const trimmed = String(text || '').trim();
+    if (!trimmed) throw new Error('请输入引用式单词本 JSON');
     let payload;
     try {
       payload = JSON.parse(trimmed);
     } catch (error) {
       throw new Error(`JSON 解析失败：${error.message}`);
     }
-    const extracted = extractJsonPayload(payload);
-    const cards = extracted.cards.map(normalizeJsonCard);
-    if (!cards.length) throw new Error('JSON 中没有可导入的单词卡');
-    return { cards, meta: extracted.meta };
+    return parseReferenceImportPayload(payload);
   }
 
-  function applyImportMeta(meta) {
-    if (!meta || typeof document === 'undefined') return;
-    if (typeof importMode !== 'undefined' && importMode !== 'new') return;
-    const nameInput = document.getElementById('newBatchName');
-    const purposeInput = document.getElementById('newBatchPurpose');
-    if (nameInput && meta.name) nameInput.value = meta.name;
-    if (purposeInput && ['common', 'support'].includes(meta.bookPurpose)) {
-      purposeInput.value = meta.bookPurpose;
-    }
-  }
-
-  const baseParseCards = typeof parseCards === 'function' ? parseCards : null;
-  if (baseParseCards) {
-    const enhancedParseCards = function parseCardsWithJson(text) {
-      const trimmed = String(text || '').trim();
-      if (!trimmed || !/^[\[{]/.test(trimmed)) return baseParseCards(text);
-      try {
-        const parsed = parseVocabularyJson(trimmed);
-        applyImportMeta(parsed.meta);
-        const cards = typeof normalizeEnglishCard === 'function'
-          ? parsed.cards.map(card => normalizeEnglishCard(card))
-          : parsed.cards;
-        return { cards, errors: [], meta: parsed.meta };
-      } catch (error) {
-        return { cards: [], errors: [error.message || 'JSON 导入失败'] };
-      }
-    };
-    global.parseCards = enhancedParseCards;
-    try { parseCards = enhancedParseCards; } catch (_) {}
-  }
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { CARD_FIELDS, extractJsonPayload, normalizeJsonCard, parseVocabularyJson };
-  }
-})(typeof window !== 'undefined' ? window : globalThis);
+  return {
+    CARD_FIELDS,
+    ARRAY_FIELDS,
+    parseReferenceImportPayload,
+    parseReferenceImportJson
+  };
+});
