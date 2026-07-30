@@ -9,7 +9,8 @@
     "test:adventure-challenge-viewport": "node tests/vocabularyAdventureChallengeViewport.mjs",
     "test:student-home-viewport": "node tests/studentHomeDashboardViewport.mjs",
     "test:adventure-mvp-qa": "node tests/vocabularyAdventureChallengeViewport.mjs",
-    "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js"
+    "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js",
+    "vocabulary:master-migrate": "node scripts/migrateMasterVocabularyLibrary.js"
   },
   "dependencies": {
     "sharp": "0.34.1"
