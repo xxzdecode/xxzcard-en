@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v44';
-const RUNTIME_CACHE = 'xxzcard-runtime-v44';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v45';
+const RUNTIME_CACHE = 'xxzcard-runtime-v45';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -18,6 +18,7 @@ const APP_SHELL = [
   './js/home.js',
   './js/lazyFeatures.js',
   './js/main.js',
+  './js/dailyLearningRoute.js',
   './js/studentRewards.js',
   './js/studentRewardLayoutGuard.js',
   './js/studentRewardReconcile.js',
@@ -139,6 +140,35 @@ async function apiNetworkFirst(request) {
   }
 }
 
+// The current lesson route must never fall back to an older cached course.
+// It is tiny, so a short network-only request is cheaper and safer than
+// rendering stale content. On failure the UI keeps both cards in retry mode.
+async function dailyRouteNetworkOnly(request) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3000);
+  try {
+    const response = await fetch(request, { cache: 'no-store', signal: controller.signal });
+    if (response && response.ok) return response;
+    return new Response(JSON.stringify({ error: 'route_unavailable' }), {
+      status: response ? response.status : 503,
+      headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+        'Cache-Control': 'no-store'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'route_unavailable' }), {
+      status: 503,
+      headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+        'Cache-Control': 'no-store'
+      }
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
@@ -147,11 +177,17 @@ self.addEventListener('fetch', event => {
     && url.origin === appRoot.origin
     && url.pathname.startsWith(appRoot.pathname);
   const isSupabaseApi = url.hostname.endsWith('.supabase.co');
+  const isDailyLearningRoute = url.origin === self.location.origin
+    && url.pathname.endsWith('/data/daily-learning-route.json');
   const isCodeAsset = url.origin === self.location.origin
     && /\.(?:js|css|html)$/.test(url.pathname);
 
   if (isNavigation) {
     event.respondWith(navigationNetworkFirst(event.request));
+    return;
+  }
+  if (isDailyLearningRoute) {
+    event.respondWith(dailyRouteNetworkOnly(event.request));
     return;
   }
   if (isSupabaseApi) {

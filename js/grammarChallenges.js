@@ -48,8 +48,11 @@ function renderGrammarChallengeList() {
   catalog.forEach(challenge => list.appendChild(createGrammarChallengeEntry(challenge)));
 }
 
-function openGrammarChallengeList() {
+async function openGrammarChallengeList() {
   if (isTeacher()) return;
+  if (typeof window.openStudentGrammarChallenge === 'function') {
+    return window.openStudentGrammarChallenge();
+  }
   renderGrammarChallengeList();
   showScreen('screenGrammarChallenges');
 }
@@ -81,8 +84,8 @@ function unloadGrammarChallenge() {
 
 function closeGrammarChallenge() {
   unloadGrammarChallenge();
-  renderGrammarChallengeList();
-  showScreen('screenGrammarChallenges');
+  showScreen('screenHome');
+  loadHome();
 }
 
 function isGrammarChallengeMessageOrigin(origin) {
@@ -95,13 +98,9 @@ window.addEventListener('message', event => {
   if (!frame || event.source !== frame.contentWindow || !isGrammarChallengeMessageOrigin(event.origin)) return;
   const message = event.data;
   if (!message || message.type !== 'grammar-challenge-navigation' || !activeGrammarChallengeId) return;
-  if (message.target === 'directory') {
+  if (message.target === 'directory' || message.target === 'home') {
     closeGrammarChallenge();
-    return;
-  }
-  if (message.target === 'home') {
-    unloadGrammarChallenge();
-    showScreen('screenHome');
-    loadHome();
   }
 });
+
+window.getActiveGrammarChallengeId = () => activeGrammarChallengeId;

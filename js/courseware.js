@@ -58,7 +58,7 @@ function renderCoursewareIcon(icon) {
 
 function coursewareAvailability(item, record) {
   if (isTeacher() || !record) return { disabled: false, label: '' };
-  if (record.practiceId !== item.id) return { disabled: true, label: '今日已选择其他练习' };
+  if (record.practiceId !== item.id) return { disabled: true, label: '今日已安排其他练习' };
   if (record.status === 'completed') return { disabled: true, label: '今日已完成' };
   return { disabled: false, label: '继续今日练习' };
 }
@@ -90,18 +90,21 @@ function renderCoursewareList(studentRecord) {
 }
 
 async function openCoursewareList() {
+  if (!isTeacher() && typeof window.openStudentClassroomPractice === 'function') {
+    return window.openStudentClassroomPractice();
+  }
   const studentRecord = isTeacher() ? null : await loadStudentClassroomPracticeRecord();
   const listTitle = document.getElementById('coursewareListTitle');
   const bookTitle = document.getElementById('coursewareBookTitle');
-  if (listTitle) listTitle.textContent = isTeacher() ? '随堂练习' : '选择随堂练习';
+  if (listTitle) listTitle.textContent = isTeacher() ? '随堂练习' : '今日随堂练习';
   if (bookTitle) {
     bookTitle.textContent = isTeacher()
       ? '随堂练习目录'
       : studentRecord && studentRecord.status === 'completed'
-        ? '今天已经完成，明天可以再选'
+        ? '今天已经完成'
         : studentRecord
-          ? '今天已选 1 项，可以继续完成'
-          : '任选 1 项 · 每天只能完成一次';
+          ? '继续今天的练习'
+          : '正在读取今日安排';
   }
   renderCoursewareList(studentRecord);
   showScreen('screenCourseware');
@@ -111,18 +114,29 @@ async function openCourseware(id) {
   const item = COURSEWARE_ITEMS.find(entry => entry.id === id);
   if (!item) return;
   if (!isTeacher()) {
+    const route = typeof window.getDailyLearningRoute === 'function'
+      ? window.getDailyLearningRoute()
+      : null;
+    const assigned = route && route.classroomPractice;
+    if (assigned && assigned.id && assigned.id !== item.id) {
+      alert('这不是今天安排的随堂练习，请从首页重新进入。');
+      return;
+    }
+
     let record = await loadStudentClassroomPracticeRecord();
     if (record && record.status === 'completed') {
-      alert('今天的随堂练习已经完成，明天再来选择新的练习吧！');
+      alert('今天的随堂练习已经完成，明天再来完成新的练习吧！');
       return;
     }
     if (record && record.practiceId !== id) {
-      alert('今天已经选择了其他随堂练习，一天只能选择一项。');
+      alert('今天已经安排了其他随堂练习，一天只能完成一项。');
       return;
     }
     if (!record) {
       record = {
         practiceId: item.id,
+        lessonKey: assigned && assigned.lessonKey ? assigned.lessonKey : '',
+        routeUpdatedAt: route && route.updatedAt ? route.updatedAt : '',
         title: item.title,
         status: 'started',
         startedAt: new Date().toISOString(),
@@ -213,7 +227,12 @@ async function closeCourseware() {
     frame.src = 'about:blank';
   }
   document.body.classList.remove('courseware-open');
-  await openCoursewareList();
+  if (isTeacher()) {
+    await openCoursewareList();
+    return;
+  }
+  showScreen('screenHome');
+  await loadHome();
 }
 
 function closeCoursewareList() {
