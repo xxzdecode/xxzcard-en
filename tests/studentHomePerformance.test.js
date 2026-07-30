@@ -34,16 +34,20 @@ assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
 assert.match(lazy, /requestIdleCallback/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v32/);
+assert.match(serviceWorker, /xxzcard-app-shell-v35/);
+assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)/);
 assert.match(serviceWorker, /Promise\.allSettled/);
 assert.doesNotMatch(serviceWorker, /cache\.addAll/);
 assert.doesNotMatch(serviceWorker, /assets\/vocabulary-review\//);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 assert.doesNotMatch(serviceWorker, /courseware\//);
-assert.match(serviceWorker, /navigationStaleWhileRevalidate/);
+assert.match(serviceWorker, /navigationNetworkFirst/);
+assert.doesNotMatch(serviceWorker, /navigationStaleWhileRevalidate/);
 assert.match(serviceWorker, /apiNetworkFirst/);
 assert.match(serviceWorker, /cacheFirst/);
+assert.match(serviceWorker, /const cached = await cache\.match\(request\)/);
+assert.match(serviceWorker, /requestUrl\.pathname === appRoot\.pathname/);
 
 for (const [name, maxBytes] of [
   ['vocabulary-adventure-scene.webp', 210000],
