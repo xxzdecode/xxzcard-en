@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 2,
+  "wordbook": {
+    "id": "book-colours",
+    "name": "颜色",
+    "bookType": "reference",
+    "bookPurpose": "common",
+    "description": "小学基础颜色词",
+    "cardRefs": [
+      { "wordKey": "red" },
+      { "wordKey": "blue" },
+      { "wordKey": "yellow" },
+      { "wordKey": "green" },
+      { "wordKey": "white" },
+      { "wordKey": "black" },
+      { "wordKey": "pink" },
+      { "wordKey": "purple" },
+      { "wordKey": "orange" },
+      { "wordKey": "brown" }
+    ]
+  },
+  "masterPatch": {
+    "create": [
+      {
+        "word": "blue",
+        "meaning": "蓝色的；蓝色",
+        "pos": "adj./n.",
+        "phonetic": "/bluː/",
+        "emoji": "🔵",
+        "morphology": [],
+        "collocations": [
+          { "phrase": "blue sky", "example": "The sky is blue today. / 今天的天空是蓝色的。" },
+          { "phrase": "a blue dress", "example": "She is wearing a blue dress. / 她穿着一条蓝色连衣裙。" },
+          { "phrase": "dark blue", "example": "My schoolbag is dark blue. / 我的书包是深蓝色的。" }
+        ],
+        "irregularForms": [],
+        "synonyms": [],
+        "wordFamily": [],
+        "tip": "blue 中的 ue 发长元音 /uː/。"
+      },
+      {
+        "word": "green",
+        "meaning": "绿色的；绿色",
+        "pos": "adj./n.",
+        "phonetic": "/ɡriːn/",
+        "emoji": "🟢",
+        "morphology": [],
+        "collocations": [
+          { "phrase": "green grass", "example": "The grass is green in spring. / 春天的草是绿色的。" },
+          { "phrase": "a green apple", "example": "There is a green apple on the table. / 桌上有一个青苹果。" },
+          { "phrase": "turn green", "example": "The leaves turn green in spring. / 树叶在春天变绿。" }
+        ],
+        "irregularForms": [],
+        "synonyms": [],
+        "wordFamily": [],
+        "tip": "green 中的 ee 发长元音 /iː/。"
+      },
+      {
+        "word": "black",
+        "meaning": "黑色的；黑色",
+        "pos": "adj./n.",
+        "phonetic": "/blæk/",
+        "emoji": "⚫",
+        "morphology": [],
+        "collocations": [
+          { "phrase": "a black cat", "example": "The black cat is under the chair. / 那只黑猫在椅子下面。" },
+          { "phrase": "black hair", "example": "She has long black hair. / 她留着黑色长发。" },
+          { "phrase": "black and white", "example": "The panda is black and white. / 熊猫是黑白相间的。" }
+        ],
+        "irregularForms": [],
+        "synonyms": [],
+        "wordFamily": [],
+        "tip": "black 中的 a 发短元音 /æ/。"
+      },
+      {
+        "word": "pink",
+        "meaning": "粉红色的；粉红色",
+        "pos": "adj./n.",
+        "phonetic": "/pɪŋk/",
+        "emoji": "🌸",
+        "morphology": [],
+        "collocations": [
+          { "phrase": "a pink dress", "example": "She has a pink dress. / 她有一条粉红色的连衣裙。" },
+          { "phrase": "pink flowers", "example": "These pink flowers are beautiful. / 这些粉红色的花很漂亮。" },
+          { "phrase": "light pink", "example": "The wall is light pink. / 这面墙是浅粉红色的。" }
+        ],
+        "irregularForms": [],
+        "synonyms": [],
+        "wordFamily": [],
+        "tip": "pink 结尾的 nk 发 /ŋk/。"
+      },
+      {
+        "word": "purple",
+        "meaning": "紫色的；紫色",
+        "pos": "adj./n.",
+        "phonetic": "/ˈpɜːpl/",
+        "emoji": "🟣",
+        "morphology": [],
+        "collocations": [
+          { "phrase": "a purple skirt", "example": "Her purple skirt is new. / 她的紫色裙子是新的。" },
+          { "phrase": "purple grapes", "example": "The purple grapes are sweet. / 这些紫葡萄很甜。" },
+          { "phrase": "dark purple", "example": "This flower is dark purple. / 这朵花是深紫色的。" }
+        ],
+        "irregularForms": [],
+        "synonyms": [],
+        "wordFamily": [],
+        "tip": "purple 的重音在第一个音节，ur 发 /ɜː/。"
+      },
+      {
+        "word": "brown",
+        "meaning": "棕色的；棕色",
+        "pos": "adj./n.",
+        "phonetic": "/braʊn/",
+        "emoji": "🟤",
+        "morphology": [],
+        "collocations": [
+          { "phrase": "brown eyes", "example": "He has brown eyes. / 他有一双棕色的眼睛。" },
+          { "phrase": "a brown bear", "example": "We saw a brown bear at the zoo. / 我们在动物园看见了一只棕熊。" },
+          { "phrase": "light brown", "example": "The table is light brown. / 这张桌子是浅棕色的。" }
+        ],
+        "irregularForms": [],
+        "synonyms": [],
+        "wordFamily": [],
+        "tip": "brown 中的 ow 发双元音 /aʊ/。"
+      }
+    ],
+    "setIfEmpty": [],
+    "appendUnique": []
+  }
+}
