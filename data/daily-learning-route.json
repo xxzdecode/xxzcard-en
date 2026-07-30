@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-30T22:39:00+08:00",
+  "grammarChallenge": {
+    "id": "grammar-2026-07-31-parts-of-speech-review",
+    "title": "词性地图快速挑战",
+    "displayTitle": "词性地图",
+    "reviewLessonKey": "parts-of-speech-map"
+  },
+  "classroomPractice": {
+    "id": "courseware-2026-07-31-adjective-basics-suffixes",
+    "title": "形容词与词尾线索随堂练习",
+    "displayTitle": "形容词与词尾线索",
+    "lessonTitle": "词语穿上什么样的衣服？",
+    "lessonKey": "adjective-basics-suffixes"
+  }
+}
