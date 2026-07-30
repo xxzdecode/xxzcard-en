@@ -86,7 +86,7 @@ function runImporter(packagePath) {
   assert.match(assets, /breath\.webp/);
   assert.match(assets, /breath-thumb\.webp/);
   const sw = fs.readFileSync(path.join(tempRoot, 'service-worker.js'), 'utf8');
-  assert.match(sw, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v32';/);
+  assert.equal(sw, fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8'));
   assert.doesNotMatch(sw, /VOCABULARY_LESSON_ASSETS/);
   const resultJson = JSON.parse(fs.readFileSync(path.join(fixture, 'result.json'), 'utf8'));
   assert.equal(resultJson.cacheName, 'xxzcard-runtime-on-demand');
