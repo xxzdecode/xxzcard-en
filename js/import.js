@@ -177,4 +177,13 @@ async function confirmImport() {
   }
 }
 
+// JSON import is additive: the established key:value format remains available.
+if (typeof document !== 'undefined' && !document.getElementById('vocabularyJsonImportScript')) {
+  const vocabularyJsonImportScript = document.createElement('script');
+  vocabularyJsonImportScript.id = 'vocabularyJsonImportScript';
+  vocabularyJsonImportScript.src = 'js/vocabularyJsonImport.js';
+  vocabularyJsonImportScript.async = false;
+  document.head.appendChild(vocabularyJsonImportScript);
+}
+
 // ══════════════════════════════════════
