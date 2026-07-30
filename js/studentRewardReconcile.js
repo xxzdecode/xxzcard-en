@@ -1,21 +1,6 @@
 (function installStudentRewardReconciliation(root) {
   if (!root || typeof document === 'undefined' || root.__studentRewardReconciliationInstalled) return;
   root.__studentRewardReconciliationInstalled = true;
-  const reconciled = new Set();
-
-  const style = document.createElement('style');
-  style.id = 'studentRewardReconciliationStyles';
-  style.textContent = `
-    .student-summary-card__values{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px}
-    .student-summary-card__rewards{min-width:210px}
-    .student-summary-card__values small{white-space:nowrap}
-    @media(max-width:430px){
-      .student-summary-card__rewards{min-width:142px}
-      .student-summary-card__values{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .student-breakthrough-value{grid-column:1/-1;display:flex!important;align-items:center;justify-content:space-between}
-    }
-  `;
-  document.head.appendChild(style);
 
   function todayKey() {
     const date = new Date();
@@ -36,8 +21,6 @@
     if (typeof root.sbGet !== 'function' || typeof root.recordStudentRewardSource !== 'function') return false;
     const student = user === 'brother' ? 'brother' : 'sister';
     const today = todayKey();
-    const marker = `${student}:${today}`;
-    if (reconciled.has(marker)) return true;
     try {
       const [adventure, classroom] = await Promise.all([
         root.sbGet(`vocab_adventure_v1_${student}`),
@@ -46,7 +29,7 @@
       const session = adventure && adventure.session;
       const planLength = session && Array.isArray(session.plan) ? session.plan.length : 0;
       if (session && session.date === today && (session.completed === true || (planLength > 0 && Number(session.cursor) >= planLength))) {
-        await root.recordStudentRewardSource(student, 'adventure', 10, 'set');
+        await root.recordStudentRewardSource(student, 'adventure', 5, 'set');
       }
       const challenge = adventure && adventure.challengeSession;
       if (challenge && challenge.date === today && challenge.status === 'completed') {
@@ -57,7 +40,6 @@
       if (classroomToday && classroomToday.status === 'completed') {
         await root.recordStudentRewardSource(student, 'classroomPractice', 10, 'set');
       }
-      reconciled.add(marker);
       return true;
     } catch (error) {
       console.warn('Unable to reconcile completed student rewards', error);
@@ -69,16 +51,12 @@
   if (typeof originalLoadHome === 'function') {
     root.loadHome = async function reconciledHome(...args) {
       const result = await originalLoadHome.apply(this, args);
-      if (typeof root.isTeacher === 'function' && root.isTeacher()) {
+      if (root.isTeacher?.()) {
         await Promise.all(['sister', 'brother'].map(reconcileStudentRewards));
-        if (typeof root.refreshTeacherBreakthroughPanel === 'function') {
-          await root.refreshTeacherBreakthroughPanel();
-        }
+        await root.refreshTeacherRewardPanel?.();
       } else {
         await reconcileStudentRewards(currentStudent());
-        if (typeof root.loadStudentRewardSummary === 'function') {
-          await root.loadStudentRewardSummary();
-        }
+        await root.loadStudentRewardSummary?.();
       }
       return result;
     };
