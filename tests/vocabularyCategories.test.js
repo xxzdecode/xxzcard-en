@@ -10,6 +10,7 @@ const lazyFeatures = fs.readFileSync(path.join(root, 'js/lazyFeatures.js'), 'utf
 
 assert.equal(registry.schemaVersion, 1);
 assert.ok(Array.isArray(registry.groups) && registry.groups.length >= 2);
+assert.match(registry.source, /完整词条版/);
 
 const categories = registry.groups.flatMap(group => group.categories || []);
 assert.ok(categories.length >= 25);
@@ -22,6 +23,21 @@ categories.forEach(category => {
   const normalized = category.words.map(word => String(word).toLowerCase().replace(/[^a-z0-9]+/g, ''));
   assert.equal(new Set(normalized).size, normalized.length, `${category.id} contains duplicate match keys`);
 });
+
+const allWords = categories.flatMap(category => category.words);
+const normalizedAllWords = new Set(allWords.map(word => String(word).toLowerCase().replace(/[^a-z0-9]+/g, '')));
+assert.equal(allWords.length, 630, 'the uploaded 33-page source should be fully represented');
+assert.equal(normalizedAllWords.size, 624, 'cross-category repeats should remain intentional');
+[
+  'pencil-case',
+  'TV reporter',
+  'sweet potato',
+  'science museum',
+  'have a stomachache',
+  'do morning exercises',
+  'put away the clothes',
+  'how large'
+].forEach(word => assert.ok(allWords.includes(word), `missing source entry: ${word}`));
 
 const orangeCategories = categories.filter(category => category.words.some(word => String(word).toLowerCase() === 'orange'));
 assert.ok(orangeCategories.length >= 2, 'one official card may appear in multiple categories');
