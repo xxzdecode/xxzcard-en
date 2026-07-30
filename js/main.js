@@ -3,6 +3,7 @@
 // ══════════════════════════════════════
 (async () => {
   let dailyRouteStartup = Promise.resolve(null);
+  let teacherToolsWarmup = Promise.resolve(null);
 
   function showDailyRouteStartupLoading() {
     if (currentUser === 'teacher' || typeof document.getElementById !== 'function') return;
@@ -53,6 +54,17 @@
           return null;
         });
 
+      // Warm the word-card scripts while the main Supabase data is loading.
+      // The entry stays usable even if this optional preload fails.
+      if (typeof loadFeatureGroup === 'function') {
+        teacherToolsWarmup = loadFeatureGroup('teacherTools')
+          .then(() => loadFeatureScript('js/wordCardPerformance.js'))
+          .catch(error => {
+            console.warn('word-card warmup unavailable', error && (error.message || error));
+            return null;
+          });
+      }
+
       await loadFeatureScript('js/masterVocabularyLibrary.js');
       await loadFeatureScript('js/studentRewards.js');
       await loadFeatureScript('js/studentRewardLayoutGuard.js');
@@ -65,6 +77,7 @@
   appData = await initData();
   await loadHome();
   dailyRouteStartup.catch(() => {});
+  teacherToolsWarmup.catch(() => {});
 })();
 
 if ('serviceWorker' in navigator) {
