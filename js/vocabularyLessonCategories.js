@@ -4,8 +4,10 @@
   const CATEGORY_REGISTRY_URL = 'data/vocabularyCategories.json';
   const CATEGORY_STYLE_URL = 'styles-vocabulary-lesson-categories.css';
   const VIRTUAL_BATCH_PREFIX = 'vocabulary-category:';
+  const MAX_CATEGORY_WORDS = 40;
   let categoryRegistry = { schemaVersion: 1, groups: [] };
   let categoryRegistryPromise = null;
+  let categoryRegistryLoaded = false;
   let installed = false;
   let originalSelectVocabularyLessonBook = null;
   let originalRenderVocabularyLesson = null;
@@ -62,6 +64,7 @@
 
   function loadVocabularyLessonCategories(force = false) {
     if (!force && categoryRegistryPromise) return categoryRegistryPromise;
+    categoryRegistryLoaded = false;
     categoryRegistryPromise = fetch(CATEGORY_REGISTRY_URL, { cache: 'no-cache' })
       .then(response => {
         if (!response.ok) throw new Error(`category registry HTTP ${response.status}`);
@@ -69,11 +72,13 @@
       })
       .then(value => {
         categoryRegistry = validateCategoryRegistry(value);
+        categoryRegistryLoaded = true;
         return categoryRegistry;
       })
       .catch(error => {
         console.warn('Vocabulary category registry unavailable.', error);
         categoryRegistry = { schemaVersion: 1, groups: [] };
+        categoryRegistryLoaded = true;
         return categoryRegistry;
       });
     return categoryRegistryPromise;
@@ -121,11 +126,22 @@
       if (!matchedKeys.has(matchKey)) unclassified.push(card);
     });
     if (unclassified.length) {
+      const categories = [];
+      for (let index = 0; index < unclassified.length; index += MAX_CATEGORY_WORDS) {
+        const part = Math.floor(index / MAX_CATEGORY_WORDS) + 1;
+        const multiple = unclassified.length > MAX_CATEGORY_WORDS;
+        categories.push({
+          id: `unclassified-${part}`,
+          name: multiple ? `其他未分类 ${part}` : '其他未分类',
+          icon: '🗂️',
+          cards: unclassified.slice(index, index + MAX_CATEGORY_WORDS)
+        });
+      }
       groups.push({
         id: 'unclassified',
         name: '待继续整理',
         description: '这些词仍可正常授课，只是暂未收入附件分类索引。',
-        categories: [{ id: 'unclassified', name: '其他未分类', icon: '🗂️', cards: unclassified }]
+        categories
       });
     }
     return groups;
@@ -154,13 +170,15 @@
     const title = document.getElementById('vocabularyLessonSelectionTitle');
     const copy = title && title.parentElement ? title.parentElement.querySelector('p') : null;
     const icon = document.querySelector('.vocabulary-lesson-selection-icon');
+    const topbarTitle = document.querySelector('#screenVocabularyReviewList .topbar-title');
     if (!list) return;
 
+    if (topbarTitle) topbarTitle.textContent = '分类词汇导览';
     if (title) title.textContent = '选择词汇类别';
     if (copy) copy.textContent = '同一个词可以出现在多个类别中；正式单词卡和探险记录不会改变。';
     if (icon) icon.textContent = '🗂️';
 
-    if (!categoryRegistry.groups.length) {
+    if (!categoryRegistryLoaded) {
       list.innerHTML = '<p class="vocabulary-lesson-category-loading">正在整理分类……</p>';
       if (empty) empty.hidden = true;
       loadVocabularyLessonCategories().then(renderCategorySelection);
@@ -185,7 +203,9 @@
         </div>
       </section>`).join('');
     if (empty) {
-      empty.textContent = '当前可见单词中没有匹配到分类词。';
+      empty.textContent = categoryRegistry.groups.length
+        ? '当前可见单词中没有匹配到分类词。'
+        : '分类索引暂时无法读取，请刷新后重试。';
       empty.hidden = groups.length > 0;
     }
     if (typeof renderVocabularyLessonSharedAdmin === 'function') renderVocabularyLessonSharedAdmin();
