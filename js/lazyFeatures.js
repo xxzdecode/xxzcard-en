@@ -4,9 +4,9 @@ const FEATURE_GROUPS = {
     'js/vocabularyAdventure.js',
     'js/vocabularyAdventureReview.js',
     'js/vocabularyAdventurePlayer.js',
-    'js/vocabularyAdventureChallenge.js',
-    'js/vocabularyAdventureVisualV2.js'
+    'js/vocabularyAdventureChallenge.js'
   ],
+  adventureVisual: ['js/vocabularyAdventureVisualV2.js'],
   grammarChallenge: ['grammar-challenge/data/catalog.js', 'js/grammarChallenges.js'],
   themeQuiz: ['js/themeQuizzes.js'],
   courseware: ['js/courseware-data.js', 'js/courseware.js'],
@@ -199,13 +199,28 @@ function loadFeatureScript(src) {
   if (loadedFeatureScripts.has(src)) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
+    let settled = false;
+    const timeout = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      script.remove();
+      reject(new Error(`功能资源加载超时：${src}`));
+    }, 10000);
     script.src = src;
     script.async = false;
     script.onload = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
       loadedFeatureScripts.add(src);
       resolve();
     };
-    script.onerror = () => reject(new Error(`功能资源加载失败：${src}`));
+    script.onerror = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      reject(new Error(`功能资源加载失败：${src}`));
+    };
     document.head.appendChild(script);
   });
 }
@@ -221,6 +236,13 @@ function loadFeatureGroup(group) {
   return promise;
 }
 
+function loadAdventureVisualEnhancement() {
+  return loadFeatureGroup('adventureVisual').catch(error => {
+    console.warn('adventure visual enhancement skipped', error && (error.message || error));
+    return null;
+  });
+}
+
 function installLazyFeatureHandler(name, group) {
   const lazyHandler = async (...args) => {
     try {
@@ -229,7 +251,9 @@ function installLazyFeatureHandler(name, group) {
       if (typeof handler !== 'function' || handler === lazyHandler) {
         throw new Error(`功能入口未就绪：${name}`);
       }
-      return await handler(...args);
+      const result = handler(...args);
+      if (group === 'adventure') loadAdventureVisualEnhancement();
+      return await result;
     } catch (error) {
       console.error(error);
       alert('功能加载失败，请检查网络后重试。');
@@ -260,7 +284,10 @@ if (document.readyState === 'loading') {
 }
 
 const warmAdventure = () => loadFeatureGroup('adventure')
-  .then(() => loadHome())
+  .then(() => {
+    loadAdventureVisualEnhancement();
+    return loadHome();
+  })
   .catch(error => console.warn('adventure preload skipped', error.message || error));
 
 if (typeof requestIdleCallback === 'function') requestIdleCallback(warmAdventure, { timeout: 1800 });
