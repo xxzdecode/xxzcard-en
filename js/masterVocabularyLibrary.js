@@ -244,11 +244,13 @@
     };
 
     windowObject.findInvalidEnglishCard = function findInvalidMasterLibraryCard(data) {
-      const validator = typeof windowObject.isCurrentEnglishCard === 'function'
-        ? windowObject.isCurrentEnglishCard
-        : isBasicCurrentCard;
-      return findInvalidData(data, validator)
-        || (originalFindInvalidEnglishCard ? originalFindInvalidEnglishCard(data) : null);
+      const hasDictionaryValidator = typeof windowObject.isCurrentEnglishCard === 'function';
+      const validator = hasDictionaryValidator ? windowObject.isCurrentEnglishCard : isBasicCurrentCard;
+      const invalid = findInvalidData(data, validator);
+      if (invalid) return invalid;
+      return hasDictionaryValidator && originalFindInvalidEnglishCard
+        ? originalFindInvalidEnglishCard(data)
+        : null;
     };
 
     windowObject.cloneForStorage = function cloneMasterLibraryForStorage(value) {
