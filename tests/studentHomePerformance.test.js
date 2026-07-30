@@ -37,7 +37,7 @@ assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
 assert.match(lazy, /requestIdleCallback/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v47/);
+assert.match(serviceWorker, /xxzcard-app-shell-v49/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
