@@ -9,6 +9,7 @@ const repository = fs.readFileSync(path.join(root, 'js', 'repository.js'), 'utf8
 const lazy = fs.readFileSync(path.join(root, 'js', 'lazyFeatures.js'), 'utf8');
 const main = fs.readFileSync(path.join(root, 'js', 'main.js'), 'utf8');
 const dailyRoute = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'), 'utf8');
+const wordCardPerformance = fs.readFileSync(path.join(root, 'js', 'wordCardPerformance.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
 assert.match(html, /<link rel="stylesheet" href="styles-home-nav\.css"/);
@@ -35,13 +36,15 @@ assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
 assert.match(lazy, /requestIdleCallback/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v45/);
+assert.match(serviceWorker, /xxzcard-app-shell-v46/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
   'daily route helper should start before optional startup enhancements'
 );
 assert.match(main, /__dailyLearningRoutePrefetchPromise = fetch/);
+assert.match(main, /loadFeatureGroup\('teacherTools'\)/);
+assert.match(main, /loadFeatureScript\('js\/wordCardPerformance\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardLayoutGuard\.js'\)/);
@@ -50,7 +53,14 @@ assert.match(dailyRoute, /ROUTE_TIMEOUT_MS = 2800/);
 assert.match(dailyRoute, /cache: 'no-store'/);
 assert.doesNotMatch(dailyRoute, /localStorage/);
 assert.doesNotMatch(dailyRoute, /setInterval/);
+assert.match(wordCardPerformance, /sbGetRemote\('main'\)/);
+assert.match(wordCardPerformance, /renderTeacherWordCardsFast\(\)/);
+assert.match(wordCardPerformance, /window\.openBatchWordCard/);
+assert.doesNotMatch(wordCardPerformance, /await loadUserBatch/);
+assert.doesNotMatch(wordCardPerformance, /Promise\.all\(batches/);
 assert.match(serviceWorker, /js\/dailyLearningRoute\.js/);
+assert.match(serviceWorker, /js\/wordCardPerformance\.js/);
+assert.match(serviceWorker, /js\/dictionary\.js/);
 assert.match(serviceWorker, /dailyRouteNetworkOnly/);
 assert.match(serviceWorker, /daily-learning-route\.json/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
