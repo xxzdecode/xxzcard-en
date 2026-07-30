@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v36';
-const RUNTIME_CACHE = 'xxzcard-runtime-v36';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v38';
+const RUNTIME_CACHE = 'xxzcard-runtime-v38';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -70,6 +70,19 @@ async function cacheFirst(request) {
   return response;
 }
 
+async function staticNetworkFirst(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  try {
+    const response = await fetch(request, { cache: 'no-cache' });
+    if (response && response.ok) await cache.put(request, response.clone());
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request) || await caches.match(request);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
 async function navigationNetworkFirst(request) {
   const cache = await caches.open(RUNTIME_CACHE);
   try {
@@ -125,6 +138,8 @@ self.addEventListener('fetch', event => {
     && url.origin === appRoot.origin
     && url.pathname.startsWith(appRoot.pathname);
   const isSupabaseApi = url.hostname.endsWith('.supabase.co');
+  const isCodeAsset = url.origin === self.location.origin
+    && /\.(?:js|css|html)$/.test(url.pathname);
 
   if (isNavigation) {
     event.respondWith(navigationNetworkFirst(event.request));
@@ -132,6 +147,10 @@ self.addEventListener('fetch', event => {
   }
   if (isSupabaseApi) {
     event.respondWith(apiNetworkFirst(event.request));
+    return;
+  }
+  if (isCodeAsset) {
+    event.respondWith(staticNetworkFirst(event.request));
     return;
   }
   if (url.origin === self.location.origin) {
