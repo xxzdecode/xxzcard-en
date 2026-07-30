@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v49';
-const RUNTIME_CACHE = 'xxzcard-runtime-v49';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v50';
+const RUNTIME_CACHE = 'xxzcard-runtime-v50';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -35,6 +35,7 @@ const APP_SHELL = [
   './js/wordCardStudySafety.js',
   './js/studentRewards.js',
   './js/studentActivityControls.js',
+  './js/studentActivityControlsCompactUI.js',
   './js/studentRewardLayoutGuard.js',
   './js/studentRewardReconcile.js',
   './js/vocabularyAdventureCore.js',
