@@ -16,6 +16,7 @@ const APP_SHELL = [
   './js/home.js',
   './js/lazyFeatures.js',
   './js/main.js',
+  './js/studentRewards.js',
   './assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
   './assets/student-home/card6/scenes/word-challenge-scene.webp',
   './assets/student-home/card6/scenes/grammar-challenge-scene.webp',
@@ -68,20 +69,32 @@ async function cacheFirst(request) {
   return response;
 }
 
-async function navigationStaleWhileRevalidate(request) {
-  const cache = await caches.open(APP_SHELL_CACHE);
-  const shellUrl = new URL('./index.html', self.location.href).href;
-  const cached = await cache.match(shellUrl);
-  const update = fetch(request, { cache: 'no-cache' })
-    .then(async response => {
-      if (response && response.ok) await cache.put(shellUrl, response.clone());
-      return response;
-    });
-  if (cached) {
-    update.catch(() => {});
-    return cached;
+async function navigationNetworkFirst(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  try {
+    const response = await fetch(request, { cache: 'no-cache' });
+    if (response && response.ok) await cache.put(request, response.clone());
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    const requestUrl = new URL(request.url);
+    const appRoot = new URL('./', self.location.href);
+    const indexUrl = new URL('./index.html', self.location.href);
+    const isAppEntry = requestUrl.pathname === appRoot.pathname
+      || requestUrl.pathname === indexUrl.pathname;
+    if (isAppEntry) {
+      const shell = await caches.open(APP_SHELL_CACHE);
+      const fallback = await shell.match(indexUrl.href) || await shell.match('./index.html');
+      if (fallback) return fallback;
+    }
+
+    return new Response(
+      '<!doctype html><meta charset="utf-8"><title>暂时无法打开</title><p>当前页面暂时无法离线打开，请联网后重试。</p>',
+      { status: 503, headers: { 'Content-Type': 'text/html;charset=utf-8' } }
+    );
   }
-  return await update;
 }
 
 async function apiNetworkFirst(request) {
@@ -113,7 +126,7 @@ self.addEventListener('fetch', event => {
   const isSupabaseApi = url.hostname.endsWith('.supabase.co');
 
   if (isNavigation) {
-    event.respondWith(navigationStaleWhileRevalidate(event.request));
+    event.respondWith(navigationNetworkFirst(event.request));
     return;
   }
   if (isSupabaseApi) {
