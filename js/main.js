@@ -71,6 +71,7 @@
       await loadFeatureScript('js/studentRewards.js');
       await loadFeatureScript('js/studentRewardLayoutGuard.js');
       await loadFeatureScript('js/studentRewardReconcile.js');
+      await loadFeatureScript('js/studentActivityControls.js');
     }
   } catch (error) {
     console.warn('startup enhancements unavailable', error && (error.message || error));
