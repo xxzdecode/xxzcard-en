@@ -1,9 +1,14 @@
 const FEATURE_GROUPS = {
-  adventure: [
+  adventurePlayer: [
     'js/vocabularyAdventureCore.js',
     'js/vocabularyAdventure.js',
     'js/vocabularyAdventureReview.js',
-    'js/vocabularyAdventurePlayer.js',
+    'js/vocabularyAdventurePlayer.js'
+  ],
+  adventureChallenge: [
+    'js/vocabularyAdventureCore.js',
+    'js/vocabularyAdventure.js',
+    'js/vocabularyAdventureReview.js',
     'js/vocabularyAdventureChallenge.js'
   ],
   adventureVisual: ['js/vocabularyAdventureVisualV2.js'],
@@ -231,7 +236,10 @@ function loadFeatureGroup(group) {
   const promise = sources.reduce(
     (chain, src) => chain.then(() => loadFeatureScript(src)),
     Promise.resolve()
-  );
+  ).catch(error => {
+    featureGroupPromises.delete(group);
+    throw error;
+  });
   featureGroupPromises.set(group, promise);
   return promise;
 }
@@ -252,7 +260,7 @@ function installLazyFeatureHandler(name, group) {
         throw new Error(`功能入口未就绪：${name}`);
       }
       const result = handler(...args);
-      if (group === 'adventure') loadAdventureVisualEnhancement();
+      if (group === 'adventurePlayer') loadAdventureVisualEnhancement();
       return await result;
     } catch (error) {
       console.error(error);
@@ -263,8 +271,8 @@ function installLazyFeatureHandler(name, group) {
 }
 
 [
-  ['openVocabularyAdventure', 'adventure'],
-  ['openVocabularyAdventureChallenge', 'adventure'],
+  ['openVocabularyAdventure', 'adventurePlayer'],
+  ['openVocabularyAdventureChallenge', 'adventureChallenge'],
   ['openGrammarChallengeList', 'grammarChallenge'],
   ['openThemeQuizList', 'themeQuiz'],
   ['openCoursewareList', 'courseware'],
@@ -283,7 +291,7 @@ if (document.readyState === 'loading') {
   installVocabularyCopyListExportButton();
 }
 
-const warmAdventure = () => loadFeatureGroup('adventure')
+const warmAdventure = () => loadFeatureGroup('adventurePlayer')
   .then(() => {
     loadAdventureVisualEnhancement();
     return loadHome();
