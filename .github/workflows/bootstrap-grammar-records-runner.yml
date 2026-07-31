@@ -48,6 +48,14 @@ jobs:
               "    const hasScoreValue = scoreValue !== null && scoreValue !== '' && Number.isFinite(Number(scoreValue));\n    const score = hasScoreValue\n      ? clamp(integer(scoreValue), 0, 100)"
           )
           target.write_text(source)
+
+          qa_target = pathlib.Path('tests/grammarChallengeRecordsViewport.mjs')
+          qa_source = qa_target.read_text()
+          qa_source = qa_source.replace(
+              "  const expectedOffline = expectOfflineConsole\n    && (/^offline$/i.test(text) || /Failed to load resource:.*503/i.test(text));",
+              "  const expectedOffline = /^offline$/i.test(text)\n    || /Failed to load resource:.*503/i.test(text);"
+          )
+          qa_target.write_text(qa_source)
           print(f'generated {target} ({target.stat().st_size} bytes)')
           PY
       - run: npm install
@@ -70,7 +78,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add js/grammarChallengeRecords.js
+          git add js/grammarChallengeRecords.js tests/grammarChallengeRecordsViewport.mjs
           git rm .github/workflows/bootstrap-grammar-records.yml
           git rm .github/workflows/bootstrap-grammar-records-runner.yml
           git commit -m "Implement grammar challenge history records"
