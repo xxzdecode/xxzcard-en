@@ -231,6 +231,38 @@ async function assertScopedSelection(page) {
   if (result.prompt) assert.equal(result.prompt, 'none');
 }
 
+async function startFeedbackTrace(page) {
+  await page.evaluate(() => {
+    window.__vocabularyFeedbackTraceObserver?.disconnect?.();
+    window.__vocabularyFeedbackTrace = [];
+    const body = document.getElementById('vocabularyAdventureChallengeBody');
+    const record = () => {
+      window.__vocabularyFeedbackTrace.push({
+        mode: body?.dataset.mode || '',
+        wrong: body?.querySelectorAll('.vocabulary-adventure-options .is-wrong').length || 0,
+        correct: body?.querySelectorAll('.vocabulary-adventure-options .is-correct').length || 0,
+        teaching: body?.querySelectorAll('.vte-shell').length || 0
+      });
+    };
+    const observer = new MutationObserver(record);
+    observer.observe(body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'data-mode']
+    });
+    window.__vocabularyFeedbackTraceObserver = observer;
+    record();
+  });
+}
+
+async function readFeedbackTrace(page) {
+  return page.evaluate(() => {
+    window.__vocabularyFeedbackTraceObserver?.disconnect?.();
+    return window.__vocabularyFeedbackTrace || [];
+  });
+}
+
 try {
   for (const target of [
     { name: 'ipad-1180x820', viewport: { width: 1180, height: 820 }, landscape: true },
@@ -244,19 +276,14 @@ try {
     ).evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
     assert.equal(columns, target.landscape ? 2 : 1);
 
+    await startFeedbackTrace(run.page);
     await clickChoice(run.page, false);
-    await run.page.waitForFunction(() => (
-      document.getElementById('vocabularyAdventureChallengeBody')?.dataset.mode === 'question-feedback'
-    ));
-    assert.equal(
-      await run.page.locator('#vocabularyAdventureChallengeBody .vocabulary-adventure-options .is-wrong').count(),
-      1
-    );
-    assert.equal(
-      await run.page.locator('#vocabularyAdventureChallengeBody .vocabulary-adventure-options .is-correct').count(),
-      1
-    );
     await run.page.waitForSelector('#vocabularyAdventureChallengeBody .vte-shell');
+    const wrongTrace = await readFeedbackTrace(run.page);
+    assert.ok(
+      wrongTrace.some(entry => entry.mode === 'question-feedback' && entry.wrong === 1 && entry.correct === 1),
+      `wrong answer must show red and green option states before teaching: ${JSON.stringify(wrongTrace)}`
+    );
     assert.match(
       await run.page.locator('#vocabularyAdventureChallengeBody .vte-kicker').textContent(),
       /正确答案/
@@ -267,17 +294,16 @@ try {
       document.getElementById('vocabularyAdventureChallengeCount')?.textContent === '2/10'
     ));
 
+    await startFeedbackTrace(run.page);
     await clickChoice(run.page, true);
-    await run.page.waitForFunction(() => (
-      document.getElementById('vocabularyAdventureChallengeBody')?.dataset.mode === 'question-feedback'
-    ));
-    assert.equal(
-      await run.page.locator('#vocabularyAdventureChallengeBody .vocabulary-adventure-options .is-correct').count(),
-      1
-    );
     await run.page.waitForFunction(() => (
       document.getElementById('vocabularyAdventureChallengeCount')?.textContent === '3/10'
     ));
+    const correctTrace = await readFeedbackTrace(run.page);
+    assert.ok(
+      correctTrace.some(entry => entry.mode === 'question-feedback' && entry.correct === 1),
+      `correct answer must show a green option before advancing: ${JSON.stringify(correctTrace)}`
+    );
 
     run.failNextSave();
     await clickChoice(run.page, true);
