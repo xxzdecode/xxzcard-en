@@ -8,7 +8,12 @@
       return originalLoadFeatureGroup(group);
     }
     return root.loadFeatureScript('js/vocabularyQuestionTypesRepeatBootstrap.js')
-      .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup));
+      .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup))
+      .then(() => group === 'adventurePlayer'
+        ? root.loadFeatureScript('js/vocabularyConsolidationCore.js')
+          .then(() => root.loadFeatureScript('js/vocabularyConsolidationView.js'))
+          .then(() => root.loadFeatureScript('js/vocabularyConsolidationPlayer.js'))
+        : null);
   };
   root.loadFeatureGroup = patchedLoadFeatureGroup;
   try { loadFeatureGroup = patchedLoadFeatureGroup; } catch (_) {}
