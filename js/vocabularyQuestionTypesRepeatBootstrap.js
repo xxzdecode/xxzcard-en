@@ -31,7 +31,8 @@
   }
 
   function clone(value) {
-    return value == null ? value : JSON.parse(JSON.stringify(value));
+    if (value === undefined) return undefined;
+    return JSON.parse(JSON.stringify(value));
   }
 
   function uniqueCandidates(values, core) {
@@ -41,7 +42,10 @@
       if (!key || seen.has(key) || !candidate.card) return false;
       seen.add(key);
       return true;
-    }).map(candidate => ({ ...candidate, key: core.adventureWordKey(candidate.key || candidate.word) }));
+    }).map(candidate => ({
+      ...candidate,
+      key: core.adventureWordKey(candidate.key || candidate.word)
+    }));
   }
 
   function encodeCue(prefix, value) {
@@ -53,6 +57,7 @@
     return text(
       source.image
       || source.imageUrl
+      || source.imageURL
       || source.imagePath
       || source.imageSrc
       || source.picture
@@ -85,14 +90,24 @@
     ].join('|');
   }
 
-  function previousItemsByWord() {
-    const session = capturedChallengeState
-      && capturedChallengeState.challengeSession
-      && Array.isArray(capturedChallengeState.challengeSession.items)
-      ? capturedChallengeState.challengeSession
+  function challengeHistoryByWord(stateValue) {
+    const state = stateValue && typeof stateValue === 'object' ? stateValue : {};
+    const session = state.challengeSession && Array.isArray(state.challengeSession.items)
+      ? state.challengeSession
       : null;
-    if (!session || session.attemptIndex !== 1) return new Map();
-    return new Map(session.items.map(item => [text(item.wordKey).toLocaleLowerCase(), item]));
+    const history = new Map();
+    if (!session || Number(session.attemptIndex) !== 1) return history;
+    session.items.forEach(item => {
+      const key = text(item && item.wordKey).toLocaleLowerCase();
+      if (!key) return;
+      if (!history.has(key)) history.set(key, []);
+      history.get(key).push(item);
+    });
+    return history;
+  }
+
+  function previousItemsByWord() {
+    return challengeHistoryByWord(capturedChallengeState);
   }
 
   function roundRobin(values, identity) {
@@ -166,6 +181,7 @@
       ]);
       if (!target) return { ok: false, code: 'WORD_NOT_VISIBLE', wordKey, taskType };
       if (!supported.has(taskType)) return { ok: false, code: 'INVALID_TASK_TYPE', wordKey, taskType };
+
       const phonetic = text(target.card.phonetic);
       if (taskType.startsWith('phonetic') && !phonetic) {
         return { ok: false, code: 'PHONETIC_UNAVAILABLE', wordKey, taskType };
@@ -197,12 +213,15 @@
           seen.add(key);
           distractors.push({ key, label, correct: false });
         });
-      const optionList = deterministicAdventureShuffle(
+      const optionsList = deterministicAdventureShuffle(
         [answer, ...distractors],
         `${seed}|options`,
         option => `${option.key}|${option.correct ? 1 : 0}`
       );
-      if (optionList.length < 2) return { ok: false, code: 'INSUFFICIENT_OPTIONS', wordKey, taskType };
+      if (optionsList.length < 2) {
+        return { ok: false, code: 'INSUFFICIENT_OPTIONS', wordKey, taskType };
+      }
+
       let prompt = '';
       if (taskType === 'wordToMeaning') prompt = correctWord;
       if (taskType === 'meaningToWord') prompt = correctMeaning;
@@ -210,17 +229,23 @@
       if (taskType === 'audioToMeaning') {
         prompt = encodeCue(FEATURE_PROMPT_PREFIX, { taskType, meaning: correctMeaning });
       }
-      return {
+
+      const question = {
         ok: true,
         taskType,
         questionType: taskType,
         wordKey,
         seed,
-        correctIndex: optionList.findIndex(option => option.correct),
-        options: optionList,
+        correctIndex: optionsList.findIndex(option => option.correct),
+        options: optionsList,
         prompt,
         card: target.card
       };
+      root.__vocabularyFeedbackQuestionContext = {
+        source: 'screening',
+        question: clone(question)
+      };
+      return question;
     }
 
     function prepareVocabularyAdventureResult(stateValue, submission) {
@@ -256,9 +281,9 @@
     if (eligible.length < 2) return null;
     const interior = eligible.filter(index => index > 0 && index < letters.length - 1);
     const pool = interior.length ? interior : eligible;
-    const count = eligible.length >= 7 && core.stableAdventureHash(`${seed}|count`) % 2 === 0 ? 2 : 1;
+    const missingCount = eligible.length >= 7 && core.stableAdventureHash(`${seed}|count`) % 2 === 0 ? 2 : 1;
     const positions = core.deterministicAdventureShuffle(pool, `${seed}|positions`)
-      .slice(0, Math.min(count, pool.length))
+      .slice(0, Math.min(missingCount, pool.length))
       .sort((a, b) => a - b);
     const chosen = new Set(positions);
     return {
@@ -276,7 +301,9 @@
       if (/[a-z]/.test(letter)) sourceLetters.add(letter);
     });
     addLetters(target.word || target.card.word);
-    (Array.isArray(context.allCards) ? context.allCards : []).forEach(candidate => addLetters(candidate && (candidate.word || (candidate.card && candidate.card.word))));
+    (Array.isArray(context.allCards) ? context.allCards : []).forEach(candidate => {
+      addLetters(candidate && (candidate.word || (candidate.card && candidate.card.word)));
+    });
     [...answer].forEach(letter => {
       const index = alphabet.indexOf(letter);
       if (index >= 0) {
@@ -284,6 +311,7 @@
         sourceLetters.add(alphabet[(index + 1) % 26]);
       }
     });
+
     const letters = core.deterministicAdventureShuffle([...sourceLetters], `${seed}|letter-pool`);
     const distractors = [];
     if (answer.length === 1) {
@@ -300,8 +328,11 @@
         if (value !== answer && !distractors.includes(value)) distractors.push(value);
       });
       const reversed = [...answerLetters].reverse().join('');
-      if (reversed !== answer && !distractors.includes(reversed) && distractors.length < 3) distractors.push(reversed);
+      if (reversed !== answer && !distractors.includes(reversed) && distractors.length < 3) {
+        distractors.push(reversed);
+      }
     }
+
     let fallback = 0;
     while (distractors.length < 3 && fallback < alphabet.length) {
       const value = answer.length === 1
@@ -310,6 +341,7 @@
       if (value !== answer && !distractors.includes(value)) distractors.push(value);
       fallback += 1;
     }
+
     return core.deterministicAdventureShuffle(
       [answer, ...distractors.slice(0, 3)].map(value => ({
         key: value,
@@ -322,6 +354,14 @@
   }
 
   function createPatchedReview(review, core) {
+    const originalRegistry = review.VocabularyAdventureReviewTypes || {};
+    const originalGrade = review.gradeVocabularyAdventureReviewQuestion.bind(review);
+
+    function targetCandidate(context) {
+      const key = core.adventureWordKey(context.planItem && context.planItem.wordKey);
+      return uniqueCandidates(context.allCards, core).find(candidate => candidate.key === key) || null;
+    }
+
     function basicChoice(context, taskType) {
       const question = core.buildVocabularyAdventureQuestion({
         candidates: uniqueCandidates(context.allCards, core),
@@ -337,15 +377,15 @@
         ...question,
         interaction: 'choice',
         questionType: taskType,
-        category: ['phoneticToMeaning', 'phoneticToWord'].includes(taskType) ? 'form' : 'basic',
+        category: taskType === 'phoneticToMeaning' ? 'form' : 'basic',
         requiresUsageConfirmation: false
       };
     }
 
     function missingLetters(context) {
-      const targetKey = core.adventureWordKey(context.planItem && context.planItem.wordKey);
-      const target = uniqueCandidates(context.allCards, core).find(candidate => candidate.key === targetKey);
+      const target = targetCandidate(context);
       if (!target) return null;
+      const targetKey = target.key;
       const word = text(target.word || target.card.word);
       const seed = [
         context.session && context.session.date || '',
@@ -375,6 +415,7 @@
         missingPositions: missing.positions,
         missingCount: missing.positions.length,
         answer: missing.answer,
+        fullAnswer: word,
         correctIndex: options.findIndex(option => option.correct),
         options,
         cue,
@@ -387,32 +428,30 @@
       return /\|attempt:2(?:\||$)/.test(String(context && context.userKey || ''));
     }
 
-    function previousItem(context) {
-      if (!isSecondAttempt(context)) return null;
+    function previousItems(context) {
+      if (!isSecondAttempt(context)) return [];
       const state = core.getVocabularyQuestionRepeatContext && core.getVocabularyQuestionRepeatContext();
-      const items = state && state.challengeSession && Array.isArray(state.challengeSession.items)
-        ? state.challengeSession.items
-        : [];
       const key = core.adventureWordKey(context.planItem && context.planItem.wordKey);
-      return items.find(item => core.adventureWordKey(item.wordKey) === key) || null;
+      return challengeHistoryByWord(state).get(key) || [];
     }
 
     function guardRepeat(context, taskType, builder) {
-      const previous = previousItem(context);
-      if (previous && previous.taskType === taskType) return null;
+      const history = previousItems(context);
+      if (history.some(item => item && item.taskType === taskType)) return null;
       const question = builder();
-      if (!question || !question.ok || !previous) return question;
-      const priorFingerprint = questionFingerprint(previous.wordKey, previous.taskType, previous.question);
-      const nextFingerprint = questionFingerprint(
+      if (!question || !question.ok || !history.length) return question;
+      const fingerprint = questionFingerprint(
         context.planItem && context.planItem.wordKey,
         taskType,
         question
       );
-      return priorFingerprint === nextFingerprint ? null : question;
+      return history.some(item => (
+        questionFingerprint(item.wordKey, item.taskType, item.question) === fingerprint
+      )) ? null : question;
     }
 
     const registry = {};
-    Object.entries(review.VocabularyAdventureReviewTypes || {}).forEach(([taskType, definition]) => {
+    Object.entries(originalRegistry).forEach(([taskType, definition]) => {
       registry[taskType] = {
         ...definition,
         build: context => guardRepeat(context, taskType, () => {
@@ -453,6 +492,10 @@
 
     function buildVocabularyAdventureReviewQuestion(input) {
       const context = { ...(input || {}) };
+      const wordKey = core.adventureWordKey(context.planItem && context.planItem.wordKey);
+      if (!targetCandidate(context)) {
+        return { ok: false, reason: 'WORD_NOT_VISIBLE', wordKey, attemptedTypes: [] };
+      }
       const reason = review.reviewReasonFromState(
         context.planItem,
         context.wordState,
@@ -465,11 +508,13 @@
         ? [requested, ...allowed.filter(type => type !== requested)]
         : core.deterministicAdventureShuffle(
             allowed,
-            `${context.session && context.session.date || ''}|${context.userKey || ''}|${context.planItem && context.planItem.wordKey || ''}|${context.planIndex || 0}|review|${reason}|types`,
+            `${context.session && context.session.date || ''}|${context.userKey || ''}|${wordKey}|${context.planIndex || 0}|review|${reason}|types`,
             type => type
           );
       const lastTaskType = context.wordState && context.wordState.lastTaskType;
-      if (!requested && ordered.length > 1 && ordered[0] === lastTaskType) ordered = [...ordered.slice(1), ordered[0]];
+      if (!requested && ordered.length > 1 && ordered[0] === lastTaskType) {
+        ordered = [...ordered.slice(1), ordered[0]];
+      }
       const attemptedTypes = [];
       for (const taskType of ordered) {
         attemptedTypes.push(taskType);
@@ -484,16 +529,17 @@
         const question = definition && definition.build(context);
         if (question && question.ok) return { ...question, reason, attemptedTypes };
       }
-      return {
-        ok: false,
-        reason: 'NO_SAFE_QUESTION',
-        wordKey: core.adventureWordKey(context.planItem && context.planItem.wordKey),
-        attemptedTypes
-      };
+      return { ok: false, reason: 'NO_SAFE_QUESTION', wordKey, attemptedTypes };
     }
 
     function buildVocabularyAdventureMeaningConfirmation(input) {
       const context = { ...(input || {}) };
+      const reason = review.reviewReasonFromState(
+        context.planItem,
+        context.wordState,
+        context.session && context.session.date
+      );
+      context.reason = reason;
       const types = core.deterministicAdventureShuffle(
         ['wordToMeaning', 'meaningToWord', 'audioToMeaning'],
         `${context.session && context.session.date || ''}|${context.userKey || ''}|${context.planItem && context.planItem.wordKey || ''}|confirmation`,
@@ -501,9 +547,25 @@
       );
       for (const taskType of types) {
         const question = registry[taskType].build(context);
-        if (question && question.ok) return { ...question, confirmation: true };
+        if (question && question.ok) return { ...question, confirmation: true, reason };
       }
-      return { ok: false, reason: 'NO_SAFE_CONFIRMATION', attemptedTypes: types };
+      return {
+        ok: false,
+        reason: 'NO_SAFE_CONFIRMATION',
+        wordKey: core.adventureWordKey(context.planItem && context.planItem.wordKey),
+        attemptedTypes: types
+      };
+    }
+
+    function gradeVocabularyAdventureReviewQuestion(question, answer) {
+      const correct = originalGrade(question, answer);
+      root.__vocabularyFeedbackGradeContext = {
+        question: clone(question),
+        answer: clone(answer),
+        correct,
+        gradedAt: new Date().toISOString()
+      };
+      return correct;
     }
 
     return Object.freeze({
@@ -514,6 +576,7 @@
       VocabularyAdventureReviewTypes: Object.freeze(registry),
       buildVocabularyAdventureReviewQuestion,
       buildVocabularyAdventureMeaningConfirmation,
+      gradeVocabularyAdventureReviewQuestion,
       deterministicMissingPart: (word, seed) => deterministicMissingPart(word, seed, core)
     });
   }
@@ -524,7 +587,10 @@
     if (!source.length || source.length >= target) return source;
     const result = [];
     for (let index = 0; index < target; index += 1) {
-      result.push({ ...source[index % source.length], __challengeRepeatCopy: Math.floor(index / source.length) });
+      result.push({
+        ...source[index % source.length],
+        __challengeRepeatCopy: Math.floor(index / source.length)
+      });
     }
     return result;
   }
@@ -596,96 +662,6 @@
     }
   }
 
-  function enhanceCueNode(node) {
-    if (!node || node.dataset.vocabularyCueEnhanced === '1') return;
-    const raw = node.textContent || '';
-    let cue = null;
-    let kind = '';
-    if (raw.startsWith(MISSING_PROMPT_PREFIX)) {
-      kind = 'missingLetters';
-      try { cue = JSON.parse(decodeURIComponent(raw.slice(MISSING_PROMPT_PREFIX.length))); } catch (_) {}
-    } else if (raw.startsWith(FEATURE_PROMPT_PREFIX)) {
-      kind = 'feature';
-      try { cue = JSON.parse(decodeURIComponent(raw.slice(FEATURE_PROMPT_PREFIX.length))); } catch (_) {}
-    }
-    if (!cue) return;
-    node.dataset.vocabularyCueEnhanced = '1';
-    node.textContent = '';
-    const question = node.closest('.vocabulary-adventure-question');
-    const label = question && question.querySelector('.vocabulary-adventure-question-label, .vocabulary-adventure-instruction');
-
-    if (kind === 'feature' && cue.taskType === 'audioToMeaning') {
-      if (label) label.textContent = '听一听，选择中文意思';
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'vocabulary-adventure-audio-prompt';
-      button.innerHTML = '<span>🔊</span> 再听一次';
-      button.addEventListener('click', () => root.speakVocabularyAdventureCurrent?.());
-      node.appendChild(button);
-      root.setTimeout(() => button.click(), 80);
-      return;
-    }
-
-    if (kind === 'missingLetters') {
-      if (label) label.textContent = '选择缺失字母';
-      const wrap = document.createElement('div');
-      wrap.className = 'vocabulary-adventure-missing-cue';
-      wrap.style.display = 'grid';
-      wrap.style.gridTemplateColumns = 'minmax(72px, 112px) minmax(0, 1fr)';
-      wrap.style.alignItems = 'center';
-      wrap.style.gap = '14px';
-      wrap.style.width = 'min(560px, 100%)';
-      wrap.style.margin = '0 auto';
-      const visual = document.createElement(cue.image ? 'img' : 'span');
-      if (cue.image) {
-        visual.src = cue.image;
-        visual.alt = cue.meaning || '单词图片';
-        visual.style.width = '100%';
-        visual.style.maxHeight = '112px';
-        visual.style.objectFit = 'contain';
-        visual.addEventListener('error', () => {
-          const fallback = document.createElement('span');
-          fallback.textContent = cue.emoji || cue.placeholder || '📝';
-          fallback.style.fontSize = '56px';
-          visual.replaceWith(fallback);
-        }, { once: true });
-      } else {
-        visual.textContent = cue.emoji || cue.placeholder || '📝';
-        visual.style.fontSize = '56px';
-        visual.style.textAlign = 'center';
-      }
-      const copy = document.createElement('div');
-      const meaning = document.createElement('p');
-      meaning.textContent = cue.meaning || '根据图示选择缺失字母';
-      meaning.style.margin = '0 0 8px';
-      meaning.style.fontWeight = '700';
-      const masked = document.createElement('strong');
-      masked.textContent = cue.maskedWord || '';
-      masked.style.fontSize = 'clamp(26px, 5vw, 44px)';
-      masked.style.letterSpacing = '0.12em';
-      copy.append(meaning, masked);
-      wrap.append(visual, copy);
-      node.appendChild(wrap);
-    }
-  }
-
-  function installCueObserver() {
-    if (typeof document === 'undefined' || root.__vocabularyCueObserverInstalled) return;
-    root.__vocabularyCueObserverInstalled = true;
-    const scan = target => {
-      if (!target || target.nodeType !== 1) return;
-      if (target.matches && target.matches('.vocabulary-adventure-prompt-text')) enhanceCueNode(target);
-      target.querySelectorAll?.('.vocabulary-adventure-prompt-text').forEach(enhanceCueNode);
-    };
-    const start = () => {
-      scan(document.body);
-      new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(scan)))
-        .observe(document.body, { childList: true, subtree: true });
-    };
-    if (document.body) start();
-    else document.addEventListener('DOMContentLoaded', start, { once: true });
-  }
-
   function ensureBase() {
     if (basePromise) return basePromise;
     basePromise = root.loadFeatureScript('js/vocabularyAdventureCore.js')
@@ -695,19 +671,26 @@
     return basePromise;
   }
 
+  function loadSupportModules() {
+    return Promise.all([
+      root.loadFeatureScript('data/vocabularyLessonAssets.js').catch(() => null),
+      root.loadFeatureScript('js/vocabularyPracticeUI.js'),
+      root.loadFeatureScript('js/vocabularyFeedbackErrorUI.js')
+    ]);
+  }
+
   function loadFeatureGroup(group, fallback) {
     if (!['adventurePlayer', 'adventureChallenge'].includes(group)) return fallback(group);
     if (featurePromises.has(group)) return featurePromises.get(group);
-    const promise = ensureBase().then(() => {
+    const promise = Promise.all([ensureBase(), loadSupportModules()]).then(([modules]) => {
       if (group === 'adventurePlayer') {
-        return root.loadFeatureScript('js/vocabularyAdventurePlayer.js')
-          .then(() => installCueObserver());
+        return root.loadFeatureScript('js/vocabularyAdventurePlayer.js');
       }
-      return root.loadFeatureScript('js/vocabularyAdventureChallenge.js')
-        .then(() => {
-          installChallengeBrowserWrappers();
-          installCueObserver();
-        });
+      return root.loadFeatureScript('js/vocabularyAdventureChallenge.js');
+    }).then(() => {
+      if (group === 'adventureChallenge') installChallengeBrowserWrappers();
+      root.VocabularyPracticeUI?.afterFeatureGroup?.(group, installed);
+      root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group, installed);
     }).catch(error => {
       featurePromises.delete(group);
       throw error;
@@ -723,6 +706,7 @@
     FEATURE_PROMPT_PREFIX,
     MISSING_PROMPT_PREFIX,
     questionFingerprint,
+    challengeHistoryByWord,
     deterministicMissingPart: (word, seed, core) => deterministicMissingPart(word, seed, core),
     expandChallengeCandidates,
     install,
