@@ -1,6 +1,6 @@
 # PROJECT_STATE
 
-更新时间：2026-07-31 21:09（UTC+8）
+更新时间：2026-07-31 21:30（UTC+8）
 
 ## 0. 已确认决策
 
@@ -168,6 +168,54 @@
 
 仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
 
+### 食品与三餐引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `meals-food / 食品与三餐`；
+- 正式导入包：`data/imports/book-meals-food.reference.json`；
+- 单词本稳定 ID：`book-meals-food`；
+- 共 24 词：`breakfast / lunch / dinner / egg / rice / cake / bread / jam / biscuit / sausage / sandwich / dumplings / French fries / meat / chicken / mutton / beef / pork / fish / hamburger / hot dog / noodles / soup / salad`；
+- 首次审计：直接复用 9 词，新建 15 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_meals_food_reference_import_2026_07_31_2130`；
+- 正式单词本只持久化 24 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 24 词；
+- 重复导入模拟：需要新建 0，15 张新卡全部识别为已有且资料字段完整。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
+### 饮料与水果引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `drinks-fruit / 饮料与水果`；
+- 正式导入包：`data/imports/book-drinks-fruit.reference.json`；
+- 单词本稳定 ID：`book-drinks-fruit`；
+- 共 20 词：`milk / water / ice-cream / cola / juice / tea / coffee / fruit / apple / banana / pear / orange / watermelon / grape / cherry / lemon / mango / coconut / peach / strawberry`；
+- 首次审计：直接复用 2 词，新建 18 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_drinks_fruit_reference_import_2026_07_31_2130`；
+- 正式单词本只持久化 20 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 20 词；
+- 重复导入模拟：需要新建 0，18 张新卡全部识别为已有且资料字段完整。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
+### 蔬菜引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `vegetables / 蔬菜`；
+- 正式导入包：`data/imports/book-vegetables.reference.json`；
+- 单词本稳定 ID：`book-vegetables`；
+- 共 12 词：`vegetable / eggplant / green beans / tomato / potato / cucumber / onion / pea / carrot / cabbage / pumpkin / sweet potato`；
+- 首次审计：直接复用 4 词，新建 8 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_vegetables_reference_import_2026_07_31_2130`；
+- 正式单词本只持久化 12 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 12 词；
+- 重复导入模拟：需要新建 0，8 张新卡全部识别为已有且资料字段完整。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
 ### 单词卡加载性能修复
 
 本轮已完成：
@@ -187,18 +235,18 @@
 下一步：
 
 1. 在真实老师端核对“人物”和 `Miss` 覆盖；
-2. 在真实老师端和学生端核对“气象与季节”“衣服”“学习用品”“身体部位”“职业”“动物”列表与卡片展示；
+2. 在真实老师端和学生端核对“气象与季节”“衣服”“学习用品”“身体部位”“职业”“动物”“食品与三餐”“饮料与水果”“蔬菜”列表与卡片展示；
 3. 完成引用式单词编辑保存、图片保护和目标设备速度回归；
-4. 继续整理食品、饮料水果、数字和基础动作等分类。
+4. 继续整理数字、基础动作和其他小学基础分类。
 
 ## 2. 系统总库迁移状态
 
 已完成：
 
 - Supabase 数据结构版本：2；
-- 系统总库唯一词条：624；
-- 单词本：26；
-- 单词本引用：704；
+- 系统总库唯一词条：665；
+- 单词本：29；
+- 单词本引用：760；
 - 缺失引用：0；
 - 单词本内持久化完整卡片：0；
 - `go` 的两张历史卡已保留式合并；
@@ -211,6 +259,9 @@
 - 身体部位导入前快照：`pre_body_reference_import_2026_07_31_2109`；
 - 职业导入前快照：`pre_jobs_reference_import_2026_07_31_2109`；
 - 动物导入前快照：`pre_animals_reference_import_2026_07_31_2109`；
+- 食品与三餐导入前快照：`pre_meals_food_reference_import_2026_07_31_2130`；
+- 饮料与水果导入前快照：`pre_drinks_fruit_reference_import_2026_07_31_2130`；
+- 蔬菜导入前快照：`pre_vegetables_reference_import_2026_07_31_2130`；
 - Git 存档分支：`archive/pre-master-library-2026-07-30`。
 
 迁移记录见 `docs/master-vocabulary-library-migration-2026-07-30.md`。
@@ -227,8 +278,11 @@
 8. 整理“身体部位”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
 9. 整理“职业”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
 10. 整理“动物”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
-11. 按小学阶段逐步整理食品、饮料水果、数字和基础动作等分类。
-12. 主要分类完成后，旧单词本先归档隐藏，稳定后再决定永久删除。
+11. 整理“食品与三餐”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+12. 整理“饮料与水果”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+13. 整理“蔬菜”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+14. 按小学阶段逐步整理数字、基础动作和其他分类。
+15. 主要分类完成后，旧单词本先归档隐藏，稳定后再决定永久删除。
 
 ### 音标训练增强
 
@@ -256,8 +310,9 @@
 - 衣服 ✅（数据、导入和共享完成，待网页核对）
 - 身体部位 ✅（数据、导入和共享完成，待网页核对）
 - 动物 ✅（数据、导入和共享完成，待网页核对）
-- 食品与三餐
-- 饮料与水果
+- 食品与三餐 ✅（数据、导入和共享完成，待网页核对）
+- 饮料与水果 ✅（数据、导入和共享完成，待网页核对）
+- 蔬菜 ✅（数据、导入和共享完成，待网页核对）
 - 学习用品 ✅（数据、导入和共享完成，待网页核对）
 - 职业 ✅（数据、导入和共享完成，待网页核对）
 - 数字
@@ -284,7 +339,7 @@
    - 可覆盖过去式、过去分词、不规则复数、比较级等。
 
 2. W 型·词族与构词
-   - 根据 wordFamily 或 morphology 出题。
+   - 根据 wordFamily 或 morphology 生成题。
    - 适合后续专项练习或高阶挑战。
 
 3. G 型·分类题
