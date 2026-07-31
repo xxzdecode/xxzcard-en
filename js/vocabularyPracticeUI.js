@@ -19,6 +19,10 @@
     '[contenteditable="plaintext-only"]',
     '[data-allow-text-selection="true"]'
   ].join(',');
+  const OPTION_SELECTOR = [
+    '#screenVocabularyAdventure .vocabulary-adventure-options button',
+    '#screenVocabularyAdventureChallenge .vocabulary-adventure-options button'
+  ].join(',');
   const PROTECTED_SELECTOR = [
     '#screenVocabularyAdventure .vocabulary-adventure-question-label',
     '#screenVocabularyAdventure .vocabulary-adventure-prompt-text',
@@ -38,10 +42,6 @@
     '#screenVocabularyAdventure .vte-shell',
     '#screenVocabularyAdventureChallenge .vte-shell'
   ].join(',');
-  const OPTION_SELECTOR = [
-    '#screenVocabularyAdventure .vocabulary-adventure-options button',
-    '#screenVocabularyAdventureChallenge .vocabulary-adventure-options button'
-  ].join(',');
   const state = {
     installed: false,
     observers: new Map()
@@ -49,11 +49,11 @@
 
   function decodeCue(value) {
     const raw = String(value || '');
-    const prefixes = [
+    const definitions = [
       ['missingLetters', MISSING_PROMPT_PREFIX],
       ['feature', FEATURE_PROMPT_PREFIX]
     ];
-    for (const [kind, prefix] of prefixes) {
+    for (const [kind, prefix] of definitions) {
       if (!raw.startsWith(prefix)) continue;
       try {
         return { kind, value: JSON.parse(decodeURIComponent(raw.slice(prefix.length))) };
@@ -62,6 +62,12 @@
       }
     }
     return null;
+  }
+
+  function isAnswerOption(node) {
+    return !!node
+      && typeof node.matches === 'function'
+      && node.matches(OPTION_SELECTOR);
   }
 
   function optionStateLabel(button) {
@@ -74,22 +80,19 @@
 
   function optionBaseLabel(button) {
     if (!button) return '';
-    const label = button.dataset && button.dataset.vocabularyOptionLabel
-      ? button.dataset.vocabularyOptionLabel
-      : String(button.textContent || '').trim().replace(/\s+/g, ' ');
-    if (button.dataset && !button.dataset.vocabularyOptionLabel) {
-      button.dataset.vocabularyOptionLabel = label;
-    }
+    const saved = button.dataset && button.dataset.vocabularyOptionLabel;
+    const label = saved || String(button.textContent || '').trim().replace(/\s+/g, ' ');
+    if (button.dataset && !saved) button.dataset.vocabularyOptionLabel = label;
     return label;
   }
 
   function syncOptionState(button) {
-    if (!button || typeof button.setAttribute !== 'function') return;
+    if (!isAnswerOption(button) || typeof button.setAttribute !== 'function') return;
     const label = optionBaseLabel(button);
     const stateLabel = optionStateLabel(button);
     button.setAttribute('aria-label', stateLabel ? `${label}，${stateLabel}` : label);
     if (stateLabel) button.dataset.answerState = stateLabel;
-    else if (button.dataset) delete button.dataset.answerState;
+    else delete button.dataset.answerState;
   }
 
   function syncOptionStates(container) {
@@ -97,7 +100,8 @@
       ? container
       : root.document;
     if (!host) return;
-    host.querySelectorAll(OPTION_SELECTOR).forEach(syncOptionState);
+    host.querySelectorAll('.vocabulary-adventure-options button').forEach(syncOptionState);
+    if (isAnswerOption(host)) syncOptionState(host);
   }
 
   function clearSelected(container) {
@@ -111,7 +115,9 @@
   }
 
   function handleOptionClick(event) {
-    const button = event.target && event.target.closest && event.target.closest(OPTION_SELECTOR);
+    const button = event.target && event.target.closest
+      ? event.target.closest(OPTION_SELECTOR)
+      : null;
     if (!button || button.disabled) return;
     const container = button.closest('.vocabulary-adventure-options');
     clearSelected(container);
@@ -131,9 +137,12 @@
 
   function makeAudioCue(node, cue) {
     const question = node.closest('.vocabulary-adventure-question');
-    const label = question && question.querySelector('.vocabulary-adventure-question-label, .vocabulary-adventure-instruction');
+    const label = question && question.querySelector(
+      '.vocabulary-adventure-question-label, .vocabulary-adventure-instruction'
+    );
     if (label) label.textContent = '听一听，选择中文意思';
     node.textContent = '';
+
     const button = root.document.createElement('button');
     button.type = 'button';
     button.className = 'vocabulary-adventure-audio-prompt';
@@ -147,13 +156,15 @@
       }
     });
     node.appendChild(button);
-    root.setTimeout(() => button.click(), 80);
     if (cue && cue.meaning) node.dataset.meaning = cue.meaning;
+    root.setTimeout(() => button.click(), 80);
   }
 
   function makeMissingCue(node, cue) {
     const question = node.closest('.vocabulary-adventure-question');
-    const label = question && question.querySelector('.vocabulary-adventure-question-label, .vocabulary-adventure-instruction, h2');
+    const label = question && question.querySelector(
+      '.vocabulary-adventure-question-label, .vocabulary-adventure-instruction, h2'
+    );
     if (label) label.textContent = '选择缺失字母';
     node.textContent = '';
 
@@ -162,6 +173,7 @@
     const visualHolder = root.document.createElement('div');
     visualHolder.className = 'vocabulary-adventure-missing-visual';
     const fallbackText = cue.emoji || cue.placeholder || '📝';
+
     if (cue.image) {
       const image = root.document.createElement('img');
       image.src = cue.image;
@@ -192,22 +204,27 @@
     const decoded = decodeCue(node.textContent);
     if (decoded) {
       node.dataset.vocabularyCueEnhanced = '1';
-      if (decoded.kind === 'missingLetters') makeMissingCue(node, decoded.value || {});
-      else if (decoded.value && decoded.value.taskType === 'audioToMeaning') makeAudioCue(node, decoded.value);
+      if (decoded.kind === 'missingLetters') {
+        makeMissingCue(node, decoded.value || {});
+      } else if (decoded.value && decoded.value.taskType === 'audioToMeaning') {
+        makeAudioCue(node, decoded.value);
+      }
       return;
     }
 
-    const question = node.closest && node.closest('#screenVocabularyAdventure .vocabulary-adventure-question');
+    const question = node.closest
+      ? node.closest('#screenVocabularyAdventure .vocabulary-adventure-question')
+      : null;
     const label = question && question.querySelector('.vocabulary-adventure-question-label');
-    const value = String(node.textContent || '').trim();
-    if (label && label.textContent.trim() === '抗遗忘检索' && /^\/.+\/$/.test(value)) {
+    const prompt = String(node.textContent || '').trim();
+    if (label && label.textContent.trim() === '抗遗忘检索' && /^\/.+\/$/.test(prompt)) {
       label.textContent = '看音标，选择中文意思';
     }
   }
 
   function scan(rootNode) {
     if (!rootNode || rootNode.nodeType !== 1) return;
-    if (rootNode.matches && rootNode.matches('.vocabulary-adventure-prompt-text')) enhancePromptNode(rootNode);
+    if (rootNode.matches?.('.vocabulary-adventure-prompt-text')) enhancePromptNode(rootNode);
     rootNode.querySelectorAll?.('.vocabulary-adventure-prompt-text').forEach(enhancePromptNode);
     syncOptionStates(rootNode);
   }
@@ -272,8 +289,10 @@
       #screenVocabularyAdventureChallenge .vocabulary-adventure-order-bank button:disabled{border-color:#b8d4e8;background:#e5f3ff;color:#315d7f;opacity:.72}
       .vocabulary-adventure-missing-cue{display:grid;grid-template-columns:minmax(72px,112px) minmax(0,1fr);align-items:center;gap:14px;width:min(560px,100%);margin:0 auto}
       .vocabulary-adventure-missing-visual{width:100%;min-height:90px;display:grid;place-items:center;border-radius:18px;background:#eef6ef;overflow:hidden}
-      .vocabulary-adventure-missing-visual img{width:100%;height:112px;object-fit:contain}.vocabulary-adventure-missing-visual.is-fallback{font-size:56px}
-      .vocabulary-adventure-missing-copy p{margin:0 0 8px;font-weight:700}.vocabulary-adventure-missing-copy strong{font-size:clamp(26px,5vw,44px);letter-spacing:.12em}
+      .vocabulary-adventure-missing-visual img{width:100%;height:112px;object-fit:contain}
+      .vocabulary-adventure-missing-visual.is-fallback{font-size:56px}
+      .vocabulary-adventure-missing-copy p{margin:0 0 8px;font-weight:700}
+      .vocabulary-adventure-missing-copy strong{font-size:clamp(26px,5vw,44px);letter-spacing:.12em}
       ${PROTECTED_SELECTOR}{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
       #screenVocabularyAdventure input,#screenVocabularyAdventure textarea,#screenVocabularyAdventure select,#screenVocabularyAdventure [contenteditable="true"],#screenVocabularyAdventure [contenteditable="plaintext-only"],#screenVocabularyAdventure [data-allow-text-selection="true"],#screenVocabularyAdventureChallenge input,#screenVocabularyAdventureChallenge textarea,#screenVocabularyAdventureChallenge select,#screenVocabularyAdventureChallenge [contenteditable="true"],#screenVocabularyAdventureChallenge [contenteditable="plaintext-only"],#screenVocabularyAdventureChallenge [data-allow-text-selection="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
       @media (orientation:landscape) and (min-width:768px){#screenVocabularyAdventureChallenge .vocabulary-adventure-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -306,6 +325,7 @@
     FEATURE_PROMPT_PREFIX,
     MISSING_PROMPT_PREFIX,
     decodeCue,
+    isAnswerOption,
     optionStateLabel,
     syncOptionState,
     syncOptionStates,
