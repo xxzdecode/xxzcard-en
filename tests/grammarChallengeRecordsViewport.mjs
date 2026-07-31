@@ -247,7 +247,7 @@ try {
   frame = await openChallenge('grammar-2026-07-31-parts-of-speech-review');
   await answerInlineChallengeCorrectly(frame, 1);
   await closeChallenge();
-  await waitFor(() => attempts('brother').length === 1, 'brother attempt missing');
+  await waitFor(() => attempts('brother').some(item => item.status === 'exited'), 'brother exit status missing');
   assert.equal(attempts('brother')[0].student, 'brother');
   assert.equal(attempts('brother')[0].status, 'exited');
   assert.equal(history('sister').student, 'sister');
