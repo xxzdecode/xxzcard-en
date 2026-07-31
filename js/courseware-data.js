@@ -10,7 +10,7 @@ window.CLASSROOM_PRACTICE_ITEMS = [
   },
   {
     "id": "courseware-2026-07-31-adjective-basics-suffixes",
-    "title": "形容词与词尾线索随堂练习",
+    "title": "26.07.31｜形容词与词尾线索随堂练习",
     "description": "形容词基本作用、常见位置与高频词尾线索随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
