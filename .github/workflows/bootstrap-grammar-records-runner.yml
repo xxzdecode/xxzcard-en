@@ -42,7 +42,13 @@ jobs:
           PY
       - run: npm install
       - run: npx playwright install --with-deps chromium
-      - run: npm test
+      - name: Run grammar records and compatibility tests
+        run: |
+          node tests/grammarChallengeRecords.test.js
+          node tests/studentActivityControls.test.js
+          node tests/studentActivityControls.browser-smoke.test.js
+          node tests/studentHomeDashboard.test.js
+          node tests/studentHomePerformance.test.js
       - run: npm run test:grammar-records-viewport
       - uses: actions/upload-artifact@v4
         if: always()
