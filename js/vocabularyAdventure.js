@@ -20,6 +20,9 @@
         : [],
       getValue: key => sbGet(key),
       setValue: (key, value) => sbSet(key, value),
+      reportStorageError: error => {
+        if (typeof showStorageError === 'function') showStorageError(error);
+      },
       warn: (...args) => console.warn(...args)
     };
   }
@@ -63,6 +66,7 @@
         return await dependencies.setValue(key, core.normalizeVocabularyAdventureState(value)) !== false;
       } catch (error) {
         dependencies.warn('Vocabulary adventure state save failed', error);
+        dependencies.reportStorageError(error);
         return false;
       }
     }

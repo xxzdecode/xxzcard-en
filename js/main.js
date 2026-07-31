@@ -1,3 +1,94 @@
+// Install the vocabulary question-type compatibility layer before any lazy
+// adventure module can load. Other feature groups keep their original loader.
+(function installVocabularyQuestionTypesRepeatLoader(root) {
+  if (!root || typeof root.loadFeatureGroup !== 'function' || typeof root.loadFeatureScript !== 'function') return;
+  const originalLoadFeatureGroup = root.loadFeatureGroup;
+  const patchedLoadFeatureGroup = function patchedLoadFeatureGroup(group) {
+    if (!['adventurePlayer', 'adventureChallenge'].includes(group)) {
+      return originalLoadFeatureGroup(group);
+    }
+    return root.loadFeatureScript('js/vocabularyQuestionTypesRepeatBootstrap.js')
+      .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup));
+  };
+  root.loadFeatureGroup = patchedLoadFeatureGroup;
+  try { loadFeatureGroup = patchedLoadFeatureGroup; } catch (_) {}
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// Record the latest selected choice before inline answer handlers run. The
+// save-aware feedback layer uses this exact index for the teaching page.
+(function installVocabularyChoiceCapture(root) {
+  if (!root || !root.document || root.__vocabularyChoiceCaptureInstalled) return;
+  root.__vocabularyChoiceCaptureInstalled = true;
+  root.document.addEventListener('click', event => {
+    const button = event.target?.closest?.(
+      '#screenVocabularyAdventure .vocabulary-adventure-options button,'
+      + '#screenVocabularyAdventureChallenge .vocabulary-adventure-options button'
+    );
+    if (!button || button.disabled) return;
+    const options = [...button.closest('.vocabulary-adventure-options').querySelectorAll('button')];
+    root.__vocabularyPracticeLastSelection = {
+      mode: button.closest('#screenVocabularyAdventureChallenge') ? 'challenge' : 'adventure',
+      index: options.indexOf(button),
+      selectedAt: Date.now()
+    };
+  }, true);
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// Give the word challenge the same soft purple, pink and mint atmosphere used
+// by the formal grammar challenge. Answer option colors remain the adventure palette.
+(function installVocabularyChallengeGrammarPalette(root) {
+  if (!root || !root.document || root.document.getElementById('vocabularyChallengeGrammarPalette')) return;
+  const style = root.document.createElement('style');
+  style.id = 'vocabularyChallengeGrammarPalette';
+  style.textContent = `
+    #screenVocabularyAdventureChallenge{
+      background:
+        radial-gradient(circle at 8% 8%,rgba(255,233,241,.9),transparent 28rem),
+        radial-gradient(circle at 95% 95%,rgba(232,250,239,.95),transparent 30rem),
+        linear-gradient(150deg,#f4efff 0%,#f9fbff 52%,#effaf5 100%);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-topbar,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-feedback{
+      border-color:rgba(101,73,159,.14);
+      background:rgba(255,255,255,.9);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-exit{
+      background:#f0ebff;
+      color:#65499f;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-row,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-row strong{
+      color:#65499f;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-row.is-secondary{
+      color:#6d7886;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-track{
+      background:#eee9f8;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-track span{
+      background:linear-gradient(90deg,#b092e8,#83c8aa);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-question,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-result,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-terminal,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-loading,
+    #screenVocabularyAdventureChallenge .vte-shell{
+      border-color:rgba(101,73,159,.12);
+      box-shadow:0 14px 42px rgba(101,73,159,.13);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-question-label,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-instruction{
+      color:#65499f;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-feedback button{
+      background:linear-gradient(135deg,#987bd7,#7658ba);
+      box-shadow:0 8px 20px rgba(118,88,186,.24);
+    }
+  `;
+  root.document.head.appendChild(style);
+})(typeof window !== 'undefined' ? window : globalThis);
+
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
@@ -26,6 +117,17 @@
   showDailyRouteStartupLoading();
   try {
     if (typeof loadFeatureScript === 'function') {
+      try {
+        await loadFeatureScript('js/storageResilience.js');
+      } catch (error) {
+        console.warn('storage resilience unavailable', error && (error.message || error));
+      }
+      try {
+        await loadFeatureScript('js/vocabularyFeedbackSaveCoordinator.js');
+      } catch (error) {
+        console.warn('vocabulary feedback save coordinator unavailable', error && (error.message || error));
+      }
+
       // Start the tiny current-route request before loading any optional
       // startup script. The helper consumes this promise when it becomes ready,
       // so the route request and script loading happen in parallel.
@@ -80,6 +182,7 @@
   }
   if (currentUser === 'teacher') { document.body.classList.add('is-teacher'); }
   appData = await initData();
+  window.appData = appData;
   await loadHome();
   dailyRouteStartup.catch(() => {});
   teacherToolsWarmup.catch(() => {});
