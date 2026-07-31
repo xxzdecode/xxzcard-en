@@ -102,6 +102,7 @@
   }
   if (currentUser === 'teacher') { document.body.classList.add('is-teacher'); }
   appData = await initData();
+  window.appData = appData;
   await loadHome();
   dailyRouteStartup.catch(() => {});
   teacherToolsWarmup.catch(() => {});
