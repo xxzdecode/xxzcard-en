@@ -11,7 +11,6 @@
   const INTERNAL_COPY = /(?:已记录为|第一次就答对|提示后答对|明天会更快|间隔保持|使用较弱|待加强|\bD\b|\bH\b|\bF\b)/i;
   const state = {
     saveWrapped: false,
-    installed: false,
     observers: new Map(),
     handled: new Set(),
     nextActions: new Map(),
@@ -38,6 +37,10 @@
       .replace(/'/g, '&#39;');
   }
 
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   function normalizeWord(value) {
     return text(value).split('/')[0].toLocaleLowerCase();
   }
@@ -57,7 +60,10 @@
     if (typeof item === 'string') return text(item);
     if (!item || typeof item !== 'object') return '';
     return [item.phrase, item.form, item.word, item.label, item.meaning]
-      .filter(Boolean).map(text).filter(Boolean).join(' · ');
+      .filter(Boolean)
+      .map(text)
+      .filter(Boolean)
+      .join(' · ');
   }
 
   function exampleText(item) {
@@ -78,14 +84,14 @@
   function allCards(env) {
     const host = env || root;
     const data = host.appData;
-    const result = [];
+    const cards = [];
     const seen = new Set();
     const add = card => {
       if (!card || typeof card !== 'object') return;
       const key = normalizeWord(card.word || card.term || card.english);
       if (!key || seen.has(key)) return;
       seen.add(key);
-      result.push(card);
+      cards.push(card);
     };
     const master = data && data.masterCards;
     if (Array.isArray(master)) master.forEach(add);
@@ -93,38 +99,52 @@
     (Array.isArray(data && data.batches) ? data.batches : []).forEach(batch => {
       (Array.isArray(batch && batch.cards) ? batch.cards : []).forEach(add);
     });
-    return result;
+    return cards;
   }
 
   function findCardByWord(word, env) {
     const key = normalizeWord(word);
     if (!key) return null;
-    return allCards(env).find(card => normalizeWord(card.word || card.term || card.english) === key) || null;
+    return allCards(env).find(card => (
+      normalizeWord(card.word || card.term || card.english) === key
+    )) || null;
   }
 
   function getLessonAssets(env) {
     const host = env || root;
-    const values = [
+    const sources = [
       host.VOCABULARY_LESSON_ASSETS,
       host.self && host.self.VOCABULARY_LESSON_ASSETS,
       root.VOCABULARY_LESSON_ASSETS
     ];
-    return values.find(Array.isArray) || [];
+    return sources.find(Array.isArray) || [];
   }
 
   function formalImageForWord(word, env) {
     const slug = slugWord(word);
     if (!slug) return '';
-    const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const matcher = new RegExp('/' + escaped + '\\.(?:webp|png|jpe?g|svg)(?:\\?|$)', 'i');
-    const assets = getLessonAssets(env).filter(path => typeof path === 'string' && matcher.test(path));
+    const matcher = new RegExp(
+      '/' + escapeRegExp(slug) + '\\.(?:webp|png|jpe?g|svg)(?:\\?|$)',
+      'i'
+    );
+    const assets = getLessonAssets(env).filter(path => (
+      typeof path === 'string' && matcher.test(path)
+    ));
     return assets.find(path => !/-thumb\./i.test(path)) || assets[0] || '';
   }
 
   function directImage(card) {
     if (!card || typeof card !== 'object') return '';
-    return [card.image, card.imageUrl, card.imageURL, card.imagePath, card.visualImage, card.lessonImage, card.picture, card.photo]
-      .find(value => typeof value === 'string' && value.trim()) || '';
+    return [
+      card.image,
+      card.imageUrl,
+      card.imageURL,
+      card.imagePath,
+      card.visualImage,
+      card.lessonImage,
+      card.picture,
+      card.photo
+    ].find(value => typeof value === 'string' && value.trim()) || '';
   }
 
   function chooseVisual(card, env) {
@@ -145,8 +165,11 @@
     }
     if (question.interaction === 'input') return text(question.fullAnswer || question.answer);
     if (question.interaction === 'order') {
-      const tokenMap = new Map((Array.isArray(question.tokens) ? question.tokens : []).map(token => [token.id, token.label]));
-      const labels = (Array.isArray(question.answer) ? question.answer : []).map(id => tokenMap.get(id) || '');
+      const tokenMap = new Map(
+        (Array.isArray(question.tokens) ? question.tokens : []).map(token => [token.id, token.label])
+      );
+      const labels = (Array.isArray(question.answer) ? question.answer : [])
+        .map(id => tokenMap.get(id) || '');
       return question.questionType === 'letterOrder' ? labels.join('') : labels.join(' ');
     }
     return text(question.fullAnswer || question.answer);
@@ -159,7 +182,9 @@
       return text(option && option.label);
     }
     if (question.interaction === 'order') {
-      const tokenMap = new Map((Array.isArray(question.tokens) ? question.tokens : []).map(token => [token.id, token.label]));
+      const tokenMap = new Map(
+        (Array.isArray(question.tokens) ? question.tokens : []).map(token => [token.id, token.label])
+      );
       const labels = (Array.isArray(answer) ? answer : []).map(id => tokenMap.get(id) || '');
       return question.questionType === 'letterOrder' ? labels.join('') : labels.join(' ');
     }
@@ -171,32 +196,32 @@
     const settings = options && typeof options === 'object' ? options : {};
     const word = text(safeCard.word || safeCard.term || safeCard.english || settings.word);
     const meaning = firstMeaning(safeCard) || text(settings.meaning);
-    const collocation = firstArrayText(safeCard.collocations || safeCard.phrases, itemText);
-    const example = firstArrayText(safeCard.collocations, exampleText)
-      || firstArrayText(safeCard.examples || safeCard.example, exampleText);
-    const irregular = firstArrayText(safeCard.irregularForms || safeCard.forms, itemText);
-    const tip = text(safeCard.tip || safeCard.memoryTip || safeCard.mnemonic);
     return {
       source: settings.source === 'challenge' ? 'challenge' : 'adventure',
-      title: settings.title || (settings.source === 'challenge' ? '这道题的正确答案' : '再认识一次这个词'),
+      title: settings.title || (settings.source === 'challenge'
+        ? '这道题的正确答案'
+        : '再认识一次这个词'),
       word,
       meaning,
       phonetic: text(safeCard.phonetic || safeCard.ipa),
       pos: text(safeCard.pos || safeCard.partOfSpeech),
       correctAnswer: text(settings.correctAnswer),
       userAnswer: text(settings.userAnswer),
-      collocation,
-      example,
-      irregular,
-      tip,
+      collocation: firstArrayText(safeCard.collocations || safeCard.phrases, itemText),
+      example: firstArrayText(safeCard.collocations, exampleText)
+        || firstArrayText(safeCard.examples || safeCard.example, exampleText),
+      irregular: firstArrayText(safeCard.irregularForms || safeCard.forms, itemText),
+      tip: text(safeCard.tip || safeCard.memoryTip || safeCard.mnemonic),
       visual: chooseVisual({ ...safeCard, word }, env)
     };
   }
 
   function visualHtml(model) {
-    const meaning = model.meaning ? `<p class="vte-visual-meaning">${escapeHtml(model.meaning)}</p>` : '';
+    const meaning = model.meaning
+      ? `<p class="vte-visual-meaning">${escapeHtml(model.meaning)}</p>`
+      : '';
     if (model.visual.kind === 'image') {
-      return `<div class="vte-visual-media" data-vte-fallback="${escapeHtml(model.word)}"><img src="${escapeHtml(model.visual.value)}" alt="${escapeHtml(model.word)}" onerror="VocabularyFeedbackErrorUI.handleImageError(this)"></div>${meaning}`;
+      return `<div class="vte-visual-media" data-vte-fallback="${escapeHtml(model.word)}"><img data-vte-image src="${escapeHtml(model.visual.value)}" alt="${escapeHtml(model.word)}"></div>${meaning}`;
     }
     if (model.visual.kind === 'emoji') {
       return `<div class="vte-visual-media is-emoji" aria-label="${escapeHtml(model.word)}">${escapeHtml(model.visual.value)}</div>${meaning}`;
@@ -212,12 +237,22 @@
     return `<article class="vte-shell vte-shell--${escapeHtml(model.source)}" aria-labelledby="vteTitle">
       <section class="vte-visual-panel">${visualHtml(model)}</section>
       <section class="vte-info-panel">
-        <header class="vte-heading"><div><p class="vte-kicker">${escapeHtml(model.title)}</p><h2 id="vteTitle">${escapeHtml(model.word || model.correctAnswer)}</h2><div class="vte-meta">${model.phonetic ? `<span>${escapeHtml(model.phonetic)}</span>` : ''}${model.pos ? `<span>${escapeHtml(model.pos)}</span>` : ''}</div></div><button type="button" class="vte-speak" onclick="VocabularyFeedbackErrorUI.speak('${escapeHtml(model.word)}')" aria-label="播放发音">🔊</button></header>
+        <header class="vte-heading">
+          <div>
+            <p class="vte-kicker">${escapeHtml(model.title)}</p>
+            <h2 id="vteTitle">${escapeHtml(model.word || model.correctAnswer)}</h2>
+            <div class="vte-meta">${model.phonetic ? `<span>${escapeHtml(model.phonetic)}</span>` : ''}${model.pos ? `<span>${escapeHtml(model.pos)}</span>` : ''}</div>
+          </div>
+          <button type="button" class="vte-speak" data-vte-speak aria-label="播放发音">🔊</button>
+        </header>
         ${model.meaning ? `<p class="vte-meaning">${escapeHtml(model.meaning)}</p>` : ''}
-        <div class="vte-answer-grid"><div class="vte-answer is-correct"><span class="vte-mark">✓</span><div><small>正确答案</small><strong>${escapeHtml(model.correctAnswer || model.word)}</strong></div></div><div class="vte-answer is-wrong"><span class="vte-mark">×</span><div><small>刚才的答案</small><strong>${escapeHtml(model.userAnswer || '未完成')}</strong></div></div></div>
+        <div class="vte-answer-grid">
+          <div class="vte-answer is-correct"><span class="vte-mark">✓</span><div><small>正确答案</small><strong>${escapeHtml(model.correctAnswer || model.word)}</strong></div></div>
+          <div class="vte-answer is-wrong"><span class="vte-mark">×</span><div><small>刚才的答案</small><strong>${escapeHtml(model.userAnswer || '未完成')}</strong></div></div>
+        </div>
         <div class="vte-teaching-points">${model.collocation ? `<p><strong>固定搭配</strong><span>${escapeHtml(model.collocation)}</span></p>` : ''}${model.example ? `<p><strong>例句</strong><span>${escapeHtml(model.example)}</span></p>` : ''}</div>
         ${optional ? `<details class="vte-more"><summary>再看一点</summary>${optional}</details>` : ''}
-        <button type="button" class="vte-next" data-vte-action="${escapeHtml(actionKey)}" onclick="VocabularyFeedbackErrorUI.advance('${escapeHtml(actionKey)}',this)">下一题</button>
+        <button type="button" class="vte-next" data-vte-action="${escapeHtml(actionKey)}">下一题</button>
       </section>
     </article>`;
   }
@@ -243,6 +278,15 @@
     }));
     container.innerHTML = renderTeachingHtml(model, actionKey);
     container.dataset.mode = 'error-teaching';
+
+    container.querySelector('[data-vte-speak]')?.addEventListener('click', () => speak(model.word));
+    const nextButton = container.querySelector('[data-vte-action]');
+    nextButton?.addEventListener('click', () => advance(actionKey, nextButton));
+    container.querySelector('[data-vte-image]')?.addEventListener(
+      'error',
+      event => handleImageError(event.currentTarget),
+      { once: true }
+    );
     return model;
   }
 
@@ -276,12 +320,19 @@
     const host = root.document.createElement('div');
     host.innerHTML = snapshot;
     const buttons = [...host.querySelectorAll('.vocabulary-adventure-options button')];
-    const wrong = buttons.findIndex(button => button.classList.contains('is-wrong'));
-    if (wrong >= 0) return wrong;
     const selected = buttons.findIndex(button => button.classList.contains('is-selected'));
     if (selected >= 0) return selected;
+    const wrong = buttons.findIndex(button => button.classList.contains('is-wrong'));
+    if (wrong >= 0) return wrong;
     const correct = buttons.findIndex(button => button.classList.contains('is-correct'));
     return correct >= 0 ? correct : null;
+  }
+
+  function matchingQuestionContext(candidate, item) {
+    return candidate && candidate.question
+      && normalizeWord(candidate.question.wordKey) === normalizeWord(item.wordKey)
+      ? candidate
+      : null;
   }
 
   function extractSavedResult(nextState, context) {
@@ -289,8 +340,7 @@
     const settings = context && typeof context === 'object' ? context : {};
     const challenge = source.challengeSession;
     if (challenge && Array.isArray(challenge.items) && Number(challenge.cursor) > 0) {
-      const index = Number(challenge.cursor) - 1;
-      const item = challenge.items[index];
+      const item = challenge.items[Number(challenge.cursor) - 1];
       if (item && item.status === 'answered') {
         const question = clone(item.question) || {};
         return {
@@ -312,18 +362,20 @@
     if (!session || !Array.isArray(session.plan) || Number(session.cursor) <= 0) return null;
     const item = session.plan[Number(session.cursor) - 1];
     if (!item || item.status !== 'completed') return null;
-    const result = item.result || (source.words && source.words[item.wordKey] && source.words[item.wordKey].lastResult) || '';
-    const grade = settings.gradeContext && settings.gradeContext.question
-      && normalizeWord(settings.gradeContext.question.wordKey) === normalizeWord(item.wordKey)
-      ? settings.gradeContext
-      : null;
-    const screening = settings.questionContext && settings.questionContext.question
-      && normalizeWord(settings.questionContext.question.wordKey) === normalizeWord(item.wordKey)
-      ? settings.questionContext
-      : null;
-    const question = clone((grade && grade.question) || (screening && screening.question) || {});
-    const inferred = settings.selectedAnswer != null ? settings.selectedAnswer : selectedChoiceIndex(settings.snapshot);
-    const answer = grade ? clone(grade.answer) : inferred;
+
+    const result = item.result
+      || (source.words && source.words[item.wordKey] && source.words[item.wordKey].lastResult)
+      || '';
+    const grade = matchingQuestionContext(settings.gradeContext, item);
+    const displayed = matchingQuestionContext(settings.questionContext, item);
+    const questionSource = item.phase === 'screening'
+      ? ((displayed && displayed.question) || (grade && grade.question))
+      : ((grade && grade.question) || (displayed && displayed.question));
+    const question = clone(questionSource || {});
+    const inferred = settings.selectedAnswer != null
+      ? settings.selectedAnswer
+      : selectedChoiceIndex(settings.snapshot);
+    const answer = grade && item.phase !== 'screening' ? clone(grade.answer) : inferred;
     return {
       mode: 'adventure',
       fingerprint: `adventure|${session.date}|${session.cursor}|${item.wordKey}|${result}`,
@@ -342,9 +394,15 @@
   function feedbackElements(mode) {
     const challenge = mode === 'challenge';
     return {
-      body: root.document.getElementById(challenge ? 'vocabularyAdventureChallengeBody' : 'vocabularyAdventureBody'),
-      text: root.document.getElementById(challenge ? 'vocabularyAdventureChallengeFeedbackText' : 'vocabularyAdventureFeedbackText'),
-      action: root.document.getElementById(challenge ? 'vocabularyAdventureChallengeAction' : 'vocabularyAdventureAction')
+      body: root.document.getElementById(
+        challenge ? 'vocabularyAdventureChallengeBody' : 'vocabularyAdventureBody'
+      ),
+      text: root.document.getElementById(
+        challenge ? 'vocabularyAdventureChallengeFeedbackText' : 'vocabularyAdventureFeedbackText'
+      ),
+      action: root.document.getElementById(
+        challenge ? 'vocabularyAdventureChallengeAction' : 'vocabularyAdventureAction'
+      )
     };
   }
 
@@ -365,18 +423,25 @@
     const question = detail.question || {};
     const interaction = question.interaction || (Array.isArray(question.options) ? 'choice' : '');
     body.querySelectorAll('button,input').forEach(control => { control.disabled = true; });
+
     if (interaction === 'choice') {
       const buttons = [...body.querySelectorAll('.vocabulary-adventure-options button')];
       const selectedIndex = Number(detail.answer);
       buttons.forEach((button, index) => {
         button.classList.remove('is-selected', 'is-correct', 'is-wrong');
         if (index === Number(question.correctIndex)) button.classList.add('is-correct');
-        if (!detail.correct && index === selectedIndex && index !== Number(question.correctIndex)) button.classList.add('is-wrong');
+        if (!detail.correct && index === selectedIndex && index !== Number(question.correctIndex)) {
+          button.classList.add('is-wrong');
+        }
       });
     } else if (interaction === 'input') {
-      body.querySelectorAll('input').forEach(input => input.classList.add(detail.correct ? 'vte-answer-correct' : 'vte-answer-wrong'));
+      body.querySelectorAll('input').forEach(input => {
+        input.classList.add(detail.correct ? 'vte-answer-correct' : 'vte-answer-wrong');
+      });
     } else if (interaction === 'order') {
-      body.querySelectorAll('.vocabulary-adventure-order-answer').forEach(node => node.classList.add(detail.correct ? 'vte-answer-correct' : 'vte-answer-wrong'));
+      body.querySelectorAll('.vocabulary-adventure-order-answer').forEach(node => {
+        node.classList.add(detail.correct ? 'vte-answer-correct' : 'vte-answer-wrong');
+      });
     }
     body.dataset.mode = 'question-feedback';
     root.VocabularyPracticeUI?.syncOptionStates?.(body);
@@ -415,7 +480,9 @@
       };
       mount(body, card, {
         source: detail.mode,
-        title: detail.mode === 'challenge' ? '这道题的正确答案' : '再认识一次这个词',
+        title: detail.mode === 'challenge'
+          ? '这道题的正确答案'
+          : '再认识一次这个词',
         correctAnswer: detail.correctAnswer || text(card.word),
         userAnswer: detail.userAnswer,
         onNext: () => {
@@ -436,6 +503,13 @@
     }, 0);
   }
 
+  function selectedAnswerForMode(isChallenge) {
+    const selection = root.__vocabularyPracticeLastSelection;
+    if (!selection) return null;
+    const expected = isChallenge ? 'challenge' : 'adventure';
+    return selection.mode === expected ? selection.index : null;
+  }
+
   function wrapSaveFunction() {
     if (state.saveWrapped || typeof root.saveCurrentVocabularyAdventureState !== 'function') return;
     const original = root.saveCurrentVocabularyAdventureState;
@@ -443,12 +517,17 @@
       state.saveWrapped = true;
       return;
     }
+
     const wrapped = async function saveCurrentVocabularyAdventureStateWithFeedback(nextState, ...args) {
-      const isChallenge = !!(nextState && nextState.challengeSession && Number(nextState.challengeSession.cursor) > 0);
-      const body = root.document.getElementById(isChallenge ? 'vocabularyAdventureChallengeBody' : 'vocabularyAdventureBody');
-      const snapshot = body ? body.innerHTML : '';
+      const isChallenge = !!(
+        nextState && nextState.challengeSession && Number(nextState.challengeSession.cursor) > 0
+      );
+      const body = root.document.getElementById(
+        isChallenge ? 'vocabularyAdventureChallengeBody' : 'vocabularyAdventureBody'
+      );
       const detail = extractSavedResult(nextState, {
-        snapshot,
+        snapshot: body ? body.innerHTML : '',
+        selectedAnswer: selectedAnswerForMode(isChallenge),
         gradeContext: clone(root.__vocabularyFeedbackGradeContext),
         questionContext: clone(root.__vocabularyFeedbackQuestionContext)
       });
@@ -492,8 +571,40 @@
     const style = root.document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      .vte-answer-correct{background:#e5f6e9!important;border:2px solid #8dcba0!important;color:#276746!important}.vte-answer-wrong{background:#fff0ed!important;border:2px solid #e4a49b!important;color:#a84646!important}
-      .vte-shell{width:100%;height:100%;min-height:0;display:grid;grid-template-columns:minmax(280px,43%) minmax(0,57%);gap:clamp(14px,2vw,26px);padding:clamp(14px,2vw,24px);border-radius:26px;background:#fffdf9;color:#514b50;box-shadow:0 16px 40px rgba(104,83,92,.12);overflow:hidden}.vte-visual-panel{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;border-radius:22px;background:linear-gradient(145deg,#f2f8ee,#fff4e8)}.vte-visual-media{width:100%;height:min(42dvh,340px);min-height:180px;display:grid;place-items:center;border-radius:20px;overflow:hidden;background:#edf5ea}.vte-visual-media img{width:100%;height:100%;object-fit:cover;display:block}.vte-visual-media.is-emoji{font-size:clamp(74px,12vw,148px);background:linear-gradient(145deg,#e7f5eb,#fff3df)}.vte-visual-media.is-placeholder{gap:2px;color:#8aa899;background:repeating-linear-gradient(135deg,#edf5ef,#edf5ef 18px,#e7f0ea 18px,#e7f0ea 36px)}.vte-visual-media.is-placeholder span{font-size:86px;line-height:1}.vte-visual-media.is-placeholder small{font-weight:900;letter-spacing:.24em}.vte-visual-meaning{margin:0;font-size:clamp(16px,1.7vw,22px);font-weight:800;text-align:center;color:#637064}.vte-info-panel{min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;padding:4px 4px 2px;overflow:auto}.vte-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.vte-kicker{margin:0;color:#5d9174;font-weight:900;font-size:clamp(15px,1.5vw,20px)}.vte-heading h2{margin:2px 0 0;font-size:clamp(32px,4.4vw,58px);line-height:1;color:#423c42;overflow-wrap:anywhere}.vte-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.vte-meta span{padding:4px 10px;border-radius:999px;background:#f0eee8;font-weight:700;color:#706a70}.vte-speak{width:54px;height:54px;min-width:54px;border-radius:50%;border:0;background:#dff1e5;font-size:24px;cursor:pointer}.vte-meaning{margin:0;font-size:clamp(18px,2vw,26px);font-weight:800}.vte-answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.vte-answer{min-width:0;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;border:2px solid}.vte-answer.is-correct{background:#e7f7eb;border-color:#8dcea1;color:#286848}.vte-answer.is-wrong{background:#fff0ed;border-color:#e2a19a;color:#a44848}.vte-mark{font-size:30px;font-weight:1000}.vte-answer small{display:block;font-weight:700;opacity:.74}.vte-answer strong{display:block;font-size:clamp(16px,1.8vw,23px);overflow-wrap:anywhere}.vte-teaching-points{display:grid;gap:8px}.vte-teaching-points p,.vte-more p{margin:0;padding:10px 12px;border-radius:14px;background:#f8f5ef;display:grid;grid-template-columns:minmax(76px,auto) 1fr;gap:10px}.vte-teaching-points strong,.vte-more strong{color:#5d765f}.vte-teaching-points span,.vte-more span{overflow-wrap:anywhere}.vte-more{border:1px solid #e6ded4;border-radius:14px;padding:8px 10px}.vte-more summary{cursor:pointer;font-weight:800}.vte-next{margin-top:auto;align-self:flex-end;min-width:170px;min-height:54px;padding:10px 26px;border:0;border-radius:999px;background:#98c9a8;color:#fff;font-size:19px;font-weight:900;box-shadow:0 8px 18px rgba(80,135,96,.22);cursor:pointer}.vte-next:disabled{opacity:.55;cursor:default}
+      .vte-answer-correct{background:#e5f6e9!important;border:2px solid #8dcba0!important;color:#276746!important}
+      .vte-answer-wrong{background:#fff0ed!important;border:2px solid #e4a49b!important;color:#a84646!important}
+      .vte-shell{width:100%;height:100%;min-height:0;display:grid;grid-template-columns:minmax(280px,43%) minmax(0,57%);gap:clamp(14px,2vw,26px);padding:clamp(14px,2vw,24px);border-radius:26px;background:#fffdf9;color:#514b50;box-shadow:0 16px 40px rgba(104,83,92,.12);overflow:hidden}
+      .vte-visual-panel{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;border-radius:22px;background:linear-gradient(145deg,#f2f8ee,#fff4e8)}
+      .vte-visual-media{width:100%;height:min(42dvh,340px);min-height:180px;display:grid;place-items:center;border-radius:20px;overflow:hidden;background:#edf5ea}
+      .vte-visual-media img{width:100%;height:100%;object-fit:cover;display:block}
+      .vte-visual-media.is-emoji{font-size:clamp(74px,12vw,148px);background:linear-gradient(145deg,#e7f5eb,#fff3df)}
+      .vte-visual-media.is-placeholder{gap:2px;color:#8aa899;background:repeating-linear-gradient(135deg,#edf5ef,#edf5ef 18px,#e7f0ea 18px,#e7f0ea 36px)}
+      .vte-visual-media.is-placeholder span{font-size:86px;line-height:1}
+      .vte-visual-media.is-placeholder small{font-weight:900;letter-spacing:.24em}
+      .vte-visual-meaning{margin:0;font-size:clamp(16px,1.7vw,22px);font-weight:800;text-align:center;color:#637064}
+      .vte-info-panel{min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;padding:4px 4px 2px;overflow:auto}
+      .vte-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+      .vte-kicker{margin:0;color:#5d9174;font-weight:900;font-size:clamp(15px,1.5vw,20px)}
+      .vte-heading h2{margin:2px 0 0;font-size:clamp(32px,4.4vw,58px);line-height:1;color:#423c42;overflow-wrap:anywhere}
+      .vte-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+      .vte-meta span{padding:4px 10px;border-radius:999px;background:#f0eee8;font-weight:700;color:#706a70}
+      .vte-speak{width:54px;height:54px;min-width:54px;border-radius:50%;border:0;background:#dff1e5;font-size:24px;cursor:pointer}
+      .vte-meaning{margin:0;font-size:clamp(18px,2vw,26px);font-weight:800}
+      .vte-answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .vte-answer{min-width:0;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;border:2px solid}
+      .vte-answer.is-correct{background:#e7f7eb;border-color:#8dcea1;color:#286848}
+      .vte-answer.is-wrong{background:#fff0ed;border-color:#e2a19a;color:#a44848}
+      .vte-mark{font-size:30px;font-weight:1000}
+      .vte-answer small{display:block;font-weight:700;opacity:.74}
+      .vte-answer strong{display:block;font-size:clamp(16px,1.8vw,23px);overflow-wrap:anywhere}
+      .vte-teaching-points{display:grid;gap:8px}
+      .vte-teaching-points p,.vte-more p{margin:0;padding:10px 12px;border-radius:14px;background:#f8f5ef;display:grid;grid-template-columns:minmax(76px,auto) 1fr;gap:10px}
+      .vte-teaching-points strong,.vte-more strong{color:#5d765f}
+      .vte-teaching-points span,.vte-more span{overflow-wrap:anywhere}
+      .vte-more{border:1px solid #e6ded4;border-radius:14px;padding:8px 10px}
+      .vte-more summary{cursor:pointer;font-weight:800}
+      .vte-next{margin-top:auto;align-self:flex-end;min-width:170px;min-height:54px;padding:10px 26px;border:0;border-radius:999px;background:#98c9a8;color:#fff;font-size:19px;font-weight:900;box-shadow:0 8px 18px rgba(80,135,96,.22);cursor:pointer}
+      .vte-next:disabled{opacity:.55;cursor:default}
       @media (max-width:700px){.vte-shell{height:auto;min-height:100%;grid-template-columns:1fr;overflow:auto}.vte-visual-media{height:240px;min-height:180px}.vte-answer-grid{grid-template-columns:1fr}.vte-next{width:100%;align-self:stretch}.vte-info-panel{overflow:visible}}
       @media (orientation:landscape) and (max-height:560px){.vte-shell{padding:10px;gap:10px;border-radius:18px}.vte-visual-media{height:calc(100dvh - 170px);min-height:150px}.vte-info-panel{gap:7px}.vte-heading h2{font-size:34px}.vte-answer{padding:8px 10px}.vte-teaching-points p{padding:7px 9px}.vte-next{min-height:46px}}
     `;
@@ -507,7 +618,6 @@
     observeBody('vocabularyAdventureBody');
     observeBody('vocabularyAdventureChallengeBody');
     sanitizeAdventureBody();
-    state.installed = true;
   }
 
   function afterFeatureGroup() {
