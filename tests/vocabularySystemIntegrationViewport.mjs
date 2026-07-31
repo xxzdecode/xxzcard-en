@@ -208,21 +208,26 @@ async function clickChoice(page, correct) {
 
 async function assertScopedSelection(page) {
   const result = await page.evaluate(() => {
+    const selectionValue = node => {
+      if (!node) return '';
+      const style = getComputedStyle(node);
+      return style.userSelect || style.webkitUserSelect || '';
+    };
     const prompt = document.querySelector('#vocabularyAdventureChallengeBody .vocabulary-adventure-prompt-text');
     const body = document.getElementById('vocabularyAdventureChallengeBody');
     const input = document.createElement('input');
     input.value = 'editable';
     body.appendChild(input);
     const values = {
-      prompt: prompt ? getComputedStyle(prompt).userSelect : '',
-      option: getComputedStyle(document.querySelector('#vocabularyAdventureChallengeBody .vocabulary-adventure-options button')).userSelect,
-      input: getComputedStyle(input).userSelect
+      prompt: selectionValue(prompt),
+      option: selectionValue(document.querySelector('#vocabularyAdventureChallengeBody .vocabulary-adventure-options button')),
+      input: selectionValue(input)
     };
     input.remove();
     return values;
   });
   assert.equal(result.option, 'none');
-  assert.equal(result.input, 'text');
+  assert.ok(['text', 'auto'].includes(result.input), `input selection must remain editable, got ${result.input}`);
   if (result.prompt) assert.equal(result.prompt, 'none');
 }
 
