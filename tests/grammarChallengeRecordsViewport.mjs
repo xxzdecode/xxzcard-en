@@ -52,6 +52,7 @@ const store = new Map([
   }]
 ]);
 let failNextHistoryWrite = false;
+let expectOfflineConsole = false;
 
 function clone(value) {
   return value == null ? value : structuredClone(value);
@@ -84,7 +85,12 @@ const page = await context.newPage();
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => {
-  if (message.type() === 'error' && !/favicon|Service Worker/i.test(message.text())) errors.push(message.text());
+  const text = message.text();
+  const expectedOffline = expectOfflineConsole
+    && (/^offline$/i.test(text) || /Failed to load resource:.*503/i.test(text));
+  if (message.type() === 'error' && !expectedOffline && !/favicon|Service Worker/i.test(text)) {
+    errors.push(text);
+  }
 });
 
 await page.route('**/rest/v1/kv_store*', async route => {
@@ -227,6 +233,7 @@ try {
   await waitFor(() => store.get('grammar_challenge_weak_summary_v2_sister'), 'sister weak summary missing');
   assert.equal(store.get('grammar_challenge_weak_summary_v2_sister').completedAttemptCount, 1);
 
+  expectOfflineConsole = true;
   failNextHistoryWrite = true;
   frame = await openChallenge('grammar-2026-07-31-parts-of-speech-review');
   await answerInlineChallengeCorrectly(frame, 1);
@@ -241,6 +248,7 @@ try {
   assert.equal(activeAfterReload.attemptId, activeBeforeReload.attemptId, 'refresh must resume the same attempt ID');
   assert.equal(attempts('sister').length, countBeforeReload + 1, 'refresh must not create a duplicate attempt');
   await closeChallenge();
+  expectOfflineConsole = false;
 
   await page.evaluate(() => window.switchUser('brother'));
   await page.waitForFunction(() => document.getElementById('studentSummaryName')?.textContent === '弟弟');
