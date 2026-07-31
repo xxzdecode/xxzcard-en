@@ -34,6 +34,61 @@
   }, true);
 })(typeof window !== 'undefined' ? window : globalThis);
 
+// Give the word challenge the same soft purple, pink and mint atmosphere used
+// by the formal grammar challenge. Answer option colors remain the adventure palette.
+(function installVocabularyChallengeGrammarPalette(root) {
+  if (!root || !root.document || root.document.getElementById('vocabularyChallengeGrammarPalette')) return;
+  const style = root.document.createElement('style');
+  style.id = 'vocabularyChallengeGrammarPalette';
+  style.textContent = `
+    #screenVocabularyAdventureChallenge{
+      background:
+        radial-gradient(circle at 8% 8%,rgba(255,233,241,.9),transparent 28rem),
+        radial-gradient(circle at 95% 95%,rgba(232,250,239,.95),transparent 30rem),
+        linear-gradient(150deg,#f4efff 0%,#f9fbff 52%,#effaf5 100%);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-topbar,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-feedback{
+      border-color:rgba(101,73,159,.14);
+      background:rgba(255,255,255,.9);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-exit{
+      background:#f0ebff;
+      color:#65499f;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-row,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-row strong{
+      color:#65499f;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-row.is-secondary{
+      color:#6d7886;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-track{
+      background:#eee9f8;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-progress-track span{
+      background:linear-gradient(90deg,#b092e8,#83c8aa);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-question,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-result,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-terminal,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-loading,
+    #screenVocabularyAdventureChallenge .vte-shell{
+      border-color:rgba(101,73,159,.12);
+      box-shadow:0 14px 42px rgba(101,73,159,.13);
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-question-label,
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-instruction{
+      color:#65499f;
+    }
+    #screenVocabularyAdventureChallenge .vocabulary-adventure-feedback button{
+      background:linear-gradient(135deg,#987bd7,#7658ba);
+      box-shadow:0 8px 20px rgba(118,88,186,.24);
+    }
+  `;
+  root.document.head.appendChild(style);
+})(typeof window !== 'undefined' ? window : globalThis);
+
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
