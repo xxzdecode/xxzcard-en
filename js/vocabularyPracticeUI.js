@@ -274,6 +274,21 @@
       #screenVocabularyAdventureChallenge .vocabulary-adventure-options button.is-wrong{border-color:#e69a9a;background:#fff0f0;color:#9a4848;box-shadow:0 0 0 3px rgba(230,154,154,.12)}
       #screenVocabularyAdventure .vocabulary-adventure-options button.is-wrong::after,
       #screenVocabularyAdventureChallenge .vocabulary-adventure-options button.is-wrong::after{content:'×';opacity:1;transform:translateY(-50%) scale(1);background:#ffe0e0;color:#a63f3f}
+
+      /* Use the exact established adventure palette for both adventure and challenge. */
+      #screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 1),
+      #screenVocabularyAdventureChallenge .vocabulary-adventure-options button:nth-child(4n + 1){border-color:#b8dccb;background:#eefaf3}
+      #screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 2),
+      #screenVocabularyAdventureChallenge .vocabulary-adventure-options button:nth-child(4n + 2){border-color:#ead29b;background:#fff8e8}
+      #screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 3),
+      #screenVocabularyAdventureChallenge .vocabulary-adventure-options button:nth-child(4n + 3){border-color:#adcaf1;background:#edf5ff}
+      #screenVocabularyAdventure .vocabulary-adventure-options button:nth-child(4n + 4),
+      #screenVocabularyAdventureChallenge .vocabulary-adventure-options button:nth-child(4n + 4){border-color:#d3c4e8;background:#f7f2fc}
+      #screenVocabularyAdventure .vocabulary-adventure-options button.is-correct,
+      #screenVocabularyAdventureChallenge .vocabulary-adventure-options button.is-correct{border-color:#56b987;background:#ddf6e8;color:#246746}
+      #screenVocabularyAdventure .vocabulary-adventure-options button.is-wrong,
+      #screenVocabularyAdventureChallenge .vocabulary-adventure-options button.is-wrong{border-color:#e5aa9c;background:#fff2ef;color:#9b5d50}
+
       #screenVocabularyAdventure .vocabulary-adventure-options button:disabled,
       #screenVocabularyAdventureChallenge .vocabulary-adventure-options button:disabled{cursor:default;opacity:.62;transform:none}
       #screenVocabularyAdventure .vocabulary-adventure-options button.is-selected:disabled,
