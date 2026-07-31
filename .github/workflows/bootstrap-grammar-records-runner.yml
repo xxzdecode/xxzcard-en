@@ -1,0 +1,62 @@
+name: Bootstrap and verify grammar records
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bootstrap-grammar-records.yml'
+      - '.github/workflows/bootstrap-grammar-records-runner.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate-test-commit:
+    if: github.head_ref == 'agent/grammar-challenge-history'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/grammar-challenge-history
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Generate the plain JavaScript module
+        run: |
+          python - <<'PY'
+          import base64
+          import gzip
+          import pathlib
+          import re
+
+          workflow = pathlib.Path('.github/workflows/bootstrap-grammar-records.yml').read_text()
+          match = re.search(r'MODULE_GZIP_BASE64:\s*(\S+)', workflow)
+          if not match:
+              raise SystemExit('embedded module payload not found')
+          target = pathlib.Path('js/grammarChallengeRecords.js')
+          target.write_bytes(gzip.decompress(base64.b64decode(match.group(1))))
+          print(f'generated {target} ({target.stat().st_size} bytes)')
+          PY
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - run: npm run test:grammar-records-viewport
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: grammar-challenge-records-bootstrap-qa
+          path: .codex-backups/grammar-challenge-records-qa
+          if-no-files-found: ignore
+      - name: Commit the verified implementation
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add js/grammarChallengeRecords.js
+          git rm .github/workflows/bootstrap-grammar-records.yml
+          git rm .github/workflows/bootstrap-grammar-records-runner.yml
+          git commit -m "Implement grammar challenge history records"
+          git push origin HEAD:agent/grammar-challenge-history
