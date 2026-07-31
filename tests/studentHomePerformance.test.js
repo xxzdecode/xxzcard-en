@@ -7,6 +7,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-student-home-dashboard.css'), 'utf8');
 const repository = fs.readFileSync(path.join(root, 'js', 'repository.js'), 'utf8');
 const lazy = fs.readFileSync(path.join(root, 'js', 'lazyFeatures.js'), 'utf8');
+const adventureVisual = fs.readFileSync(path.join(root, 'js', 'vocabularyAdventureVisualV2.js'), 'utf8');
 const main = fs.readFileSync(path.join(root, 'js', 'main.js'), 'utf8');
 const dailyRoute = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'), 'utf8');
 const wordCardPerformance = fs.readFileSync(path.join(root, 'js', 'wordCardPerformance.js'), 'utf8');
@@ -41,6 +42,10 @@ assert.match(lazy, /teacherTools:/);
 assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
 assert.match(lazy, /requestIdleCallback/);
+assert.match(adventureVisual, /const LAYOUT_STYLESHEET = 'styles-vocabulary-adventure-v2\.css'/);
+assert.match(adventureVisual, /function ensureLayoutStylesheet\(\)/);
+assert.match(adventureVisual, /if \(!root \|\| !ensureLayoutStylesheet\(\)\) return/);
+assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 
 assert.match(serviceWorker, /xxzcard-app-shell-v49/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
