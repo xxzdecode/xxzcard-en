@@ -67,6 +67,11 @@
       } catch (error) {
         console.warn('storage resilience unavailable', error && (error.message || error));
       }
+      try {
+        await loadFeatureScript('js/vocabularyFeedbackSaveCoordinator.js');
+      } catch (error) {
+        console.warn('vocabulary feedback save coordinator unavailable', error && (error.message || error));
+      }
 
       // Start the tiny current-route request before loading any optional
       // startup script. The helper consumes this promise when it becomes ready,
