@@ -263,6 +263,42 @@ async function readFeedbackTrace(page) {
   });
 }
 
+async function waitForTeaching(run, targetName) {
+  try {
+    await run.page.waitForSelector('#vocabularyAdventureChallengeBody .vte-shell', { timeout: 15000 });
+  } catch (error) {
+    const diagnostic = await run.page.evaluate(() => {
+      const body = document.getElementById('vocabularyAdventureChallengeBody');
+      const feedback = document.getElementById('vocabularyAdventureChallengeFeedbackText');
+      const action = document.getElementById('vocabularyAdventureChallengeAction');
+      return {
+        mode: body?.dataset.mode || '',
+        bodyText: body?.innerText || '',
+        feedback: feedback?.textContent || '',
+        feedbackTone: feedback?.dataset.tone || '',
+        action: action?.textContent || '',
+        actionHidden: action?.hidden,
+        buttons: [...(body?.querySelectorAll('button') || [])].map(button => ({
+          text: button.textContent?.trim() || '',
+          disabled: button.disabled,
+          className: button.className
+        })),
+        trace: window.__vocabularyFeedbackTrace || [],
+        selection: window.__vocabularyPracticeLastSelection || null,
+        saveWrapped: !!window.saveCurrentVocabularyAdventureState?.__vteWrapped,
+        lastGrade: window.__vocabularyFeedbackGradeContext || null
+      };
+    });
+    diagnostic.savedCursor = run.store.get('vocab_adventure_v1_sister')?.challengeSession?.cursor;
+    console.error(`[${targetName}] teaching timeout diagnostic: ${JSON.stringify(diagnostic)}`);
+    await run.page.screenshot({
+      path: path.join(resultDir, `vocabulary-system-${targetName}-teaching-timeout.png`),
+      fullPage: true
+    });
+    throw error;
+  }
+}
+
 try {
   for (const target of [
     { name: 'ipad-1180x820', viewport: { width: 1180, height: 820 }, landscape: true },
@@ -278,7 +314,7 @@ try {
 
     await startFeedbackTrace(run.page);
     await clickChoice(run.page, false);
-    await run.page.waitForSelector('#vocabularyAdventureChallengeBody .vte-shell');
+    await waitForTeaching(run, target.name);
     const wrongTrace = await readFeedbackTrace(run.page);
     assert.ok(
       wrongTrace.some(entry => entry.mode === 'question-feedback' && entry.wrong === 1 && entry.correct === 1),
