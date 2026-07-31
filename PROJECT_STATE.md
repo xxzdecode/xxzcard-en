@@ -1,6 +1,6 @@
 # PROJECT_STATE
 
-更新时间：2026-07-31 21:03（UTC+8）
+更新时间：2026-07-31 21:09（UTC+8）
 
 ## 0. 已确认决策
 
@@ -104,6 +104,70 @@
 
 仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
 
+### 学习用品引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `school-things / 学习用品`；
+- 正式导入包：`data/imports/book-school-things.reference.json`；
+- 单词本稳定 ID：`book-school-things`；
+- 共 18 词：`pen / pencil / pencil-case / ruler / book / bag / post card / newspaper / schoolbag / eraser / crayon / sharpener / story-book / notebook / Chinese book / English book / maths book / magazine`；
+- 首次审计：直接复用 5 词，新建 13 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_school_things_reference_import_2026_07_31_2109`；
+- 正式单词本只持久化 18 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 18 词；
+- 重复导入模拟：需要新建 0，13 张新卡全部识别为已有且资料一致。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
+### 身体部位引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `body / 身体部位`；
+- 正式导入包：`data/imports/book-body.reference.json`；
+- 单词本稳定 ID：`book-body`；
+- 共 13 词：`foot / head / face / hair / nose / mouth / eye / ear / arm / hand / finger / leg / tail`；
+- 首次审计：直接复用 7 词，新建 6 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_body_reference_import_2026_07_31_2109`；
+- 正式单词本只持久化 13 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 13 词；
+- 重复导入模拟：需要新建 0，6 张新卡全部识别为已有且资料一致。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
+### 职业引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `jobs / 职业`；
+- 正式导入包：`data/imports/book-jobs.reference.json`；
+- 单词本稳定 ID：`book-jobs`；
+- 共 19 词：`teacher / student / doctor / nurse / driver / farmer / singer / writer / artist / actor / actress / TV reporter / reporter / engineer / policeman / salesperson / cleaner / baseball player / assistant`；
+- 首次审计：直接复用 2 词，新建 17 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_jobs_reference_import_2026_07_31_2109`；
+- 正式单词本只持久化 19 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 19 词；
+- 重复导入模拟：需要新建 0，17 张新卡全部识别为已有且资料一致。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
+### 动物引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `animals / 动物`；
+- 正式导入包：`data/imports/book-animals.reference.json`；
+- 单词本稳定 ID：`book-animals`；
+- 共 31 词：`cat / dog / pig / duck / rabbit / horse / elephant / ant / fish / bird / snake / mouse / kangaroo / monkey / panda / bear / lion / tiger / fox / zebra / deer / giraffe / goose / hen / turkey / lamb / sheep / goat / cow / shark / seal`；
+- 首次审计：直接复用 11 词，新建 20 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_animals_reference_import_2026_07_31_2109`；
+- 正式单词本只持久化 31 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 31 词；
+- 重复导入模拟：需要新建 0，20 张新卡全部识别为已有且资料一致。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
 ### 单词卡加载性能修复
 
 本轮已完成：
@@ -123,18 +187,18 @@
 下一步：
 
 1. 在真实老师端核对“人物”和 `Miss` 覆盖；
-2. 在真实老师端和学生端核对“气象与季节”“衣服”列表与卡片展示；
+2. 在真实老师端和学生端核对“气象与季节”“衣服”“学习用品”“身体部位”“职业”“动物”列表与卡片展示；
 3. 完成引用式单词编辑保存、图片保护和目标设备速度回归；
-4. 继续整理下一批小学基础分类。
+4. 继续整理食品、饮料水果、数字和基础动作等分类。
 
 ## 2. 系统总库迁移状态
 
 已完成：
 
 - Supabase 数据结构版本：2；
-- 系统总库唯一词条：568；
-- 单词本：22；
-- 单词本引用：623；
+- 系统总库唯一词条：624；
+- 单词本：26；
+- 单词本引用：704；
 - 缺失引用：0；
 - 单词本内持久化完整卡片：0；
 - `go` 的两张历史卡已保留式合并；
@@ -143,6 +207,10 @@
 - 人物导入前快照：`pre_people_reference_import_2026_07_31_0022`；
 - 气象与季节导入前快照：`pre_weather_seasons_reference_import_2026_07_31_2059`；
 - 衣服导入前快照：`pre_clothes_reference_import_2026_07_31_2059`；
+- 学习用品导入前快照：`pre_school_things_reference_import_2026_07_31_2109`；
+- 身体部位导入前快照：`pre_body_reference_import_2026_07_31_2109`；
+- 职业导入前快照：`pre_jobs_reference_import_2026_07_31_2109`；
+- 动物导入前快照：`pre_animals_reference_import_2026_07_31_2109`；
 - Git 存档分支：`archive/pre-master-library-2026-07-30`。
 
 迁移记录见 `docs/master-vocabulary-library-migration-2026-07-30.md`。
@@ -155,8 +223,12 @@
 4. 整理“人物”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
 5. 整理“气象与季节”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
 6. 整理“衣服”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
-7. 按小学阶段逐步整理身体部位、动物、食物等分类。
-8. 主要分类完成后，旧单词本先归档隐藏，稳定后再决定永久删除。
+7. 整理“学习用品”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+8. 整理“身体部位”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+9. 整理“职业”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+10. 整理“动物”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+11. 按小学阶段逐步整理食品、饮料水果、数字和基础动作等分类。
+12. 主要分类完成后，旧单词本先归档隐藏，稳定后再决定永久删除。
 
 ### 音标训练增强
 
@@ -182,11 +254,12 @@
 - 人物 ✅（数据、导入和共享完成，待网页核对）
 - 气象与季节 ✅（数据、导入和共享完成，待网页核对）
 - 衣服 ✅（数据、导入和共享完成，待网页核对）
-- 身体部位
-- 动物
+- 身体部位 ✅（数据、导入和共享完成，待网页核对）
+- 动物 ✅（数据、导入和共享完成，待网页核对）
 - 食品与三餐
 - 饮料与水果
-- 学习用品
+- 学习用品 ✅（数据、导入和共享完成，待网页核对）
+- 职业 ✅（数据、导入和共享完成，待网页核对）
 - 数字
 - 基础动作
 
@@ -194,7 +267,6 @@
 
 - 交通工具
 - 地点
-- 职业
 - 植物与自然
 - 节日
 - KET 词汇
