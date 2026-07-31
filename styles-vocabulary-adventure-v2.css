@@ -44,15 +44,20 @@
   aspect-ratio:1337/935;
   padding:clamp(28px,3.6vw,42px) clamp(23px,3vw,36px) clamp(25px,3vw,34px);
   overflow:visible;
-  background:url('assets/vocabulary-adventure/speech-bubble.webp') center/100% 100% no-repeat;
-  color:#6a571d;
+  border-radius:28px;
+  background:
+    url('assets/vocabulary-adventure/speech-bubble.webp') center/100% 100% no-repeat,
+    linear-gradient(rgba(255,249,213,.97),rgba(255,249,213,.97));
+  color:#4f3b05;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
+  gap:5px;
   text-align:center;
+  text-shadow:0 1px 0 rgba(255,255,255,.92);
   font-size:clamp(12px,1.15vw,15px);
-  font-weight:800;
+  font-weight:900;
   line-height:1.42;
   pointer-events:auto;
   filter:drop-shadow(0 8px 16px rgba(66,61,28,.18));
@@ -82,6 +87,7 @@
   color:#427bb8;
   font-size:12px;
   font-weight:900;
+  text-shadow:none;
   pointer-events:auto;
 }
 
