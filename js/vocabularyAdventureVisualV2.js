@@ -2,6 +2,7 @@
   'use strict';
 
   const SCREEN_ID = 'screenVocabularyAdventure';
+  const LAYOUT_STYLESHEET = 'styles-vocabulary-adventure-v2.css';
   const WRAPPED_FUNCTIONS = [
     'openVocabularyAdventure',
     'answerVocabularyAdventure',
@@ -21,6 +22,33 @@
     if (!element || element.hidden) return false;
     const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
     return !style || (style.display !== 'none' && style.visibility !== 'hidden');
+  }
+
+  function ensureLayoutStylesheet() {
+    let link = document.querySelector(`link[href="${LAYOUT_STYLESHEET}"]`);
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = LAYOUT_STYLESHEET;
+      link.dataset.vav2Layout = '1';
+    }
+
+    if (link.sheet || link.dataset.vav2Loaded === '1') return true;
+
+    if (!link.dataset.vav2LoadBound) {
+      link.dataset.vav2LoadBound = '1';
+      link.addEventListener('load', () => {
+        link.dataset.vav2Loaded = '1';
+        queueRefresh();
+      }, { once:true });
+      link.addEventListener('error', () => {
+        state.refreshQueued = false;
+        console.warn('Vocabulary adventure visual stylesheet failed to load');
+      }, { once:true });
+    }
+
+    if (!link.isConnected) document.head.appendChild(link);
+    return false;
   }
 
   function ensureGuide() {
@@ -124,7 +152,7 @@
   function refresh() {
     state.refreshQueued = false;
     const root = screen();
-    if (!root) return;
+    if (!root || !ensureLayoutStylesheet()) return;
     prepareTopbarContent();
     const panel = ensureGuide();
     const hasPrimaryAudio = preparePrimaryAudio();
@@ -200,6 +228,7 @@
 
   WRAPPED_FUNCTIONS.forEach(wrapAfter);
   wrapNext();
+  ensureLayoutStylesheet();
   refresh();
   window.refreshVocabularyAdventureVisualV2 = queueRefresh;
 })();
