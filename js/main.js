@@ -74,6 +74,8 @@
       await loadFeatureScript('js/studentActivityControls.js');
       await loadFeatureScript('js/studentActivityControlsCompactUI.js');
       await loadFeatureScript('js/grammarChallengeRecords.js');
+      await loadFeatureScript('data/vocabularyLessonAssets.js');
+      await loadFeatureScript('js/vocabularyFeedbackErrorUI.js');
     }
   } catch (error) {
     console.warn('startup enhancements unavailable', error && (error.message || error));
