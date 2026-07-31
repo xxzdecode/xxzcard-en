@@ -35,6 +35,7 @@ const APP_SHELL = [
   './js/studentRewards.js',
   './js/studentActivityControls.js',
   './js/studentActivityControlsCompactUI.js',
+  './js/grammarChallengeRecords.js',
   './js/studentRewardLayoutGuard.js',
   './js/studentRewardReconcile.js',
   './js/vocabularyAdventureCore.js',
