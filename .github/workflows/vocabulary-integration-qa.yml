@@ -37,7 +37,12 @@ jobs:
           cache-dependency-path: package.json
       - run: npm install --no-audit --no-fund
       - run: npx playwright install --with-deps webkit
-      - run: npm run test:vocabulary-system-viewport
+      - name: Run WebKit vocabulary integration
+        shell: bash
+        run: |
+          mkdir -p test-results
+          set -o pipefail
+          npm run test:vocabulary-system-viewport 2>&1 | tee test-results/webkit.log
       - if: always()
         uses: actions/upload-artifact@v4
         with:
