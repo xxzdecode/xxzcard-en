@@ -24,7 +24,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - name: Generate the plain JavaScript module
         run: |
           python - <<'PY'
@@ -41,7 +40,7 @@ jobs:
           target.write_bytes(gzip.decompress(base64.b64decode(match.group(1))))
           print(f'generated {target} ({target.stat().st_size} bytes)')
           PY
-      - run: npm ci
+      - run: npm install
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run test:grammar-records-viewport
