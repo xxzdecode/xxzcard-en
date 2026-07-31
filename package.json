@@ -6,10 +6,11 @@
     "test:viewport": "node tests/vocabularyLessonViewport.mjs",
     "test:adventure-viewport": "node tests/vocabularyAdventureViewport.mjs",
     "test:adventure-review-viewport": "node tests/vocabularyAdventureReviewViewport.mjs",
-    "test:adventure-challenge-viewport": "node tests/vocabularyAdventureChallengeViewport.mjs",
+    "test:adventure-challenge-viewport": "node tests/vocabularySystemIntegrationViewport.mjs",
+    "test:vocabulary-system-viewport": "node tests/vocabularySystemIntegrationViewport.mjs",
     "test:student-home-viewport": "node tests/studentHomeDashboardViewport.mjs",
     "test:grammar-records-viewport": "node tests/grammarChallengeRecordsViewport.mjs",
-    "test:adventure-mvp-qa": "node tests/vocabularyAdventureChallengeViewport.mjs",
+    "test:adventure-mvp-qa": "node tests/vocabularySystemIntegrationViewport.mjs",
     "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js",
     "vocabulary:master-migrate": "node scripts/migrateMasterVocabularyLibrary.js"
   },
