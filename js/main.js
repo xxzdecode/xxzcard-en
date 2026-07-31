@@ -26,6 +26,12 @@
   showDailyRouteStartupLoading();
   try {
     if (typeof loadFeatureScript === 'function') {
+      try {
+        await loadFeatureScript('js/storageResilience.js');
+      } catch (error) {
+        console.warn('storage resilience unavailable', error && (error.message || error));
+      }
+
       // Start the tiny current-route request before loading any optional
       // startup script. The helper consumes this promise when it becomes ready,
       // so the route request and script loading happen in parallel.
