@@ -73,6 +73,7 @@
       await loadFeatureScript('js/studentRewardReconcile.js');
       await loadFeatureScript('js/studentActivityControls.js');
       await loadFeatureScript('js/studentActivityControlsCompactUI.js');
+      await loadFeatureScript('js/grammarChallengeRecords.js');
     }
   } catch (error) {
     console.warn('startup enhancements unavailable', error && (error.message || error));
