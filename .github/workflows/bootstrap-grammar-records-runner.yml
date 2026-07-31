@@ -38,6 +38,16 @@ jobs:
               raise SystemExit('embedded module payload not found')
           target = pathlib.Path('js/grammarChallengeRecords.js')
           target.write_bytes(gzip.decompress(base64.b64decode(match.group(1))))
+          source = target.read_text()
+          source = source.replace(
+              "    const score = Number.isFinite(Number(source.score))\n      ? clamp(integer(source.score), 0, 100)",
+              "    const hasStoredScore = source.score !== null && source.score !== '' && Number.isFinite(Number(source.score));\n    const score = hasStoredScore\n      ? clamp(integer(source.score), 0, 100)"
+          )
+          source = source.replace(
+              "    const score = Number.isFinite(Number(scoreValue))\n      ? clamp(integer(scoreValue), 0, 100)",
+              "    const hasScoreValue = scoreValue !== null && scoreValue !== '' && Number.isFinite(Number(scoreValue));\n    const score = hasScoreValue\n      ? clamp(integer(scoreValue), 0, 100)"
+          )
+          target.write_text(source)
           print(f'generated {target} ({target.stat().st_size} bytes)')
           PY
       - run: npm install
