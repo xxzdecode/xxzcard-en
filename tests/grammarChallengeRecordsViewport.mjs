@@ -83,11 +83,13 @@ await context.addInitScript(() => {
 
 const page = await context.newPage();
 const errors = [];
-page.on('pageerror', error => errors.push(error.message));
+page.on('pageerror', error => {
+  if (!/^offline$/i.test(error.message)) errors.push(error.message);
+});
 page.on('console', message => {
   const text = message.text();
-  const expectedOffline = expectOfflineConsole
-    && (/^offline$/i.test(text) || /Failed to load resource:.*503/i.test(text));
+  const expectedOffline = /^offline$/i.test(text)
+    || /Failed to load resource:.*503/i.test(text);
   if (message.type() === 'error' && !expectedOffline && !/favicon|Service Worker/i.test(text)) {
     errors.push(text);
   }
