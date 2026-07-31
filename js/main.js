@@ -1,3 +1,19 @@
+// Install the vocabulary question-type compatibility layer before any lazy
+// adventure module can load. Other feature groups keep their original loader.
+(function installVocabularyQuestionTypesRepeatLoader(root) {
+  if (!root || typeof root.loadFeatureGroup !== 'function' || typeof root.loadFeatureScript !== 'function') return;
+  const originalLoadFeatureGroup = root.loadFeatureGroup;
+  const patchedLoadFeatureGroup = function patchedLoadFeatureGroup(group) {
+    if (!['adventurePlayer', 'adventureChallenge'].includes(group)) {
+      return originalLoadFeatureGroup(group);
+    }
+    return root.loadFeatureScript('js/vocabularyQuestionTypesRepeatBootstrap.js')
+      .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup));
+  };
+  root.loadFeatureGroup = patchedLoadFeatureGroup;
+  try { loadFeatureGroup = patchedLoadFeatureGroup; } catch (_) {}
+})(typeof window !== 'undefined' ? window : globalThis);
+
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
