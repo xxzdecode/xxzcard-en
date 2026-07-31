@@ -14,6 +14,26 @@
   try { loadFeatureGroup = patchedLoadFeatureGroup; } catch (_) {}
 })(typeof window !== 'undefined' ? window : globalThis);
 
+// Record the latest selected choice before inline answer handlers run. The
+// save-aware feedback layer uses this exact index for the teaching page.
+(function installVocabularyChoiceCapture(root) {
+  if (!root || !root.document || root.__vocabularyChoiceCaptureInstalled) return;
+  root.__vocabularyChoiceCaptureInstalled = true;
+  root.document.addEventListener('click', event => {
+    const button = event.target?.closest?.(
+      '#screenVocabularyAdventure .vocabulary-adventure-options button,'
+      + '#screenVocabularyAdventureChallenge .vocabulary-adventure-options button'
+    );
+    if (!button || button.disabled) return;
+    const options = [...button.closest('.vocabulary-adventure-options').querySelectorAll('button')];
+    root.__vocabularyPracticeLastSelection = {
+      mode: button.closest('#screenVocabularyAdventureChallenge') ? 'challenge' : 'adventure',
+      index: options.indexOf(button),
+      selectedAt: Date.now()
+    };
+  }, true);
+})(typeof window !== 'undefined' ? window : globalThis);
+
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
