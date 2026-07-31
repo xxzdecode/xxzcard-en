@@ -295,7 +295,10 @@ try {
       path: path.join(resultDir, `vocabulary-system-${target.name}.png`),
       fullPage: true
     });
-    assert.deepEqual(run.errors, []);
+    const expectedRetryErrors = run.errors.filter(error => /503 \(Service Unavailable\)/.test(error));
+    const unexpectedErrors = run.errors.filter(error => !/503 \(Service Unavailable\)/.test(error));
+    assert.equal(expectedRetryErrors.length, 4, 'the injected failure must exercise all four save attempts');
+    assert.deepEqual(unexpectedErrors, []);
     await run.context.close();
   }
   console.log('vocabulary system WebKit viewport tests passed');
