@@ -21,11 +21,16 @@
   }
 
   function safeJsonStringify(value) {
+    let serialized;
     try {
-      return JSON.stringify(value);
+      serialized = JSON.stringify(value);
     } catch (cause) {
       throw storageError('DATA_FORMAT_ERROR', 'Data cannot be serialized as JSON', { cause });
     }
+    if (serialized === undefined) {
+      throw storageError('DATA_FORMAT_ERROR', 'Top-level value is not JSON serializable');
+    }
+    return serialized;
   }
 
   function httpStorageError(status, statusText, responseBody) {
@@ -120,8 +125,8 @@
 
     let connectionState = settings.initialOnline === false ? 'unavailable' : 'online';
     let lastError = null;
-    const writeTails = new Map();
-    const duplicateWrites = new Map();
+    const queueByKey = new Map();
+    const pendingTasks = new Set();
 
     function browserIsOffline() {
       return !!navigatorRef && navigatorRef.onLine === false;
@@ -282,31 +287,29 @@
       try {
         serializedValue = safeJsonStringify(value);
       } catch (error) {
-        markUnavailable(error);
+        lastError = error;
         return Promise.reject(error);
       }
 
       const fingerprint = `${normalizedKey}\n${serializedValue}`;
-      const duplicate = duplicateWrites.get(fingerprint);
-      if (duplicate) return duplicate;
+      const queue = queueByKey.get(normalizedKey);
+      if (queue && queue.tailFingerprint === fingerprint) return queue.tailPromise;
 
-      const previous = writeTails.get(normalizedKey) || Promise.resolve();
+      const previous = queue ? queue.tailPromise : Promise.resolve();
       const task = previous
         .catch(() => {})
         .then(() => performWrite(config, normalizedKey, value, serializedValue));
 
-      writeTails.set(normalizedKey, task);
-      duplicateWrites.set(fingerprint, task);
-      task.then(
-        () => {
-          if (writeTails.get(normalizedKey) === task) writeTails.delete(normalizedKey);
-          if (duplicateWrites.get(fingerprint) === task) duplicateWrites.delete(fingerprint);
-        },
-        () => {
-          if (writeTails.get(normalizedKey) === task) writeTails.delete(normalizedKey);
-          if (duplicateWrites.get(fingerprint) === task) duplicateWrites.delete(fingerprint);
-        }
-      );
+      queueByKey.set(normalizedKey, {
+        tailPromise: task,
+        tailFingerprint: fingerprint
+      });
+      pendingTasks.add(task);
+      task.finally(() => {
+        pendingTasks.delete(task);
+        const current = queueByKey.get(normalizedKey);
+        if (current && current.tailPromise === task) queueByKey.delete(normalizedKey);
+      }).catch(() => {});
       return task;
     }
 
@@ -318,7 +321,7 @@
       markUnavailable,
       getConnectionState: () => connectionState,
       getLastError: () => lastError,
-      getPendingWriteCount: () => duplicateWrites.size
+      getPendingWriteCount: () => pendingTasks.size
     };
   }
 
@@ -421,6 +424,14 @@
       }
     }
 
+    function detailedShowStorageError(error) {
+      if (error && error.__storageErrorShown) return;
+      if (error) error.__storageErrorShown = true;
+      const message = formatStorageError(error);
+      if (typeof root.alert === 'function') root.alert(message);
+      else if (typeof originalShowStorageError === 'function') originalShowStorageError(error);
+    }
+
     function resilientCanWriteCloudData() {
       if (root.navigator && root.navigator.onLine === false) {
         const error = storageError('NETWORK_OFFLINE', 'Browser reports that the network is offline');
@@ -429,14 +440,6 @@
         return false;
       }
       return true;
-    }
-
-    function detailedShowStorageError(error) {
-      if (error && error.__storageErrorShown) return;
-      if (error) error.__storageErrorShown = true;
-      const message = formatStorageError(error);
-      if (typeof root.alert === 'function') root.alert(message);
-      else if (typeof originalShowStorageError === 'function') originalShowStorageError(error);
     }
 
     try { sbSet = resilientSbSet; } catch (_) {}
@@ -458,7 +461,6 @@
         resilience.markUnavailable(error);
       });
       root.addEventListener('online', () => {
-        setLegacyOnline(true);
         resilience.probeConnection({
           url: writeConfig.probeUrl,
           headers,
@@ -478,6 +480,7 @@
     DEFAULT_READ_TIMEOUT_MS,
     DEFAULT_RETRY_DELAYS_MS,
     storageError,
+    safeJsonStringify,
     httpStorageError,
     isRetryableStorageError,
     formatStorageError,
