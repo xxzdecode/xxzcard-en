@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-student-home-dashboard.css'), 'utf8');
+const adventureStyles = fs.readFileSync(path.join(root, 'styles-vocabulary-adventure-v2.css'), 'utf8');
 const repository = fs.readFileSync(path.join(root, 'js', 'repository.js'), 'utf8');
 const lazy = fs.readFileSync(path.join(root, 'js', 'lazyFeatures.js'), 'utf8');
 const adventureVisual = fs.readFileSync(path.join(root, 'js', 'vocabularyAdventureVisualV2.js'), 'utf8');
@@ -28,6 +29,14 @@ assert.doesNotMatch(
   styles.match(/@media \(min-width: 768px\)[\s\S]*?@media \(min-width: 768px\) and \(orientation: portrait\)/)?.[0] || '',
   /clamp\(300px|clamp\(245px/
 );
+
+assert.match(
+  adventureStyles,
+  /\.vav2-guide-bubble\s*\{[\s\S]*linear-gradient\(rgba\(255,249,213,\.97\),rgba\(255,249,213,\.97\)\)/,
+  'fox bubble must have an opaque cream fill behind the transparent asset'
+);
+assert.match(adventureStyles, /\.vav2-guide-bubble\s*\{[\s\S]*color:#4f3b05/);
+assert.match(adventureStyles, /\.vav2-guide-bubble\s*\{[\s\S]*text-shadow:0 1px 0 rgba\(255,255,255,\.92\)/);
 
 assert.match(repository, /const local = getMirrorValue\('main'\)/);
 assert.match(repository, /Promise\.resolve\(\)\.then\(async \(\) =>/);
