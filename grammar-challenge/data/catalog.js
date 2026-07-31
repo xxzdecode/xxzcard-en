@@ -3,6 +3,26 @@
   // lessonKey / kpIds 是长期语法挑战记录与周测、月测汇总的正式映射。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-01-adjective-review',
+      date: '2026-08-01',
+      title: '形容词侦探快速挑战',
+      lessonKey: 'adjective-basics-suffixes',
+      kpIds: ['adjective-basics-suffixes'],
+      questionKpIds: {
+        GC01: ['adjective-basics-suffixes'],
+        GC02: ['adjective-basics-suffixes'],
+        GC03: ['adjective-basics-suffixes'],
+        GC04: ['adjective-basics-suffixes'],
+        GC05: ['adjective-basics-suffixes'],
+        GC06: ['adjective-basics-suffixes'],
+        GC07: ['adjective-basics-suffixes'],
+        GC08: ['adjective-basics-suffixes'],
+        GC09: ['adjective-basics-suffixes'],
+        GC10: ['adjective-basics-suffixes']
+      },
+      pagePath: './practices/2026-08-01.html'
+    },
+    {
       id: 'grammar-2026-07-31-parts-of-speech-review',
       date: '2026-07-31',
       title: '词性地图快速挑战',
