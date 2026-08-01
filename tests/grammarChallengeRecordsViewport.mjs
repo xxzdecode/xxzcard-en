@@ -230,7 +230,7 @@ try {
   await closeChallenge();
   await waitFor(() => attempts('sister').some(item => item.status === 'exited'), 'exit status was not saved');
   const exited = attempts('sister').find(item => item.status === 'exited');
-  assert.equal(exited.answeredCount, 1);
+  assert.equal(exited.answeredCount, 0, 'selecting without clicking 下一题 must not write a question result');
   assert.equal(exited.score, null);
   await waitFor(() => store.get('grammar_challenge_weak_summary_v2_sister'), 'sister weak summary missing');
   assert.equal(store.get('grammar_challenge_weak_summary_v2_sister').completedAttemptCount, 1);
