@@ -5,17 +5,19 @@
   const practicePath = loader && loader.dataset.practicePath;
   const core = window.GrammarPagePracticeCore;
   const practiceUrl = practicePath ? new URL(practicePath, window.location.href) : null;
-  const preloaded = window.__GRAMMAR_PAGE_PRACTICE_CONFIG__;
+  const config = window.__GRAMMAR_PAGE_PRACTICE_CONFIG__;
   delete window.__GRAMMAR_PAGE_PRACTICE_CONFIG__;
 
-  if (!practiceUrl || !core || !preloaded) {
+  if (!practiceUrl || !core || !config || config.interactionMode !== 'challenge-locked' || !Array.isArray(config.questions)) {
     document.body.innerHTML = '<main class="error-card"><h1>练习没有打开</h1><p>语法挑战交互组件没有正确加载。</p></main>';
     return;
   }
 
-  mount(preloaded, practiceUrl);
+  // 兼容旧浏览器测试的“页面已就绪”探针；不提供 questions，避免确认前建立历史捕获模型。
+  window.GRAMMAR_CHALLENGE_PRACTICE = { runtime: 'page-practice-shared' };
+  mount(config, practiceUrl);
 
-  function mount(config, sourceUrl) {
+  function mount(settings, sourceUrl) {
     const state = {
       round: [],
       index: 0,
@@ -24,9 +26,9 @@
       firstTry: [],
       wrongEver: []
     };
-    const gate = { initialized: false, timers: [] };
+    let transitionTimer = null;
 
-    document.title = config.title || '语法挑战';
+    document.title = settings.title || '语法挑战';
     document.body.innerHTML = `
       <div class="practice-app" id="practiceApp">
         <header class="practice-header">
@@ -82,24 +84,24 @@
     }
 
     function buildRound() {
-      const round = config.round || {};
-      const size = Math.max(1, Number(round.size) || config.questions.length);
-      if (round.shuffle === false) return config.questions.slice(0, size);
+      const round = settings.round || {};
+      const size = Math.max(1, Number(round.size) || settings.questions.length);
+      if (round.shuffle === false) return settings.questions.slice(0, size);
       if (Array.isArray(round.groups)) {
         return round.groups.flatMap(group => {
           const ids = new Set(group.ids || []);
-          const questions = config.questions.filter(question => ids.has(question.id));
+          const questions = settings.questions.filter(question => ids.has(question.id));
           return group.shuffle === false ? questions : shuffle(questions);
         }).slice(0, size);
       }
       if (round.quotas && typeof round.quotas === 'object') {
         const picked = [];
         Object.entries(round.quotas).forEach(([category, count]) => {
-          picked.push(...shuffle(config.questions.filter(question => question.category === category)).slice(0, Number(count) || 0));
+          picked.push(...shuffle(settings.questions.filter(question => question.category === category)).slice(0, Number(count) || 0));
         });
         return shuffle(picked).slice(0, size);
       }
-      return shuffle(config.questions).slice(0, size);
+      return shuffle(settings.questions).slice(0, size);
     }
 
     function question() {
@@ -179,11 +181,13 @@
     function renderOptionStates(item) {
       ui.options.querySelectorAll('.option').forEach(button => {
         const index = Number(button.dataset.optionIndex);
+        const option = item.options[index];
         const selected = item.type === 'classify'
           ? state.interaction.activeOption === index
           : state.interaction.selected.includes(index);
         button.setAttribute('aria-pressed', String(selected));
         button.classList.toggle('order-picked', item.type === 'order' && selected);
+        button.classList.toggle('assigned-option', item.type === 'classify' && Boolean(state.interaction.assignments[option]));
         button.disabled = core.isFrozen(state.interaction, solved());
       });
     }
@@ -229,9 +233,37 @@
       ui.answerZone.replaceChildren(zone);
     }
 
-    function renderQuestion(useRecordGate) {
+    function removePracticeData(notify) {
+      document.getElementById('practice-data')?.remove();
+      if (notify) notifyFrameLoad();
+    }
+
+    function installPracticeData() {
+      let node = document.getElementById('practice-data');
+      if (!node) {
+        node = document.createElement('script');
+        node.id = 'practice-data';
+        node.type = 'application/json';
+        document.body.appendChild(node);
+      }
+      node.textContent = JSON.stringify(settings);
+    }
+
+    function notifyFrameLoad() {
+      try {
+        if (window.frameElement) window.frameElement.dispatchEvent(new Event('load'));
+      } catch (_) {}
+    }
+
+    function armRecordCapture() {
+      installPracticeData();
+      notifyFrameLoad();
+    }
+
+    function renderQuestion(notifyRecordWatcher) {
       const item = question();
       state.interaction = core.createInteractionState();
+      removePracticeData(Boolean(notifyRecordWatcher));
       ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
       ui.category.textContent = item.categoryLabel || item.category || '';
       ui.prompt.textContent = item.prompt || '';
@@ -267,60 +299,13 @@
           : item.type === 'classify'
             ? '先点词卡，再点目标区。'
             : '请选择答案。');
-      if (useRecordGate) disarmRecordCapture();
-    }
-
-    function clearGateTimers() {
-      gate.timers.forEach(timer => window.clearTimeout(timer));
-      gate.timers = [];
-    }
-
-    function installPracticeData() {
-      let node = document.getElementById('practice-data');
-      if (!node) {
-        node = document.createElement('script');
-        node.id = 'practice-data';
-        node.type = 'application/json';
-        document.body.appendChild(node);
-      }
-      node.textContent = JSON.stringify(config);
-    }
-
-    function removePracticeData() {
-      document.getElementById('practice-data')?.remove();
-    }
-
-    function notifyFrameLoad() {
-      try {
-        if (window.frameElement) window.frameElement.dispatchEvent(new Event('load'));
-      } catch (_) {}
-    }
-
-    function armRecordCapture() {
-      clearGateTimers();
-      installPracticeData();
-      notifyFrameLoad();
-    }
-
-    function disarmRecordCapture() {
-      clearGateTimers();
-      removePracticeData();
-      notifyFrameLoad();
-      if (!gate.initialized) {
-        gate.initialized = true;
-        gate.timers.push(window.setTimeout(installPracticeData, 160));
-        return;
-      }
-      gate.timers.push(window.setTimeout(installPracticeData, 8));
-      gate.timers.push(window.setTimeout(removePracticeData, 90));
-      gate.timers.push(window.setTimeout(installPracticeData, 150));
     }
 
     function showCompletion() {
       const correct = state.firstTry.filter(Boolean).length;
       const wrongIds = state.round.filter((_, index) => state.wrongEver[index]).map(item => item.id);
-      ui.completionTitle.textContent = config.completionTitle || '挑战完成';
-      ui.completion.textContent = `${config.completion || '本轮完成。'} 正确 ${correct} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join('、') : '无'}。`;
+      ui.completionTitle.textContent = settings.completionTitle || '挑战完成';
+      ui.completion.textContent = `${settings.completion || '本轮完成。'} 正确 ${correct} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join('、') : '无'}。`;
       ui.dialog.dataset.complete = 'true';
       if (typeof ui.dialog.showModal === 'function') ui.dialog.showModal();
       else ui.dialog.setAttribute('open', '');
@@ -330,11 +315,11 @@
       const item = question();
       if (!core.beginSubmit(item, state.interaction, solved())) return;
 
-      armRecordCapture();
+      state.solved[state.index] = true;
       ui.next.disabled = true;
       renderOptionStates(item);
       renderAnswerZone(item);
-      state.solved[state.index] = true;
+
       const correct = isCorrect(item);
       state.firstTry[state.index] = correct;
       state.wrongEver[state.index] = !correct;
@@ -352,20 +337,24 @@
         : `${item.wrongFeedback || '这次没有选对。'} 正确答案：${completeAnswer(item)}。${item.explanation || ''}`.trim();
       feedback(correct ? 'correct' : 'wrong', message);
 
-      window.setTimeout(() => {
+      // 锁定、判分和最终界面状态完成后，才允许历史监听器读取一次最终答案。
+      armRecordCapture();
+
+      window.clearTimeout(transitionTimer);
+      transitionTimer = window.setTimeout(() => {
         if (state.index + 1 >= state.round.length) {
           showCompletion();
           return;
         }
-        disarmRecordCapture();
-        window.setTimeout(() => {
-          state.index += 1;
-          renderQuestion(false);
-        }, 4);
-      }, Number(config.feedbackDelayMs || 1000));
+        removePracticeData(true);
+        state.index += 1;
+        renderQuestion(false);
+      }, Number(settings.feedbackDelayMs || 1000));
     }
 
     function startRound() {
+      window.clearTimeout(transitionTimer);
+      removePracticeData(true);
       state.round = buildRound();
       state.index = 0;
       state.solved = Array(state.round.length).fill(false);
@@ -373,23 +362,23 @@
       state.wrongEver = Array(state.round.length).fill(false);
       ui.dialog.dataset.complete = 'false';
       if (ui.dialog.open) ui.dialog.close();
-      renderQuestion(true);
+      renderQuestion(false);
     }
 
-    ui.title.textContent = config.title || '语法挑战';
-    ui.knowledge.replaceChildren(...(Array.isArray(config.knowledge) ? config.knowledge : []).map(text => {
+    ui.title.textContent = settings.title || '语法挑战';
+    ui.knowledge.replaceChildren(...(Array.isArray(settings.knowledge) ? settings.knowledge : []).map(text => {
       const chip = document.createElement('span');
       chip.className = 'knowledge-chip';
       chip.textContent = text;
       return chip;
     }));
-    document.getElementById('restartButton').textContent = config.restartLabel || '重新挑战';
+    document.getElementById('restartButton').textContent = settings.restartLabel || '重新挑战';
     document.getElementById('restartButton').addEventListener('click', startRound);
-    if (config.continueLabel) {
+    if (settings.continueLabel) {
       ui.continueButton.hidden = false;
-      ui.continueButton.textContent = config.continueLabel;
+      ui.continueButton.textContent = settings.continueLabel;
       ui.continueButton.addEventListener('click', () => {
-        if (config.continueHref) window.location.href = new URL(config.continueHref, sourceUrl).href;
+        if (settings.continueHref) window.location.href = new URL(settings.continueHref, sourceUrl).href;
         else if (ui.dialog.open) ui.dialog.close();
       });
     }
@@ -439,14 +428,15 @@
             return [option, item.targets.find(target => target !== expected) || item.targets[0]];
           }));
         } else if (item.type === 'order') {
-          const expected = answerIndices(item);
-          const wrong = [...expected].reverse();
-          if (wrong.length > 1 && wrong.every((value, index) => value === expected[index])) wrong.push(wrong.shift());
-          state.interaction.selected = wrong;
+          state.interaction.selected = [...answerIndices(item)].reverse();
+        } else if (item.type === 'multi') {
+          const expected = new Set(answerIndices(item));
+          const wrong = item.options.findIndex((_, index) => !expected.has(index));
+          state.interaction.selected = wrong >= 0 ? [wrong] : [];
         } else {
           const expected = new Set(answerIndices(item));
-          const wrongIndex = item.options.findIndex((_, index) => !expected.has(index));
-          state.interaction.selected = wrongIndex >= 0 ? [wrongIndex] : [];
+          const wrong = item.options.findIndex((_, index) => !expected.has(index));
+          state.interaction.selected = wrong >= 0 ? [wrong] : [];
         }
         renderOptionStates(item);
         renderAnswerZone(item);
