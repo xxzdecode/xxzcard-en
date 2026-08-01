@@ -79,20 +79,41 @@ const shell = fs.readFileSync(path.join(root, 'grammar-challenge/js/page-practic
 const pagePaths = [...catalog.matchAll(/pagePath:\s*'([^']+)'/g)].map(match => match[1]);
 
 assert.ok(pagePaths.length >= 12, 'all formal page challenges remain catalogued');
-const lockedPages = pagePaths.filter(relativePath => {
-  const normalized = relativePath.replace(/^\.\//, 'grammar-challenge/');
-  const source = fs.readFileSync(path.join(root, normalized), 'utf8');
-  return /id=["']practice-data["']/.test(source) && /challenge-locked/.test(source);
-});
-assert.ok(lockedPages.length >= 2, 'all challenge-locked copied pages use the shared runtime');
 assert.match(index, /page-practice-core\.js/);
 assert.match(index, /page-practice-shell\.js/);
 assert.match(index, /interactionMode !== 'challenge-locked'/);
 assert.match(index, /window\.__GRAMMAR_PAGE_PRACTICE_CONFIG__/);
+
+const directDates = ['2026-07-31', '2026-08-01'];
+directDates.forEach(date => {
+  const page = fs.readFileSync(path.join(root, `grammar-challenge/practices/${date}.html`), 'utf8');
+  const data = fs.readFileSync(path.join(root, `grammar-challenge/data/page-practices/${date}.js`), 'utf8');
+  assert.match(page, new RegExp(`data/page-practices/${date}\\.js`), `${date} direct page loads its formal data`);
+  assert.match(page, /page-practice-core\.js/, `${date} direct page loads the shared interaction core`);
+  assert.match(page, /page-practice-shell\.js/, `${date} direct page loads the shared runtime`);
+  assert.doesNotMatch(page, /state\.locked\s*=\s*true/, `${date} direct page no longer contains the old first-click lock`);
+  assert.match(data, /interactionMode["']?\s*:\s*["']challenge-locked["']/, `${date} formal data remains challenge-locked`);
+  assert.match(data, /"questions"\s*:\s*\[/, `${date} retains formal questions`);
+});
+
+const formalConfigs = fs.readdirSync(path.join(root, 'grammar-challenge/data/page-practices'))
+  .filter(name => name.endsWith('.js'));
+formalConfigs.forEach(name => {
+  const date = name.replace(/\.js$/, '');
+  const data = fs.readFileSync(path.join(root, 'grammar-challenge/data/page-practices', name), 'utf8');
+  if (!/challenge-locked/.test(data)) return;
+  const pagePath = path.join(root, 'grammar-challenge/practices', `${date}.html`);
+  assert.equal(fs.existsSync(pagePath), true, `${name} has a formal direct page`);
+  const page = fs.readFileSync(pagePath, 'utf8');
+  assert.match(page, /page-practice-shell\.js/, `${name} direct page uses shared runtime`);
+});
+
 assert.match(shell, /core\.beginSubmit/);
 assert.match(shell, /armRecordCapture\(\)/);
-assert.match(shell, /disarmRecordCapture\(\)/);
+assert.match(shell, /removePracticeData\(true\)/);
 assert.match(shell, /selected:\s*\[\.\.\.state\.interaction\.selected\]/);
 assert.match(shell, /assignments:\s*\{\s*\.\.\.state\.interaction\.assignments\s*\}/);
+assert.match(shell, /锁定、判分和最终界面状态完成后/);
+assert.doesNotMatch(shell, /setTimeout\(installPracticeData/);
 
 console.log('grammar option editing tests passed');
