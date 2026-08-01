@@ -86,6 +86,14 @@
       .replace(/'/g, '&#39;');
   }
 
+  function renderAudioSpellingPhoneticHtml(question) {
+    if (!question || question.questionType !== 'audioSpelling') return '';
+    const phonetic = typeof question.prompt === 'string' ? question.prompt.trim() : '';
+    return phonetic
+      ? `<div class="vocabulary-adventure-audio-spelling-phonetic">${escapeAdventureHtml(phonetic)}</div>`
+      : '';
+  }
+
   function cardItemText(item) {
     if (typeof item === 'string') return item;
     if (!item || typeof item !== 'object') return '';
@@ -339,8 +347,10 @@
       const audio = question.questionType === 'audioSpelling'
         ? '<button type="button" class="vocabulary-adventure-audio-prompt" onclick="speakVocabularyAdventureCurrent()"><span>🔊</span> 听一听</button>'
         : `<div class="vocabulary-adventure-prompt-text is-masked">${escapeAdventureHtml(question.prompt)}</div>`;
+      const phonetic = renderAudioSpellingPhoneticHtml(question);
       return `
         ${audio}
+        ${phonetic}
         <div class="vocabulary-adventure-hint" id="vocabularyAdventureReviewHint" hidden></div>
         <div class="vocabulary-adventure-input-row">
           <input id="vocabularyAdventureReviewInput" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="输入答案">
@@ -930,6 +940,7 @@
     isVocabularyAdventurePreviewEnabled,
     createVocabularyAdventureAttemptTracker,
     createVocabularyAdventureSaveCoordinator,
+    renderAudioSpellingPhoneticHtml,
     renderAdventureFullCardHtml,
     createVocabularyAdventureBrowserApi
   };
