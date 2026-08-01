@@ -119,7 +119,49 @@
       if (entry && entry.pagePath) {
         const target = new URL(entry.pagePath, window.location.href);
         if (params.get('embedded') === '1') target.searchParams.set('embedded', '1');
-        window.location.replace(target.href);
+
+        fetch(target.href, { cache: 'no-cache' })
+          .then(response => {
+            if (!response.ok) throw new Error('page_unavailable');
+            return response.text();
+          })
+          .then(source => {
+            const parsed = new DOMParser().parseFromString(source, 'text/html');
+            const data = parsed.getElementById('practice-data');
+            let config = null;
+            try { config = data ? JSON.parse(data.textContent || 'null') : null; } catch (_) {}
+
+            if (!config || config.interactionMode !== 'challenge-locked' || !Array.isArray(config.questions)) {
+              window.location.replace(target.href);
+              return;
+            }
+
+            window.__GRAMMAR_PAGE_PRACTICE_CONFIG__ = config;
+            const core = document.createElement('script');
+            core.src = './js/page-practice-core.js';
+            core.onload = () => {
+              const style = document.createElement('link');
+              style.rel = 'stylesheet';
+              style.href = './css/page-practice.css';
+              style.onload = () => {
+                const shell = document.createElement('script');
+                shell.src = './js/page-practice-shell.js';
+                shell.dataset.practicePath = entry.pagePath;
+                shell.dataset.practiceId = entry.id;
+                shell.dataset.embedded = params.get('embedded') === '1' ? '1' : '0';
+                document.body.appendChild(shell);
+              };
+              style.onerror = () => {
+                document.getElementById('loadingScreen').innerHTML = '<p>语法挑战样式加载失败，请返回后重试。</p>';
+              };
+              document.head.appendChild(style);
+            };
+            core.onerror = () => {
+              document.getElementById('loadingScreen').innerHTML = '<p>语法挑战交互组件加载失败，请返回后重试。</p>';
+            };
+            document.body.appendChild(core);
+          })
+          .catch(() => window.location.replace(target.href));
         return;
       }
 

@@ -10,6 +10,7 @@ on:
       - 'js/main.js'
       - 'grammar-challenge/**'
       - 'tests/grammarChallengeRecords*'
+      - 'tests/grammarOption*'
       - 'package.json'
       - 'service-worker.js'
       - '.github/workflows/grammar-challenge-records.yml'
@@ -19,6 +20,7 @@ on:
       - 'js/main.js'
       - 'grammar-challenge/**'
       - 'tests/grammarChallengeRecords*'
+      - 'tests/grammarOption*'
       - 'package.json'
       - 'service-worker.js'
       - '.github/workflows/grammar-challenge-records.yml'
@@ -37,6 +39,7 @@ jobs:
       - name: Run grammar records and compatibility tests
         run: |
           node tests/grammarChallengeRecords.test.js
+          node tests/grammarOptionEditing.test.js
           node tests/studentActivityControls.test.js
           node tests/studentActivityControls.browser-smoke.test.js
           node tests/studentHomeDashboard.test.js
