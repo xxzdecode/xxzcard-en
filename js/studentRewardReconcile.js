@@ -17,6 +17,23 @@
     }
   }
 
+  async function reconcileVocabularyChallengeReward(student, adventure) {
+    if (typeof root.settleVocabularyChallengeReward !== 'function'
+      && typeof root.loadFeatureScript === 'function') {
+      try {
+        await root.loadFeatureScript('js/studentVocabularyRewardSettlement.js');
+      } catch (error) {
+        console.warn('Vocabulary challenge reward settlement module unavailable', error);
+      }
+    }
+    if (typeof root.settleVocabularyChallengeReward !== 'function') return false;
+    const result = await root.settleVocabularyChallengeReward({
+      user: student,
+      adventureState: adventure
+    });
+    return result && result.ok !== false;
+  }
+
   async function reconcileStudentRewards(user) {
     if (typeof root.sbGet !== 'function' || typeof root.recordStudentRewardSource !== 'function') return false;
     const student = user === 'brother' ? 'brother' : 'sister';
@@ -31,16 +48,14 @@
       if (session && session.date === today && (session.completed === true || (planLength > 0 && Number(session.cursor) >= planLength))) {
         await root.recordStudentRewardSource(student, 'adventure', 5, 'set');
       }
-      const challenge = adventure && adventure.challengeSession;
-      if (challenge && challenge.date === today && challenge.status === 'completed') {
-        const scoreCoins = Math.max(0, Math.min(10, Math.round(Number(challenge.correctCount) || 0)));
-        await root.recordStudentRewardSource(student, 'vocabularyChallenge', scoreCoins, 'max');
-      }
+
+      const challengeOk = await reconcileVocabularyChallengeReward(student, adventure);
+
       const classroomToday = classroom && classroom[today];
       if (classroomToday && classroomToday.status === 'completed') {
         await root.recordStudentRewardSource(student, 'classroomPractice', 10, 'set');
       }
-      return true;
+      return challengeOk;
     } catch (error) {
       console.warn('Unable to reconcile completed student rewards', error);
       return false;

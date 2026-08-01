@@ -194,6 +194,21 @@ body:has(#screenVocabularyAdventureChallenge.active) { padding-bottom: 0; overfl
 }
 .vocabulary-adventure-audio-prompt span { font-size: 28px; }
 
+.vocabulary-adventure-audio-spelling-phonetic,
+#screenVocabularyAdventureChallenge .vocabulary-adventure-audio-prompt + .vocabulary-adventure-prompt-text {
+  width: min(680px, 100%);
+  min-height: 0;
+  display: block;
+  margin: -4px auto clamp(12px, 2vh, 20px);
+  color: #617b91;
+  font-size: clamp(16px, 2.4vw, 24px);
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .vocabulary-adventure-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -656,6 +671,12 @@ body:has(#screenVocabularyAdventureChallenge.active) { padding-bottom: 0; overfl
   .vocabulary-adventure-question-label { margin-bottom: 7px; }
   .vocabulary-adventure-prompt-text { min-height: 42px; margin-bottom: 9px; font-size: 31px; }
   .vocabulary-adventure-audio-prompt { min-height: 48px; margin-bottom: 9px; }
+  .vocabulary-adventure-audio-spelling-phonetic,
+  #screenVocabularyAdventureChallenge .vocabulary-adventure-audio-prompt + .vocabulary-adventure-prompt-text {
+    min-height: 0;
+    margin-bottom: 9px;
+    font-size: 18px;
+  }
   .vocabulary-adventure-options button { min-height: 48px; }
   .vocabulary-adventure-feedback { min-height: 62px; padding-block: 7px; }
   .vocabulary-adventure-card-heading { padding: 9px 12px; }
