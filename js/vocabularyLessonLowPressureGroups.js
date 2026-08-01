@@ -100,7 +100,7 @@
       root.__vocabularyLessonLowPressureGroupsInstalled = true;
       ensureStyles();
 
-      const baseRenderSelection = root.renderVocabularyLessonBookSelection;
+      const baseRenderSelection = root.renderVocabularyLessonCategorySelection;
       const baseRenderLesson = root.renderVocabularyLesson;
       const baseSelectCategory = root.selectVocabularyLessonCategory;
       const baseCurrentItems = root.vocabularyLessonCurrentItems;
@@ -426,7 +426,14 @@
 
       root.renderVocabularyLessonBookSelection = function renderVocabularyLessonBookSelectionLowPressure() {
         const result = baseRenderSelection();
-        if (!activeCategory) decorateCategoryProgress();
+        if (!activeCategory) {
+          Promise.resolve(root.loadVocabularyLessonCategories && root.loadVocabularyLessonCategories())
+            .then(() => {
+              if (activeCategory) return;
+              baseRenderSelection();
+              decorateCategoryProgress();
+            });
+        }
         return result;
       };
 
@@ -538,8 +545,11 @@
         root.__baseSelectVocabularyLessonCategory = baseSelectCategory;
       }
 
-      baseRenderSelection();
-      decorateCategoryProgress();
+      Promise.resolve(root.loadVocabularyLessonCategories && root.loadVocabularyLessonCategories())
+        .then(() => {
+          baseRenderSelection();
+          decorateCategoryProgress();
+        });
     }
 
     function ensureStyles() {
