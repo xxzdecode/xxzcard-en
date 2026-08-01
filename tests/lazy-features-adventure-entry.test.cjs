@@ -194,9 +194,9 @@ test('adventure load failure shows an in-page retry that can recover', async () 
   assert.equal(notice.hidden, true);
 });
 
-test('service worker upgrades caches without eagerly precaching the player', () => {
-  assert.match(serviceWorkerSource, /xxzcard-app-shell-v50/);
-  assert.match(serviceWorkerSource, /xxzcard-runtime-v50/);
+test('service worker keeps lazy code on runtime network-first caching', () => {
+  assert.match(serviceWorkerSource, /xxzcard-app-shell-v49/);
+  assert.match(serviceWorkerSource, /xxzcard-runtime-v49/);
   assert.doesNotMatch(serviceWorkerSource, /vocabularyAdventurePlayer/);
   assert.match(serviceWorkerSource, /staticNetworkFirst/);
 });
