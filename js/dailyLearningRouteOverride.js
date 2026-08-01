@@ -90,46 +90,26 @@
     await root.loadFeatureScript('js/courseware-data.js');
   }
 
-  function openManualGrammar(id, title) {
+  function openManualGrammar(id) {
     const practiceId = String(id || '').startsWith(PREFIX) ? String(id).slice(PREFIX.length) : '';
     if (!practiceId) return false;
     loadCoursewareData().then(() => {
       const item = findItem(practiceId);
       if (!item) throw new Error('practice not found');
+      const route = root.getDailyLearningRoute && root.getDailyLearningRoute();
+      const routeTitle = route && route.grammarChallenge && route.grammarChallenge.id === id
+        ? route.grammarChallenge.title
+        : '';
       const frame = document.getElementById('grammarChallengeFrame');
       const heading = document.getElementById('grammarChallengeTitle');
-      if (heading) heading.textContent = String(title || item.title).replace(/随堂练习/g, '语法挑战');
+      if (heading) heading.textContent = String(routeTitle || item.title).replace(/随堂练习/g, '语法挑战');
       if (frame) frame.src = `grammar-challenge/practices/courseware-daily.html?${new URLSearchParams({ source: item.path, practiceId: item.id, title: item.title })}`;
       document.body.classList.add('grammar-challenge-open');
       root.showScreen('screenGrammarChallengePlayer');
     }).catch(() => alert('这条随堂练习暂时无法作为语法挑战打开。'));
     return true;
   }
-
-  function patchGrammarLoader() {
-    if (typeof root.loadFeatureGroup !== 'function' || root.loadFeatureGroup.__dailyOverride) return;
-    const originalLoad = root.loadFeatureGroup;
-    const wrappedLoad = function (group) {
-      return Promise.resolve(originalLoad.apply(this, arguments)).then(result => {
-        if (group === 'grammarChallenge' && typeof root.openGrammarChallenge === 'function' && !root.openGrammarChallenge.__dailyOverride) {
-          const originalOpen = root.openGrammarChallenge;
-          const wrappedOpen = function (id) {
-            const route = root.getDailyLearningRoute && root.getDailyLearningRoute();
-            const title = route && route.grammarChallenge && route.grammarChallenge.id === id ? route.grammarChallenge.title : '';
-            if (openManualGrammar(id, title)) return;
-            return originalOpen.apply(this, arguments);
-          };
-          wrappedOpen.__dailyOverride = true;
-          root.openGrammarChallenge = wrappedOpen;
-          try { openGrammarChallenge = wrappedOpen; } catch (_) {}
-        }
-        return result;
-      });
-    };
-    wrappedLoad.__dailyOverride = true;
-    root.loadFeatureGroup = wrappedLoad;
-    try { loadFeatureGroup = wrappedLoad; } catch (_) {}
-  }
+  root.openManualGrammarChallenge = openManualGrammar;
 
   function addPanel() {
     if (document.getElementById('teacherDailyRoutePanel')) return;
@@ -190,10 +170,8 @@
   }
 
   addPanel();
-  patchGrammarLoader();
   document.addEventListener('click', event => {
     if (event.target && event.target.closest && event.target.closest('#uBtnTeacher')) setTimeout(refreshPanel, 0);
   });
-  root.addEventListener && root.addEventListener('daily-learning-route-ready', patchGrammarLoader);
   try { if (typeof isTeacher === 'function' && isTeacher()) refreshPanel(); } catch (_) {}
 })(typeof globalThis !== 'undefined' ? globalThis : window);
