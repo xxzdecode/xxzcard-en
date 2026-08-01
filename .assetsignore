@@ -16,7 +16,7 @@ test-results/
 # Development-only source and project control files
 tests/
 scripts/
-docs/
+/docs/
 .codex-backups/
 backups/
 _incoming/
