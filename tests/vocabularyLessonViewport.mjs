@@ -92,10 +92,10 @@ try {
     const run = await openHarness(viewport);
     const { page } = run;
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
-    assert.equal(await page.locator('#vocabularyLessonQuickNav button').count(), 6);
-    assert.deepEqual(await page.locator('#vocabularyLessonQuickNav button').allTextContents(), ['①', '②', '③', '④', '★ 难词', '↻ 随机']);
+    assert.equal(await page.locator('#vocabularyLessonQuickNav button').count(), 4);
+    assert.deepEqual(await page.locator('#vocabularyLessonQuickNav button').allTextContents(), ['①', '②', '★ 难词', '↻ 随机']);
     assert.equal(await page.locator('#vocabularyLessonQuickNav .batch.is-active').count(), 1);
-    assert.equal(await page.locator('#vocabularyLessonBatchDots .vocabulary-lesson-batch-dot').count(), 10);
+    assert.equal(await page.locator('#vocabularyLessonBatchDots .vocabulary-lesson-batch-dot').count(), 20);
     assert.equal(await page.getByRole('button', { name: '难词巩固' }).isDisabled(), true);
 
     const layout = await page.evaluate(() => {
@@ -168,7 +168,7 @@ try {
     assert.ok(reviewLayout.footerTop >= reviewLayout.mainBottom - 1, JSON.stringify(reviewLayout));
     assert.ok(reviewLayout.footerBottom <= reviewLayout.viewportHeight + 1, JSON.stringify(reviewLayout));
 
-    await page.getByRole('button', { name: /进入下一批/ }).click();
+    await page.getByRole('button', { name: /完成本组并进入下一组/ }).click();
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     const nextBatchCardHeight = await page.locator('#vocabularyLessonCard').evaluate(element => element.getBoundingClientRect().height);
     assert.ok(nextBatchCardHeight >= viewport.height * 0.45, `${viewport.name}: ${nextBatchCardHeight}`);
@@ -178,15 +178,16 @@ try {
       changeVocabularyReviewWord(1);
     });
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
-    assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-12')));
+    assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-22')));
     await page.evaluate(() => closeVocabularyReviewPlayer());
     assert.deepEqual(
-      await page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-name').allTextContents(),
+      (await page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-name, #vocabularyLessonBookList .vocabulary-lesson-book-group > header strong').allTextContents())
+        .map(text => text.replace(/\d+词$/, '')),
       ['今日生词', '较早单词本']
     );
     await page.evaluate(() => selectVocabularyLessonBook('today'));
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
-    assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-12')));
+    assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-22')));
 
     await page.evaluate(() => {
       jumpVocabularyLessonBatch(0);
@@ -196,15 +197,15 @@ try {
     await page.getByRole('button', { name: '难词巩固' }).click();
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '难词巩固');
     assert.equal(await page.locator('#vocabularyLessonBatchDots').isHidden(), true);
-    await page.getByRole('button', { name: '第三批' }).click();
+    await page.getByRole('button', { name: '第二组' }).click();
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
 
     await page.getByRole('button', { name: '随机过词' }).click();
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '随机过词');
     assert.equal(await page.locator('#vocabularyLessonBatchDots').isHidden(), true);
-    await page.getByRole('button', { name: '第四批' }).click();
+    await page.getByRole('button', { name: '第一组' }).click();
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
-    assert.equal(await page.locator('#vocabularyLessonBatchDots .vocabulary-lesson-batch-dot').count(), 10);
+    assert.equal(await page.locator('#vocabularyLessonBatchDots .vocabulary-lesson-batch-dot').count(), 20);
 
     await page.screenshot({ path: path.join(resultDir, `task-016-ipad-${viewport.name}.png`), fullPage: true });
     assert.deepEqual(run.consoleErrors, []);
