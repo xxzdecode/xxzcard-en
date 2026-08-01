@@ -2,6 +2,11 @@ const assert = require('node:assert/strict');
 const queue = require('../js/vocabularyAdventureLessonQueue.js');
 const groups = require('../js/vocabularyLessonGroups.js');
 
+// Dependency gate: this stacked PR must continue running against the current
+// 20-word lesson-group base. The base branch's own safety tests cover failed
+// cloud reads and migration markers in the same pull-request merge ref.
+assert.equal(groups.GROUP_SIZE, 20);
+
 function progress(count, eligibleDate = '2026-08-02') {
   return {
     version: 1,
