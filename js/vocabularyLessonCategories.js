@@ -257,6 +257,10 @@
     window.loadVocabularyLessonCategories = loadVocabularyLessonCategories;
     window.selectVocabularyLessonCategory = selectVocabularyLessonCategory;
     window.normalizeVocabularyCategoryWord = normalizeCategoryWord;
+    window.getVocabularyLessonCategoryById = categoryById;
+    window.makeVocabularyLessonVirtualCategoryBatch = makeVirtualCategoryBatch;
+    window.renderVocabularyLessonCategorySelection = renderCategorySelection;
+    window.getVocabularyLessonAvailableCategoryGroups = availableCategoryGroups;
     loadVocabularyLessonCategories().then(() => {
       if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
         renderVocabularyLessonBookSelection();
@@ -270,5 +274,15 @@
     window.setTimeout(waitForPlayer, 0);
   }
 
+  function loadLowPressureGroups() {
+    if (document.getElementById('vocabularyLessonLowPressureGroupsScript')) return;
+    const script = document.createElement('script');
+    script.id = 'vocabularyLessonLowPressureGroupsScript';
+    script.src = 'js/vocabularyLessonLowPressureGroups.js';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   waitForPlayer();
+  loadLowPressureGroups();
 })();
