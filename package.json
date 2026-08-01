@@ -9,8 +9,8 @@
     "test:adventure-challenge-viewport": "node tests/vocabularySystemIntegrationViewport.mjs",
     "test:vocabulary-system-viewport": "node tests/vocabularySystemIntegrationViewport.mjs",
     "test:student-home-viewport": "node tests/studentHomeDashboardViewport.mjs",
-    "test:grammar-records-viewport": "node tests/grammarChallengeRecordsViewport.mjs",
-    "test:grammar-options": "node tests/grammarOptionEditing.test.js",
+    "test:grammar-records-viewport": "node tests/grammarChallengeRecordsViewport.mjs && node tests/grammarOptionDirectLinksViewport.mjs",
+    "test:grammar-options": "node tests/grammarOptionEditing.test.js && node tests/grammarOptionDirectLinksViewport.mjs",
     "test:adventure-mvp-qa": "node tests/vocabularySystemIntegrationViewport.mjs",
     "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js",
     "vocabulary:master-migrate": "node scripts/migrateMasterVocabularyLibrary.js"
