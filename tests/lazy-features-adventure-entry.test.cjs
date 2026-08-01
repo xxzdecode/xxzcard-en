@@ -194,17 +194,9 @@ test('adventure load failure shows an in-page retry that can recover', async () 
   assert.equal(notice.hidden, true);
 });
 
-test('service worker precaches the complete adventure entry chain', () => {
+test('service worker upgrades caches without eagerly precaching the player', () => {
   assert.match(serviceWorkerSource, /xxzcard-app-shell-v50/);
   assert.match(serviceWorkerSource, /xxzcard-runtime-v50/);
-  [
-    'js/vocabularyQuestionTypesRepeatBootstrap.js',
-    'data/vocabularyLessonAssets.js',
-    'js/vocabularyPracticeUI.js',
-    'js/vocabularyFeedbackErrorUI.js',
-    'js/vocabularyAdventureCore.js',
-    'js/vocabularyAdventure.js',
-    'js/vocabularyAdventureReview.js',
-    'js/vocabularyAdventurePlayer.js'
-  ].forEach(asset => assert.ok(serviceWorkerSource.includes(`'./${asset}'`), asset));
+  assert.doesNotMatch(serviceWorkerSource, /vocabularyAdventurePlayer/);
+  assert.match(serviceWorkerSource, /staticNetworkFirst/);
 });
