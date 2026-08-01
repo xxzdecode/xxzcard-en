@@ -1,1 +1,0 @@
-This review bundle contains the eight new schemaVersion 2 reference-wordbook imports needed to complete the remaining screenshot themes. The full human-readable audit is in `reference-wordbooks-remaining-themes.audit.md`; the compact totals are in `reference-wordbooks-remaining-themes.summary.json`.
