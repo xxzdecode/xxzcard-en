@@ -69,7 +69,7 @@ function createElement(tagName = 'div') {
   };
 }
 
-function createHarness() {
+function createHarness(options = {}) {
   const scripts = [];
   const elements = new Map([
     ['vocabularyAdventurePreviewEntry', createElement('button')],
@@ -82,6 +82,9 @@ function createHarness() {
     readyState: 'complete',
     head: {
       appendChild(script) {
+        if (typeof options.appendScript === 'function') {
+          return options.appendScript(script, scripts);
+        }
         scripts.push(script);
         return script;
       }
@@ -107,8 +110,8 @@ function createHarness() {
       revokeObjectURL() {}
     },
     requestIdleCallback() { return 1; },
-    setTimeout,
-    clearTimeout,
+    setTimeout: options.setTimeout || setTimeout,
+    clearTimeout: options.clearTimeout || clearTimeout,
     loadHome() { return Promise.resolve(); }
   };
   context.window = context;
@@ -143,6 +146,59 @@ test('loadFeatureScript removes failed state so a retry can succeed', async () =
   assert.equal(scripts.length, 2);
   scripts[1].onload();
   await retry;
+});
+
+test('loadFeatureScript retries after appendChild throws synchronously', async () => {
+  let appendAttempts = 0;
+  const { context, scripts } = createHarness({
+    appendScript(script, insertedScripts) {
+      appendAttempts += 1;
+      if (appendAttempts === 1) throw new Error('head unavailable');
+      insertedScripts.push(script);
+      return script;
+    }
+  });
+
+  const first = context.loadFeatureScript('js/append-retry.js');
+  await assert.rejects(first, /功能资源加载失败|head unavailable/);
+  assert.equal(appendAttempts, 1);
+  assert.equal(scripts.length, 0);
+
+  const retry = context.loadFeatureScript('js/append-retry.js');
+  assert.equal(appendAttempts, 2);
+  assert.equal(scripts.length, 1);
+  scripts[0].onload();
+  await retry;
+});
+
+test('loadFeatureScript retries after a loading timeout', async () => {
+  const timers = [];
+  const clearedTimers = [];
+  const { context, scripts } = createHarness({
+    setTimeout(callback, delay) {
+      const id = timers.length + 1;
+      timers.push({ id, callback, delay });
+      return id;
+    },
+    clearTimeout(id) {
+      clearedTimers.push(id);
+    }
+  });
+
+  const first = context.loadFeatureScript('js/timeout-retry.js');
+  assert.equal(scripts.length, 1);
+  assert.equal(timers[0].delay, 10000);
+  const rejected = assert.rejects(first, /功能资源加载超时/);
+  timers[0].callback();
+  await rejected;
+  assert.equal(scripts[0].removed, true);
+  assert.deepEqual(clearedTimers, [1]);
+
+  const retry = context.loadFeatureScript('js/timeout-retry.js');
+  assert.equal(scripts.length, 2);
+  scripts[1].onload();
+  await retry;
+  assert.deepEqual(clearedTimers, [1, 2]);
 });
 
 test('adventure entry is single-flight and exposes loading feedback', async () => {
