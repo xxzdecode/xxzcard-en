@@ -17,6 +17,11 @@
     return String(value == null ? '' : value).trim().replace(/\s+/g, ' ');
   }
 
+  function readVocabularyAudioSpellingPhonetic(card) {
+    if (!card || typeof card !== 'object' || typeof card.phonetic !== 'string') return '';
+    return card.phonetic.trim();
+  }
+
   function normalizedAnswer(value) {
     return normalizeText(value).toLocaleLowerCase().replace(/[’']/g, "'");
   }
@@ -235,7 +240,7 @@
         questionType: taskType,
         category: 'form',
         wordKey: target.key,
-        prompt: '',
+        prompt: readVocabularyAudioSpellingPhonetic(target.card),
         answer: word,
         fullAnswer: word,
         seed,
@@ -515,6 +520,7 @@
     USAGE_TYPES,
     ALL_TYPES,
     VocabularyAdventureReviewTypes,
+    readVocabularyAudioSpellingPhonetic,
     reviewReasonFromState,
     buildVocabularyAdventureReviewQuestion,
     buildVocabularyAdventureMeaningConfirmation,
