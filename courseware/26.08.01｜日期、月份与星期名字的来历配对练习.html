@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>26.08.01｜日期、月份与星期名字的来历配对练习</title>
+<style>
+  :root {
+    --bg:#fff6f8; --panel:#fffdfd; --line:#efdde6; --shadow:0 12px 28px rgba(179,132,157,.14);
+    --text:#5b4e5f; --muted:#867a8a; --pink:#f8dbe8; --pink-d:#b3547c; --mint:#dff4eb; --mint-d:#3d876c;
+    --sky:#e3f0ff; --sky-d:#4d78a5; --gold:#fff1c9; --gold-d:#9d7f29; --wrong:#ffe5df; --wrong-d:#ba6858;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#fff6f8 0%,#f7fbff 55%,#f6fff8 100%);color:var(--text)}
+  .app{height:100dvh;padding:14px;display:grid;grid-template-rows:auto 1fr auto;gap:12px}
+  .top{background:rgba(255,255,255,.9);border:1px solid #fff;border-radius:28px;box-shadow:var(--shadow);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  h1{margin:0;font-size:28px;color:#5d4568}
+  .sub{font-size:16px;color:var(--muted);margin-top:3px}
+  .badge{padding:8px 14px;border-radius:999px;background:var(--pink);color:var(--pink-d);font-weight:800}
+  .stage{background:rgba(255,255,255,.92);border-radius:30px;box-shadow:var(--shadow);padding:18px 20px;display:grid;grid-template-rows:auto auto 1fr auto;gap:14px;min-height:0}
+  .round-title{font-size:26px;font-weight:800;color:#4f4a89}
+  .tip{font-size:17px;color:var(--muted)}
+  .board{display:grid;grid-template-columns:1fr 120px 1fr;gap:16px;min-height:0;align-items:stretch}
+  .col{display:grid;grid-template-rows:repeat(6,1fr);gap:12px;min-height:0}
+  .item{border:none;border-radius:22px;padding:10px 14px;text-align:left;font-size:24px;font-weight:700;box-shadow:0 8px 20px rgba(120,103,133,.08);cursor:pointer;transition:.15s transform,.15s box-shadow,.15s background,.15s color;min-height:72px;display:flex;align-items:center;justify-content:flex-start}
+  .left .item{background:linear-gradient(135deg,#eef4ff,#ffffff);color:var(--sky-d)}
+  .right .item{background:linear-gradient(135deg,#fff8e3,#ffffff);color:var(--gold-d)}
+  .item:hover{transform:translateY(-1px)}
+  .item.active{outline:4px solid #f4bcd0; background:#fff0f6!important; color:#994566!important}
+  .item.matched{background:linear-gradient(135deg,#dff4eb,#ffffff)!important;color:var(--mint-d)!important; cursor:default}
+  .item.wrongFlash{background:var(--wrong)!important;color:var(--wrong-d)!important}
+  .center-rail{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+  .bubble{width:88px;height:88px;border-radius:24px;background:linear-gradient(135deg,#f3ecff,#ffffff);display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 8px 20px rgba(120,103,133,.08)}
+  .progressBox{width:100%;background:#f6eef5;border-radius:999px;height:16px;overflow:hidden}
+  .progressBar{height:100%;width:0%;background:linear-gradient(90deg,#f0afc8,#9ed6bf);transition:width .25s ease}
+  .bottom{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .message{min-height:28px;font-size:18px;font-weight:700;color:#6d5f78}
+  .actions{display:flex;gap:10px}
+  button.action{border:none;border-radius:999px;padding:12px 20px;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(120,103,133,.1)}
+  .secondary{background:#eef4ff;color:#54759a}
+  .primary{background:#dff4eb;color:#2f7b5f}
+  .hidden{display:none!important}
+  .finish{display:grid;place-items:center;text-align:center;height:100%}
+  .finish-card{background:#fff;border:1px solid #fff;border-radius:34px;box-shadow:var(--shadow);padding:30px 42px;max-width:680px}
+  .finish-card h2{margin:0 0 12px;font-size:38px;color:#5d4568}
+  .finish-card p{font-size:22px;line-height:1.7;color:#6d6177;margin:8px 0}
+  .stars{font-size:38px;letter-spacing:6px;margin-bottom:10px}
+  @media (max-width: 1180px) { .item{font-size:20px;min-height:64px} .round-title{font-size:22px} h1{font-size:24px} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <h1>26.08.01｜日期、月份与星期名字的来历配对练习</h1>
+      <div class="sub">文化课试做版 · iPad 横屏单屏 · 以记忆和关系识别为主</div>
+    </div>
+    <div class="badge" id="roundBadge">第 1 / 2 回合</div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="round-title" id="roundTitle"></div>
+    <div class="tip" id="tip"></div>
+    <div class="board" id="board">
+      <div class="col left" id="leftCol"></div>
+      <div class="center-rail">
+        <div class="bubble">🔗</div>
+        <div style="width:100%">
+          <div class="progressBox"><div class="progressBar" id="progressBar"></div></div>
+        </div>
+      </div>
+      <div class="col right" id="rightCol"></div>
+    </div>
+    <div class="bottom">
+      <div class="message" id="message">准备好了吗？一起来找线索！</div>
+      <div class="actions">
+        <button class="action secondary" id="resetBtn">重置本回合</button>
+        <button class="action primary hidden" id="nextBtn">进入下一回合</button>
+      </div>
+    </div>
+    <div class="finish hidden" id="finish">
+      <div class="finish-card">
+        <div class="stars">🌟 🌙 ☀️ 🌟</div>
+        <h2>完成啦！</h2>
+        <p>你已经把月份、星期和日期里的好几个秘密配出来了。</p>
+        <p>如果要继续优化，我们下一步可以再加：<br>① 图片版配对　② 分类题　③ 更强的动画反馈。</p>
+        <div class="actions" style="justify-content:center;margin-top:16px">
+          <button class="action primary" onclick="restartAll()">再玩一次</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="top" style="padding:10px 18px">
+    <div class="sub">提示：文化课练习目前做成“轻量配对”风格，先看结构和体验，不追求复杂题库。</div>
+  </div>
+</div>
+<script>
+const rounds = [{"title": "第一回合：把名字和线索配起来", "tip": "先点左边，再点右边。答对会变成绿色。", "pairs": [["month", "和 moon 有亲戚关系"], ["Sunday", "太阳日"], ["Monday", "月亮日"], ["July", "来自 Julius Caesar"], ["September", "原来和数字 7 有关"], ["date", "常常要用序数词来表示"]]}, {"title": "第二回合：把更多故事线索连起来", "tip": "这一回合更像小侦探挑战。", "pairs": [["Thursday", "想到 Thor 和雷神之锤"], ["Friday", "和爱与美的女神形象有关"], ["Saturday", "和 Saturn 有关"], ["August", "来自 Augustus"], ["December", "原来和数字 10 有关"], ["1 August", "the first of August"]]}];
+let roundIndex = 0;
+let selectedLeft = null;
+let selectedRight = null;
+let matchedCount = 0;
+let currentPairs = [];
+
+const roundTitle = document.getElementById('roundTitle');
+const roundBadge = document.getElementById('roundBadge');
+const tipEl = document.getElementById('tip');
+const leftCol = document.getElementById('leftCol');
+const rightCol = document.getElementById('rightCol');
+const msg = document.getElementById('message');
+const nextBtn = document.getElementById('nextBtn');
+const resetBtn = document.getElementById('resetBtn');
+const progressBar = document.getElementById('progressBar');
+const finish = document.getElementById('finish');
+const board = document.getElementById('board');
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+function renderRound() {
+  selectedLeft = null; selectedRight = null; matchedCount = 0;
+  finish.classList.add('hidden'); board.classList.remove('hidden');
+  const round = rounds[roundIndex];
+  currentPairs = round.pairs.map((p,i)=>({id:i,left:p[0],right:p[1]}));
+  roundTitle.textContent = round.title;
+  tipEl.textContent = round.tip;
+  roundBadge.textContent = `第 ${roundIndex+1} / ${rounds.length} 回合`;
+  nextBtn.classList.add('hidden');
+  progressBar.style.width = '0%';
+  msg.textContent = '准备好了吗？一起来找线索！';
+
+  leftCol.innerHTML = '';
+  rightCol.innerHTML = '';
+  const leftItems = shuffle(currentPairs);
+  const rightItems = shuffle(currentPairs);
+  leftItems.forEach(item => leftCol.appendChild(makeBtn(item,'left',item.left)));
+  rightItems.forEach(item => rightCol.appendChild(makeBtn(item,'right',item.right)));
+}
+
+function makeBtn(item, side, label) {
+  const btn = document.createElement('button');
+  btn.className = 'item';
+  btn.textContent = label;
+  btn.dataset.id = item.id;
+  btn.dataset.side = side;
+  btn.onclick = () => handlePick(btn);
+  return btn;
+}
+
+function clearActive(side) {
+  document.querySelectorAll(`.${side} .item`).forEach(b => b.classList.remove('active'));
+}
+
+function handlePick(btn) {
+  if (btn.classList.contains('matched')) return;
+  const side = btn.dataset.side;
+  if (side === 'left') { clearActive('left'); selectedLeft = btn; btn.classList.add('active'); }
+  else { clearActive('right'); selectedRight = btn; btn.classList.add('active'); }
+  if (selectedLeft && selectedRight) checkPair();
+}
+
+function flashWrong(btn) {
+  btn.classList.add('wrongFlash');
+  setTimeout(() => btn.classList.remove('wrongFlash'), 450);
+}
+
+function checkPair() {
+  const ok = selectedLeft.dataset.id === selectedRight.dataset.id;
+  if (ok) {
+    [selectedLeft, selectedRight].forEach(btn => {
+      btn.classList.remove('active');
+      btn.classList.add('matched');
+      btn.disabled = true;
+    });
+    matchedCount += 1;
+    msg.textContent = '答对啦！继续找下一对。';
+    progressBar.style.width = `${(matchedCount / currentPairs.length) * 100}%`;
+    if (matchedCount === currentPairs.length) {
+      msg.textContent = roundIndex === rounds.length - 1 ? '全部完成啦！' : '这一回合完成了！';
+      if (roundIndex === rounds.length - 1) {
+        setTimeout(showFinish, 500);
+      } else {
+        nextBtn.classList.remove('hidden');
+      }
+    }
+  } else {
+    msg.textContent = '这两个还不是一对，再想想！';
+    flashWrong(selectedLeft); flashWrong(selectedRight);
+    selectedLeft.classList.remove('active');
+    selectedRight.classList.remove('active');
+  }
+  selectedLeft = null; selectedRight = null;
+}
+
+nextBtn.onclick = () => { roundIndex += 1; renderRound(); };
+resetBtn.onclick = () => renderRound();
+function showFinish() { board.classList.add('hidden'); nextBtn.classList.add('hidden'); finish.classList.remove('hidden'); progressBar.style.width = '100%'; }
+function restartAll() { roundIndex = 0; renderRound(); }
+window.restartAll = restartAll;
+renderRound();
+</script>
+</body>
+</html>
