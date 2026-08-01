@@ -1,0 +1,8 @@
+- [x] Eight new schemaVersion 2 imports committed
+- [x] Eight pre-write Supabase snapshots confirmed
+- [x] Eleven scoped wordbooks present exactly once
+- [x] All scoped wordbooks shared with sister and brother
+- [x] Missing references: 0
+- [x] Persisted full cards inside wordbooks: 0
+- [ ] Real teacher/student page refresh verification
+- [ ] User approval to merge
