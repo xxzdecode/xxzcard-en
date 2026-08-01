@@ -1,13 +1,17 @@
 (function vocabularyLessonGroupsModule(root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  if (root) root.VocabularyLessonGroups = api;
+  if (root) {
+    root.VocabularyLessonGroups = api;
+    if (typeof document !== 'undefined') api.installCloudProgressSafety(root);
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyLessonGroups() {
   'use strict';
 
   const VERSION = 1;
   const GROUP_SIZE = 20;
   const LEGACY_BATCH_SIZE = 10;
+  const CLOUD_PROGRESS_KEY_PATTERN = /^vocab_lesson_progress_v1_(sister|brother)$/;
 
   function plainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -275,10 +279,130 @@
     return { progress, changed };
   }
 
+  function mergeQueueEntries(remoteValue, nextValue) {
+    const remote = normalizeQueueEntry(remoteValue);
+    const next = normalizeQueueEntry(nextValue);
+    return normalizeQueueEntry({
+      eligibleDate: next.eligibleDate || remote.eligibleDate,
+      wordKeys: [...remote.wordKeys, ...next.wordKeys],
+      consumedWordKeys: [...remote.consumedWordKeys, ...next.consumedWordKeys],
+      createdAt: remote.createdAt || next.createdAt
+    });
+  }
+
+  function sanitizeMigrationMarkers(remoteValue, proposedValue) {
+    const remote = normalizeVocabularyLessonProgress(remoteValue);
+    const proposed = normalizeVocabularyLessonProgress(proposedValue);
+    Object.keys(proposed.migrations).forEach(id => {
+      if (remote.migrations[id]) return;
+      const prefix = `${id}:g`;
+      const changedGroup = Object.keys(proposed.groups).some(groupId => {
+        if (!groupId.startsWith(prefix)) return false;
+        return JSON.stringify(remote.groups[groupId] || null) !== JSON.stringify(proposed.groups[groupId] || null);
+      });
+      if (!changedGroup) delete proposed.migrations[id];
+    });
+    return proposed;
+  }
+
+  function mergeVocabularyLessonProgressAfterFailedLoad(remoteValue, proposedValue) {
+    const remote = normalizeVocabularyLessonProgress(remoteValue);
+    const proposed = sanitizeMigrationMarkers(remote, proposedValue);
+    const result = normalizeVocabularyLessonProgress(remote);
+
+    Object.entries(proposed.groups).forEach(([id, next]) => {
+      const previous = result.groups[id];
+      if (previous && previous.status === 'completed' && next.status !== 'completed') return;
+      result.groups[id] = normalizeGroupProgress(next);
+    });
+
+    Object.entries(proposed.challengeQueue).forEach(([id, next]) => {
+      result.challengeQueue[id] = mergeQueueEntries(result.challengeQueue[id], next);
+    });
+
+    result.migrations = { ...result.migrations, ...proposed.migrations };
+    return normalizeVocabularyLessonProgress(result);
+  }
+
+  function prepareVocabularyLessonProgressWrite(remoteValue, proposedValue, conservative) {
+    if (conservative) return mergeVocabularyLessonProgressAfterFailedLoad(remoteValue, proposedValue);
+    return sanitizeMigrationMarkers(remoteValue, proposedValue);
+  }
+
+  function installCloudProgressSafety(root) {
+    if (!root || root.__vocabularyLessonCloudProgressSafetyInstalled) return false;
+
+    const attach = () => {
+      if (typeof root.sbGet !== 'function' || typeof root.sbSet !== 'function') return false;
+      if (root.sbSet.__vocabularyLessonCloudProgressSafety) {
+        root.__vocabularyLessonCloudProgressSafetyInstalled = true;
+        return true;
+      }
+
+      const rawGet = root.sbGet;
+      const rawSet = root.sbSet;
+      const readState = new Map();
+
+      const safeGet = async function vocabularyLessonSafeGet(key) {
+        if (!CLOUD_PROGRESS_KEY_PATTERN.test(String(key || ''))) {
+          return rawGet.apply(this, arguments);
+        }
+        try {
+          const value = await rawGet.apply(this, arguments);
+          readState.set(String(key), { status: 'loaded', value: normalizeVocabularyLessonProgress(value) });
+          return value;
+        } catch (error) {
+          readState.set(String(key), { status: 'failed', error });
+          throw error;
+        }
+      };
+
+      const safeSet = async function vocabularyLessonSafeSet(key, value) {
+        if (!CLOUD_PROGRESS_KEY_PATTERN.test(String(key || ''))) {
+          return rawSet.apply(this, arguments);
+        }
+        const storageKey = String(key);
+        const state = readState.get(storageKey);
+        let remote = state && state.status === 'loaded' ? state.value : null;
+        let conservative = false;
+        if (!state || state.status !== 'loaded') {
+          conservative = true;
+          try {
+            remote = await rawGet(storageKey);
+          } catch (error) {
+            readState.set(storageKey, { status: 'failed', error });
+            throw error;
+          }
+        }
+        const prepared = prepareVocabularyLessonProgressWrite(remote, value, conservative);
+        const result = await rawSet.call(this, storageKey, prepared);
+        readState.set(storageKey, { status: 'loaded', value: prepared });
+        return result;
+      };
+
+      safeGet.__vocabularyLessonCloudProgressSafety = true;
+      safeSet.__vocabularyLessonCloudProgressSafety = true;
+      safeGet.__rawVocabularyLessonStorage = rawGet;
+      safeSet.__rawVocabularyLessonStorage = rawSet;
+      root.sbGet = safeGet;
+      root.sbSet = safeSet;
+      try { sbGet = safeGet; } catch (_) {}
+      try { sbSet = safeSet; } catch (_) {}
+      root.__vocabularyLessonCloudProgressSafetyInstalled = true;
+      return true;
+    };
+
+    if (attach()) return true;
+    const schedule = typeof root.setTimeout === 'function' ? root.setTimeout.bind(root) : setTimeout;
+    [0, 100, 400, 1000].forEach(delay => schedule(attach, delay));
+    return false;
+  }
+
   return {
     VERSION,
     GROUP_SIZE,
     LEGACY_BATCH_SIZE,
+    CLOUD_PROGRESS_KEY_PATTERN,
     wordKey,
     collectBookWordKeys,
     groupIdFor,
@@ -295,6 +419,11 @@
     localDateKey,
     addLocalDays,
     collectEligibleQueuedWords,
-    consumeQueuedWords
+    consumeQueuedWords,
+    mergeQueueEntries,
+    sanitizeMigrationMarkers,
+    mergeVocabularyLessonProgressAfterFailedLoad,
+    prepareVocabularyLessonProgressWrite,
+    installCloudProgressSafety
   };
 });
