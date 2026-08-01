@@ -5,7 +5,9 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-student-home-dashboard.css'), 'utf8');
+const navStyles = fs.readFileSync(path.join(root, 'styles-home-nav.css'), 'utf8');
 const adventureStyles = fs.readFileSync(path.join(root, 'styles-vocabulary-adventure-v2.css'), 'utf8');
+const state = fs.readFileSync(path.join(root, 'js', 'state.js'), 'utf8');
 const repository = fs.readFileSync(path.join(root, 'js', 'repository.js'), 'utf8');
 const lazy = fs.readFileSync(path.join(root, 'js', 'lazyFeatures.js'), 'utf8');
 const adventureVisual = fs.readFileSync(path.join(root, 'js', 'vocabularyAdventureVisualV2.js'), 'utf8');
@@ -21,6 +23,15 @@ assert.equal((html.match(/<script src=/g) || []).length, 8, 'initial page should
 assert.match(html, /js\/lazyFeatures\.js/);
 assert.doesNotMatch(html, /<script src="js\/dictionary\.js"/);
 assert.doesNotMatch(html, /<script src="js\/courseware\.js"/);
+
+assert.match(navStyles, /html:not\(\.app-ready\) body\s*\{[^}]*opacity:\s*0/s);
+assert.match(navStyles, /正在准备今天的学习/);
+assert.match(navStyles, /html\.app-ready body\s*\{[^}]*opacity:\s*1/s);
+assert.match(state, /installInitialAppBootGuard/);
+assert.match(state, /root\.appData/);
+assert.match(state, /finishInitialAppBoot/);
+assert.match(state, /setTimeout\(finishInitialAppBoot, 8000\)/);
+assert.match(state, /requestAnimationFrame/);
 
 assert.match(styles, /#screenHome\.active\s*\{[^}]*height:\s*100dvh[^}]*overflow:\s*hidden/s);
 assert.match(styles, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
@@ -56,7 +67,8 @@ assert.match(adventureVisual, /function ensureLayoutStylesheet\(\)/);
 assert.match(adventureVisual, /if \(!root \|\| !ensureLayoutStylesheet\(\)\) return/);
 assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v49/);
+assert.match(serviceWorker, /xxzcard-app-shell-v50/);
+assert.match(serviceWorker, /xxzcard-runtime-v50/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
