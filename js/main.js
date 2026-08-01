@@ -8,7 +8,13 @@
       return originalLoadFeatureGroup(group);
     }
     return root.loadFeatureScript('js/vocabularyQuestionTypesRepeatBootstrap.js')
-      .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup));
+      .then(() => group === 'adventureChallenge'
+        ? root.loadFeatureScript('js/vocabularyLessonGroups.js')
+        : null)
+      .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup))
+      .then(result => group === 'adventureChallenge'
+        ? root.loadFeatureScript('js/vocabularyAdventureLessonQueue.js').then(() => result)
+        : result);
   };
   root.loadFeatureGroup = patchedLoadFeatureGroup;
   try { loadFeatureGroup = patchedLoadFeatureGroup; } catch (_) {}
