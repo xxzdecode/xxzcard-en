@@ -1,0 +1,88 @@
+name: Apply teacher daily route override
+
+on:
+  push:
+    branches:
+      - agent/teacher-daily-route-override
+    paths:
+      - .github/workflows/apply-teacher-daily-route-override.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate feature files
+        run: |
+          mkdir -p js grammar-challenge/practices tests
+          base64 -d .tmp/dailyLearningRouteOverride.js.gz.b64 | gzip -d > js/dailyLearningRouteOverride.js
+          base64 -d .tmp/courseware-daily.html.gz.b64 | gzip -d > grammar-challenge/practices/courseware-daily.html
+          base64 -d .tmp/dailyLearningRouteOverride.test.js.gz.b64 | gzip -d > tests/dailyLearningRouteOverride.test.js
+
+      - name: Wire feature into the app
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import json
+
+          index_path = Path('index.html')
+          index = index_path.read_text()
+          script = '<script src="js/dailyLearningRouteOverride.js"></script>'
+          if script not in index:
+              needle = '<script src="js/main.js"></script>'
+              if index.count(needle) != 1:
+                  raise SystemExit('main script anchor not found exactly once')
+              index = index.replace(needle, needle + '\n' + script)
+              index_path.write_text(index)
+
+          sw_path = Path('service-worker.js')
+          sw = sw_path.read_text()
+          override_entry = "  './js/dailyLearningRouteOverride.js',"
+          if override_entry not in sw:
+              needle = "  './js/dailyLearningRoute.js',"
+              if sw.count(needle) != 1:
+                  raise SystemExit('daily route app-shell anchor not found exactly once')
+              additions = "\n".join([
+                  needle,
+                  override_entry,
+                  "  './grammar-challenge/practices/courseware-daily.html',",
+                  "  './grammar-challenge/css/page-practice.css',",
+                  "  './grammar-challenge/js/page-practice-core.js',",
+                  "  './grammar-challenge/js/page-practice-shell.js',"
+              ])
+              sw = sw.replace(needle, additions)
+              sw_path.write_text(sw)
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text())
+          command = 'node tests/dailyLearningRouteOverride.test.js'
+          test_script = package['scripts']['test']
+          if command not in test_script:
+              package['scripts']['test'] = test_script + ' && ' + command
+              package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n')
+          PYCODE
+
+      - name: Validate
+        run: |
+          node --check js/dailyLearningRouteOverride.js
+          node tests/dailyLearningRouteOverride.test.js
+          npm test
+
+      - name: Commit generated change
+        run: |
+          rm -rf .tmp .github/workflows/apply-teacher-daily-route-override.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add teacher daily route overrides"
+          git push origin HEAD:agent/teacher-daily-route-override
