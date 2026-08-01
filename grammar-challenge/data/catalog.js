@@ -3,6 +3,26 @@
   // lessonKey / kpIds 是长期语法挑战记录与周测、月测汇总的正式映射。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-03-word-family-review',
+      date: '2026-08-03',
+      title: '词族侦探快速挑战',
+      lessonKey: 'word-family-basics',
+      kpIds: ['word-family-basics'],
+      questionKpIds: {
+        GC01: ['word-family-basics'],
+        GC02: ['word-family-basics'],
+        GC03: ['word-family-basics'],
+        GC04: ['word-family-basics'],
+        GC05: ['word-family-basics'],
+        GC06: ['word-family-basics'],
+        GC07: ['word-family-basics'],
+        GC08: ['word-family-basics'],
+        GC09: ['word-family-basics'],
+        GC10: ['word-family-basics']
+      },
+      pagePath: './practices/2026-08-03.html'
+    },
+    {
       id: 'grammar-2026-08-02-adverb-review',
       date: '2026-08-02',
       title: '副词侦探快速挑战',
