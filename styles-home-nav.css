@@ -1,3 +1,62 @@
+/* Initial app boot guard.
+   The static HTML contains fallback student copy so the page remains usable
+   without JavaScript. Keep that fallback out of the first painted frame while
+   startup resolves the actual user and local state. */
+html:not(.app-ready) {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, .92), transparent 24rem),
+    radial-gradient(circle at 82% 82%, rgba(219, 244, 233, .9), transparent 28rem),
+    linear-gradient(150deg, #eaf5ff 0%, #f7f2ff 52%, #edf9f3 100%);
+}
+
+html:not(.app-ready) body {
+  opacity: 0;
+  pointer-events: none;
+}
+
+html:not(.app-ready)::before {
+  content: "正在准备今天的学习…";
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 2147483646;
+  transform: translate(-50%, 22px);
+  color: #55706c;
+  font: 800 15px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+html:not(.app-ready)::after {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 2147483647;
+  width: 34px;
+  height: 34px;
+  margin: -28px 0 0 -17px;
+  border: 4px solid rgba(108, 151, 143, .2);
+  border-top-color: #6c978f;
+  border-radius: 50%;
+  animation: app-boot-spin .8s linear infinite;
+}
+
+html.app-ready body {
+  opacity: 1;
+  transition: opacity 160ms ease-out;
+}
+
+@keyframes app-boot-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not(.app-ready)::after { animation: none; }
+  html.app-ready body { transition: none; }
+}
+
 /* Student home navigation override.
    The former vocabulary-review shortcut now lives in the large New Word Tour
    module, leaving three compact utilities in this row. */
