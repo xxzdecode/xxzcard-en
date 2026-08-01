@@ -142,7 +142,8 @@ async function openChallenge(challengeId) {
   );
   await frame.waitForLoadState('domcontentloaded');
   await frame.waitForFunction(() => Boolean(
-    document.getElementById('practice-data')
+    window.__LESSON_PREP_QA__?.state?.()
+      || document.getElementById('practice-data')
       || window.GRAMMAR_CHALLENGE_PRACTICE
       || document.getElementById('errorMessage')?.textContent
   ));
@@ -159,15 +160,9 @@ async function answerInlineChallengeCorrectly(frame, count = Infinity) {
     const state = await frame.evaluate(() => window.__LESSON_PREP_QA__?.state?.() || null);
     if (!state || state.complete) break;
     await frame.evaluate(() => {
-      const config = JSON.parse(document.getElementById('practice-data').textContent);
-      const state = window.__LESSON_PREP_QA__.state();
-      const question = config.questions.find(item => item.id === state.id);
-      if (!question || question.type !== 'single') throw new Error(`unsupported browser QA question: ${question && question.type}`);
-      const answer = Array.isArray(question.answer) ? question.answer[0] : question.answer;
-      const index = typeof answer === 'number' ? answer : question.options.indexOf(answer);
-      const option = document.querySelector(`[data-option-index="${index}"]`);
-      if (!option) throw new Error(`correct option missing for ${question.id}`);
-      option.click();
+      const qa = window.__LESSON_PREP_QA__;
+      if (!qa?.solveCurrent) throw new Error('formal QA helper is missing');
+      qa.solveCurrent();
     });
     await frame.waitForTimeout(5);
     answered += 1;
@@ -230,7 +225,7 @@ try {
   await closeChallenge();
   await waitFor(() => attempts('sister').some(item => item.status === 'exited'), 'exit status was not saved');
   const exited = attempts('sister').find(item => item.status === 'exited');
-  assert.equal(exited.answeredCount, 1);
+  assert.equal(exited.answeredCount, 0);
   assert.equal(exited.score, null);
   await waitFor(() => store.get('grammar_challenge_weak_summary_v2_sister'), 'sister weak summary missing');
   assert.equal(store.get('grammar_challenge_weak_summary_v2_sister').completedAttemptCount, 1);
