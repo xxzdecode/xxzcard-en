@@ -205,27 +205,40 @@ function loadFeatureScript(src) {
   if (loadedFeatureScripts.has(src)) return Promise.resolve();
   if (featureScriptPromises.has(src)) return featureScriptPromises.get(src);
 
+  let resolvePromise;
+  let rejectPromise;
   const promise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    let settled = false;
-    let timeout = 0;
+    resolvePromise = resolve;
+    rejectPromise = reject;
+  });
+  featureScriptPromises.set(src, promise);
 
-    const finish = (error = null) => {
-      if (settled) return;
-      settled = true;
-      if (timeout) window.clearTimeout(timeout);
+  let script = null;
+  let settled = false;
+  let timeout = 0;
+
+  const finish = (error = null) => {
+    if (settled) return;
+    settled = true;
+    if (timeout) window.clearTimeout(timeout);
+    if (script) {
       script.onload = null;
       script.onerror = null;
+    }
+    if (featureScriptPromises.get(src) === promise) {
       featureScriptPromises.delete(src);
-      if (error) {
-        script.remove();
-        reject(error);
-        return;
-      }
-      loadedFeatureScripts.add(src);
-      resolve();
-    };
+    }
+    if (error) {
+      if (script) script.remove();
+      rejectPromise(error);
+      return;
+    }
+    loadedFeatureScripts.add(src);
+    resolvePromise();
+  };
 
+  try {
+    script = document.createElement('script');
     timeout = window.setTimeout(() => {
       finish(new Error(`功能资源加载超时：${src}`));
     }, 10000);
@@ -234,15 +247,11 @@ function loadFeatureScript(src) {
     script.dataset.featureSource = src;
     script.onload = () => finish();
     script.onerror = () => finish(new Error(`功能资源加载失败：${src}`));
+    document.head.appendChild(script);
+  } catch (error) {
+    finish(error instanceof Error ? error : new Error(`功能资源加载失败：${src}`));
+  }
 
-    try {
-      document.head.appendChild(script);
-    } catch (error) {
-      finish(error instanceof Error ? error : new Error(`功能资源加载失败：${src}`));
-    }
-  });
-
-  featureScriptPromises.set(src, promise);
   return promise;
 }
 
