@@ -2,13 +2,34 @@
   const core = typeof module === 'object' && module.exports
     ? require('./vocabularyAdventureCore.js')
     : root.VocabularyAdventureCore;
-  const exported = factory(core);
+  const rewardSettlement = typeof module === 'object' && module.exports
+    ? require('./studentVocabularyRewardSettlement.js')
+    : root.StudentVocabularyRewardSettlement;
+  const exported = factory(core, rewardSettlement, root);
   if (typeof module === 'object' && module.exports) module.exports = exported;
   if (root && typeof module !== 'object') Object.assign(root, exported.createVocabularyAdventureAdapter());
-})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureModule(core) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureModule(core, initialRewardSettlement, root) {
   'use strict';
 
   const ALLOWED_USERS = new Set(['sister', 'brother']);
+
+  function rewardSettlementApi() {
+    return initialRewardSettlement || (root && root.StudentVocabularyRewardSettlement) || null;
+  }
+
+  async function ensureRewardSettlementApi() {
+    let api = rewardSettlementApi();
+    if (api) return api;
+    if (root && typeof root.loadFeatureScript === 'function') {
+      try {
+        await root.loadFeatureScript('js/studentVocabularyRewardSettlement.js');
+      } catch (error) {
+        console.warn('Vocabulary reward settlement module unavailable', error);
+      }
+    }
+    api = rewardSettlementApi();
+    return api;
+  }
 
   function defaultDependencies() {
     return {
@@ -20,6 +41,7 @@
         : [],
       getValue: key => sbGet(key),
       setValue: (key, value) => sbSet(key, value),
+      rewardApi: () => typeof StudentRewards === 'undefined' ? null : StudentRewards,
       reportStorageError: error => {
         if (typeof showStorageError === 'function') showStorageError(error);
       },
@@ -29,6 +51,7 @@
 
   function createVocabularyAdventureAdapter(overrides) {
     const dependencies = { ...defaultDependencies(), ...(overrides || {}) };
+    const rewardMarkerCache = new Map();
 
     function adventureStateKeyForUser(user) {
       return ALLOWED_USERS.has(user) ? `vocab_adventure_v1_${user}` : '';
@@ -53,17 +76,64 @@
       return pool.find(candidate => candidate.key === key) || null;
     }
 
+    function cacheRewardMarker(user, value) {
+      const settlement = rewardSettlementApi();
+      if (!settlement || typeof settlement.markerFromState !== 'function') return;
+      rewardMarkerCache.set(user, settlement.markerFromState(value));
+    }
+
+    function previousRewardState(user) {
+      const marker = rewardMarkerCache.get(user);
+      return marker ? { challengeDaily: { rewardSettlement: marker } } : null;
+    }
+
     async function loadVocabularyAdventureState(user) {
       const key = adventureStateKeyForUser(user);
       if (!key) return core.defaultVocabularyAdventureState();
-      return core.normalizeVocabularyAdventureState(await dependencies.getValue(key));
+      const raw = await dependencies.getValue(key);
+      cacheRewardMarker(user, raw);
+      return core.normalizeVocabularyAdventureState(raw);
     }
 
     async function saveVocabularyAdventureState(user, value) {
       const key = adventureStateKeyForUser(user);
       if (!key) return false;
       try {
-        return await dependencies.setValue(key, core.normalizeVocabularyAdventureState(value)) !== false;
+        let normalized = core.normalizeVocabularyAdventureState(value);
+        const settlement = await ensureRewardSettlementApi();
+        if (settlement
+          && typeof settlement.prepareAdventureStateForVocabularyChallengeSave === 'function') {
+          normalized = settlement.prepareAdventureStateForVocabularyChallengeSave(
+            normalized,
+            previousRewardState(user),
+            { user }
+          );
+          cacheRewardMarker(user, normalized);
+        }
+
+        const saved = await dependencies.setValue(key, normalized) !== false;
+        if (!saved) return false;
+
+        if (settlement
+          && typeof settlement.shouldSettleVocabularyChallengeReward === 'function'
+          && settlement.shouldSettleVocabularyChallengeReward(normalized)
+          && typeof settlement.settleVocabularyChallengeReward === 'function') {
+          const result = await settlement.settleVocabularyChallengeReward({
+            user,
+            adventureState: normalized,
+            rewardApi: typeof dependencies.rewardApi === 'function'
+              ? dependencies.rewardApi()
+              : dependencies.rewardApi,
+            getValue: dependencies.getValue,
+            setValue: dependencies.setValue,
+            reportError: dependencies.reportStorageError
+          });
+          if (result && result.adventureState) cacheRewardMarker(user, result.adventureState);
+          if (result && result.ok === false) {
+            dependencies.warn('Vocabulary challenge reward pending retry', result.code || result.error || result);
+          }
+        }
+        return true;
       } catch (error) {
         dependencies.warn('Vocabulary adventure state save failed', error);
         dependencies.reportStorageError(error);
