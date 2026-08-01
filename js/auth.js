@@ -127,3 +127,17 @@ function resetStudentRuntimeView() {
 }
 
 // ══════════════════════════════════════
+
+(function loadDailyLearningRouteOverrideScript() {
+  if (typeof document === 'undefined') return;
+  const source = 'js/dailyLearningRouteOverride.js';
+  if (document.querySelector('script[data-daily-route-override]')) return;
+  if (document.readyState === 'loading') {
+    document.write(`<script src="${source}" data-daily-route-override><\/script>`);
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = source;
+  script.dataset.dailyRouteOverride = 'true';
+  document.head.appendChild(script);
+})();
