@@ -39,6 +39,7 @@ const FEATURE_GROUPS = {
 };
 
 const loadedFeatureScripts = new Set();
+const featureScriptPromises = new Map();
 const featureGroupPromises = new Map();
 
 const VOCABULARY_COPY_LIST_STUDENTS = Object.freeze([
@@ -202,32 +203,47 @@ function installVocabularyCopyListExportButton() {
 
 function loadFeatureScript(src) {
   if (loadedFeatureScripts.has(src)) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  if (featureScriptPromises.has(src)) return featureScriptPromises.get(src);
+
+  const promise = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     let settled = false;
-    const timeout = window.setTimeout(() => {
+    let timeout = 0;
+
+    const finish = (error = null) => {
       if (settled) return;
       settled = true;
-      script.remove();
-      reject(new Error(`功能资源加载超时：${src}`));
-    }, 10000);
-    script.src = src;
-    script.async = false;
-    script.onload = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
+      if (timeout) window.clearTimeout(timeout);
+      script.onload = null;
+      script.onerror = null;
+      featureScriptPromises.delete(src);
+      if (error) {
+        script.remove();
+        reject(error);
+        return;
+      }
       loadedFeatureScripts.add(src);
       resolve();
     };
-    script.onerror = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      reject(new Error(`功能资源加载失败：${src}`));
-    };
-    document.head.appendChild(script);
+
+    timeout = window.setTimeout(() => {
+      finish(new Error(`功能资源加载超时：${src}`));
+    }, 10000);
+    script.src = src;
+    script.async = false;
+    script.dataset.featureSource = src;
+    script.onload = () => finish();
+    script.onerror = () => finish(new Error(`功能资源加载失败：${src}`));
+
+    try {
+      document.head.appendChild(script);
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error(`功能资源加载失败：${src}`));
+    }
   });
+
+  featureScriptPromises.set(src, promise);
+  return promise;
 }
 
 function loadFeatureGroup(group) {
@@ -251,21 +267,89 @@ function loadAdventureVisualEnhancement() {
   });
 }
 
+function setVocabularyAdventureEntryState(state, error = null) {
+  const entry = document.getElementById('vocabularyAdventurePreviewEntry');
+  const status = document.getElementById('vocabularyAdventureHomeStatus');
+  const notice = document.getElementById('studentHomeNotice');
+  const isLoading = state === 'loading';
+  const isError = state === 'error';
+
+  if (entry) {
+    entry.dataset.entryState = state;
+    if (isLoading) entry.setAttribute('aria-busy', 'true');
+    else entry.removeAttribute('aria-busy');
+  }
+  if (status) {
+    if (isLoading) status.textContent = '正在打开…';
+    if (isError) status.textContent = '点击重试';
+  }
+  if (!notice) return;
+
+  notice.replaceChildren();
+  if (!isLoading && !isError) {
+    notice.hidden = true;
+    return;
+  }
+
+  const message = document.createElement('span');
+  message.textContent = isLoading
+    ? '正在打开词汇探险…'
+    : '词汇探险暂时无法打开，请重试。';
+  notice.appendChild(message);
+
+  if (isError) {
+    const detail = error && error.message ? ` ${error.message}` : '';
+    notice.setAttribute('aria-label', `词汇探险加载失败。${detail}`.trim());
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.textContent = '重新打开';
+    retry.addEventListener('click', () => window.openVocabularyAdventure());
+    notice.appendChild(retry);
+  } else {
+    notice.removeAttribute('aria-label');
+  }
+  notice.hidden = false;
+}
+
 function installLazyFeatureHandler(name, group) {
-  const lazyHandler = async (...args) => {
-    try {
-      await loadFeatureGroup(group);
-      const handler = window[name];
-      if (typeof handler !== 'function' || handler === lazyHandler) {
-        throw new Error(`功能入口未就绪：${name}`);
+  let resolvedHandler = null;
+  let launchPromise = null;
+
+  const lazyHandler = (...args) => {
+    if (launchPromise) return launchPromise;
+    if (group === 'adventurePlayer') setVocabularyAdventureEntryState('loading');
+
+    launchPromise = (async () => {
+      try {
+        if (!resolvedHandler) {
+          await loadFeatureGroup(group);
+          const handler = window[name];
+          if (typeof handler !== 'function' || handler === lazyHandler) {
+            throw new Error(`功能入口未就绪：${name}`);
+          }
+          resolvedHandler = handler;
+          if (group === 'adventurePlayer') window[name] = lazyHandler;
+        }
+        const result = await resolvedHandler(...args);
+        if (group === 'adventurePlayer') {
+          setVocabularyAdventureEntryState('ready');
+          loadAdventureVisualEnhancement();
+        }
+        return result;
+      } catch (error) {
+        console.error(error);
+        if (group === 'adventurePlayer') {
+          setVocabularyAdventureEntryState('error', error);
+        } else {
+          alert('功能加载失败，请检查网络后重试。');
+        }
+        return null;
+      } finally {
+        launchPromise = null;
       }
-      const result = handler(...args);
-      if (group === 'adventurePlayer') loadAdventureVisualEnhancement();
-      return await result;
-    } catch (error) {
-      console.error(error);
-      alert('功能加载失败，请检查网络后重试。');
-    }
+    })();
+
+    return launchPromise;
   };
   window[name] = lazyHandler;
 }
