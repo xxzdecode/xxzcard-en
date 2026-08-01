@@ -64,6 +64,10 @@ function closeGrammarChallengeList() {
 
 function openGrammarChallenge(id) {
   if (isTeacher()) return;
+  if (typeof window.openManualGrammarChallenge === 'function' && window.openManualGrammarChallenge(id)) {
+    activeGrammarChallengeId = id;
+    return;
+  }
   const challenge = getGrammarChallengeCatalog().find(item => item.id === id);
   if (!challenge) return;
   const title = document.getElementById('grammarChallengeTitle');
