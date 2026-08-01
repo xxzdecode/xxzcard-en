@@ -3,6 +3,26 @@
   // lessonKey / kpIds 是长期语法挑战记录与周测、月测汇总的正式映射。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-02-adverb-review',
+      date: '2026-08-02',
+      title: '副词侦探快速挑战',
+      lessonKey: 'adverb-basics-ly',
+      kpIds: ['adverb-basics-ly'],
+      questionKpIds: {
+        GC01: ['adverb-basics-ly'],
+        GC02: ['adverb-basics-ly'],
+        GC03: ['adverb-basics-ly'],
+        GC04: ['adverb-basics-ly'],
+        GC05: ['adverb-basics-ly'],
+        GC06: ['adverb-basics-ly'],
+        GC07: ['adverb-basics-ly'],
+        GC08: ['adverb-basics-ly'],
+        GC09: ['adverb-basics-ly'],
+        GC10: ['adverb-basics-ly']
+      },
+      pagePath: './practices/2026-08-02.html'
+    },
+    {
       id: 'grammar-2026-08-01-adjective-review',
       date: '2026-08-01',
       title: '形容词侦探快速挑战',
