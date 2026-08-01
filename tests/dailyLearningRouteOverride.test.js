@@ -45,4 +45,11 @@ const auth = fs.readFileSync(path.join(root, 'js/auth.js'), 'utf8');
 assert.match(auth, /dailyLearningRouteOverride\.js/);
 assert.match(auth, /document\.write/);
 
+const grammarChallenges = fs.readFileSync(path.join(root, 'js/grammarChallenges.js'), 'utf8');
+assert.match(grammarChallenges, /openManualGrammarChallenge/);
+assert.match(grammarChallenges, /activeGrammarChallengeId = id/);
+const overrideRuntime = fs.readFileSync(path.join(root, 'js/dailyLearningRouteOverride.js'), 'utf8');
+assert.match(overrideRuntime, /root\.openManualGrammarChallenge = openManualGrammar/);
+assert.doesNotMatch(overrideRuntime, /patchGrammarLoader/);
+
 console.log('daily learning route override tests passed');
