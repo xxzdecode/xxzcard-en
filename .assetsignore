@@ -1,0 +1,36 @@
+# Repository and deployment metadata
+.git/
+.github/
+.wrangler/
+.gitignore
+.assetsignore
+wrangler.jsonc
+
+# Dependencies and generated test output
+node_modules/
+coverage/
+playwright-report/
+test-results/
+*.log
+
+# Development-only source and project control files
+tests/
+scripts/
+/docs/
+.codex-backups/
+backups/
+_incoming/
+package.json
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+AGENTS.md
+PROJECT_INDEX.md
+PROJECT_STATE.md
+README.md
+*.md
+
+# Local secrets and operating-system files
+.env
+.env.*
+.DS_Store
