@@ -53,6 +53,98 @@
     };
   }
 
+  function normalizeCategoryAssignment(value) {
+    const source = value && typeof value === 'object' ? value : {};
+    const categoryId = String(source.categoryId || source.id || '').trim();
+    if (!categoryId) return null;
+    const words = [];
+    const seen = new Set();
+    (Array.isArray(source.words) ? source.words : []).forEach(word => {
+      const text = String(word || '').trim();
+      const matchKey = normalizeCategoryWord(text);
+      if (!text || !matchKey || seen.has(matchKey)) return;
+      seen.add(matchKey);
+      words.push(text);
+    });
+    if (!words.length) return null;
+    return {
+      categoryId,
+      categoryName: String(source.categoryName || source.name || categoryId).trim() || categoryId,
+      groupId: String(source.groupId || 'generated').trim() || 'generated',
+      groupName: String(source.groupName || '自动分类').trim() || '自动分类',
+      groupDescription: String(source.groupDescription || '').trim(),
+      icon: String(source.icon || '📚').trim() || '📚',
+      words
+    };
+  }
+
+  function visibleCategoryBatches() {
+    const visible = getVocabularyLessonVisibleBatches(appData, currentUser).slice();
+    if (typeof compareVocabularyLessonBatchesNewestFirst === 'function') {
+      visible.sort(compareVocabularyLessonBatchesNewestFirst);
+    }
+    return visible;
+  }
+
+  function mergeCategoryWords(category, words) {
+    const seen = new Set((Array.isArray(category.words) ? category.words : []).map(normalizeCategoryWord).filter(Boolean));
+    (Array.isArray(words) ? words : []).forEach(word => {
+      const matchKey = normalizeCategoryWord(word);
+      if (!matchKey || seen.has(matchKey)) return;
+      seen.add(matchKey);
+      category.words.push(String(word).trim());
+    });
+  }
+
+  function effectiveCategoryRegistry() {
+    const groups = categoryRegistry.groups.map(group => ({
+      ...group,
+      categories: group.categories.map(category => ({
+        ...category,
+        words: category.words.slice()
+      }))
+    }));
+    const groupById = new Map(groups.map(group => [group.id, group]));
+    const categoryById = new Map();
+    groups.forEach(group => group.categories.forEach(category => categoryById.set(category.id, category)));
+
+    visibleCategoryBatches().forEach(batch => {
+      (Array.isArray(batch.categoryAssignments) ? batch.categoryAssignments : []).forEach(rawAssignment => {
+        const assignment = normalizeCategoryAssignment(rawAssignment);
+        if (!assignment) return;
+        let group = groupById.get(assignment.groupId);
+        if (!group) {
+          group = {
+            id: assignment.groupId,
+            name: assignment.groupName,
+            description: assignment.groupDescription || '由导入单词本携带的分类信息自动生成。',
+            categories: []
+          };
+          groups.push(group);
+          groupById.set(group.id, group);
+        }
+        let category = categoryById.get(assignment.categoryId);
+        if (!category) {
+          category = {
+            id: assignment.categoryId,
+            name: assignment.categoryName,
+            icon: assignment.icon,
+            words: []
+          };
+          group.categories.push(category);
+          categoryById.set(category.id, category);
+        }
+        mergeCategoryWords(category, assignment.words);
+      });
+    });
+
+    return {
+      schemaVersion: 1,
+      source: categoryRegistry.source,
+      groups
+    };
+  }
+
   function ensureCategoryStyles() {
     if (document.getElementById('vocabularyLessonCategoryStyles')) return;
     const link = document.createElement('link');
@@ -85,12 +177,8 @@
   }
 
   function visibleCategoryCards() {
-    const visible = getVocabularyLessonVisibleBatches(appData, currentUser).slice();
-    if (typeof compareVocabularyLessonBatchesNewestFirst === 'function') {
-      visible.sort(compareVocabularyLessonBatchesNewestFirst);
-    }
     const byMatchKey = new Map();
-    visible.forEach(batch => {
+    visibleCategoryBatches().forEach(batch => {
       (Array.isArray(batch.cards) ? batch.cards : []).forEach(card => {
         const word = getVocabularyLessonCardWord(card);
         const matchKey = normalizeCategoryWord(word);
@@ -103,7 +191,7 @@
   function availableCategoryGroups() {
     const cardIndex = visibleCategoryCards();
     const matchedKeys = new Set();
-    const groups = categoryRegistry.groups.map(group => {
+    const groups = effectiveCategoryRegistry().groups.map(group => {
       const categories = group.categories.map(category => {
         const cards = [];
         const seen = new Set();
@@ -140,7 +228,7 @@
       groups.push({
         id: 'unclassified',
         name: '待继续整理',
-        description: '这些词仍可正常授课，只是暂未收入附件分类索引。',
+        description: '这些词仍可正常授课，只是暂未收入分类索引。',
         categories
       });
     }
@@ -257,6 +345,8 @@
     window.loadVocabularyLessonCategories = loadVocabularyLessonCategories;
     window.selectVocabularyLessonCategory = selectVocabularyLessonCategory;
     window.normalizeVocabularyCategoryWord = normalizeCategoryWord;
+    window.normalizeVocabularyCategoryAssignment = normalizeCategoryAssignment;
+    window.getVocabularyLessonEffectiveCategoryRegistry = effectiveCategoryRegistry;
     window.getVocabularyLessonCategoryById = categoryById;
     window.makeVocabularyLessonVirtualCategoryBatch = makeVirtualCategoryBatch;
     window.renderVocabularyLessonCategorySelection = renderCategorySelection;

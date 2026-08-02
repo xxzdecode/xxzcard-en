@@ -90,6 +90,58 @@
     })).filter(operation => operation.wordKey);
   }
 
+  function normalizeCategoryAssignment(value) {
+    const source = value && typeof value === 'object' ? value : {};
+    const categoryId = String(source.categoryId || source.id || '').trim();
+    if (!categoryId) return null;
+    const words = [];
+    const seen = new Set();
+    (Array.isArray(source.words) ? source.words : []).forEach(word => {
+      const wordKey = normalizeWordKey(word);
+      if (!wordKey || seen.has(wordKey)) return;
+      seen.add(wordKey);
+      words.push(wordKey);
+    });
+    if (!words.length) return null;
+    return {
+      categoryId,
+      categoryName: String(source.categoryName || source.name || categoryId).trim() || categoryId,
+      groupId: String(source.groupId || 'generated').trim() || 'generated',
+      groupName: String(source.groupName || '自动分类').trim() || '自动分类',
+      groupDescription: String(source.groupDescription || '').trim(),
+      icon: String(source.icon || '📚').trim() || '📚',
+      words
+    };
+  }
+
+  function normalizeCategoryAssignments(values) {
+    const byCategory = new Map();
+    (Array.isArray(values) ? values : []).forEach(value => {
+      const normalized = normalizeCategoryAssignment(value);
+      if (!normalized) return;
+      const existing = byCategory.get(normalized.categoryId);
+      if (!existing) {
+        byCategory.set(normalized.categoryId, normalized);
+        return;
+      }
+      const seen = new Set(existing.words);
+      normalized.words.forEach(word => {
+        if (seen.has(word)) return;
+        seen.add(word);
+        existing.words.push(word);
+      });
+      if ((!existing.categoryName || existing.categoryName === existing.categoryId) && normalized.categoryName) {
+        existing.categoryName = normalized.categoryName;
+      }
+      if ((!existing.groupName || existing.groupName === '自动分类') && normalized.groupName) {
+        existing.groupName = normalized.groupName;
+      }
+      if (!existing.groupDescription && normalized.groupDescription) existing.groupDescription = normalized.groupDescription;
+      if ((!existing.icon || existing.icon === '📚') && normalized.icon) existing.icon = normalized.icon;
+    });
+    return Array.from(byCategory.values());
+  }
+
   function normalizePackage(input) {
     const source = input && typeof input === 'object' ? input : {};
     const wordbook = source.wordbook && typeof source.wordbook === 'object' ? source.wordbook : {};
@@ -102,15 +154,19 @@
       seenRefs.add(normalized.wordKey);
       cardRefs.push(normalized);
     });
+    const normalizedWordbook = {
+      id: String(wordbook.id || '').trim(),
+      name: String(wordbook.name || '').trim(),
+      bookPurpose: wordbook.bookPurpose === 'support' ? 'support' : 'common',
+      description: String(wordbook.description || '').trim(),
+      cardRefs
+    };
+    if (Object.prototype.hasOwnProperty.call(wordbook, 'categoryAssignments')) {
+      normalizedWordbook.categoryAssignments = normalizeCategoryAssignments(wordbook.categoryAssignments);
+    }
     return {
       schemaVersion: 2,
-      wordbook: {
-        id: String(wordbook.id || '').trim(),
-        name: String(wordbook.name || '').trim(),
-        bookPurpose: wordbook.bookPurpose === 'support' ? 'support' : 'common',
-        description: String(wordbook.description || '').trim(),
-        cardRefs
-      },
+      wordbook: normalizedWordbook,
       masterPatch: {
         create: (Array.isArray(patch.create) ? patch.create : []).map(normalizeCardShape),
         setIfEmpty: normalizePatchOperations(patch.setIfEmpty),
@@ -345,6 +401,9 @@
     batch.bookType = 'reference';
     if (!Array.isArray(batch.sharedWith)) batch.sharedWith = [];
     if (wordbook.description) batch.description = wordbook.description;
+    if (Object.prototype.hasOwnProperty.call(wordbook, 'categoryAssignments')) {
+      batch.categoryAssignments = clone(wordbook.categoryAssignments);
+    }
 
     const nextRefs = opts.mergeRefs
       ? (Array.isArray(batch.cardRefs) ? batch.cardRefs : []).concat(audit.refs)
@@ -364,7 +423,8 @@
       filledFields: audit.setIfEmpty.length,
       appendedItems: audit.summary.appendUnique,
       skippedConflicts: audit.conflicts.length,
-      references: batch.cardRefs.length
+      references: batch.cardRefs.length,
+      categoryAssignments: Array.isArray(batch.categoryAssignments) ? batch.categoryAssignments.length : 0
     };
   }
 
@@ -403,15 +463,20 @@
       if (Object.keys(arrayFields).length) appendUnique.push({ wordKey, fields: arrayFields });
     });
 
+    const wordbookInput = {
+      id: wordbook && wordbook.id,
+      name: wordbook && wordbook.name,
+      bookPurpose: wordbook && wordbook.bookPurpose,
+      description: wordbook && wordbook.description,
+      cardRefs: refs
+    };
+    if (wordbook && Object.prototype.hasOwnProperty.call(wordbook, 'categoryAssignments')) {
+      wordbookInput.categoryAssignments = wordbook.categoryAssignments;
+    }
+
     return normalizePackage({
       schemaVersion: 2,
-      wordbook: {
-        id: wordbook && wordbook.id,
-        name: wordbook && wordbook.name,
-        bookPurpose: wordbook && wordbook.bookPurpose,
-        description: wordbook && wordbook.description,
-        cardRefs: refs
-      },
+      wordbook: wordbookInput,
       masterPatch: { create, setIfEmpty, appendUnique }
     });
   }
@@ -420,6 +485,7 @@
     CARD_FIELDS,
     ARRAY_FIELDS,
     normalizePackage,
+    normalizeCategoryAssignments,
     auditReferenceImport,
     applyReferenceImport,
     buildPackageFromCards,
