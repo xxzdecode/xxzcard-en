@@ -19,6 +19,9 @@ const rewardApi = {
   normalizeDay(value) {
     const raw = value && typeof value === 'object' ? value : {};
     const sources = { vocabularyChallenge: clamp(raw.sources?.vocabularyChallenge, 0, 10) };
+    const claims = raw.claims && typeof raw.claims === 'object'
+      ? clone(raw.claims)
+      : {};
     const teacherSourceOverrides = raw.teacherSourceOverrides && typeof raw.teacherSourceOverrides === 'object'
       ? { ...raw.teacherSourceOverrides }
       : {};
@@ -26,6 +29,7 @@ const rewardApi = {
       ...raw,
       coins: clamp(raw.coins, 0, 30),
       sources,
+      claims,
       teacherSourceOverrides
     };
   },
@@ -43,35 +47,33 @@ const rewardApi = {
       transactions: Array.isArray(raw.transactions) ? raw.transactions.slice() : []
     };
   },
-  applySourceReward(recordValue, options) {
+  markSourceClaim(recordValue, options) {
     const record = this.normalizeRewardRecord(recordValue);
     const day = this.normalizeDay(record.daily[options.date]);
     if (Object.prototype.hasOwnProperty.call(day.teacherSourceOverrides, options.source)) {
-      return { record, changed: false, delta: 0, projectDelta: 0, overridden: true };
+      return { record, changed: false, claim: null, overridden: true };
     }
-    const current = clamp(day.sources[options.source], 0, 10);
+    const currentClaim = day.claims[options.source] || {};
+    if (currentClaim.status === 'claimed') return { record, changed: false, claim: currentClaim };
+    const current = clamp(currentClaim.amount, 0, 10);
     const requested = clamp(options.amount, 0, 10);
     const next = options.mode === 'max' ? Math.max(current, requested) : requested;
-    const projectDelta = next - current;
-    if (!projectDelta) return { record, changed: false, delta: 0, projectDelta: 0 };
-    const delta = projectDelta;
+    const changed = next !== current || currentClaim.status !== (next > 0 ? 'pending' : 'completed');
+    if (!changed) return { record, changed: false, claim: currentClaim };
+    const claim = {
+      status: next > 0 ? 'pending' : 'completed',
+      amount: next,
+      mode: options.mode === 'max' ? 'max' : 'set',
+      completedAt: options.at || '',
+      claimedAt: '',
+      transactionId: ''
+    };
     record.daily[options.date] = {
       ...day,
-      coins: clamp(day.coins + delta, 0, 30),
-      sources: { ...day.sources, [options.source]: next },
+      claims: { ...day.claims, [options.source]: claim },
       updatedAt: options.at
     };
-    record.totalCoins += delta;
-    record.transactions.push({
-      id: `${options.date}:${options.source}:${options.at}`,
-      date: options.date,
-      source: options.source,
-      kind: 'earned',
-      delta,
-      projectDelta,
-      at: options.at
-    });
-    return { record, changed: true, delta, projectDelta };
+    return { record, changed: true, claim };
   }
 };
 
@@ -100,6 +102,7 @@ function rewardRecord(user, amount = 0, override) {
       [DATE]: {
         coins: amount,
         sources: { [SOURCE]: amount },
+        claims: amount > 0 ? { [SOURCE]: { status: 'claimed', amount } } : {},
         teacherSourceOverrides
       }
     },
@@ -147,15 +150,16 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
 }
 
 (async () => {
-  // Sister 10/10: source 0 -> 10 from the saved challenge state.
+  // Sister 10/10: completion creates a claim ticket without awarding coins.
   {
     const storage = createStorage({
       [settlement.rewardKey('sister')]: rewardRecord('sister', 0)
     });
     const result = await saveCompletedAndSettle(storage, 'sister', challengeState(10));
     assert.equal(result.ok, true);
-    assert.equal(result.projectDelta, 10);
-    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].sources[SOURCE], 10);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].sources[SOURCE], 0);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].amount, 10);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].status, 'pending');
     assert.equal(storage.rows.get(settlement.adventureKey('sister')).challengeDaily.rewardSettlement.status, 'settled');
   }
 
@@ -171,7 +175,7 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
       getValue: storage.getValue, setValue: storage.setValue
     });
     assert.equal(failed.ok, false);
-    assert.equal(failed.code, 'REWARD_SAVE_FAILED');
+    assert.equal(failed.code, 'CLAIM_SAVE_FAILED');
     assert.equal(storage.rows.get(adventureKey).challengeSession.status, 'completed');
     assert.equal(storage.rows.get(adventureKey).challengeDaily.rewardSettlement.status, 'pending');
     assert.equal(storage.rows.get(rewardKey).daily[DATE].sources[SOURCE], 0);
@@ -181,7 +185,8 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
       getValue: storage.getValue, setValue: storage.setValue
     });
     assert.equal(retried.ok, true);
-    assert.equal(storage.rows.get(rewardKey).daily[DATE].sources[SOURCE], 10);
+    assert.equal(storage.rows.get(rewardKey).daily[DATE].sources[SOURCE], 0);
+    assert.equal(storage.rows.get(rewardKey).daily[DATE].claims[SOURCE].amount, 10);
     assert.equal(storage.rows.get(adventureKey).challengeDaily.rewardSettlement.status, 'settled');
   }
 
@@ -191,7 +196,8 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
       [settlement.rewardKey('sister')]: rewardRecord('sister', 0)
     });
     const result = await saveCompletedAndSettle(storage, 'sister', challengeState(8));
-    assert.equal(result.audit.currentSource, 8);
+    assert.equal(result.audit.currentSource, 0);
+    assert.equal(result.audit.claimAmount, 8);
   }
 
   // Refresh, startup and reconciliation retries are idempotent.
@@ -212,10 +218,10 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     assert.equal(first.changed, true);
     assert.equal(second.changed, false);
     assert.equal(third.changed, false);
-    assert.equal(storage.rows.get(settlement.rewardKey('sister')).transactions.length, 1);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).transactions.length, 0);
   }
 
-  // 7/10 then 10/10 only tops up 3.
+  // 7/10 then 10/10 updates the one pending claim to the best score.
   {
     const storage = createStorage({
       [settlement.rewardKey('sister')]: rewardRecord('sister', 0)
@@ -223,9 +229,10 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     const seven = await saveCompletedAndSettle(storage, 'sister', challengeState(7));
     const previous = await storage.getValue(settlement.adventureKey('sister'));
     const ten = await saveCompletedAndSettle(storage, 'sister', challengeState(10), previous);
-    assert.equal(seven.projectDelta, 7);
-    assert.equal(ten.projectDelta, 3);
-    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].sources[SOURCE], 10);
+    assert.equal(seven.claim.amount, 7);
+    assert.equal(ten.claim.amount, 10);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].sources[SOURCE], 0);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].amount, 10);
   }
 
   // 10/10 then 8/10 keeps the daily maximum at 10.
@@ -237,7 +244,7 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     const previous = await storage.getValue(settlement.adventureKey('sister'));
     const lower = await saveCompletedAndSettle(storage, 'sister', challengeState(8), previous);
     assert.equal(lower.changed, false);
-    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].sources[SOURCE], 10);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].amount, 10);
   }
 
   // Sister settlement never reads or mutates brother reward data.
@@ -296,7 +303,8 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
       getValue: storage.getValue, setValue: storage.setValue
     });
     assert.equal(repaired.ok, true);
-    assert.equal(storage.rows.get(rewardKey).daily[DATE].sources[SOURCE], 10);
+    assert.equal(storage.rows.get(rewardKey).daily[DATE].sources[SOURCE], 0);
+    assert.equal(storage.rows.get(rewardKey).daily[DATE].claims[SOURCE].amount, 10);
     const transactionCount = storage.rows.get(rewardKey).transactions.length;
 
     const secondDiagnosis = await settlement.diagnoseVocabularyChallengeReward({
@@ -340,7 +348,7 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
   const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'studentVocabularyRewardSettlement.js'), 'utf8');
   const adapterSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'vocabularyAdventure.js'), 'utf8');
   const reconcileSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'studentRewardReconcile.js'), 'utf8');
-  assert.match(source, /applySourceReward/);
+  assert.match(source, /markSourceClaim/);
   assert.match(source, /mode:\s*'max'/);
   assert.doesNotMatch(source, /totalCoins\s*\+=\s*10/);
   assert.doesNotMatch(source, /querySelector\([^)]*summary-grid[^)]*\)/);

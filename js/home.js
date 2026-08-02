@@ -20,6 +20,9 @@ function applyStudentRewardRecord(reward) {
   renderStudentRewardSummary({
     available: Boolean(reward && Number.isFinite(Number(reward.totalCoins))),
     totalCoins: reward ? Number(reward.totalCoins) : 0,
+    challengeCoins: reward && reward.daily && typeof reward.daily === 'object'
+      ? Object.values(reward.daily).reduce((sum, item) => sum + Math.max(0, Number(item && item.breakthroughCoins) || 0), 0)
+      : 0,
     todayCoins: day && Number.isFinite(Number(day.coins)) ? Number(day.coins) : 0,
     todayMaxCoins: 30
   });
@@ -89,11 +92,13 @@ function renderStudentRewardSummary(summary) {
   const todayMaxCoins = Math.max(1, Number(settings.todayMaxCoins) || 30);
   const todayCoins = Math.max(0, Math.min(todayMaxCoins, Number(settings.todayCoins)));
   const total = document.getElementById('studentTotalCoins');
+  const challenge = document.getElementById('studentChallengeCoins');
   const today = document.getElementById('studentTodayCoins');
   const max = document.getElementById('studentTodayMaxCoins');
   const progress = document.getElementById('studentTodayCoinsProgress');
   const progressbar = progress && progress.parentElement;
   if (total) total.textContent = String(totalCoins);
+  if (challenge) challenge.textContent = String(Math.max(0, Number(settings.challengeCoins) || 0));
   if (today) today.textContent = String(todayCoins);
   if (max) max.textContent = String(todayMaxCoins);
   if (progress) progress.style.width = `${(todayCoins / todayMaxCoins) * 100}%`;

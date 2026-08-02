@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v50';
-const RUNTIME_CACHE = 'xxzcard-runtime-v50';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v51';
+const RUNTIME_CACHE = 'xxzcard-runtime-v51';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -8,7 +8,6 @@ const APP_SHELL = [
   './styles-vocabulary-adventure-v2.css',
   './styles-home-nav.css',
   './styles-student-home-dashboard.css',
-  './assets/student-home/card6/docs/student-home-tokens.css',
   './js/config.js',
   './js/state.js',
   './js/masterVocabularyLibrary.js',
@@ -38,14 +37,21 @@ const APP_SHELL = [
   './js/grammarChallengeRecords.js',
   './js/studentRewardLayoutGuard.js',
   './js/studentRewardReconcile.js',
-  './assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
-  './assets/student-home/card6/scenes/word-challenge-scene.webp',
-  './assets/student-home/card6/scenes/grammar-challenge-scene.webp',
-  './assets/student-home/card6/scenes/classroom-practice-scene.webp',
-  './assets/student-home/card6/scenes/new-word-guide-scene.webp',
-  './assets/student-home/card6/ui/section-titles/wood-plaque-blank.png',
-  './assets/student-home/card6/ui/coins-rewards/coin-large.png',
-  './assets/student-home/card6/ui/profile/learning-badge.png',
+  './js/studentVocabularyRewardSettlement.js',
+  './assets/student-home/home-v4/scenes/home-background.webp',
+  './assets/student-home/home-v4/scenes/vocabulary-adventure.webp',
+  './assets/student-home/home-v4/scenes/word-challenge.webp',
+  './assets/student-home/home-v4/scenes/grammar-challenge.webp',
+  './assets/student-home/home-v4/scenes/classroom-practice.webp',
+  './assets/student-home/home-v4/scenes/new-word-guide.webp',
+  './assets/student-home/home-v4/ui/section-plaque.png',
+  './assets/student-home/home-v4/ui/student-tag.png',
+  './assets/student-home/home-v4/ui/coin-total.png',
+  './assets/student-home/home-v4/ui/coin-challenge.png',
+  './assets/student-home/home-v4/ui/cleared-stamp.png',
+  './assets/student-home/home-v4/ui/chest-idle.png',
+  './assets/student-home/home-v4/ui/chest-opening.png',
+  './assets/student-home/home-v4/ui/chest-claimed.png',
   './assets/student-home/card6/ui/profile/sister-avatar.png',
   './assets/student-home/card6/ui/profile/brother-avatar.png',
   './assets/student-home/card6/ui/bottom-nav/word-card-icon.png',

@@ -17,7 +17,7 @@
     vocabularyChallenge: Object.freeze({ label: '单词挑战', baseAttempts: 2, rewardSource: 'vocabularyChallenge', sourceMax: 10 }),
     grammarChallenge: Object.freeze({ label: '语法挑战', baseAttempts: 1, rewardSource: 'grammarChallenge', sourceMax: 5 }),
     classroomPractice: Object.freeze({ label: '随堂练习', baseAttempts: 1, rewardSource: 'classroomPractice', sourceMax: 10 }),
-    breakthrough: Object.freeze({ label: '突破金币', baseAttempts: null, rewardSource: 'breakthrough', sourceMax: 10 })
+    breakthrough: Object.freeze({ label: '挑战金币', baseAttempts: null, rewardSource: 'breakthrough', sourceMax: 10 })
   });
   const ACTIVITY_PROJECT_KEYS = Object.freeze([
     'adventure',
@@ -554,7 +554,7 @@
           <div class="teacher-activity-panel__summary"><h2>金币与次数调整</h2><p id="teacherActivityCurrent">正在读取…</p></div>
           <div class="teacher-activity-selectors">
             <label><span>学生</span><select id="teacherActivityStudent"><option value="sister">姐姐</option><option value="brother">弟弟</option></select></label>
-            <label><span>项目</span><select id="teacherActivityProject"><option value="vocabularyChallenge">单词挑战</option><option value="grammarChallenge">语法挑战</option><option value="classroomPractice">随堂练习</option><option value="adventure">词汇探险</option><option value="breakthrough">突破金币</option></select></label>
+            <label><span>项目</span><select id="teacherActivityProject"><option value="vocabularyChallenge">单词挑战</option><option value="grammarChallenge">语法挑战</option><option value="classroomPractice">随堂练习</option><option value="adventure">词汇探险</option><option value="breakthrough">挑战金币</option></select></label>
           </div>
         </div>
         <div class="teacher-activity-actions">

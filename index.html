@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-vocabulary-adventure.css">
 <link rel="stylesheet" href="styles-home-nav.css" data-home-navigation-layout="three-columns">
-<link rel="stylesheet" href="styles-student-home-dashboard.css" data-student-home-dashboard="card6-v3">
+<link rel="stylesheet" href="styles-student-home-dashboard.css" data-student-home-dashboard="home-v4">
 </head>
 <body>
 
@@ -29,79 +29,109 @@
         <span class="student-summary-card__avatar" id="studentSummaryAvatar" aria-hidden="true">
           <img id="studentSummaryAvatarImage" src="assets/student-home/card6/ui/profile/sister-avatar.png" alt="" width="512" height="512" decoding="async">
         </span>
-        <span>
+        <span class="student-summary-card__identity-copy">
           <strong id="studentSummaryName">姐姐</strong>
-          <img class="student-summary-card__badge" src="assets/student-home/card6/ui/profile/learning-badge.png" alt="学习小达人" width="188" height="64" decoding="async">
+          <span class="student-summary-card__tag" id="studentSummaryTag">学习小达人</span>
         </span>
       </div>
       <div class="student-summary-card__rewards" id="studentRewardSummary">
         <span class="student-summary-card__pending" id="studentRewardUnavailable">
-          <img src="assets/student-home/card6/ui/coins-rewards/coin-large.png" alt="" width="64" height="68" decoding="async">
+          <img src="assets/student-home/home-v4/ui/coin-total.png" alt="" width="180" height="178" decoding="async">
           <span>金币统计准备中</span>
         </span>
         <div class="student-summary-card__values" id="studentRewardValues" hidden>
-          <span><small>累计金币</small><strong><img src="assets/student-home/card6/ui/coins-rewards/coin-large.png" alt="" width="64" height="68" decoding="async"><b id="studentTotalCoins">0</b></strong></span>
-          <span><small>今日金币</small><strong><b id="studentTodayCoins">0</b> / <b id="studentTodayMaxCoins">30</b></strong></span>
-          <span class="student-summary-card__progress" role="progressbar" aria-label="今日金币进度" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><i id="studentTodayCoinsProgress"></i></span>
+          <span class="student-summary-card__metric student-summary-card__metric--total">
+            <img src="assets/student-home/home-v4/ui/coin-total.png" alt="" width="180" height="178" decoding="async">
+            <span><small>累计金币</small><strong><b id="studentTotalCoins">0</b></strong></span>
+          </span>
+          <span class="student-summary-card__metric student-summary-card__metric--challenge">
+            <img src="assets/student-home/home-v4/ui/coin-challenge.png" alt="" width="175" height="180" decoding="async">
+            <span><small>挑战金币</small><strong><b id="studentChallengeCoins">0</b></strong></span>
+          </span>
+          <span class="student-summary-card__metric student-summary-card__metric--today">
+            <span><small>今日金币</small><strong><b id="studentTodayCoins">0</b> / <b id="studentTodayMaxCoins">30</b></strong></span>
+            <span class="student-summary-card__progress" role="progressbar" aria-label="今日金币进度" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><i id="studentTodayCoinsProgress"></i></span>
+          </span>
         </div>
       </div>
     </header>
 
     <section class="student-home-section student-home-section--review" aria-labelledby="studentReviewHeading">
       <h2 id="studentReviewHeading"><span>今日复习</span></h2>
-      <button class="student-home-card student-home-card--adventure" id="vocabularyAdventurePreviewEntry" type="button" onclick="openVocabularyAdventure()" aria-label="词汇探险，完成今日路线，完成即得10金币">
-        <span class="student-home-card__copy">
-          <strong id="vocabularyAdventureHomeTitle">词汇探险</strong>
-          <small id="vocabularyAdventureHomeSub">完成今日路线</small>
-          <em class="student-home-card__reward"><img src="assets/student-home/card6/ui/coins-rewards/coin-large.png" alt="" width="64" height="68" decoding="async">完成即得 10 金币</em>
-          <span class="student-home-card__status" id="vocabularyAdventureHomeStatus">未开始</span>
-        </span>
-        <img class="student-home-card__scene card6-art" src="assets/student-home/card6/scenes/vocabulary-adventure-scene.webp" alt="" width="960" height="480" decoding="async" fetchpriority="high">
-        <span class="student-home-card__route">摸底 <b>→</b> 抗遗忘</span>
-      </button>
+      <article class="student-home-card student-home-card--adventure" data-reward-source="adventure">
+        <button class="student-home-card__main" id="vocabularyAdventurePreviewEntry" type="button" onclick="openVocabularyAdventure()" aria-label="词汇探险，完成今日路线，完成可领取5金币">
+          <span class="student-home-card__copy">
+            <strong id="vocabularyAdventureHomeTitle">词汇探险</strong>
+            <small id="vocabularyAdventureHomeSub">完成今日路线</small>
+            <em class="student-home-card__reward">预计 5 金币</em>
+            <span class="student-home-card__status" id="vocabularyAdventureHomeStatus">未开始</span>
+          </span>
+          <img class="student-home-card__scene" src="assets/student-home/home-v4/scenes/vocabulary-adventure.webp" alt="" width="1280" height="960" decoding="async" fetchpriority="high">
+          <span class="student-home-card__route">摸底 <b>→</b> 抗遗忘</span>
+        </button>
+        <img class="student-home-card__stamp" src="assets/student-home/home-v4/ui/cleared-stamp.png" alt="已通关" width="320" height="311" decoding="async" hidden>
+        <button class="student-reward-chest" type="button" data-reward-source="adventure" aria-label="词汇探险宝箱，尚未完成" disabled>
+          <img src="assets/student-home/home-v4/ui/chest-idle.png" alt="" width="320" height="300" decoding="async">
+        </button>
+      </article>
     </section>
 
     <section class="student-home-section student-home-section--challenge" aria-labelledby="studentChallengeHeading">
       <h2 id="studentChallengeHeading"><span>挑战测验</span></h2>
       <div class="student-home-card-grid">
-        <button class="student-home-card student-home-card--compact student-home-card--word-challenge" id="vocabularyAdventureChallengeEntry" type="button" onclick="openVocabularyAdventureChallenge()" aria-label="单词挑战，10题综合测验，最高10金币">
-          <span class="student-home-card__copy">
-            <strong id="vocabularyAdventureChallengeHomeTitle">单词挑战</strong>
-            <small>10 题综合测验</small>
-            <em class="student-home-card__reward"><img src="assets/student-home/card6/ui/coins-rewards/coin-large.png" alt="" width="64" height="68" decoding="async">最高 10 金币</em>
-            <span class="student-home-card__status" id="vocabularyAdventureChallengeHomeSub">可以挑战</span>
-          </span>
-          <img class="student-home-card__scene card6-art" src="assets/student-home/card6/scenes/word-challenge-scene.webp" alt="" width="560" height="360" decoding="async" loading="lazy">
-        </button>
-        <button class="student-home-card student-home-card--compact student-home-card--grammar" id="grammarChallengeHomeEntry" type="button" onclick="openGrammarChallengeList()" aria-label="语法挑战，复习上一节课语法">
-          <span class="student-home-card__copy">
-            <strong>语法挑战</strong>
-            <small>复习上一节课语法</small>
-          </span>
-          <img class="student-home-card__scene card6-art" src="assets/student-home/card6/scenes/grammar-challenge-scene.webp" alt="" width="560" height="360" decoding="async" loading="lazy">
-        </button>
+        <article class="student-home-card student-home-card--compact student-home-card--word-challenge" data-reward-source="vocabularyChallenge">
+          <button class="student-home-card__main" id="vocabularyAdventureChallengeEntry" type="button" onclick="openVocabularyAdventureChallenge()" aria-label="单词挑战，10题综合测验，最高可领取10金币">
+            <span class="student-home-card__copy">
+              <strong id="vocabularyAdventureChallengeHomeTitle">单词挑战</strong>
+              <small>10 题综合测验</small>
+              <em class="student-home-card__reward">最高 10 金币</em>
+              <span class="student-home-card__status" id="vocabularyAdventureChallengeHomeSub">可以挑战</span>
+            </span>
+            <img class="student-home-card__scene" src="assets/student-home/home-v4/scenes/word-challenge.webp" alt="" width="1280" height="960" decoding="async" loading="lazy">
+          </button>
+          <img class="student-home-card__stamp" src="assets/student-home/home-v4/ui/cleared-stamp.png" alt="已通关" width="320" height="311" decoding="async" hidden>
+          <button class="student-reward-chest" type="button" data-reward-source="vocabularyChallenge" aria-label="单词挑战宝箱，尚未完成" disabled><img src="assets/student-home/home-v4/ui/chest-idle.png" alt="" width="320" height="300" decoding="async"></button>
+        </article>
+        <article class="student-home-card student-home-card--compact student-home-card--grammar" data-reward-source="grammarChallenge">
+          <button class="student-home-card__main" id="grammarChallengeHomeEntry" type="button" onclick="openGrammarChallengeList()" aria-label="语法挑战，复习上一节课语法，完成可领取5金币">
+            <span class="student-home-card__copy">
+              <strong>语法挑战</strong>
+              <small>复习上一节课语法</small>
+              <em class="student-home-card__reward">预计 5 金币</em>
+            </span>
+            <img class="student-home-card__scene" src="assets/student-home/home-v4/scenes/grammar-challenge.webp" alt="" width="1280" height="960" decoding="async" loading="lazy">
+          </button>
+          <img class="student-home-card__stamp" src="assets/student-home/home-v4/ui/cleared-stamp.png" alt="已通关" width="320" height="311" decoding="async" hidden>
+          <button class="student-reward-chest" type="button" data-reward-source="grammarChallenge" aria-label="语法挑战宝箱，尚未完成" disabled><img src="assets/student-home/home-v4/ui/chest-idle.png" alt="" width="320" height="300" decoding="async"></button>
+        </article>
       </div>
     </section>
 
     <section class="student-home-section student-home-section--lesson" aria-labelledby="studentLessonHeading">
       <h2 id="studentLessonHeading"><span>今日新课</span></h2>
       <div class="student-home-card-grid">
-        <button class="student-home-card student-home-card--compact student-home-card--classroom" id="studentClassroomPracticeEntry" type="button" onclick="openStudentClassroomPractice()" aria-label="随堂练习，今天可选一项，一天一次">
-          <span class="student-home-card__copy">
-            <strong>随堂练习</strong>
-            <small>20 题 · 两次机会</small>
-            <em class="student-home-card__reward"><img src="assets/student-home/card6/ui/coins-rewards/coin-large.png" alt="" width="64" height="68" decoding="async">最高 10 金币</em>
-            <span class="student-home-card__status" id="studentClassroomPracticeStatus">今天可选 1 项</span>
-          </span>
-          <img class="student-home-card__scene card6-art" src="assets/student-home/card6/scenes/classroom-practice-scene.webp" alt="" width="560" height="360" decoding="async" loading="lazy">
-        </button>
-        <button class="student-home-card student-home-card--compact student-home-card--tour" id="vocabularyTourHomeEntry" type="button" onclick="openVocabularyReviewList()" aria-label="新词导览，今天的新单词">
-          <span class="student-home-card__copy">
-            <strong>新词导览</strong>
-            <small>今天的新单词</small>
-          </span>
-          <img class="student-home-card__scene card6-art" src="assets/student-home/card6/scenes/new-word-guide-scene.webp" alt="" width="560" height="360" decoding="async" loading="lazy">
-        </button>
+        <article class="student-home-card student-home-card--compact student-home-card--classroom" data-reward-source="classroomPractice">
+          <button class="student-home-card__main" id="studentClassroomPracticeEntry" type="button" onclick="openStudentClassroomPractice()" aria-label="随堂练习，今天可选一项，一天一次">
+            <span class="student-home-card__copy">
+              <strong>随堂练习</strong>
+              <small>20 题 · 两次机会</small>
+              <em class="student-home-card__reward">最高 10 金币</em>
+              <span class="student-home-card__status" id="studentClassroomPracticeStatus">今天可选 1 项</span>
+            </span>
+            <img class="student-home-card__scene" src="assets/student-home/home-v4/scenes/classroom-practice.webp" alt="" width="1280" height="960" decoding="async" loading="lazy">
+          </button>
+          <img class="student-home-card__stamp" src="assets/student-home/home-v4/ui/cleared-stamp.png" alt="已通关" width="320" height="311" decoding="async" hidden>
+          <button class="student-reward-chest" type="button" data-reward-source="classroomPractice" aria-label="随堂练习宝箱，尚未完成" disabled><img src="assets/student-home/home-v4/ui/chest-idle.png" alt="" width="320" height="300" decoding="async"></button>
+        </article>
+        <article class="student-home-card student-home-card--compact student-home-card--tour">
+          <button class="student-home-card__main" id="vocabularyTourHomeEntry" type="button" onclick="openVocabularyReviewList()" aria-label="新词导览，今天的新单词">
+            <span class="student-home-card__copy">
+              <strong>新词导览</strong>
+              <small>今天的新单词</small>
+            </span>
+            <img class="student-home-card__scene" src="assets/student-home/home-v4/scenes/new-word-guide.webp" alt="" width="1280" height="960" decoding="async" loading="lazy">
+          </button>
+        </article>
       </div>
     </section>
     <div class="student-home-notice" id="studentHomeNotice" role="status" aria-live="polite" hidden></div>

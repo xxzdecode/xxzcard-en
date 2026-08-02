@@ -159,7 +159,7 @@
           : '今日挑战已准备';
     }
     if (grammar.entry) {
-      grammar.entry.setAttribute('aria-label', `语法挑战，复习${routeLabel(grammarRoute, '上一节课')}，一天一次，完成即得5金币`);
+      grammar.entry.setAttribute('aria-label', `语法挑战，复习${routeLabel(grammarRoute, '上一节课')}，一天一次，完成可领取5金币`);
     }
 
     if (classroom.title) classroom.title.textContent = '随堂练习';
@@ -173,7 +173,7 @@
           : '今日内容已准备';
     }
     if (classroom.entry) {
-      classroom.entry.setAttribute('aria-label', `随堂练习，${routeLabel(classroomRoute, '今日新课')}，一天一次，完成即得10金币`);
+      classroom.entry.setAttribute('aria-label', `随堂练习，${routeLabel(classroomRoute, '今日新课')}，一天一次，完成可领取10金币`);
     }
 
     setEntryState(grammar.entry, 'ready', false);
@@ -424,7 +424,8 @@
       correctCount: result.correctCount,
       totalCount: result.totalCount,
       answersShown: true,
-      rewarded: true
+      rewarded: false,
+      rewardPending: true
     };
     await saveGrammarRecord(user, record);
     if (typeof root.recordStudentRewardSource === 'function') {
@@ -491,7 +492,7 @@
 
     if (record && record.status === 'completed') {
       const scoreText = Number.isFinite(Number(record.score)) ? `，成绩 ${Number(record.score)} 分` : '';
-      showHomeNotice(`今天的语法挑战已经完成${scoreText}，今天不能重复作答或重复获得金币。`);
+      showHomeNotice(`今天的语法挑战已经完成${scoreText}，奖励请回首页点击宝箱领取。`);
       return;
     }
 

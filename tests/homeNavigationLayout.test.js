@@ -14,7 +14,7 @@ const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf
 const studentNav = html.match(/<nav class="bottom-feature-nav student-only"[\s\S]*?<\/nav>/)?.[0] || '';
 const teacherNav = html.match(/<nav class="teacher-home-nav teacher-only"[\s\S]*?<\/nav>/)?.[0] || '';
 const activeStudentNav = studentNav.replace(/<!--[\s\S]*?-->/g, '');
-const vocabularyTourEntry = html.match(/<button class="student-home-card[^"]*student-home-card--tour"[\s\S]*?<\/button>/)?.[0] || '';
+const vocabularyTourEntry = html.match(/<article class="student-home-card[^"]*student-home-card--tour"[\s\S]*?<\/article>/)?.[0] || '';
 
 assert.match(studentNav, /生词检验已停用/);
 assert.match(vocabularyTourEntry, /onclick="openVocabularyReviewList\(\)"/);

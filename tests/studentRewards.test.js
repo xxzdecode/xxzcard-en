@@ -113,6 +113,53 @@ const legacyAdventure = rewards.applySourceReward(legacyUnallocated, {
 assert.equal(legacyAdventure.record.daily[date].coins, 11, 'unclassified legacy coins must not be discarded');
 assert.equal(legacyAdventure.record.totalCoins, 11);
 
+const claimDate = '2026-08-02';
+const pendingAdventure = rewards.markSourceClaim(
+  { totalCoins: 20, daily: { [claimDate]: { coins: 0 } } },
+  {
+    date: claimDate,
+    source: 'adventure',
+    amount: 5,
+    mode: 'set',
+    at: '2026-08-02T08:00:00.000Z'
+  }
+);
+assert.equal(pendingAdventure.changed, true);
+assert.equal(pendingAdventure.record.totalCoins, 20, 'completing a module must not award coins');
+assert.equal(pendingAdventure.record.daily[claimDate].coins, 0);
+assert.equal(pendingAdventure.record.daily[claimDate].claims.adventure.status, 'pending');
+
+const claimedAdventure = rewards.claimSourceReward(pendingAdventure.record, {
+  date: claimDate,
+  source: 'adventure',
+  at: '2026-08-02T08:01:00.000Z'
+});
+assert.equal(claimedAdventure.record.totalCoins, 25);
+assert.equal(claimedAdventure.record.daily[claimDate].coins, 5);
+assert.equal(claimedAdventure.record.daily[claimDate].claims.adventure.status, 'claimed');
+assert.equal(claimedAdventure.record.transactions.at(-1).id, `${claimDate}:adventure:claim`);
+
+const duplicateClaim = rewards.claimSourceReward(claimedAdventure.record, {
+  date: claimDate,
+  source: 'adventure'
+});
+assert.equal(duplicateClaim.changed, false, 'refreshes and repeated clicks must not award twice');
+assert.equal(duplicateClaim.record.totalCoins, 25);
+assert.equal(duplicateClaim.record.transactions.length, claimedAdventure.record.transactions.length);
+
+const completedWithoutCoins = rewards.markSourceClaim(null, {
+  date: claimDate,
+  source: 'vocabularyChallenge',
+  amount: 0
+});
+assert.equal(completedWithoutCoins.record.daily[claimDate].claims.vocabularyChallenge.status, 'completed');
+assert.equal(rewards.claimSourceReward(completedWithoutCoins.record, {
+  date: claimDate,
+  source: 'vocabularyChallenge'
+}).changed, false);
+assert.equal(rewards.normalizeStudentTag('', 'sister'), '学习小达人');
+assert.equal(rewards.normalizeStudentTag('123456789012345', 'brother').length, rewards.STUDENT_TAG_MAX_LENGTH);
+
 assert.doesNotMatch(source, /observe\(document\.documentElement/, 'reward code must not observe the entire page');
 assert.doesNotMatch(source, /characterData\s*:\s*true/, 'reward observers must not react to their own text changes');
 assert.match(source, /vocabularyAdventureBody/);
