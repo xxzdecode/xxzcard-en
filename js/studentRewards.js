@@ -9,6 +9,12 @@
   'use strict';
 
   const REWARD_KEY_PREFIX = 'student_reward_v1_';
+  const STUDENT_TAG_KEY = 'student_home_tags_v1';
+  const STUDENT_TAG_MAX_LENGTH = 12;
+  const DEFAULT_STUDENT_TAGS = Object.freeze({
+    sister: '学习小达人',
+    brother: '学习小达人'
+  });
   const REGULAR_DAILY_MAX = 30;
   const BREAKTHROUGH_DAILY_MAX = 10;
   const DAILY_TOTAL_MAX = 40;
@@ -20,7 +26,7 @@
     classroomPractice: 10
   });
   const REWARD_PROJECTS = Object.freeze({
-    breakthrough: Object.freeze({ label: '突破金币', max: BREAKTHROUGH_DAILY_MAX, regular: false }),
+    breakthrough: Object.freeze({ label: '挑战金币', max: BREAKTHROUGH_DAILY_MAX, regular: false }),
     adventure: Object.freeze({ label: '词汇探险', max: SOURCE_MAX.adventure, regular: true }),
     vocabularyChallenge: Object.freeze({ label: '单词挑战', max: SOURCE_MAX.vocabularyChallenge, regular: true }),
     grammarChallenge: Object.freeze({ label: '语法挑战', max: SOURCE_MAX.grammarChallenge, regular: true }),
@@ -30,6 +36,7 @@
     { key: 'sister', name: '姐姐' },
     { key: 'brother', name: '弟弟' }
   ]);
+  const CLAIM_STATUSES = new Set(['idle', 'pending', 'claimed', 'completed']);
 
   function dateKey(value) {
     const date = value instanceof Date ? value : new Date(value || Date.now());
@@ -51,6 +58,29 @@
     );
   }
 
+  function normalizeStudentTag(value, user) {
+    const fallback = DEFAULT_STUDENT_TAGS[user === 'brother' ? 'brother' : 'sister'];
+    const text = String(value || '').trim();
+    return text ? text.slice(0, STUDENT_TAG_MAX_LENGTH) : fallback;
+  }
+
+  function normalizeClaim(value, source, awardedValue) {
+    const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const amount = clampInteger(raw.amount, 0, SOURCE_MAX[source]);
+    let status = CLAIM_STATUSES.has(raw.status) ? raw.status : 'idle';
+    const awarded = clampInteger(awardedValue, 0, SOURCE_MAX[source]);
+    if (status === 'idle' && awarded > 0) status = 'claimed';
+    if (status === 'pending' && amount === 0) status = 'completed';
+    return {
+      status,
+      amount,
+      mode: raw.mode === 'max' ? 'max' : 'set',
+      completedAt: typeof raw.completedAt === 'string' ? raw.completedAt : '',
+      claimedAt: typeof raw.claimedAt === 'string' ? raw.claimedAt : '',
+      transactionId: typeof raw.transactionId === 'string' ? raw.transactionId : ''
+    };
+  }
+
   function normalizeDay(value) {
     const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
     const rawSources = source.sources && typeof source.sources === 'object' && !Array.isArray(source.sources)
@@ -60,11 +90,16 @@
       && !Array.isArray(source.teacherSourceOverrides)
       ? source.teacherSourceOverrides
       : {};
+    const rawClaims = source.claims && typeof source.claims === 'object' && !Array.isArray(source.claims)
+      ? source.claims
+      : {};
     const hadTrackedSource = Object.keys(SOURCE_MAX).some(key => Number.isFinite(Number(rawSources[key])));
     const sources = {};
+    const claims = {};
     const teacherSourceOverrides = {};
     Object.keys(SOURCE_MAX).forEach(key => {
       sources[key] = clampInteger(rawSources[key], 0, SOURCE_MAX[key]);
+      claims[key] = normalizeClaim(rawClaims[key], key, sources[key]);
       if (Object.prototype.hasOwnProperty.call(rawOverrides, key)) {
         teacherSourceOverrides[key] = clampInteger(rawOverrides[key], 0, SOURCE_MAX[key]);
       }
@@ -78,6 +113,7 @@
       ...source,
       coins,
       sources,
+      claims,
       teacherSourceOverrides,
       unallocatedCoins,
       breakthroughCoins: clampInteger(source.breakthroughCoins, 0, BREAKTHROUGH_DAILY_MAX),
@@ -123,6 +159,10 @@
     if (!Object.prototype.hasOwnProperty.call(SOURCE_MAX, source)) {
       return { record, changed: false, delta: 0, projectDelta: 0 };
     }
+    const transactionId = String(settings.transactionId || '');
+    if (transactionId && record.transactions.some(transaction => transaction && transaction.id === transactionId)) {
+      return { record, changed: false, delta: 0, projectDelta: 0, duplicate: true };
+    }
     const day = normalizeDay(record.daily[date]);
     if (Object.prototype.hasOwnProperty.call(day.teacherSourceOverrides, source)) {
       return { record, changed: false, delta: 0, projectDelta: 0, overridden: true };
@@ -139,7 +179,7 @@
     record.daily[date] = { ...day, coins: nextCoins, sources: nextSources, updatedAt: now };
     record.totalCoins = Math.max(0, record.totalCoins + delta);
     record.transactions.push({
-      id: `${date}:${source}:${now}`,
+      id: transactionId || `${date}:${source}:${now}`,
       date,
       kind: 'earned',
       source,
@@ -149,6 +189,93 @@
     });
     record.transactions = record.transactions.slice(-100);
     return { record, changed: true, delta, projectDelta };
+  }
+
+  function markSourceClaim(recordValue, options) {
+    const settings = options && typeof options === 'object' ? options : {};
+    const record = normalizeRewardRecord(recordValue);
+    const date = String(settings.date || dateKey());
+    const source = String(settings.source || '');
+    if (!Object.prototype.hasOwnProperty.call(SOURCE_MAX, source)) {
+      return { record, changed: false, claim: null };
+    }
+    const day = normalizeDay(record.daily[date]);
+    const current = normalizeClaim(day.claims[source], source, day.sources[source]);
+    if (current.status === 'claimed' || current.status === 'completed') {
+      return { record, changed: false, claim: current };
+    }
+    const requested = clampInteger(settings.amount, 0, SOURCE_MAX[source]);
+    const amount = settings.mode === 'max' ? Math.max(current.amount, requested) : requested;
+    const now = String(settings.at || new Date().toISOString());
+    const claim = {
+      ...current,
+      status: amount > 0 ? 'pending' : 'completed',
+      amount,
+      mode: settings.mode === 'max' ? 'max' : 'set',
+      completedAt: current.completedAt || now
+    };
+    const changed = JSON.stringify(claim) !== JSON.stringify(current);
+    if (changed) {
+      record.daily[date] = {
+        ...day,
+        claims: { ...day.claims, [source]: claim },
+        updatedAt: now
+      };
+    }
+    return { record, changed, claim };
+  }
+
+  function claimSourceReward(recordValue, options) {
+    const settings = options && typeof options === 'object' ? options : {};
+    const record = normalizeRewardRecord(recordValue);
+    const date = String(settings.date || dateKey());
+    const source = String(settings.source || '');
+    if (!Object.prototype.hasOwnProperty.call(SOURCE_MAX, source)) {
+      return { record, changed: false, delta: 0, projectDelta: 0, code: 'INVALID_SOURCE' };
+    }
+    const day = normalizeDay(record.daily[date]);
+    const claim = normalizeClaim(day.claims[source], source, day.sources[source]);
+    if (claim.status !== 'pending' || claim.amount <= 0) {
+      return { record, changed: false, delta: 0, projectDelta: 0, claim, code: 'NOT_CLAIMABLE' };
+    }
+    const transactionId = claim.transactionId || `${date}:${source}:claim`;
+    const applied = applySourceReward(record, {
+      date,
+      source,
+      amount: claim.amount,
+      mode: claim.mode,
+      at: settings.at,
+      transactionId
+    });
+    const nextRecord = applied.record;
+    const nextDay = normalizeDay(nextRecord.daily[date]);
+    const now = String(settings.at || new Date().toISOString());
+    const claimed = {
+      ...claim,
+      status: 'claimed',
+      claimedAt: now,
+      transactionId
+    };
+    nextRecord.daily[date] = {
+      ...nextDay,
+      claims: { ...nextDay.claims, [source]: claimed },
+      updatedAt: now
+    };
+    return {
+      ...applied,
+      record: nextRecord,
+      changed: true,
+      claim: claimed,
+      code: 'CLAIMED'
+    };
+  }
+
+  function totalChallengeCoins(recordValue) {
+    const record = normalizeRewardRecord(recordValue);
+    return Object.values(record.daily).reduce(
+      (sum, day) => sum + clampInteger(day && day.breakthroughCoins, 0, BREAKTHROUGH_DAILY_MAX),
+      0
+    );
   }
 
   function applyBreakthroughAdjustment(recordValue, options) {
@@ -261,6 +388,7 @@
     let voiceCache = null;
     let coursewareHookTimer = null;
     let coursewareHookAttempts = 0;
+    let studentTagsCache = null;
 
     function currentUserValue() {
       try { return typeof currentUser !== 'undefined' ? currentUser : root.currentUser; }
@@ -315,21 +443,6 @@
       const style = document.createElement('style');
       style.id = 'studentRewardEnhancementStyles';
       style.textContent = `
-        .student-summary-card{justify-content:flex-start}
-        .student-summary-card__rewards{order:1;min-width:300px;margin:0;color:#5f7182}
-        .student-summary-card__identity{order:2;margin-left:10px;flex:1;min-width:0}
-        .student-summary-card__identity-copy{min-width:0;display:grid;gap:5px}
-        .student-summary-card__name-line{display:flex;align-items:center;gap:9px;min-width:0}
-        .student-summary-card__total{display:inline-flex!important;align-items:center;gap:4px;padding:4px 8px;border-radius:999px;background:#fff8df;white-space:nowrap}
-        .student-summary-card__total small{font-size:10px;color:#8a7442}.student-summary-card__total strong{font-size:15px;color:#9a6a13}
-        .student-summary-card__total img{width:17px!important;height:18px!important;object-fit:contain}
-        .student-summary-card__values:not([hidden]){display:flex;align-items:center;gap:14px}
-        .student-summary-card__values[hidden]{display:none!important}
-        .student-today-value{display:grid!important;grid-template-columns:auto 112px;align-items:center;gap:9px;min-width:205px}
-        .student-today-value__copy,.student-breakthrough-value{display:grid!important;gap:1px}
-        .student-today-value .student-summary-card__progress{grid-column:2;width:112px;height:7px}
-        .student-breakthrough-value{min-width:78px;padding-left:12px;border-left:1px solid #d9e3e6}
-        .student-breakthrough-value strong{display:flex;align-items:baseline;gap:3px;color:#7a568c}
         .teacher-reward-panel{width:min(900px,calc(100% - 24px));margin:12px auto 28px;padding:12px 14px;border:1px solid #eadde6;border-radius:16px;background:#fff;box-shadow:0 6px 18px rgba(80,55,75,.07)}
         .teacher-reward-panel__row{display:grid;grid-template-columns:minmax(190px,.75fr) minmax(0,1.7fr);gap:14px;align-items:end}
         .teacher-reward-panel__summary{min-width:0;align-self:center}.teacher-reward-panel h2{margin:0;color:#6b4e7a;font-size:18px}.teacher-reward-panel p{margin:5px 0 0;color:#847780;font-size:13px}
@@ -337,62 +450,189 @@
         .teacher-reward-controls label{display:grid;gap:4px;min-width:0;font-size:11px;color:#7f727b}.teacher-reward-controls select,.teacher-reward-controls input{width:100%;height:40px;border:1px solid #dfd1da;border-radius:10px;padding:6px 9px;background:#fff;color:#594f56;font:inherit}
         .teacher-reward-controls button{height:40px;border:0;border-radius:10px;padding:6px 10px;font-weight:800;cursor:pointer}.teacher-reward-add{background:#a8d8c8;color:#244e42}.teacher-reward-subtract{background:#f6d6dd;color:#7c3d50}
         #teacherRewardStatus{min-height:18px;margin-top:7px;text-align:right;font-size:12px;font-weight:700;color:#5f9f8c}
+        .teacher-student-tag-panel{width:min(900px,calc(100% - 24px));margin:-16px auto 28px;padding:12px 14px;border:1px solid #dce7ee;border-radius:16px;background:#fff;box-shadow:0 6px 18px rgba(55,85,105,.07)}
+        .teacher-student-tag-panel h2{margin:0 0 10px;color:#315f80;font-size:18px}.teacher-student-tag-controls{display:grid;grid-template-columns:1fr 1fr 88px;gap:10px;align-items:end}
+        .teacher-student-tag-controls label{display:grid;gap:4px;color:#657783;font-size:12px;font-weight:700}.teacher-student-tag-controls input{height:40px;border:1px solid #cfdee6;border-radius:10px;padding:6px 10px;font:inherit}
+        .teacher-student-tag-controls button{height:40px;border:0;border-radius:10px;background:#5b96be;color:#fff;font-weight:850;cursor:pointer}.teacher-student-tag-status{min-height:18px;margin-top:7px;color:#4d8b70;font-size:12px;font-weight:700;text-align:right}
         .vocabulary-adventure-earned-coins{font-size:clamp(24px,4vw,42px);font-weight:900;color:#b77a1d;margin:12px 0}
-        @media(max-width:760px){.student-summary-card{flex-wrap:wrap}.student-summary-card__rewards{min-width:100%;width:100%}.student-summary-card__identity{margin-left:0}.student-summary-card__values:not([hidden]){justify-content:space-between}.student-today-value{min-width:0;flex:1}.teacher-reward-panel__row{grid-template-columns:1fr}.teacher-reward-controls{grid-template-columns:1fr 1.2fr 72px 62px 62px}}
-        @media(min-width:768px) and (max-width:1366px) and (orientation:landscape){.student-summary-card__rewards{min-width:285px}.student-today-value{min-width:185px;grid-template-columns:auto 92px}.student-today-value .student-summary-card__progress{width:92px}.student-summary-card__identity{margin-left:7px}}
+        @media(max-width:760px){.teacher-reward-panel__row{grid-template-columns:1fr}.teacher-reward-controls{grid-template-columns:1fr 1.2fr 72px 62px 62px}.teacher-student-tag-controls{grid-template-columns:1fr}}
       `;
       document.head.appendChild(style);
     }
 
     function prepareSummaryMarkup() {
-      const header = document.querySelector('.student-summary-card');
       const identity = document.querySelector('.student-summary-card__identity');
-      const values = document.getElementById('studentRewardValues');
-      const rewards = document.getElementById('studentRewardSummary');
-      if (!header || !identity || !values || !rewards) return;
-      if (header.firstElementChild !== rewards) header.insertBefore(rewards, identity);
+      if (!identity) return;
       const identityCopy = identity.lastElementChild;
       if (identityCopy) identityCopy.classList.add('student-summary-card__identity-copy');
-      const name = document.getElementById('studentSummaryName');
-      const total = document.getElementById('studentTotalCoins')?.closest('span');
-      if (identityCopy && name && total && !identityCopy.querySelector('.student-summary-card__name-line')) {
-        const line = document.createElement('div');
-        line.className = 'student-summary-card__name-line';
-        identityCopy.insertBefore(line, identityCopy.firstChild);
-        line.append(name, total);
-        total.classList.add('student-summary-card__total');
+    }
+
+    function normalizedStudentTags(value) {
+      const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+      return {
+        sister: normalizeStudentTag(source.sister, 'sister'),
+        brother: normalizeStudentTag(source.brother, 'brother')
+      };
+    }
+
+    async function loadStudentTags() {
+      const local = root.getMirrorValue?.(STUDENT_TAG_KEY);
+      if (local) studentTagsCache = normalizedStudentTags(local);
+      if (typeof root.sbGet !== 'function') {
+        return studentTagsCache || normalizedStudentTags(null);
       }
-      const today = document.getElementById('studentTodayCoins')?.closest('span');
-      const progress = document.getElementById('studentTodayCoinsProgress')?.parentElement;
-      if (today && progress && !today.classList.contains('student-today-value')) {
-        today.classList.add('student-today-value');
-        const copy = document.createElement('span');
-        copy.className = 'student-today-value__copy';
-        while (today.firstChild) copy.appendChild(today.firstChild);
-        today.append(copy, progress);
+      try {
+        studentTagsCache = normalizedStudentTags(await root.sbGet(STUDENT_TAG_KEY));
+      } catch (_) {
+        studentTagsCache ||= normalizedStudentTags(null);
       }
-      if (!document.getElementById('studentBreakthroughCoins')) {
-        const row = document.createElement('span');
-        row.className = 'student-breakthrough-value';
-        row.innerHTML = '<small>突破金币</small><strong><b id="studentBreakthroughCoins">0</b> / <b>10</b></strong>';
-        values.appendChild(row);
-      }
+      return studentTagsCache;
     }
 
     function prepareHomeRewardCopy() {
       const adventure = document.querySelector('#vocabularyAdventurePreviewEntry .student-home-card__reward');
-      if (adventure) adventure.innerHTML = '<img src="assets/student-home/card6/ui/coins-rewards/coin-large.png" alt="" width="64" height="68" decoding="async">完成即得 5 金币';
-      document.getElementById('vocabularyAdventurePreviewEntry')?.setAttribute('aria-label', '词汇探险，完成今日路线，完成即得5金币');
+      if (adventure) adventure.textContent = '预计 5 金币';
+      document.getElementById('vocabularyAdventurePreviewEntry')?.setAttribute('aria-label', '词汇探险，完成今日路线，完成可领取5金币');
       const grammarEntry = document.getElementById('grammarChallengeHomeEntry');
       const grammarCopy = grammarEntry?.querySelector('.student-home-card__copy');
-      if (grammarCopy && !document.getElementById('grammarChallengeHomeReward')) {
+      if (grammarCopy && !grammarCopy.querySelector('.student-home-card__reward')) {
         const reward = document.createElement('em');
         reward.id = 'grammarChallengeHomeReward';
         reward.className = 'student-home-card__reward';
-        reward.innerHTML = '<img src="assets/student-home/card6/ui/coins-rewards/coin-large.png" alt="" width="64" height="68" decoding="async">完成即得 5 金币';
+        reward.textContent = '预计 5 金币';
         grammarCopy.appendChild(reward);
       }
-      grammarEntry?.setAttribute('aria-label', '语法挑战，复习上一节课语法，完成即得5金币');
+      grammarEntry?.setAttribute('aria-label', '语法挑战，复习上一节课语法，完成可领取5金币');
+    }
+
+    function renderStudentIdentity(user) {
+      const student = user === 'brother' ? 'brother' : 'sister';
+      const tag = document.getElementById('studentSummaryTag');
+      const configured = studentTagsCache ? studentTagsCache[student] : '';
+      if (tag) {
+        tag.textContent = normalizeStudentTag(configured, student);
+        tag.title = tag.textContent;
+      }
+    }
+
+    function homeClaimState(claim) {
+      if (claim && claim.status === 'pending' && claim.amount > 0) return 'pending';
+      if (claim && claim.status === 'claimed') return 'claimed';
+      return 'idle';
+    }
+
+    function renderHomeClaimStates(recordValue) {
+      const record = normalizeRewardRecord(recordValue);
+      const day = normalizeDay(record.daily[dateKey()]);
+      const completionStatusIds = {
+        adventure: 'vocabularyAdventureHomeStatus',
+        challenge: 'vocabularyAdventureChallengeHomeSub',
+        classroom: 'studentClassroomPracticeStatus',
+      };
+      Object.keys(SOURCE_MAX).forEach(source => {
+        const card = document.querySelector(`.student-home-card[data-reward-source="${source}"]`);
+        if (!card) return;
+        const claim = normalizeClaim(day.claims[source], source, day.sources[source]);
+        const state = homeClaimState(claim);
+        const completed = claim.status !== 'idle';
+        card.dataset.rewardState = state;
+        card.dataset.completed = completed ? 'true' : 'false';
+        const completionStatus = document.getElementById(completionStatusIds[source]);
+        if (completed && completionStatus) {
+          completionStatus.textContent = state === 'pending' ? '已通关 · 待领取' : '今日已通关';
+        }
+        const stamp = card.querySelector('.student-home-card__stamp');
+        if (stamp) stamp.hidden = !completed;
+        const chest = card.querySelector('.student-reward-chest');
+        const image = chest?.querySelector('img');
+        if (!chest || !image) return;
+        chest.dataset.state = state;
+        chest.disabled = state !== 'pending';
+        image.src = state === 'claimed'
+          ? 'assets/student-home/home-v4/ui/chest-claimed.png'
+          : 'assets/student-home/home-v4/ui/chest-idle.png';
+        const label = REWARD_PROJECTS[source].label;
+        chest.setAttribute(
+          'aria-label',
+          state === 'pending'
+            ? `${label}宝箱，待领取 ${claim.amount} 金币`
+            : state === 'claimed'
+              ? `${label}宝箱，奖励已领取`
+              : completed
+                ? `${label}宝箱，本次没有可领取金币`
+                : `${label}宝箱，尚未完成`
+        );
+      });
+      return record;
+    }
+
+    function showHomeNotice(message) {
+      const notice = document.getElementById('studentHomeNotice');
+      if (!notice) return;
+      notice.textContent = message;
+      notice.hidden = false;
+      root.setTimeout(() => {
+        if (notice.textContent === message) notice.hidden = true;
+      }, 2400);
+    }
+
+    function animateClaim(button) {
+      const image = button?.querySelector('img');
+      if (!button || !image) return;
+      button.dataset.state = 'opening';
+      image.src = 'assets/student-home/home-v4/ui/chest-opening.png';
+      if (root.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+      const target = document.querySelector('.student-summary-card__metric--total img');
+      if (!target) return;
+      const from = button.getBoundingClientRect();
+      const to = target.getBoundingClientRect();
+      const coin = document.createElement('img');
+      coin.className = 'student-reward-coin-flight';
+      coin.src = 'assets/student-home/home-v4/ui/coin-total.png';
+      coin.alt = '';
+      coin.style.setProperty('--coin-from-x', `${from.left + from.width * .45}px`);
+      coin.style.setProperty('--coin-from-y', `${from.top + from.height * .35}px`);
+      coin.style.setProperty('--coin-to-x', `${to.left + to.width * .3}px`);
+      coin.style.setProperty('--coin-to-y', `${to.top + to.height * .3}px`);
+      document.body.appendChild(coin);
+      coin.addEventListener('animationend', () => coin.remove(), { once: true });
+    }
+
+    async function claimHomeReward(source, button) {
+      if (!Object.prototype.hasOwnProperty.call(SOURCE_MAX, source) || button?.dataset.claiming === 'true') return;
+      const student = currentUserValue() === 'brother' ? 'brother' : 'sister';
+      if (button) {
+        button.dataset.claiming = 'true';
+        button.disabled = true;
+      }
+      const current = await loadReward(student);
+      const result = claimSourceReward(current, { date: dateKey(), source });
+      if (!result.changed) {
+        renderEnhancedReward(result.record);
+        if (button) delete button.dataset.claiming;
+        return;
+      }
+      animateClaim(button);
+      if (!await saveReward(student, result.record)) {
+        renderEnhancedReward(current);
+        showHomeNotice('领取未完成，请检查网络后重试');
+        if (button) delete button.dataset.claiming;
+        return;
+      }
+      renderEnhancedReward(result.record);
+      showHomeNotice(`已领取 ${result.claim.amount} 金币`);
+      if (button) delete button.dataset.claiming;
+    }
+
+    function installChestHandlers() {
+      document.querySelectorAll('.student-reward-chest').forEach(button => {
+        if (button.dataset.handlerInstalled) return;
+        button.dataset.handlerInstalled = 'true';
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          claimHomeReward(button.dataset.rewardSource, button);
+        });
+      });
     }
 
     function renderEnhancedReward(recordValue) {
@@ -403,11 +643,12 @@
       root.renderStudentRewardSummary?.({
         available: true,
         totalCoins: record.totalCoins,
+        challengeCoins: totalChallengeCoins(record),
         todayCoins: day.coins,
         todayMaxCoins: REGULAR_DAILY_MAX
       });
-      const breakthrough = document.getElementById('studentBreakthroughCoins');
-      if (breakthrough) breakthrough.textContent = String(day.breakthroughCoins);
+      renderStudentIdentity(currentUserValue());
+      renderHomeClaimStates(record);
       return record;
     }
 
@@ -416,14 +657,16 @@
       await ensureInitialBreakthrough();
       const user = currentUserValue() === 'brother' ? 'brother' : 'sister';
       const local = root.getMirrorValue?.(rewardKey(user));
+      studentTagsCache = normalizedStudentTags(root.getMirrorValue?.(STUDENT_TAG_KEY));
       if (local) renderEnhancedReward(local);
-      renderEnhancedReward(await loadReward(user));
+      const [record] = await Promise.all([loadReward(user), loadStudentTags()]);
+      renderEnhancedReward(record);
     }
 
     async function recordSource(user, source, amount, mode) {
       const student = user === 'brother' ? 'brother' : 'sister';
       const current = await loadReward(student);
-      const result = applySourceReward(current, { date: dateKey(), source, amount, mode: mode === 'max' ? 'max' : 'set' });
+      const result = markSourceClaim(current, { date: dateKey(), source, amount, mode: mode === 'max' ? 'max' : 'set' });
       if (result.changed && !await saveReward(student, result.record)) {
         return { ok: false, record: current, delta: 0, projectDelta: 0 };
       }
@@ -506,7 +749,7 @@
           <div class="teacher-reward-panel__summary"><h2>金币调整</h2><p id="teacherRewardCurrent">正在读取今日金币…</p></div>
           <div class="teacher-reward-controls">
             <label><span>学生</span><select id="teacherRewardStudent"><option value="sister">姐姐</option><option value="brother">弟弟</option></select></label>
-            <label><span>项目</span><select id="teacherRewardProject"><option value="breakthrough">突破金币</option><option value="adventure">词汇探险</option><option value="vocabularyChallenge">单词挑战</option><option value="grammarChallenge">语法挑战</option><option value="classroomPractice">随堂练习</option></select></label>
+            <label><span>项目</span><select id="teacherRewardProject"><option value="breakthrough">挑战金币</option><option value="adventure">词汇探险</option><option value="vocabularyChallenge">单词挑战</option><option value="grammarChallenge">语法挑战</option><option value="classroomPractice">随堂练习</option></select></label>
             <label><span>数量</span><input id="teacherRewardAmount" type="number" min="1" max="10" value="1" inputmode="numeric"></label>
             <button type="button" class="teacher-reward-add" id="teacherRewardAdd">增加</button>
             <button type="button" class="teacher-reward-subtract" id="teacherRewardSubtract">扣除</button>
@@ -518,6 +761,81 @@
       document.getElementById('teacherRewardAdd')?.addEventListener('click', () => applyTeacherAdjustment(1));
       document.getElementById('teacherRewardSubtract')?.addEventListener('click', () => applyTeacherAdjustment(-1));
       refreshTeacherPanel();
+    }
+
+    function configuredStudentTag(user) {
+      return normalizeStudentTag(studentTagsCache && studentTagsCache[user], user);
+    }
+
+    async function saveStudentTags() {
+      const status = document.getElementById('teacherStudentTagStatus');
+      const button = document.getElementById('teacherStudentTagSave');
+      const values = {};
+      for (const student of STUDENTS) {
+        const input = document.getElementById(`teacherStudentTag${student.key === 'brother' ? 'Brother' : 'Sister'}`);
+        const value = String(input?.value || '').trim();
+        if (value.length > STUDENT_TAG_MAX_LENGTH) {
+          if (status) status.textContent = `${student.name}的小标签最多 ${STUDENT_TAG_MAX_LENGTH} 个字符`;
+          input?.focus();
+          return;
+        }
+        values[student.key] = normalizeStudentTag(value, student.key);
+      }
+      if (button) button.disabled = true;
+      if (status) status.textContent = '正在保存…';
+      try {
+        if (typeof root.sbSet !== 'function') {
+          if (status) status.textContent = '保存失败，请检查网络后重试';
+          return;
+        }
+        await root.sbSet(STUDENT_TAG_KEY, values);
+        studentTagsCache = normalizedStudentTags(values);
+        STUDENTS.forEach(student => {
+          const input = document.getElementById(`teacherStudentTag${student.key === 'brother' ? 'Brother' : 'Sister'}`);
+          if (input) delete input.dataset.dirty;
+        });
+        if (status) status.textContent = '学生小标签已保存';
+      } catch (error) {
+        root.showStorageError?.(error);
+        if (status) status.textContent = '保存失败，请检查网络后重试';
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    function installStudentTagPanel() {
+      if (!root.isTeacher?.()) return;
+      const rewardPanel = document.getElementById('teacherRewardPanel');
+      if (!rewardPanel) return;
+      let panel = document.getElementById('teacherStudentTagPanel');
+      if (!panel) {
+        panel = document.createElement('section');
+        panel.id = 'teacherStudentTagPanel';
+        panel.className = 'teacher-student-tag-panel teacher-only';
+        panel.innerHTML = `
+          <h2>学生首页小标签</h2>
+          <div class="teacher-student-tag-controls">
+            <label><span>姐姐</span><input id="teacherStudentTagSister" type="text" maxlength="${STUDENT_TAG_MAX_LENGTH}" autocomplete="off"></label>
+            <label><span>弟弟</span><input id="teacherStudentTagBrother" type="text" maxlength="${STUDENT_TAG_MAX_LENGTH}" autocomplete="off"></label>
+            <button id="teacherStudentTagSave" type="button">保存</button>
+          </div>
+          <div class="teacher-student-tag-status" id="teacherStudentTagStatus" role="status" aria-live="polite"></div>`;
+        rewardPanel.insertAdjacentElement('afterend', panel);
+        document.getElementById('teacherStudentTagSave')?.addEventListener('click', saveStudentTags);
+        ['teacherStudentTagSister', 'teacherStudentTagBrother'].forEach(id => {
+          document.getElementById(id)?.addEventListener('input', event => {
+            event.currentTarget.dataset.dirty = 'true';
+          });
+        });
+      }
+      const sister = document.getElementById('teacherStudentTagSister');
+      const brother = document.getElementById('teacherStudentTagBrother');
+      if (sister && sister.dataset.dirty !== 'true') sister.value = configuredStudentTag('sister');
+      if (brother && brother.dataset.dirty !== 'true') brother.value = configuredStudentTag('brother');
+      loadStudentTags().then(tags => {
+        if (sister && sister.dataset.dirty !== 'true') sister.value = tags.sister;
+        if (brother && brother.dataset.dirty !== 'true') brother.value = tags.brother;
+      });
     }
 
     function refreshVoiceCache() {
@@ -566,9 +884,9 @@
       summary.dataset.rewardHandled = 'pending';
       const result = await recordSource(currentUserValue(), 'adventure', SOURCE_MAX.adventure, 'set');
       summary.dataset.rewardHandled = result.ok ? 'done' : 'failed';
-      summary.innerHTML = `<div class="vocabulary-adventure-terminal-icon">🪙</div><h2>今天的词汇探险完成了</h2><p class="vocabulary-adventure-earned-coins">${result.ok ? '获得 5 金币' : '奖励正在补发'}</p><p>可以返回首页查看最新金币。</p>`;
+      summary.innerHTML = `<div class="vocabulary-adventure-terminal-icon">🪙</div><h2>今天的词汇探险完成了</h2><p class="vocabulary-adventure-earned-coins">${result.ok ? '预计可获得 5 金币' : '完成状态正在保存'}</p><p>返回首页后，点击词汇探险宝箱领取。</p>`;
       const feedback = document.getElementById('vocabularyAdventureFeedbackText');
-      if (feedback) feedback.textContent = result.ok ? '今日探险已保存完成' : '学习进度已保存，金币稍后补发';
+      if (feedback) feedback.textContent = result.ok ? '今日探险已保存完成，奖励等待领取' : '学习进度已保存，奖励状态稍后同步';
     }
 
     async function handleChallengeSummary(summary) {
@@ -585,8 +903,8 @@
         summary.querySelector('h2')?.insertAdjacentElement('afterend', reward);
       }
       reward.textContent = result.ok
-        ? `今日挑战金币 ${normalizeDay(result.record.daily[dateKey()]).sources.vocabularyChallenge} / 10`
-        : '挑战成绩已保存，金币稍后补发';
+        ? `预计可获得 ${correct} 金币，返回首页点击宝箱领取`
+        : '挑战成绩已保存，奖励状态稍后同步';
     }
 
     function scanAdventureUi() {
@@ -658,6 +976,7 @@
     installStyles();
     prepareSummaryMarkup();
     prepareHomeRewardCopy();
+    installChestHandlers();
     installScopedAdventureObservers();
     installGrammarRewardHook();
 
@@ -682,11 +1001,16 @@
       root.loadHome = async function enhancedLoadHome(...args) {
         prepareSummaryMarkup();
         prepareHomeRewardCopy();
+        installChestHandlers();
         const result = await originalLoadHome.apply(this, args);
-        if (root.isTeacher?.()) installTeacherPanel();
+        if (root.isTeacher?.()) {
+          installTeacherPanel();
+          installStudentTagPanel();
+        }
         else {
           prepareSummaryMarkup();
           prepareHomeRewardCopy();
+          installChestHandlers();
         }
         return result;
       };
@@ -703,17 +1027,25 @@
 
   return Object.freeze({
     REWARD_KEY_PREFIX,
+    STUDENT_TAG_KEY,
     REGULAR_DAILY_MAX,
     BREAKTHROUGH_DAILY_MAX,
     DAILY_TOTAL_MAX,
     INITIAL_BREAKTHROUGH_DATE,
     SOURCE_MAX,
     REWARD_PROJECTS,
+    STUDENT_TAG_MAX_LENGTH,
+    DEFAULT_STUDENT_TAGS,
     dateKey,
     clampInteger,
+    normalizeStudentTag,
+    normalizeClaim,
     normalizeDay,
     normalizeRewardRecord,
     applySourceReward,
+    markSourceClaim,
+    claimSourceReward,
+    totalChallengeCoins,
     applyBreakthroughAdjustment,
     applyRewardAdjustment,
     seedInitialBreakthrough,

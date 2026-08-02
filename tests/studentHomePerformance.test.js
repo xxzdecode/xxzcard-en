@@ -33,9 +33,10 @@ assert.match(state, /finishInitialAppBoot/);
 assert.match(state, /setTimeout\(finishInitialAppBoot, 8000\)/);
 assert.match(state, /requestAnimationFrame/);
 
-assert.match(styles, /#screenHome\.active\s*\{[^}]*height:\s*100dvh[^}]*overflow:\s*hidden/s);
+assert.match(styles, /@media \(min-width: 768px\)[\s\S]*?#screenHome\.active\s*\{[^}]*height:\s*100dvh[^}]*overflow:\s*hidden/s);
 assert.match(styles, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-assert.match(styles, /grid-template-rows:\s*64px\s+minmax\(0,\s*1fr\)/);
+assert.match(styles, /grid-template-rows:\s*37px\s+minmax\(0,\s*1fr\)\s+62px/);
+assert.match(styles, /grid-template-columns:\s*1\.55fr\s+1fr\s+1fr/);
 assert.doesNotMatch(
   styles.match(/@media \(min-width: 768px\)[\s\S]*?@media \(min-width: 768px\) and \(orientation: portrait\)/)?.[0] || '',
   /clamp\(300px|clamp\(245px/
@@ -67,8 +68,8 @@ assert.match(adventureVisual, /function ensureLayoutStylesheet\(\)/);
 assert.match(adventureVisual, /if \(!root \|\| !ensureLayoutStylesheet\(\)\) return/);
 assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v50/);
-assert.match(serviceWorker, /xxzcard-runtime-v50/);
+assert.match(serviceWorker, /xxzcard-app-shell-v51/);
+assert.match(serviceWorker, /xxzcard-runtime-v51/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -119,13 +120,14 @@ assert.match(serviceWorker, /const cached = await cache\.match\(request\)/);
 assert.match(serviceWorker, /requestUrl\.pathname === appRoot\.pathname/);
 
 for (const [name, maxBytes] of [
-  ['vocabulary-adventure-scene.webp', 210000],
-  ['word-challenge-scene.webp', 200000],
-  ['grammar-challenge-scene.webp', 200000],
-  ['classroom-practice-scene.webp', 200000],
-  ['new-word-guide-scene.webp', 200000]
+  ['home-background.webp', 180000],
+  ['vocabulary-adventure.webp', 180000],
+  ['word-challenge.webp', 180000],
+  ['grammar-challenge.webp', 140000],
+  ['classroom-practice.webp', 140000],
+  ['new-word-guide.webp', 140000]
 ]) {
-  const file = path.join(root, 'assets', 'student-home', 'card6', 'scenes', name);
+  const file = path.join(root, 'assets', 'student-home', 'home-v4', 'scenes', name);
   assert.ok(fs.existsSync(file), `${name} should exist`);
   assert.ok(fs.statSync(file).size <= maxBytes, `${name} should stay within the performance budget`);
 }

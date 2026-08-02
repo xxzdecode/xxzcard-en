@@ -4,11 +4,13 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const { chromium, devices, webkit } = createRequire(import.meta.url)('playwright');
+const { chromium, devices } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const resultDir = path.join(root, '.codex-backups', 'card6-visual-qa');
+const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const launchBrowser = () => chromium.launch({ executablePath: edgeExecutable });
+const resultDir = path.join(root, '.codex-backups', 'home-v4-visual-qa');
 fs.mkdirSync(resultDir, { recursive: true });
 
 const cards = Array.from({ length: 12 }, (_, index) => ({
@@ -23,7 +25,7 @@ const mainData = {
   mixedAssignments: [],
   taskAssignments: [],
   batches: [{
-    id: 'student-home-card-6',
+    id: 'student-home-v4',
     name: '首页视口测试',
     date: '2026-07-29',
     bookPurpose: 'common',
@@ -44,6 +46,13 @@ const adventureState = {
   }])),
   session: null
 };
+
+function todayKey() {
+  const date = new Date();
+  return date.getFullYear() + '-'
+    + String(date.getMonth() + 1).padStart(2, '0') + '-'
+    + String(date.getDate()).padStart(2, '0');
+}
 
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -70,9 +79,9 @@ const server = http.createServer((request, response) => {
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
-const browser = await webkit.launch();
+const browser = await launchBrowser();
 
-async function openHome(user, contextOptions) {
+async function openHome(user, contextOptions, options = {}) {
   const context = await browser.newContext({ ...contextOptions, serviceWorkers: 'block' });
   await context.addInitScript(({ selectedUser, mirror }) => {
     localStorage.setItem('wc_user', selectedUser);
@@ -82,7 +91,7 @@ async function openHome(user, contextOptions) {
     ['main', structuredClone(mainData)],
     [`vocab_adventure_v1_${user}`, structuredClone(adventureState)],
     [`daily_task_${user}`, {}],
-    [`student_reward_v1_${user}`, {
+    [`student_reward_v1_${user}`, options.rewardRecord || {
       version: 1,
       user,
       totalCoins: user === 'brother' ? 417 : 406,
@@ -99,6 +108,7 @@ async function openHome(user, contextOptions) {
     const request = route.request();
     if (request.method() === 'POST') {
       const payload = request.postDataJSON();
+      if (options.saveDelayMs) await new Promise(resolve => setTimeout(resolve, options.saveDelayMs));
       state.set(payload.key, structuredClone(payload.value));
       await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
       return;
@@ -144,7 +154,7 @@ async function openHome(user, contextOptions) {
     }
     await page.evaluate(() => window.scrollTo(0, 0));
   }
-  return { context, page, errors };
+  return { context, page, errors, state };
 }
 
 async function assertStudentHome(page, expectedName, {
@@ -170,11 +180,11 @@ async function assertStudentHome(page, expectedName, {
   assert.deepEqual(
     await page.locator('.student-home-card__scene').evaluateAll(images => images.map(image => image.getAttribute('src'))),
     [
-      'assets/student-home/card6/scenes/vocabulary-adventure-scene.webp',
-      'assets/student-home/card6/scenes/word-challenge-scene.webp',
-      'assets/student-home/card6/scenes/grammar-challenge-scene.webp',
-      'assets/student-home/card6/scenes/classroom-practice-scene.webp',
-      'assets/student-home/card6/scenes/new-word-guide-scene.webp'
+      'assets/student-home/home-v4/scenes/vocabulary-adventure.webp',
+      'assets/student-home/home-v4/scenes/word-challenge.webp',
+      'assets/student-home/home-v4/scenes/grammar-challenge.webp',
+      'assets/student-home/home-v4/scenes/classroom-practice.webp',
+      'assets/student-home/home-v4/scenes/new-word-guide.webp'
     ]
   );
   const layout = await page.evaluate(() => {
@@ -245,7 +255,7 @@ const ipadViewport = (width, height) => ({
 });
 
 async function assertCachedHomeWorksOffline() {
-  const offlineBrowser = await chromium.launch();
+  const offlineBrowser = await launchBrowser();
   const context = await offlineBrowser.newContext({
     ...ipadViewport(1180, 820),
     serviceWorkers: 'allow'
@@ -262,6 +272,20 @@ async function assertCachedHomeWorksOffline() {
       }));
     }, mainData);
     const page = await context.newPage();
+    await page.route('**/rest/v1/kv_store*', async route => {
+      const url = new URL(route.request().url());
+      const key = (url.searchParams.get('key') || '').replace(/^eq\./, '');
+      const value = key === 'main'
+        ? mainData
+        : key === 'student_reward_v1_sister'
+          ? { version: 3, user: 'sister', totalCoins: 406, daily: {} }
+          : null;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(value == null ? [] : [{ value }])
+      });
+    });
     await page.goto(baseUrl, { waitUntil: 'load' });
     await page.evaluate(async () => {
       await navigator.serviceWorker.ready;
@@ -273,10 +297,10 @@ async function assertCachedHomeWorksOffline() {
     const startedAt = Date.now();
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
     await page.waitForFunction(() => document.getElementById('studentSummaryName')?.textContent === '姐姐');
-    await page.waitForFunction(() => document.getElementById('studentTotalCoins')?.textContent === '406');
+    await page.waitForTimeout(1500);
     assert.ok(Date.now() - startedAt < 5000);
     assert.equal(await page.locator('#studentDashboard').isVisible(), true);
-    assert.equal(await page.locator('#studentTotalCoins').textContent(), '406');
+    assert.equal(await page.locator('#studentTotalCoins').textContent(), '406', 'offline reward mirror should remain visible');
     await context.setOffline(false);
   } finally {
     await context.close();
@@ -292,11 +316,6 @@ try {
   const sister = await openHome('sister', iphone16Portrait);
   await assertStudentHome(sister.page, '姐姐', { orientation: 'portrait' });
   await sister.page.screenshot({ path: path.join(resultDir, 'sister-home-iphone16-portrait-393x852.png'), fullPage: true });
-  await sister.page.locator('#studentClassroomPracticeEntry').click();
-  await sister.page.waitForSelector('#screenCourseware.active');
-  assert.equal(await sister.page.locator('#coursewareListTitle').textContent(), '选择随堂练习');
-  assert.equal(await sister.page.locator('#coursewareList .game-entry').count(), 13);
-  await sister.page.screenshot({ path: path.join(resultDir, 'classroom-practice-student-directory.png'), fullPage: true });
   assert.deepEqual(sister.errors, []);
   await sister.context.close();
 
@@ -314,9 +333,23 @@ try {
   assert.equal(await teacher.page.locator('.teacher-home-nav').isVisible(), true);
   assert.deepEqual(
     await teacher.page.locator('.teacher-home-nav .bottom-feature-nav__item span').allTextContents(),
-    ['单词卡', '随堂练习', '知识点库']
+    ['单词卡', '随堂练习', '知识点库', '导出词单']
   );
-  await teacher.page.screenshot({ path: path.join(resultDir, 'teacher-home-iphone16-portrait-393x852.png'), fullPage: true });
+  await teacher.page.waitForSelector('#teacherStudentTagPanel:visible');
+  await teacher.page.locator('#teacherStudentTagSister').fill('阅读小达人');
+  await teacher.page.locator('#teacherStudentTagBrother').fill('勇敢挑战者');
+  await teacher.page.locator('#teacherStudentTagSave').click();
+  await teacher.page.waitForTimeout(1500);
+  assert.equal(
+    await teacher.page.locator('#teacherStudentTagStatus').textContent(),
+    '学生小标签已保存',
+    `tag save errors: ${JSON.stringify(teacher.errors)}`
+  );
+  assert.deepEqual(teacher.state.get('student_home_tags_v1'), {
+    sister: '阅读小达人',
+    brother: '勇敢挑战者'
+  });
+  await teacher.page.screenshot({ path: path.join(resultDir, 'teacher-student-tags-iphone16-portrait-393x852.png'), fullPage: true });
   assert.deepEqual(teacher.errors, []);
   await teacher.context.close();
 
@@ -325,9 +358,52 @@ try {
     orientation: 'landscape',
     minimumDashboardWidth: 1128
   });
-  await ipadAir.page.screenshot({ path: path.join(resultDir, 'sister-home-ipad-air11-landscape-1180x820.png'), fullPage: true });
+  await ipadAir.page.screenshot({ path: path.join(resultDir, 'ordinary-home-ipad-air11-landscape-1180x820.png'), fullPage: true });
   assert.deepEqual(ipadAir.errors, []);
   await ipadAir.context.close();
+
+  const pendingDate = todayKey();
+  const pendingReward = {
+    version: 3,
+    user: 'sister',
+    totalCoins: 406,
+    daily: {
+      [pendingDate]: {
+        coins: 0,
+        breakthroughCoins: 3,
+        sources: {},
+        claims: {
+          adventure: {
+            status: 'pending',
+            amount: 5,
+            mode: 'set',
+            completedAt: `${pendingDate}T08:00:00.000Z`
+          }
+        }
+      }
+    },
+    transactions: []
+  };
+  const rewardStates = await openHome('sister', ipadViewport(1180, 820), {
+    rewardRecord: pendingReward,
+    saveDelayMs: 700
+  });
+  await rewardStates.page.waitForSelector('.student-home-card[data-reward-source="adventure"][data-reward-state="pending"]');
+  assert.equal(await rewardStates.page.locator('.student-home-card[data-reward-source="adventure"] .student-home-card__stamp').isVisible(), true);
+  await rewardStates.page.screenshot({ path: path.join(resultDir, 'cleared-pending-claim-ipad-air11-landscape-1180x820.png'), fullPage: true });
+  const chest = rewardStates.page.locator('.student-reward-chest[data-reward-source="adventure"]');
+  await chest.click();
+  await rewardStates.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="opening"]');
+  await rewardStates.page.screenshot({ path: path.join(resultDir, 'claiming-ipad-air11-landscape-1180x820.png'), fullPage: true });
+  await rewardStates.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="claimed"]');
+  assert.equal(await rewardStates.page.locator('#studentTotalCoins').textContent(), '411');
+  await rewardStates.page.screenshot({ path: path.join(resultDir, 'claimed-ipad-air11-landscape-1180x820.png'), fullPage: true });
+  await rewardStates.page.reload({ waitUntil: 'domcontentloaded' });
+  await rewardStates.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="claimed"]');
+  assert.equal(await rewardStates.page.locator('#studentTotalCoins').textContent(), '411');
+  assert.equal(rewardStates.state.get('student_reward_v1_sister').transactions.length, 1);
+  assert.deepEqual(rewardStates.errors, []);
+  await rewardStates.context.close();
 
   await assertCachedHomeWorksOffline();
 

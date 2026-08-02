@@ -166,6 +166,9 @@
     const date = targetInfo.date || (localDate(daily.date) ? daily.date : '');
     const day = date ? dayForAudit(rewardApi, rewardRecord, date) : dayForAudit(rewardApi, rewardRecord, '');
     const currentSource = clampInteger(day.sources && day.sources[SOURCE], 0, MAX_REWARD);
+    const claim = day.claims && plainObject(day.claims[SOURCE]) ? day.claims[SOURCE] : {};
+    const claimStatus = typeof claim.status === 'string' ? claim.status : (currentSource > 0 ? 'claimed' : 'idle');
+    const claimAmount = clampInteger(claim.amount, 0, MAX_REWARD);
     const hasOverride = Object.prototype.hasOwnProperty.call(day.teacherSourceOverrides || {}, SOURCE);
     const overrideValue = hasOverride ? clampInteger(day.teacherSourceOverrides[SOURCE], 0, MAX_REWARD) : null;
     const transactions = Array.isArray(rewardRecord.transactions)
@@ -173,7 +176,10 @@
       : [];
     const completed = targetInfo.completed;
     const perfectRepairEligible = !!(user && completed && completed.status === 'completed'
-      && completed.correctCount === MAX_REWARD && currentSource < MAX_REWARD && !hasOverride);
+      && completed.correctCount === MAX_REWARD
+      && claimStatus !== 'claimed'
+      && claimAmount < MAX_REWARD
+      && !hasOverride);
     const repairToken = user && date
       ? [user, date, completed && completed.status || '', completed && completed.correctCount || 0,
         currentSource, hasOverride ? `override:${overrideValue}` : 'no-override'].join('|')
@@ -194,12 +200,14 @@
         && currentSource < Math.round(clampInteger(daily.bestScore, 0, 100) / 10),
       marker: targetInfo.marker,
       currentSource,
+      claimStatus,
+      claimAmount,
       teacherOverride: hasOverride,
       teacherOverrideValue: overrideValue,
       totalCoins: Math.max(0, Math.round(Number(rewardRecord.totalCoins) || 0)),
       dayCoins: Math.max(0, Math.round(Number(day.coins) || 0)),
       transactions: clone(transactions),
-      needsReward: !!(user && date && targetInfo.target > currentSource && !hasOverride),
+      needsReward: !!(user && date && targetInfo.target > claimAmount && claimStatus !== 'claimed' && !hasOverride),
       perfectRepairEligible,
       repairToken,
       valid: !!(user && date && (targetInfo.marker || completed)
@@ -240,7 +248,7 @@
     const setValue = dependency(settings, 'setValue', null);
     const rewardApi = rewardApiFrom(settings);
     if (!user || !getValue || !setValue || !rewardApi
-      || typeof rewardApi.applySourceReward !== 'function'
+      || typeof rewardApi.markSourceClaim !== 'function'
       || typeof rewardApi.normalizeRewardRecord !== 'function') {
       return { ok: false, code: 'SETTLEMENT_DEPENDENCIES_UNAVAILABLE', user };
     }
@@ -269,7 +277,7 @@
       };
     }
 
-    const applied = rewardApi.applySourceReward(rewardRecord, {
+    const applied = rewardApi.markSourceClaim(rewardRecord, {
       date: audit.date, source: SOURCE, amount: audit.target, mode: 'max', at
     });
     if (applied.changed) {
@@ -278,13 +286,14 @@
       } catch (error) {
         settings.reportError?.(error);
         return {
-          ok: false, changed: false, pending: true, code: 'REWARD_SAVE_FAILED',
+          ok: false, changed: false, pending: true, code: 'CLAIM_SAVE_FAILED',
           marker: markerFromState(adventureState), adventureState, audit, error
         };
       }
     }
 
     const settledDay = dayForAudit(rewardApi, applied.record, audit.date);
+    const settledClaim = settledDay.claims && settledDay.claims[SOURCE] || {};
     const awarded = clampInteger(settledDay.sources && settledDay.sources[SOURCE], 0, MAX_REWARD);
     const settledMarker = {
       version: MARKER_VERSION, source: SOURCE, date: audit.date, target: audit.target,
@@ -301,6 +310,7 @@
       marker: settledMarker,
       adventureState,
       record: applied.record,
+      claim: clone(settledClaim),
       audit: auditVocabularyChallengeReward({ user, adventureState, rewardRecord: applied.record, rewardApi })
     };
   }
@@ -372,34 +382,37 @@
         reward.className = 'vocabulary-adventure-earned-coins';
         summary.querySelector('h2')?.insertAdjacentElement('afterend', reward);
       }
-      reward.textContent = '正在核对挑战金币…';
+      reward.textContent = '正在保存可领取奖励…';
       try {
         const user = normalizeUser(root.currentUser || (typeof currentUser !== 'undefined' ? currentUser : ''));
         if (!user) { reward.textContent = '挑战成绩已保存'; return; }
         const diagnostic = await diagnoseVocabularyChallengeReward(browserOptions({ user }));
         if (!diagnostic.ok || !diagnostic.audit.valid) {
-          reward.textContent = '挑战成绩已保存，金币正在补发';
+          reward.textContent = '挑战成绩已保存，奖励状态稍后同步';
           return;
         }
         if (diagnostic.audit.teacherOverride) {
-          reward.textContent = `今日挑战金币以老师调整为准（${diagnostic.audit.currentSource} / 10）`;
+          reward.textContent = `本次奖励以老师调整为准（${diagnostic.audit.currentSource} / 10）`;
           return;
         }
-        if (diagnostic.audit.currentSource >= diagnostic.audit.target) {
-          reward.textContent = `今日挑战金币 ${diagnostic.audit.currentSource} / 10`;
+        if (diagnostic.audit.claimAmount >= diagnostic.audit.target
+          && diagnostic.audit.claimStatus !== 'idle') {
+          reward.textContent = `预计可获得 ${diagnostic.audit.target} 金币，返回首页点击宝箱领取`;
           return;
         }
-        reward.textContent = '挑战成绩已保存，金币正在补发';
+        reward.textContent = '挑战成绩已保存，奖励状态稍后同步';
         const settled = await settleVocabularyChallengeReward(browserOptions({
           user,
           adventureState: await root.sbGet(adventureKey(user))
         }));
-        if (settled.ok && settled.audit && settled.audit.currentSource >= settled.audit.target) {
-          reward.textContent = `今日挑战金币 ${settled.audit.currentSource} / 10`;
+        if (settled.ok && settled.audit
+          && settled.audit.claimAmount >= settled.audit.target
+          && settled.audit.claimStatus !== 'idle') {
+          reward.textContent = `预计可获得 ${settled.audit.target} 金币，返回首页点击宝箱领取`;
         }
       } catch (error) {
         console.warn('Unable to render vocabulary challenge reward state', error);
-        reward.textContent = '挑战成绩已保存，金币正在补发';
+        reward.textContent = '挑战成绩已保存，奖励状态稍后同步';
       } finally {
         summary.dataset.formalRewardRendering = 'done';
       }
