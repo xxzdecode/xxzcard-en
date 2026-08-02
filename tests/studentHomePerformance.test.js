@@ -68,8 +68,8 @@ assert.match(adventureVisual, /function ensureLayoutStylesheet\(\)/);
 assert.match(adventureVisual, /if \(!root \|\| !ensureLayoutStylesheet\(\)\) return/);
 assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v51/);
-assert.match(serviceWorker, /xxzcard-runtime-v51/);
+assert.match(serviceWorker, /xxzcard-app-shell-v52/);
+assert.match(serviceWorker, /xxzcard-runtime-v52/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),

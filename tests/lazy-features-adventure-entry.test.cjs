@@ -251,8 +251,8 @@ test('adventure load failure shows an in-page retry that can recover', async () 
 });
 
 test('service worker keeps lazy code on runtime network-first caching', () => {
-  assert.match(serviceWorkerSource, /xxzcard-app-shell-v51/);
-  assert.match(serviceWorkerSource, /xxzcard-runtime-v51/);
+  assert.match(serviceWorkerSource, /xxzcard-app-shell-v52/);
+  assert.match(serviceWorkerSource, /xxzcard-runtime-v52/);
   assert.doesNotMatch(serviceWorkerSource, /vocabularyAdventurePlayer/);
   assert.match(serviceWorkerSource, /staticNetworkFirst/);
 });

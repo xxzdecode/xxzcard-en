@@ -144,7 +144,7 @@ assert.match(task016Styles, /max-height:\s*850px/);
 assert.match(placeholder, /<svg/);
 assert.doesNotMatch(placeholder, /<text|watermark/i);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v51/);
+assert.match(serviceWorker, /xxzcard-app-shell-v52/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.doesNotMatch(serviceWorker, /styles-vocabulary-lesson-016/);
 assert.doesNotMatch(serviceWorker, /vocabularyLesson016/);
