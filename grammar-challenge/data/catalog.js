@@ -3,6 +3,26 @@
   // lessonKey / kpIds 是长期语法挑战记录与周测、月测汇总的正式映射。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-04-cardinal-ordinal-review',
+      date: '2026-08-04',
+      title: '数字排队快速挑战',
+      lessonKey: 'cardinal-ordinal-numbers-basics',
+      kpIds: ['cardinal-ordinal-numbers-basics'],
+      questionKpIds: {
+        GC01: ['cardinal-ordinal-numbers-basics'],
+        GC02: ['cardinal-ordinal-numbers-basics'],
+        GC03: ['cardinal-ordinal-numbers-basics'],
+        GC04: ['cardinal-ordinal-numbers-basics'],
+        GC05: ['cardinal-ordinal-numbers-basics'],
+        GC06: ['cardinal-ordinal-numbers-basics'],
+        GC07: ['cardinal-ordinal-numbers-basics'],
+        GC08: ['cardinal-ordinal-numbers-basics'],
+        GC09: ['cardinal-ordinal-numbers-basics'],
+        GC10: ['cardinal-ordinal-numbers-basics']
+      },
+      pagePath: './practices/2026-08-04.html'
+    },
+    {
       id: 'grammar-2026-08-03-word-family-review',
       date: '2026-08-03',
       title: '词族侦探快速挑战',
