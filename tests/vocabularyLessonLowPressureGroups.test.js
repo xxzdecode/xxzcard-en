@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const {
   ROUND_SIZE,
   roundOffset,
@@ -37,5 +39,25 @@ assert.strictEqual(firstIncompleteGroupIndex(config, progress), 1);
 assert.strictEqual(groupProgressLabel(config.groups[0], progress), '20/20');
 assert.strictEqual(groupProgressLabel(config.groups[1], progress), '11/20');
 assert.strictEqual(groupProgressLabel(config.groups[2], progress), '0/7');
+
+const categoryStyles = fs.readFileSync(
+  path.join(__dirname, '..', 'styles-vocabulary-lesson-categories.css'),
+  'utf8'
+);
+assert.match(
+  categoryStyles,
+  /#screenVocabularyReviewList\s*\{[\s\S]*?min-height:\s*100dvh;/,
+  'the category list screen should cover the full viewport'
+);
+assert.match(
+  categoryStyles,
+  /\.vocabulary-lesson-selection-copy\[hidden\]\s*\{[\s\S]*?display:\s*none\s*!important;/,
+  'the reused selection heading must disappear in group-picker mode'
+);
+assert.match(
+  categoryStyles,
+  /:has\(\.vocabulary-lesson-category-group-picker\)[\s\S]*?\.vocabulary-lesson-selection\s*\{/,
+  'the group picker should use its compact selection layout'
+);
 
 console.log('vocabularyLessonLowPressureGroups tests passed');
