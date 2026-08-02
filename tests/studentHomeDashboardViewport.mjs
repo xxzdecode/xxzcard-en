@@ -199,6 +199,10 @@ async function assertStudentHome(page, expectedName, {
       adventureHeight: adventure.height,
       compactHeight: word.height,
       dashboardWidth: document.getElementById('studentDashboard').getBoundingClientRect().width,
+      avatarWidth: document.getElementById('studentSummaryAvatarImage').getBoundingClientRect().width,
+      avatarSource: document.getElementById('studentSummaryAvatarImage').getAttribute('src'),
+      sceneTransforms: [...document.querySelectorAll('.student-home-card__scene')]
+        .map(image => getComputedStyle(image).transform),
       innerWidth: window.innerWidth,
       innerHeight: window.innerHeight,
       challengeSameColumn: Math.abs(word.left - grammar.left) < 2,
@@ -217,7 +221,10 @@ async function assertStudentHome(page, expectedName, {
   if (orientation === 'landscape') {
     assert.equal(layout.verticalOverflow, false);
     assert.ok(layout.maxVisibleBottom <= layout.innerHeight);
+    assert.ok(layout.avatarWidth >= 75, `iPad avatar should render at full size, got ${layout.avatarWidth}`);
+    assert.ok(layout.sceneTransforms.every(transform => transform !== 'none'));
   }
+  assert.match(layout.avatarSource, new RegExp(`${expectedName === '弟弟' ? 'brother' : 'sister'}-avatar\\.png$`));
   assert.ok(layout.adventureHeight > layout.compactHeight);
   assert.equal(
     orientation === 'landscape' ? layout.challengeSameColumn : layout.challengeSameRow,
@@ -361,6 +368,35 @@ try {
   await ipadAir.page.screenshot({ path: path.join(resultDir, 'ordinary-home-ipad-air11-landscape-1180x820.png'), fullPage: true });
   assert.deepEqual(ipadAir.errors, []);
   await ipadAir.context.close();
+
+  const ipadSafariVisible = await openHome('sister', ipadViewport(1180, 694));
+  await assertStudentHome(ipadSafariVisible.page, '姐姐', {
+    orientation: 'landscape',
+    minimumDashboardWidth: 1128
+  });
+  await ipadSafariVisible.page.screenshot({
+    path: path.join(resultDir, 'ipad-safari-visible-area-1180x694.png'),
+    fullPage: true
+  });
+  await ipadSafariVisible.page.locator('#uBtnBrother').click();
+  await ipadSafariVisible.page.waitForFunction(() => (
+    document.getElementById('studentSummaryName')?.textContent === '弟弟'
+  ));
+  assert.match(
+    await ipadSafariVisible.page.locator('#studentSummaryAvatarImage').getAttribute('src'),
+    /brother-avatar\.png$/
+  );
+  assert.ok(
+    await ipadSafariVisible.page.locator('#studentSummaryAvatarImage').evaluate(image => (
+      image.getBoundingClientRect().width >= 75 && image.naturalWidth > 0
+    ))
+  );
+  await ipadSafariVisible.page.screenshot({
+    path: path.join(resultDir, 'ipad-safari-brother-avatar-1180x694.png'),
+    fullPage: true
+  });
+  assert.deepEqual(ipadSafariVisible.errors, []);
+  await ipadSafariVisible.context.close();
 
   const pendingDate = todayKey();
   const pendingReward = {

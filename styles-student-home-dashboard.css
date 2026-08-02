@@ -756,8 +756,10 @@ body:not(.is-teacher) #screenHome .user-bar {
   }
 
   .student-summary-card__avatar {
-    width: 70px;
-    height: 70px;
+    width: 76px;
+    height: 76px;
+    border: 0;
+    background: transparent;
   }
 
   .student-summary-card__identity strong {
@@ -819,6 +821,36 @@ body:not(.is-teacher) #screenHome .user-bar {
     border-radius: 25px;
   }
 
+  .student-home-card--adventure .student-home-card__scene {
+    object-position: 92% 56%;
+    transform: scale(1.07);
+    transform-origin: 92% 56%;
+  }
+
+  .student-home-card--word-challenge .student-home-card__scene {
+    object-position: 64% 48%;
+    transform: scale(1.13);
+    transform-origin: 64% 48%;
+  }
+
+  .student-home-card--grammar .student-home-card__scene {
+    object-position: 66% 44%;
+    transform: scale(1.09);
+    transform-origin: 66% 44%;
+  }
+
+  .student-home-card--classroom .student-home-card__scene {
+    object-position: 61% 43%;
+    transform: scale(1.13);
+    transform-origin: 61% 43%;
+  }
+
+  .student-home-card--tour .student-home-card__scene {
+    object-position: 68% 50%;
+    transform: scale(1.28);
+    transform-origin: 68% 50%;
+  }
+
   .student-home-card__copy {
     inset: 15px auto auto 15px;
     gap: 4px;
@@ -872,6 +904,14 @@ body:not(.is-teacher) #screenHome .user-bar {
 
   .bottom-feature-nav.student-only .bottom-feature-nav__item span {
     font-size: 11px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) and (min-height: 760px) {
+  .student-home-card--tour .student-home-card__scene {
+    object-position: 55% 50%;
+    transform: scale(1.18);
+    transform-origin: 55% 50%;
   }
 }
 
