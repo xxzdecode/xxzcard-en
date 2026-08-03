@@ -77,6 +77,11 @@
 
   installStyles();
   Object.keys(entries).forEach(wrap);
+  if (root.document.readyState === 'loading') {
+    root.document.addEventListener('DOMContentLoaded', () => {
+      Object.keys(entries).forEach(wrap);
+    }, { once: true });
+  }
   let attempts = 0;
   const timer = root.setInterval(() => {
     attempts += 1;
