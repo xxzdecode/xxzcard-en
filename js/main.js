@@ -95,6 +95,106 @@
   root.document.head.appendChild(style);
 })(typeof window !== 'undefined' ? window : globalThis);
 
+// Keep home refreshes in one ordered chain. Remote reward/classroom reads are
+// awaited and guarded by user + request id, so an older response cannot replace
+// the newest home state after exits, saves or user switches.
+(function installHomeRefreshCoordinator(root) {
+  if (!root || root.__homeRefreshCoordinatorInstalled || typeof root.loadHome !== 'function') return;
+  root.__homeRefreshCoordinatorInstalled = true;
+
+  const renderReward = root.applyStudentRewardRecord;
+  const renderClassroom = root.applyStudentClassroomPracticeHomeRecord;
+  let requestId = 0;
+  let rerunRequested = false;
+  let activePromise = null;
+
+  function studentUser() {
+    return typeof currentUser !== 'undefined' && ['sister', 'brother'].includes(currentUser)
+      ? currentUser
+      : '';
+  }
+
+  function isCurrent(user, id) {
+    return id === requestId
+      && user === studentUser()
+      && !(typeof isTeacher === 'function' && isTeacher());
+  }
+
+  async function loadRewardFor(user, id) {
+    if (!isCurrent(user, id) || typeof renderReward !== 'function') return;
+    const key = studentRewardKey(user);
+    renderReward(getMirrorValue(key));
+    try {
+      const remote = await sbGetRemote(key);
+      if (isCurrent(user, id) && remote && typeof remote === 'object') {
+        renderReward(remote);
+      }
+    } catch (_) {
+      // The mirrored value remains visible when the remote refresh fails.
+    }
+  }
+
+  async function loadClassroomFor(user, id) {
+    if (!isCurrent(user, id) || typeof renderClassroom !== 'function') return;
+    const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + user;
+    const local = getMirrorValue(key);
+    renderClassroom(local && typeof local === 'object' ? local[todayISO()] : null);
+    try {
+      const remote = await sbGetRemote(key);
+      if (!isCurrent(user, id)) return;
+      const record = remote && typeof remote === 'object' ? remote[todayISO()] : null;
+      renderClassroom(record);
+    } catch (_) {
+      // The mirrored daily state remains visible when the remote refresh fails.
+    }
+  }
+
+  async function performHomeLoad(user, id) {
+    updateUserBar();
+    if (currentUser === 'teacher') document.body.classList.add('is-teacher');
+    else document.body.classList.remove('is-teacher');
+    if (!user) return;
+
+    await loadRewardFor(user, id);
+    if (!isCurrent(user, id)) return;
+
+    const notice = document.getElementById('studentHomeNotice');
+    if (notice) {
+      notice.hidden = true;
+      notice.textContent = '';
+    }
+
+    await loadClassroomFor(user, id);
+    if (!isCurrent(user, id)) return;
+
+    if (typeof root.updateVocabularyAdventurePreviewEntry === 'function') {
+      await root.updateVocabularyAdventurePreviewEntry();
+    }
+  }
+
+  const coordinatedLoadHome = function coordinatedLoadHome() {
+    requestId += 1;
+    rerunRequested = true;
+    if (activePromise) return activePromise;
+
+    activePromise = (async () => {
+      while (rerunRequested) {
+        rerunRequested = false;
+        const id = requestId;
+        const user = studentUser();
+        await performHomeLoad(user, id);
+      }
+    })().finally(() => {
+      activePromise = null;
+      if (rerunRequested) coordinatedLoadHome();
+    });
+    return activePromise;
+  };
+
+  root.loadHome = coordinatedLoadHome;
+  try { loadHome = coordinatedLoadHome; } catch (_) {}
+})(typeof window !== 'undefined' ? window : globalThis);
+
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
