@@ -35,6 +35,12 @@ jobs:
               .github/pr44-payload/bootstrap.01 \
               .github/pr44-payload/bootstrap.02 \
             | base64 --decode > js/vocabularyQuestionTypesRepeatBootstrap.js
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('js/vocabularyQuestionTypesRepeatBootstrap.js')
+          text = path.read_text(encoding='utf-8')
+          path.write_text(text.replace('听一听，选择中文有感', '听一听，选择中文意思'), encoding='utf-8')
+          PY
           cat .github/pr44-payload/test.00 \
               .github/pr44-payload/test.01 \
             | base64 --decode > tests/vocabulary-adventure-bootstrap-loader.test.cjs
