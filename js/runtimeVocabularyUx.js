@@ -13,6 +13,7 @@
   let installed = false;
   let reviewValue = null;
   let reviewAccessorInstalled = false;
+  const bodySetters = new WeakMap();
 
   function text(value) {
     return String(value == null ? '' : value).trim().replace(/\s+/g, ' ');
@@ -83,6 +84,9 @@
     const sentence = registry && registry.sentenceOrder;
     if (!sentence || typeof sentence.build !== 'function') return review;
     const originalBuild = sentence.build;
+    const originalBuildReview = typeof review.buildVocabularyAdventureReviewQuestion === 'function'
+      ? review.buildVocabularyAdventureReviewQuestion.bind(review)
+      : null;
     return Object.freeze({
       ...review,
       VocabularyAdventureReviewTypes: Object.freeze({
@@ -94,6 +98,9 @@
           }
         })
       }),
+      buildVocabularyAdventureReviewQuestion: originalBuildReview
+        ? input => transformSentenceOrder(originalBuildReview(input), input)
+        : review.buildVocabularyAdventureReviewQuestion,
       __runtimeSentenceOrderPatched: true
     });
   }
@@ -258,27 +265,37 @@
     return null;
   }
 
+  function patchHostInnerHtml(host) {
+    if (!host) return;
+    const own = Object.getOwnPropertyDescriptor(host, 'innerHTML');
+    if (own?.set && own.set === bodySetters.get(host)) return;
+    const descriptor = own?.get && own?.set ? own : innerHtmlDescriptor(Object.getPrototypeOf(host));
+    if (!descriptor?.get || !descriptor?.set) return;
+    try {
+      const setter = function runtimeVocabularyInnerHtml(value) {
+        descriptor.set.call(this, value);
+        scanHost(this);
+      };
+      Object.defineProperty(host, 'innerHTML', {
+        configurable: true,
+        enumerable: descriptor.enumerable === true,
+        get() { return descriptor.get.call(this); },
+        set: setter
+      });
+      bodySetters.set(host, setter);
+    } catch (_) {}
+  }
+
   function observeHost(id) {
     const host = root.document?.getElementById(id);
-    if (!host || host.dataset.runtimeCueObserverInstalled) return;
-    host.dataset.runtimeCueObserverInstalled = 'true';
-    const descriptor = innerHtmlDescriptor(host);
-    if (descriptor) {
-      try {
-        Object.defineProperty(host, 'innerHTML', {
-          configurable: true,
-          enumerable: descriptor.enumerable === true,
-          get() { return descriptor.get.call(this); },
-          set(value) {
-            descriptor.set.call(this, value);
-            scanHost(this);
-          }
-        });
-      } catch (_) {}
-    }
-    if (typeof root.MutationObserver === 'function') {
-      const observer = new root.MutationObserver(() => scanHost(host));
-      observer.observe(host, { subtree: true, childList: true, characterData: true });
+    if (!host) return;
+    patchHostInnerHtml(host);
+    if (!host.dataset.runtimeCueObserverInstalled) {
+      host.dataset.runtimeCueObserverInstalled = 'true';
+      if (typeof root.MutationObserver === 'function') {
+        const observer = new root.MutationObserver(() => scanHost(host));
+        observer.observe(host, { subtree: true, childList: true, characterData: true });
+      }
     }
     scanHost(host);
   }
