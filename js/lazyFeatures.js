@@ -47,6 +47,18 @@ const VOCABULARY_COPY_LIST_STUDENTS = Object.freeze([
   { user: 'brother', name: '弟弟', stateKey: 'vocab_adventure_v1_brother' }
 ]);
 
+function replaceChildrenCompat(node, ...children) {
+  if (!node) return;
+  if (typeof node.replaceChildren === 'function') {
+    node.replaceChildren(...children);
+    return;
+  }
+  while (node.firstChild) node.removeChild(node.firstChild);
+  children.forEach(child => {
+    if (child) node.appendChild(child);
+  });
+}
+
 function vocabularyCopyListDate(value) {
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return '';
@@ -294,7 +306,7 @@ function setVocabularyAdventureEntryState(state, error = null) {
   }
   if (!notice) return;
 
-  notice.replaceChildren();
+  replaceChildrenCompat(notice);
   if (!isLoading && !isError) {
     notice.hidden = true;
     return;
