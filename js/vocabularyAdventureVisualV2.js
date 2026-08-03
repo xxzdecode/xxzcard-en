@@ -15,6 +15,9 @@
     'retryVocabularyAdventureResultSave'
   ];
   const state = { refreshQueued:false, transitionRunning:false, lastTransitionAt:-1 };
+  const scheduleMicrotask = typeof queueMicrotask === 'function'
+    ? queueMicrotask
+    : callback => Promise.resolve().then(callback);
 
   function screen() { return document.getElementById(SCREEN_ID); }
   function byId(id) { return document.getElementById(id); }
@@ -22,6 +25,17 @@
     if (!element || element.hidden) return false;
     const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
     return !style || (style.display !== 'none' && style.visibility !== 'hidden');
+  }
+  function replaceChildrenCompat(node, ...children) {
+    if (!node) return;
+    if (typeof node.replaceChildren === 'function') {
+      node.replaceChildren(...children);
+      return;
+    }
+    while (node.firstChild) node.removeChild(node.firstChild);
+    children.forEach(child => {
+      if (child) node.appendChild(child);
+    });
   }
 
   function ensureLayoutStylesheet() {
@@ -73,13 +87,13 @@
     if (!bubble) return;
     if (!sourceHint) {
       bubble.hidden = true;
-      bubble.replaceChildren();
+      replaceChildrenCompat(bubble);
       return;
     }
 
     const copy = sourceHint.cloneNode(true);
     copy.querySelectorAll('button').forEach(button => button.remove());
-    bubble.replaceChildren(...copy.childNodes);
+    replaceChildrenCompat(bubble, ...Array.from(copy.childNodes));
     if (allowReplay && typeof window.speakVocabularyAdventureCurrent === 'function') {
       const button = document.createElement('button');
       button.type = 'button';
@@ -164,7 +178,7 @@
   function queueRefresh() {
     if (state.refreshQueued) return;
     state.refreshQueued = true;
-    queueMicrotask(refresh);
+    scheduleMicrotask(refresh);
   }
 
   function afterResult(result) {
