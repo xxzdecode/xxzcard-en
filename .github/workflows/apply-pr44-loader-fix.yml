@@ -28,6 +28,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Materialize focused changes
         shell: bash
         run: |
@@ -67,6 +70,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -- package-lock.json
           git rm -r .github/pr44-payload .github/workflows/apply-pr44-loader-fix.yml
           git add js/vocabularyQuestionTypesRepeatBootstrap.js tests/vocabulary-adventure-bootstrap-loader.test.cjs
           git commit -m 'fix: retry adventure support from real entries'
