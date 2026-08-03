@@ -4,11 +4,14 @@ on:
   push:
     branches:
       - agent/fix-adventure-loader-retry
-    paths:
-      - '.github/workflows/apply-pr44-loader-fix.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: apply-pr44-loader-fix
+  cancel-in-progress: false
 
 jobs:
   apply-and-verify:
