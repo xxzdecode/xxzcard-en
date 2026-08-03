@@ -22,6 +22,7 @@
   const FEATURE_PROMPT_PREFIX = '__VOCAB_CUE__:';
   const MISSING_PROMPT_PREFIX = '__VOCAB_MISSING__:';
   const featurePromises = new Map();
+  const supportReadyGroups = new Set();
   let basePromise = null;
   let installed = null;
   let capturedChallengeState = null;
@@ -680,9 +681,10 @@
   function loadOptionalSupport(source) {
     return Promise.resolve()
       .then(() => root.loadFeatureScript(source))
+      .then(() => true)
       .catch(error => {
         console.warn('optional vocabulary support unavailable', source, error && (error.message || error));
-        return null;
+        return false;
       });
   }
 
@@ -695,17 +697,26 @@
   }
 
   function activateSupportModules(group) {
-    return loadSupportModules().then(() => {
+    if (supportReadyGroups.has(group)) return Promise.resolve(true);
+    return loadSupportModules().then(results => {
       root.VocabularyPracticeUI?.afterFeatureGroup?.(group, installed);
       root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group, installed);
+      const ready = results.every(Boolean);
+      if (ready) supportReadyGroups.add(group);
+      return ready;
     }).catch(error => {
       console.warn('optional vocabulary support activation failed', group, error && (error.message || error));
+      return false;
     });
   }
 
   function loadFeatureGroup(group, fallback) {
     if (!['adventurePlayer', 'adventureChallenge'].includes(group)) return fallback(group);
-    if (featurePromises.has(group)) return featurePromises.get(group);
+    if (featurePromises.has(group)) {
+      const promise = featurePromises.get(group);
+      void promise.then(() => activateSupportModules(group));
+      return promise;
+    }
     const promise = ensureBase()
       .then(() => {
         if (group === 'adventurePlayer') {
