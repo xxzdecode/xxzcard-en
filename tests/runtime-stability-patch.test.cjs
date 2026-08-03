@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const vocabularyUx = require('../js/runtimeVocabularyUx.js');
 const homeStability = require('../js/runtimeHomeStability.js');
@@ -38,4 +40,12 @@ test('reward-state ranking prevents pending and claimed cards from regressing to
   assert.equal(homeStability.rank({ state: 'idle', completed: true }), 1);
   assert.equal(homeStability.rank({ state: 'pending', completed: true }), 2);
   assert.equal(homeStability.rank({ state: 'claimed', completed: true }), 3);
+});
+
+test('home loading indicator is time-bounded and never serializes refresh promises', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../js/runtimeHomeStability.js'), 'utf8');
+  assert.match(source, /safetyTimer[\s\S]*3500/);
+  assert.match(source, /return result;/);
+  assert.doesNotMatch(source, /let active\s*=/);
+  assert.doesNotMatch(source, /pointer-events:auto/);
 });
