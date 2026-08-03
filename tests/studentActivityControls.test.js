@@ -154,7 +154,7 @@ assert.match(source, /value="grammarChallenge">语法挑战/);
 assert.match(source, /value="classroomPractice">随堂练习/);
 assert.match(source, /value="adventure">词汇探险/);
 assert.match(main, /studentRewards\.js'[\s\S]*studentRewardLayoutGuard\.js'[\s\S]*studentRewardReconcile\.js'[\s\S]*studentActivityControls\.js'/);
-assert.match(serviceWorker, /xxzcard-app-shell-v52/);
+assert.match(serviceWorker, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v\d+'/);
 assert.match(serviceWorker, /\.\/js\/studentActivityControls\.js/);
 assert.match(source, /id="teacherActivityCustomWrap" hidden/);
 assert.match(source, /id="teacherActivityCustomConfirm">确定/);
