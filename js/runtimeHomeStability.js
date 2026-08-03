@@ -14,7 +14,7 @@
   const wrappedLoaders = new WeakSet();
   let restoring = false;
   let contextKey = '';
-  let allowRegressionUntil = 0;
+  let contextSettling = false;
   let installed = false;
 
   function text(value) {
@@ -23,9 +23,11 @@
 
   function currentStudent() {
     try {
-      return typeof currentUser !== 'undefined' && currentUser === 'brother' ? 'brother' : 'sister';
+      return typeof currentUser !== 'undefined' && ['sister', 'brother'].includes(currentUser)
+        ? currentUser
+        : '';
     } catch (_) {
-      return root.currentUser === 'brother' ? 'brother' : 'sister';
+      return ['sister', 'brother'].includes(root.currentUser) ? root.currentUser : '';
     }
   }
 
@@ -49,6 +51,7 @@
     style.id = 'runtimeHomeStabilityStyles';
     style.textContent = `
       #studentDashboard{position:relative}
+      #studentDashboard[data-runtime-home-loading="true"]::after{content:'';position:absolute;inset:0;z-index:35;border-radius:inherit;background:rgba(248,252,255,.88);backdrop-filter:blur(1.5px);pointer-events:auto}
       .runtime-home-loading-badge{position:absolute;z-index:40;top:8px;left:50%;transform:translateX(-50%);min-height:38px;padding:8px 15px;border-radius:999px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.96);box-shadow:0 8px 24px rgba(55,82,100,.18);color:#365f7b;font-size:14px;font-weight:900;pointer-events:none}
       .runtime-home-loading-badge::before{content:'';width:14px;height:14px;border:2px solid rgba(54,95,123,.22);border-top-color:#365f7b;border-radius:50%;animation:runtime-home-spin .75s linear infinite}
       .student-reward-chest[data-state="pending"]{animation:runtime-chest-glow 1.3s ease-in-out infinite;filter:drop-shadow(0 0 9px rgba(255,193,61,.78)) drop-shadow(0 0 18px rgba(255,218,112,.58))}
@@ -108,19 +111,20 @@
     if (currentContext !== contextKey) {
       contextKey = currentContext;
       snapshots.clear();
-      allowRegressionUntil = Date.now() + 3000;
+      contextSettling = true;
     }
+    if (contextSettling) return;
     root.document.querySelectorAll('.student-home-card[data-reward-source]').forEach(card => {
       const source = String(card.dataset.rewardSource || '');
       if (!source) return;
       const key = `${currentContext}|${source}`;
       const previous = snapshots.get(key);
       const next = capture(card, source);
-      if (previous && Date.now() >= allowRegressionUntil && rank(next) < rank(previous)) {
+      if (previous && rank(next) < rank(previous)) {
         restore(card, source, previous);
         return;
       }
-      if (previous && Date.now() >= allowRegressionUntil && rank(next) === rank(previous) && previous.completed) {
+      if (previous && rank(next) === rank(previous) && previous.completed) {
         const generic = previous.state === 'pending'
           ? !/待领取/.test(next.statusText)
           : previous.state === 'claimed' && !/已通关|已领取/.test(next.statusText);
@@ -151,12 +155,14 @@
     badge.setAttribute('role', 'status');
     badge.textContent = '正在加载最新学习状态…';
     dashboard.appendChild(badge);
+    dashboard.dataset.runtimeHomeLoading = 'true';
     dashboard.setAttribute('aria-busy', 'true');
   }
 
   function hideLoading() {
     const dashboard = root.document.getElementById('studentDashboard');
     directChild(dashboard, 'runtime-home-loading-badge')?.remove();
+    if (dashboard) delete dashboard.dataset.runtimeHomeLoading;
     dashboard?.removeAttribute('aria-busy');
   }
 
@@ -175,12 +181,19 @@
       active = (async () => {
         while (rerun) {
           rerun = false;
-          const timer = root.setTimeout(showLoading, 220);
+          const userBefore = currentStudent();
+          const timer = root.setTimeout(showLoading, 160);
           try {
             await current.apply(latestThis, latestArgs);
           } finally {
             root.clearTimeout(timer);
             hideLoading();
+            const userAfter = currentStudent();
+            if (userAfter !== userBefore || `${userAfter}|${todayKey()}` !== contextKey) {
+              contextKey = `${userAfter}|${todayKey()}`;
+              snapshots.clear();
+            }
+            contextSettling = false;
             stabilize();
           }
         }
