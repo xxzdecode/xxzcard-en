@@ -664,37 +664,63 @@
 
   function ensureBase() {
     if (basePromise) return basePromise;
-    basePromise = root.loadFeatureScript('js/vocabularyAdventureCore.js')
+    const promise = Promise.resolve()
+      .then(() => root.loadFeatureScript('js/vocabularyAdventureCore.js'))
       .then(() => root.loadFeatureScript('js/vocabularyAdventure.js'))
       .then(() => root.loadFeatureScript('js/vocabularyAdventureReview.js'))
-      .then(() => installBrowserPatches());
-    return basePromise;
+      .then(() => installBrowserPatches())
+      .catch(error => {
+        if (basePromise === promise) basePromise = null;
+        throw error;
+      });
+    basePromise = promise;
+    return promise;
+  }
+
+  function loadOptionalSupport(source) {
+    return Promise.resolve()
+      .then(() => root.loadFeatureScript(source))
+      .catch(error => {
+        console.warn('optional vocabulary support unavailable', source, error && (error.message || error));
+        return null;
+      });
   }
 
   function loadSupportModules() {
     return Promise.all([
-      root.loadFeatureScript('data/vocabularyLessonAssets.js').catch(() => null),
-      root.loadFeatureScript('js/vocabularyPracticeUI.js'),
-      root.loadFeatureScript('js/vocabularyFeedbackErrorUI.js')
+      loadOptionalSupport('data/vocabularyLessonAssets.js'),
+      loadOptionalSupport('js/vocabularyPracticeUI.js'),
+      loadOptionalSupport('js/vocabularyFeedbackErrorUI.js')
     ]);
+  }
+
+  function activateSupportModules(group) {
+    return loadSupportModules().then(() => {
+      root.VocabularyPracticeUI?.afterFeatureGroup?.(group, installed);
+      root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group, installed);
+    }).catch(error => {
+      console.warn('optional vocabulary support activation failed', group, error && (error.message || error));
+    });
   }
 
   function loadFeatureGroup(group, fallback) {
     if (!['adventurePlayer', 'adventureChallenge'].includes(group)) return fallback(group);
     if (featurePromises.has(group)) return featurePromises.get(group);
-    const promise = Promise.all([ensureBase(), loadSupportModules()]).then(([modules]) => {
-      if (group === 'adventurePlayer') {
-        return root.loadFeatureScript('js/vocabularyAdventurePlayer.js');
-      }
-      return root.loadFeatureScript('js/vocabularyAdventureChallenge.js');
-    }).then(() => {
-      if (group === 'adventureChallenge') installChallengeBrowserWrappers();
-      root.VocabularyPracticeUI?.afterFeatureGroup?.(group, installed);
-      root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group, installed);
-    }).catch(error => {
-      featurePromises.delete(group);
-      throw error;
-    });
+    const promise = ensureBase()
+      .then(() => {
+        if (group === 'adventurePlayer') {
+          return root.loadFeatureScript('js/vocabularyAdventurePlayer.js');
+        }
+        return root.loadFeatureScript('js/vocabularyAdventureChallenge.js');
+      })
+      .then(() => {
+        if (group === 'adventureChallenge') installChallengeBrowserWrappers();
+        void activateSupportModules(group);
+      })
+      .catch(error => {
+        featurePromises.delete(group);
+        throw error;
+      });
     featurePromises.set(group, promise);
     return promise;
   }
