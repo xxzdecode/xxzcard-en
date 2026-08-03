@@ -16,6 +16,7 @@
   let contextKey = '';
   let contextSettling = false;
   let installed = false;
+  let loadSequence = 0;
 
   function text(value) {
     return String(value == null ? '' : value).trim().replace(/\s+/g, ' ');
@@ -51,7 +52,6 @@
     style.id = 'runtimeHomeStabilityStyles';
     style.textContent = `
       #studentDashboard{position:relative}
-      #studentDashboard[data-runtime-home-loading="true"]::after{content:'';position:absolute;inset:0;z-index:35;border-radius:inherit;background:rgba(248,252,255,.88);backdrop-filter:blur(1.5px);pointer-events:auto}
       .runtime-home-loading-badge{position:absolute;z-index:40;top:8px;left:50%;transform:translateX(-50%);min-height:38px;padding:8px 15px;border-radius:999px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.96);box-shadow:0 8px 24px rgba(55,82,100,.18);color:#365f7b;font-size:14px;font-weight:900;pointer-events:none}
       .runtime-home-loading-badge::before{content:'';width:14px;height:14px;border:2px solid rgba(54,95,123,.22);border-top-color:#365f7b;border-radius:50%;animation:runtime-home-spin .75s linear infinite}
       .student-reward-chest[data-state="pending"]{animation:runtime-chest-glow 1.3s ease-in-out infinite;filter:drop-shadow(0 0 9px rgba(255,193,61,.78)) drop-shadow(0 0 18px rgba(255,218,112,.58))}
@@ -168,50 +168,44 @@
 
   function wrapLoadHome() {
     const current = root.loadHome;
-    if (typeof current !== 'function' || current.__runtimeHomeCoordinator || wrappedLoaders.has(current)) return;
-    let active = null;
-    let rerun = false;
-    let latestArgs = [];
-    let latestThis = root;
-    const wrapped = function runtimeHomeCoordinator(...args) {
-      latestArgs = args;
-      latestThis = this;
-      rerun = true;
-      if (active) return active;
-      active = (async () => {
-        while (rerun) {
-          rerun = false;
-          const userBefore = currentStudent();
-          const timer = root.setTimeout(showLoading, 160);
-          try {
-            await current.apply(latestThis, latestArgs);
-          } finally {
-            root.clearTimeout(timer);
-            hideLoading();
-            const userAfter = currentStudent();
-            if (userAfter !== userBefore || `${userAfter}|${todayKey()}` !== contextKey) {
-              contextKey = `${userAfter}|${todayKey()}`;
-              snapshots.clear();
-            }
-            contextSettling = false;
-            stabilize();
-          }
-        }
-      })().finally(() => {
-        active = null;
-        if (rerun) wrapped.apply(latestThis, latestArgs);
+    if (typeof current !== 'function' || current.__runtimeHomeLoadingGuard || wrappedLoaders.has(current)) return;
+    const wrapped = function runtimeHomeLoadingGuard(...args) {
+      const callId = ++loadSequence;
+      const loadingTimer = root.setTimeout(() => {
+        if (callId === loadSequence) showLoading();
+      }, 160);
+      const safetyTimer = root.setTimeout(() => {
+        if (callId === loadSequence) hideLoading();
+      }, 3500);
+      let result;
+      try {
+        result = current.apply(this, args);
+      } catch (error) {
+        root.clearTimeout(loadingTimer);
+        root.clearTimeout(safetyTimer);
+        if (callId === loadSequence) hideLoading();
+        throw error;
+      }
+      Promise.resolve(result).catch(() => null).finally(() => {
+        root.clearTimeout(loadingTimer);
+        root.clearTimeout(safetyTimer);
+        if (callId === loadSequence) hideLoading();
+        contextSettling = false;
+        stabilize();
       });
-      return active;
+      return result;
     };
-    wrapped.__runtimeHomeCoordinator = true;
+    wrapped.__runtimeHomeLoadingGuard = true;
     wrappedLoaders.add(current);
     root.loadHome = wrapped;
+    try { loadHome = wrapped; } catch (_) {}
   }
 
   function install() {
     if (installed || !root.document) return;
     installed = true;
     installStyles();
+    hideLoading();
     const dashboard = root.document.getElementById('studentDashboard');
     if (dashboard && typeof root.MutationObserver === 'function') {
       const observer = new root.MutationObserver(stabilize);
