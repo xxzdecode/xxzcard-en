@@ -37,8 +37,16 @@ function createElement(tagName = 'div') {
     onload: null,
     onerror: null,
     removed: false,
+    get firstChild() {
+      return this.children[0] || null;
+    },
     appendChild(child) {
       this.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      const index = this.children.indexOf(child);
+      if (index >= 0) this.children.splice(index, 1);
       return child;
     },
     replaceChildren(...children) {
@@ -223,6 +231,25 @@ test('adventure entry is single-flight and exposes loading feedback', async () =
   assert.equal(elements.get('vocabularyAdventurePreviewEntry').getAttribute('aria-busy'), null);
 });
 
+test('adventure entry loading feedback works without replaceChildren', async () => {
+  const { context, elements } = createHarness();
+  const notice = elements.get('studentHomeNotice');
+  delete notice.replaceChildren;
+  const group = deferred();
+  context.loadFeatureGroup = () => group.promise;
+
+  const first = context.openVocabularyAdventure();
+  assert.equal(notice.hidden, false);
+  assert.equal(notice.children.length, 1);
+  assert.equal(notice.children[0].textContent, '正在打开词汇探险…');
+
+  context.openVocabularyAdventure = async () => {};
+  group.resolve();
+  await first;
+  assert.equal(notice.hidden, true);
+  assert.equal(notice.children.length, 0);
+});
+
 test('adventure load failure shows an in-page retry that can recover', async () => {
   const { context, elements } = createHarness();
   const firstGroup = deferred();
@@ -250,9 +277,12 @@ test('adventure load failure shows an in-page retry that can recover', async () 
   assert.equal(notice.hidden, true);
 });
 
-test('service worker keeps lazy code on runtime network-first caching', () => {
-  assert.match(serviceWorkerSource, /xxzcard-app-shell-v52/);
-  assert.match(serviceWorkerSource, /xxzcard-runtime-v52/);
-  assert.doesNotMatch(serviceWorkerSource, /vocabularyAdventurePlayer/);
+test('service worker precaches the complete adventure runtime', () => {
+  assert.match(serviceWorkerSource, /xxzcard-app-shell-v53/);
+  assert.match(serviceWorkerSource, /xxzcard-runtime-v53/);
+  assert.match(serviceWorkerSource, /\.\/js\/vocabularyAdventurePlayer\.js/);
+  assert.match(serviceWorkerSource, /\.\/js\/vocabularyAdventureChallenge\.js/);
+  assert.match(serviceWorkerSource, /\.\/js\/vocabularyPracticeUI\.js/);
+  assert.match(serviceWorkerSource, /\.\/js\/vocabularyQuestionTypesRepeatBootstrap\.js/);
   assert.match(serviceWorkerSource, /staticNetworkFirst/);
 });

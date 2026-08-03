@@ -44,7 +44,8 @@
   ].join(',');
   const state = {
     installed: false,
-    observers: new Map()
+    observers: new Map(),
+    patchedBodies: new WeakSet()
   };
 
   function decodeCue(value) {
@@ -229,9 +230,37 @@
     syncOptionStates(rootNode);
   }
 
+  function patchBodyInnerHtml(body) {
+    if (!body || state.patchedBodies.has(body)) return;
+    const prototype = root.Element && root.Element.prototype;
+    const descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, 'innerHTML');
+    if (!descriptor || typeof descriptor.get !== 'function' || typeof descriptor.set !== 'function') return;
+    try {
+      Object.defineProperty(body, 'innerHTML', {
+        configurable: true,
+        enumerable: descriptor.enumerable === true,
+        get() {
+          return descriptor.get.call(this);
+        },
+        set(value) {
+          descriptor.set.call(this, value);
+          scan(this);
+        }
+      });
+      state.patchedBodies.add(body);
+    } catch (_) {
+      // MutationObserver remains the fallback when a browser rejects instance accessors.
+    }
+  }
+
   function observeBody(id) {
     const body = root.document.getElementById(id);
-    if (!body || state.observers.has(id) || typeof root.MutationObserver !== 'function') return;
+    if (!body) return;
+    patchBodyInnerHtml(body);
+    if (state.observers.has(id) || typeof root.MutationObserver !== 'function') {
+      scan(body);
+      return;
+    }
     const observer = new root.MutationObserver(records => {
       records.forEach(record => {
         if (record.type === 'attributes') syncOptionState(record.target);
@@ -345,6 +374,7 @@
     syncOptionState,
     syncOptionStates,
     isProtectedTarget,
+    scan,
     install,
     afterFeatureGroup
   });

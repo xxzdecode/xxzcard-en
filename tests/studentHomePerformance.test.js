@@ -67,9 +67,11 @@ assert.match(adventureVisual, /const LAYOUT_STYLESHEET = 'styles-vocabulary-adve
 assert.match(adventureVisual, /function ensureLayoutStylesheet\(\)/);
 assert.match(adventureVisual, /if \(!root \|\| !ensureLayoutStylesheet\(\)\) return/);
 assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
+assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
+assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v52/);
-assert.match(serviceWorker, /xxzcard-runtime-v52/);
+assert.match(serviceWorker, /xxzcard-app-shell-v53/);
+assert.match(serviceWorker, /xxzcard-runtime-v53/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -83,6 +85,9 @@ assert.match(main, /loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardLayoutGuard\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardReconcile\.js'\)/);
+assert.match(main, /installHomeRefreshCoordinator/);
+assert.match(main, /id === requestId/);
+assert.match(main, /while \(rerunRequested\)/);
 assert.match(dailyRoute, /ROUTE_TIMEOUT_MS = 2800/);
 assert.match(dailyRoute, /cache: 'no-store'/);
 assert.doesNotMatch(dailyRoute, /localStorage/);
@@ -98,8 +103,10 @@ assert.match(serviceWorker, /js\/dailyLearningRoute\.js/);
 assert.match(serviceWorker, /js\/wordCardPerformance\.js/);
 assert.match(serviceWorker, /js\/wordCardStudySafety\.js/);
 assert.match(serviceWorker, /js\/dictionary\.js/);
-assert.doesNotMatch(serviceWorker, /js\/vocabularyAdventurePlayer\.js/);
-assert.doesNotMatch(serviceWorker, /js\/vocabularyAdventureChallenge\.js/);
+assert.match(serviceWorker, /js\/vocabularyAdventurePlayer\.js/);
+assert.match(serviceWorker, /js\/vocabularyAdventureChallenge\.js/);
+assert.match(serviceWorker, /js\/vocabularyQuestionTypesRepeatBootstrap\.js/);
+assert.match(serviceWorker, /js\/vocabularyPracticeUI\.js/);
 assert.match(serviceWorker, /dailyRouteNetworkOnly/);
 assert.match(serviceWorker, /daily-learning-route\.json/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);

@@ -14,7 +14,11 @@
       .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup))
       .then(result => group === 'adventureChallenge'
         ? root.loadFeatureScript('js/vocabularyAdventureLessonQueue.js').then(() => result)
-        : result);
+        : result)
+      .then(result => {
+        root.installVocabularyAdventurePreviewLatestGuard?.();
+        return result;
+      });
   };
   root.loadFeatureGroup = patchedLoadFeatureGroup;
   try { loadFeatureGroup = patchedLoadFeatureGroup; } catch (_) {}
@@ -93,6 +97,212 @@
     }
   `;
   root.document.head.appendChild(style);
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// Replace the challenge module's home preview with a latest-request-only
+// renderer. It waits for all state reads before touching the DOM, so an older
+// same-user request cannot restore an obsolete "continue" cursor.
+(function exposeVocabularyAdventurePreviewLatestGuard(root) {
+  if (!root || root.__vocabularyAdventurePreviewGuardExposed) return;
+  root.__vocabularyAdventurePreviewGuardExposed = true;
+  let previewRequestId = 0;
+
+  function studentUser() {
+    return typeof currentUser !== 'undefined' && ['sister', 'brother'].includes(currentUser)
+      ? currentUser
+      : '';
+  }
+
+  function setLegacyHomeHidden(hidden) {
+    const node = root.document?.getElementById('homeQuickActions');
+    if (!node) return;
+    node.hidden = hidden;
+    node.style.display = hidden ? 'none' : '';
+  }
+
+  function installVocabularyAdventurePreviewLatestGuard() {
+    const challengeApi = root.VocabularyAdventureChallenge;
+    const coreApi = root.VocabularyAdventureCore;
+    if (!challengeApi
+        || typeof challengeApi.challengeHomeStatus !== 'function'
+        || !coreApi
+        || typeof coreApi.localDateKey !== 'function'
+        || typeof root.loadVocabularyAdventureState !== 'function'
+        || typeof root.collectVisibleVocabularyAdventureCandidates !== 'function') {
+      return false;
+    }
+    if (root.updateVocabularyAdventurePreviewEntry?.__latestRequestGuarded) return true;
+
+    const guarded = async function updateVocabularyAdventurePreviewEntryLatest() {
+      const requestId = ++previewRequestId;
+      const wrapper = root.document.getElementById('studentDashboard');
+      const adventureButton = root.document.getElementById('vocabularyAdventurePreviewEntry');
+      const user = studentUser();
+      const enabled = !!user;
+      if (wrapper) wrapper.hidden = !enabled;
+      if (adventureButton) adventureButton.hidden = !enabled;
+      setLegacyHomeHidden(enabled);
+      if (!enabled) return;
+
+      const [state, legacy] = await Promise.all([
+        root.loadVocabularyAdventureState(user),
+        typeof root.getVocabularyAdventureLegacyChallengeUsage === 'function'
+          ? root.getVocabularyAdventureLegacyChallengeUsage()
+          : Promise.resolve({ attempts: 0, bestScore: 0 })
+      ]);
+      if (requestId !== previewRequestId || user !== studentUser()) return;
+
+      let candidates = [];
+      root.__vocabularyChallengeCandidateExpansion = true;
+      try {
+        candidates = root.collectVisibleVocabularyAdventureCandidates();
+      } finally {
+        root.__vocabularyChallengeCandidateExpansion = false;
+      }
+      if (requestId !== previewRequestId || user !== studentUser()) return;
+
+      const session = state && state.session;
+      const adventureTitle = root.document.getElementById('vocabularyAdventureHomeTitle');
+      const adventureSub = root.document.getElementById('vocabularyAdventureHomeSub');
+      const adventureStatus = root.document.getElementById('vocabularyAdventureHomeStatus');
+      if (adventureTitle) adventureTitle.textContent = '词汇探险';
+      if (adventureSub) adventureSub.textContent = '完成今日路线';
+      if (adventureStatus) {
+        adventureStatus.textContent = session
+          ? session.completed
+            ? '今日已完成'
+            : `继续探险 · ${session.cursor}/${session.plan.length}`
+          : '未开始';
+      }
+
+      const status = challengeApi.challengeHomeStatus({
+        state,
+        candidates,
+        today: coreApi.localDateKey(new Date()),
+        legacyAttempts: legacy && legacy.attempts,
+        legacyBestScore: legacy && legacy.bestScore
+      });
+      if (requestId !== previewRequestId || user !== studentUser()) return;
+
+      const challengeButton = root.document.getElementById('vocabularyAdventureChallengeEntry');
+      const challengeTitle = root.document.getElementById('vocabularyAdventureChallengeHomeTitle');
+      const challengeSub = root.document.getElementById('vocabularyAdventureChallengeHomeSub');
+      if (challengeButton) {
+        challengeButton.disabled = status.state === 'locked' || status.state === 'insufficient';
+        challengeButton.dataset.state = status.state;
+        challengeButton.setAttribute('aria-label', `单词挑战，${status.text}，最高10金币`);
+      }
+      if (challengeTitle) challengeTitle.textContent = '单词挑战';
+      if (challengeSub) challengeSub.textContent = status.text;
+    };
+    guarded.__latestRequestGuarded = true;
+    root.updateVocabularyAdventurePreviewEntry = guarded;
+    try { updateVocabularyAdventurePreviewEntry = guarded; } catch (_) {}
+    return true;
+  }
+
+  root.installVocabularyAdventurePreviewLatestGuard = installVocabularyAdventurePreviewLatestGuard;
+  installVocabularyAdventurePreviewLatestGuard();
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// Keep home refreshes in one ordered chain. Remote reward/classroom reads are
+// awaited and guarded by user + request id, so an older response cannot replace
+// the newest home state after exits, saves or user switches.
+(function installHomeRefreshCoordinator(root) {
+  if (!root || root.__homeRefreshCoordinatorInstalled || typeof root.loadHome !== 'function') return;
+  root.__homeRefreshCoordinatorInstalled = true;
+
+  const renderReward = root.applyStudentRewardRecord;
+  const renderClassroom = root.applyStudentClassroomPracticeHomeRecord;
+  let requestId = 0;
+  let rerunRequested = false;
+  let activePromise = null;
+
+  function studentUser() {
+    return typeof currentUser !== 'undefined' && ['sister', 'brother'].includes(currentUser)
+      ? currentUser
+      : '';
+  }
+
+  function isCurrent(user, id) {
+    return id === requestId
+      && user === studentUser()
+      && !(typeof isTeacher === 'function' && isTeacher());
+  }
+
+  async function loadRewardFor(user, id) {
+    if (!isCurrent(user, id) || typeof renderReward !== 'function') return;
+    const key = studentRewardKey(user);
+    renderReward(getMirrorValue(key));
+    try {
+      const remote = await sbGetRemote(key);
+      if (isCurrent(user, id) && remote && typeof remote === 'object') {
+        renderReward(remote);
+      }
+    } catch (_) {
+      // The mirrored value remains visible when the remote refresh fails.
+    }
+  }
+
+  async function loadClassroomFor(user, id) {
+    if (!isCurrent(user, id) || typeof renderClassroom !== 'function') return;
+    const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + user;
+    const local = getMirrorValue(key);
+    renderClassroom(local && typeof local === 'object' ? local[todayISO()] : null);
+    try {
+      const remote = await sbGetRemote(key);
+      if (!isCurrent(user, id)) return;
+      const record = remote && typeof remote === 'object' ? remote[todayISO()] : null;
+      renderClassroom(record);
+    } catch (_) {
+      // The mirrored daily state remains visible when the remote refresh fails.
+    }
+  }
+
+  async function performHomeLoad(user, id) {
+    updateUserBar();
+    if (currentUser === 'teacher') document.body.classList.add('is-teacher');
+    else document.body.classList.remove('is-teacher');
+    if (!user) return;
+
+    await loadRewardFor(user, id);
+    if (!isCurrent(user, id)) return;
+
+    const notice = document.getElementById('studentHomeNotice');
+    if (notice) {
+      notice.hidden = true;
+      notice.textContent = '';
+    }
+
+    await loadClassroomFor(user, id);
+    if (!isCurrent(user, id)) return;
+
+    if (typeof root.updateVocabularyAdventurePreviewEntry === 'function') {
+      await root.updateVocabularyAdventurePreviewEntry();
+    }
+  }
+
+  const coordinatedLoadHome = function coordinatedLoadHome() {
+    requestId += 1;
+    rerunRequested = true;
+    if (activePromise) return activePromise;
+
+    activePromise = (async () => {
+      while (rerunRequested) {
+        rerunRequested = false;
+        const id = requestId;
+        const user = studentUser();
+        await performHomeLoad(user, id);
+      }
+    })().finally(() => {
+      activePromise = null;
+      if (rerunRequested) coordinatedLoadHome();
+    });
+    return activePromise;
+  };
+
+  root.loadHome = coordinatedLoadHome;
+  try { loadHome = coordinatedLoadHome; } catch (_) {}
 })(typeof window !== 'undefined' ? window : globalThis);
 
 // ══════════════════════════════════════
