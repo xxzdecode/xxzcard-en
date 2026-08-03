@@ -17,6 +17,18 @@ class FakeElement {
     this.nodeType = 1;
     this.id = '';
     this.className = '';
+    this.classList = {
+      add: (...items) => {
+        const values = new Set(this.className.split(/\s+/).filter(Boolean));
+        items.forEach(item => values.add(item));
+        this.className = [...values].join(' ');
+      },
+      contains: item => this.className.split(/\s+/).includes(item),
+      remove: (...items) => {
+        const removed = new Set(items);
+        this.className = this.className.split(/\s+/).filter(item => item && !removed.has(item)).join(' ');
+      }
+    };
     this.dataset = {};
     this.children = [];
     this.hidden = false;
