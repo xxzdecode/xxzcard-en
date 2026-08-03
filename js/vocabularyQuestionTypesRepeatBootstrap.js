@@ -22,7 +22,9 @@
   const FEATURE_PROMPT_PREFIX = '__VOCAB_CUE__:';
   const MISSING_PROMPT_PREFIX = '__VOCAB_MISSING__:';
   const featurePromises = new Map();
+  const supportPromises = new Map();
   const supportReadyGroups = new Set();
+  const nativeFallbackObservers = new Map();
   let basePromise = null;
   let installed = null;
   let capturedChallengeState = null;
@@ -627,11 +629,162 @@
     return installed;
   }
 
+  function decodePracticeCue(value) {
+    const raw = String(value || '');
+    const definitions = [
+      ['missingLetters', MISSING_PROMPT_PREFIX],
+      ['feature', FEATURE_PROMPT_PREFIX]
+    ];
+    for (const [kind, prefix] of definitions) {
+      if (!raw.startsWith(prefix)) continue;
+      try {
+        return { kind, value: JSON.parse(decodeURIComponent(raw.slice(prefix.length))) };
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function clearNode(node) {
+    if (!node) return;
+    if (typeof node.replaceChildren === 'function') {
+      node.replaceChildren();
+    } else {
+      while (node.firstChild && typeof node.removeChild === 'function') {
+        node.removeChild(node.firstChild);
+      }
+    }
+    node.textContent = '';
+  }
+
+  function appendTextElement(tagName, className, value) {
+    const element = root.document.createElement(tagName);
+    if (className) element.className = className;
+    element.textContent = value;
+    return element;
+  }
+
+  function enhanceNativePracticePrompt(node, group) {
+    if (!node || !root.document || node.dataset?.vocabularyCueEnhanced === '1') return false;
+    const decoded = decodePracticeCue(node.textContent);
+    if (!decoded) return false;
+
+    const isAudio = decoded.kind === 'feature'
+      && decoded.value
+      && decoded.value.taskType === 'audioToMeaning';
+    const isMissing = decoded.kind === 'missingLetters';
+    if (!isAudio && !isMissing) return false;
+
+    if (!node.dataset) node.dataset = {};
+    node.dataset.vocabularyCueEnhanced = '1';
+    const question = typeof node.closest === 'function'
+      ? node.closest('.vocabulary-adventure-question')
+      : null;
+    const label = question && typeof question.querySelector === 'function'
+      ? question.querySelector(
+          '.vocabulary-adventure-question-label, .vocabulary-adventure-instruction, h2'
+        )
+      : null;
+    clearNode(node);
+
+    if (isAudio) {
+      if (label) label.textContent = '听一听，选择中文意思';
+      const button = root.document.createElement('button');
+      button.type = 'button';
+      button.className = 'vocabulary-adventure-audio-prompt';
+      button.textContent = '🕊 再听一次';
+      button.setAttribute?.('aria-label', '播放单词发音�');
+      button.addEventListener?.('click', () => {
+        const speak = group === 'adventureChallenge'
+          ? root.speakVocabularyAdventureChallengeWord
+          : root.speakVocabularyAdventureCurrent;
+        if (typeof speak === 'function') speak();
+      });
+      node.appendChild?.(button);
+      return true;
+    }
+
+    if (label) label.textContent = '选择缺失字母';
+    const cue = decoded.value && typeof decoded.value === 'object' ? decoded.value : {};
+    const wrap = root.document.createElement('div');
+    wrap.className = 'vocabulary-adventure-missing-cue';
+
+    const visual = root.document.createElement('div');
+    visual.className = 'vocabulary-adventure-missing-visual is-fallback';
+    visual.textContent = cue.emoji || cue.placeholder || '📝';
+
+    const copy = root.document.createElement('div');
+    copy.className = 'vocabulary-adventure-missing-copy';
+    copy.appendChild?.(appendTextElement(
+      'p',
+      '',
+      cue.meaning || '根据提示选择缺失字母'
+    ));
+    copy.appendChild?.(appendTextElement('strong', '', cue.maskedWord || ''));
+    wrap.appendChild?.(visual);
+    wrap.appendChild?.(copy);
+    node.appendChild?.(wrap);
+    return true;
+  }
+
+  function scanNativePracticeFallback(rootNode, group) {
+    if (!rootNode) return;
+    if (typeof rootNode.matches === 'function'
+        && rootNode.matches('.vocabulary-adventure-prompt-text')) {
+      enhanceNativePracticePrompt(rootNode, group);
+    }
+    if (typeof rootNode.querySelectorAll === 'function') {
+      rootNode.querySelectorAll('.vocabulary-adventure-prompt-text')
+        .forEach(node => enhanceNativePracticePrompt(node, group));
+    }
+  }
+
+  function installNativePracticeFallback(group) {
+    if (!root.document || typeof root.document.getElementById !== 'function') return;
+    const bodyId = group === 'adventureChallenge'
+      ? 'vocabularyAdventureChallengeBody'
+      : 'vocabularyAdventureBody';
+    const body = root.document.getElementById(bodyId);
+    if (!body) return;
+
+    scanNativePracticeFallback(body, group);
+    if (nativeFallbackObservers.has(group) || typeof root.MutationObserver !== 'function') return;
+
+    const observer = new root.MutationObserver(records => {
+      records.forEach(record => {
+        const addedNodes = record && record.addedNodes ? [...record.addedNodes] : [];
+        addedNodes.forEach(node => scanNativePracticeFallback(node, group));
+      });
+      scanNativePracticeFallback(body, group);
+    });
+    observer.observe(body, { childList: true, subtree: true });
+    nativeFallbackObservers.set(group, observer);
+  }
+
+  function prepareFeatureEntry(group) {
+    installNativePracticeFallback(group);
+    if (!supportReadyGroups.has(group)) triggerSupportActivation(group);
+  }
+
+  function installPlayerBrowserWrappers() {
+    if (typeof root.openVocabularyAdventure !== 'function'
+        || root.openVocabularyAdventure.__questionRepeatWrapped) return;
+    const originalOpen = root.openVocabularyAdventure;
+    const wrappedOpen = function openVocabularyAdventurePatched(...args) {
+      prepareFeatureEntry('adventurePlayer');
+      return originalOpen.apply(this, args);
+    };
+    wrappedOpen.__questionRepeatWrapped = true;
+    root.openVocabularyAdventure = wrappedOpen;
+  }
+
   function installChallengeBrowserWrappers() {
     if (typeof root.openVocabularyAdventureChallenge === 'function'
         && !root.openVocabularyAdventureChallenge.__questionRepeatWrapped) {
       const originalOpen = root.openVocabularyAdventureChallenge;
       const wrappedOpen = async function openVocabularyAdventureChallengePatched(...args) {
+        prepareFeatureEntry('adventureChallenge');
         root.__vocabularyChallengeCandidateExpansion = true;
         try {
           return await originalOpen.apply(this, args);
@@ -642,10 +795,13 @@
       wrappedOpen.__questionRepeatWrapped = true;
       root.openVocabularyAdventureChallenge = wrappedOpen;
     }
-    if (typeof root.startAnotherVocabularyAdventureChallenge === 'function') {
-      root.startAnotherVocabularyAdventureChallenge = function startAnotherVocabularyAdventureChallengePatched() {
+    if (typeof root.startAnotherVocabularyAdventureChallenge === 'function'
+        && !root.startAnotherVocabularyAdventureChallenge.__questionRepeatWrapped) {
+      const wrappedStart = function startAnotherVocabularyAdventureChallengePatched() {
         return root.openVocabularyAdventureChallenge(true);
       };
+      wrappedStart.__questionRepeatWrapped = true;
+      root.startAnotherVocabularyAdventureChallenge = wrappedStart;
     }
     if (typeof root.updateVocabularyAdventurePreviewEntry === 'function'
         && !root.updateVocabularyAdventurePreviewEntry.__questionRepeatWrapped) {
@@ -698,25 +854,40 @@
 
   function activateSupportModules(group) {
     if (supportReadyGroups.has(group)) return Promise.resolve(true);
-    return loadSupportModules().then(results => {
-      root.VocabularyPracticeUI?.afterFeatureGroup?.(group, installed);
-      root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group, installed);
-      const ready = results.every(Boolean);
-      if (ready) supportReadyGroups.add(group);
-      return ready;
-    }).catch(error => {
+    if (supportPromises.has(group)) return supportPromises.get(group);
+
+    let promise;
+    promise = loadSupportModules()
+      .then(results => {
+        root.VocabularyPracticeUI?.afterFeatureGroup?.(group, installed);
+        root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group, installed);
+        const ready = results.every(Boolean);
+        if (ready) supportReadyGroups.add(group);
+        return ready;
+      })
+      .catch(error => {
+        console.warn('optional vocabulary support activation failed', group, error && (error.message || error));
+        return false;
+      })
+      .finally(() => {
+        if (supportPromises.get(group) === promise) supportPromises.delete(group);
+      });
+
+    supportPromises.set(group, promise);
+    return promise;
+  }
+
+  function triggerSupportActivation(group) {
+    const promise = activateSupportModules(group);
+    void promise.catch(error => {
       console.warn('optional vocabulary support activation failed', group, error && (error.message || error));
-      return false;
     });
   }
 
   function loadFeatureGroup(group, fallback) {
     if (!['adventurePlayer', 'adventureChallenge'].includes(group)) return fallback(group);
-    if (featurePromises.has(group)) {
-      const promise = featurePromises.get(group);
-      void promise.then(() => activateSupportModules(group));
-      return promise;
-    }
+    if (featurePromises.has(group)) return featurePromises.get(group);
+
     const promise = ensureBase()
       .then(() => {
         if (group === 'adventurePlayer') {
@@ -725,8 +896,9 @@
         return root.loadFeatureScript('js/vocabularyAdventureChallenge.js');
       })
       .then(() => {
-        if (group === 'adventureChallenge') installChallengeBrowserWrappers();
-        void activateSupportModules(group);
+        if (group === 'adventurePlayer') installPlayerBrowserWrappers();
+        else installChallengeBrowserWrappers();
+        triggerSupportActivation(group);
       })
       .catch(error => {
         featurePromises.delete(group);
