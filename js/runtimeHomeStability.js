@@ -225,6 +225,14 @@
     }
     stabilize();
     wrapLoadHome();
+    if (root.document.readyState === 'loading') {
+      root.document.addEventListener('DOMContentLoaded', wrapLoadHome, { once: true });
+    }
+    root.setTimeout(() => {
+      if (!contextSettling) return;
+      contextSettling = false;
+      stabilize();
+    }, 1500);
     let attempts = 0;
     const timer = root.setInterval(() => {
       attempts += 1;
