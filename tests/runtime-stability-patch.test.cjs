@@ -2,9 +2,53 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const vocabularyUx = require('../js/runtimeVocabularyUx.js');
 const homeStability = require('../js/runtimeHomeStability.js');
+
+function createRuntimePatchHarness(options = {}) {
+  const insertedScripts = [];
+  const context = {
+    console: {
+      warn() {},
+      error() {}
+    },
+    document: {
+      readyState: 'complete',
+      head: {
+        appendChild(script) {
+          insertedScripts.push(script.src);
+          Promise.resolve().then(() => script.onload && script.onload());
+          return script;
+        }
+      },
+      createElement() {
+        return {
+          src: '',
+          async: true,
+          dataset: {},
+          onload: null,
+          onerror: null
+        };
+      },
+      addEventListener() {}
+    },
+    setTimeout,
+    clearTimeout,
+    setInterval() { return 1; },
+    clearInterval() {},
+    loadFeatureGroup: options.loadFeatureGroup || (async group => `loaded:${group}`),
+    loadFeatureScript: options.loadFeatureScript || (async () => undefined)
+  };
+  context.window = context;
+  context.globalThis = context;
+  vm.createContext(context);
+  const source = fs.readFileSync(path.join(__dirname, '../js/runtimeStabilityPatch.js'), 'utf8');
+  vm.runInContext(source, context, { filename: 'js/runtimeStabilityPatch.js' });
+  context.installAdventureLoaderRecovery();
+  return { context, insertedScripts };
+}
 
 test('bilingual examples become a Chinese prompt and English-only order tokens', () => {
   globalThis.VocabularyAdventureCore = {
@@ -48,4 +92,70 @@ test('home loading indicator is time-bounded and never serializes refresh promis
   assert.match(source, /return result;/);
   assert.doesNotMatch(source, /let active\s*=/);
   assert.doesNotMatch(source, /pointer-events:auto/);
+});
+
+test('adventure loader rebuilds a poisoned bootstrap and ignores optional UI failures', async () => {
+  const loaded = [];
+  const { context } = createRuntimePatchHarness({
+    async loadFeatureGroup(group) {
+      if (group === 'adventurePlayer') throw new Error('poisoned base promise');
+      return `loaded:${group}`;
+    },
+    async loadFeatureScript(source) {
+      loaded.push(source);
+      if (/vocabularyQuestionTypesRepeatBootstrap\.js\?adventureLoaderRecovery=/.test(source)) {
+        context.VocabularyQuestionTypesRepeatPatch = {
+          async loadFeatureGroup(group) {
+            await context.loadFeatureScript('js/vocabularyAdventureCore.js');
+            await context.loadFeatureScript('js/vocabularyPracticeUI.js');
+            await context.loadFeatureScript(
+              group === 'adventurePlayer'
+                ? 'js/vocabularyAdventurePlayer.js'
+                : 'js/vocabularyAdventureChallenge.js'
+            );
+          }
+        };
+        return;
+      }
+      if (source === 'js/vocabularyPracticeUI.js') {
+        throw new Error('optional UI unavailable');
+      }
+    }
+  });
+
+  await context.loadFeatureGroup('adventurePlayer');
+
+  assert.equal(
+    loaded.some(source => /vocabularyQuestionTypesRepeatBootstrap\.js\?adventureLoaderRecovery=1/.test(source)),
+    true
+  );
+  assert.equal(loaded.includes('js/vocabularyAdventurePlayer.js'), true);
+  assert.equal(await context.loadFeatureGroup('teacherTools'), 'loaded:teacherTools');
+});
+
+test('adventure loader clears a failed recovery so the next click can retry', async () => {
+  const recoverySources = [];
+  let recoveryRun = 0;
+  const { context } = createRuntimePatchHarness({
+    async loadFeatureGroup() {
+      throw new Error('poisoned base promise');
+    },
+    async loadFeatureScript(source) {
+      if (!/vocabularyQuestionTypesRepeatBootstrap\.js\?adventureLoaderRecovery=/.test(source)) return;
+      recoverySources.push(source);
+      recoveryRun += 1;
+      const run = recoveryRun;
+      context.VocabularyQuestionTypesRepeatPatch = {
+        async loadFeatureGroup() {
+          if (run === 1) throw new Error('network still unavailable');
+        }
+      };
+    }
+  });
+
+  await assert.rejects(context.loadFeatureGroup('adventurePlayer'), /network still unavailable/);
+  await context.loadFeatureGroup('adventurePlayer');
+
+  assert.equal(recoverySources.length, 2);
+  assert.notEqual(recoverySources[0], recoverySources[1]);
 });
