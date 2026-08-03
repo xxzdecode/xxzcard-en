@@ -304,6 +304,6 @@ assert.match(html, /id="vocabularyAdventureChallengeEntry"/);
 assert.match(html, /id="screenVocabularyAdventureChallenge"/);
 assert.match(source, /const enabled = !!studentUser\(\)/);
 assert.doesNotMatch(source, /if \(!previewEnabled\(\) \|\| !studentUser\(\)\) return/);
-assert.doesNotMatch(serviceWorker, /vocabularyAdventureChallenge/);
+assert.match(serviceWorker, /\.\/js\/vocabularyAdventureChallenge\.js/);
 
 console.log('vocabulary adventure challenge tests passed');
