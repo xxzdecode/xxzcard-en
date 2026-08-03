@@ -10,6 +10,17 @@ const bootstrapSource = fs.readFileSync(
   path.join(__dirname, '../js/vocabularyQuestionTypesRepeatBootstrap.js'),
   'utf8'
 );
+const lazyFeaturesSource = fs.readFileSync(
+  path.join(__dirname, '../js/lazyFeatures.js'),
+  'utf8'
+);
+const mainSource = fs.readFileSync(
+  path.join(__dirname, '../js/main.js'),
+  'utf8'
+);
+const mainLoaderEnd = mainSource.indexOf('// Record the latest selected choice');
+assert.notEqual(mainLoaderEnd, -1);
+const mainLoaderSource = mainSource.slice(0, mainLoaderEnd);
 
 function createCore() {
   return {
@@ -59,6 +70,15 @@ function installLoadedModule(context, source) {
   if (source === 'js/vocabularyAdventureChallenge.js') {
     context.openVocabularyAdventureChallenge = () => true;
   }
+  if (source === 'data/vocabularyLessonAssets.js') {
+    context.VocabularyLessonAssets = {};
+  }
+  if (source === 'js/vocabularyPracticeUI.js') {
+    context.VocabularyPracticeUI = { afterFeatureGroup() {} };
+  }
+  if (source === 'js/vocabularyFeedbackErrorUI.js') {
+    context.VocabularyFeedbackErrorUI = { afterFeatureGroup() {} };
+  }
 }
 
 function createHarness(loadFeatureScript) {
@@ -82,8 +102,114 @@ function createHarness(loadFeatureScript) {
   return { context, warnings };
 }
 
+function createElement(tagName = 'div') {
+  const listeners = new Map();
+  const attributes = new Map();
+  return {
+    tagName: String(tagName).toUpperCase(),
+    dataset: {},
+    style: {},
+    children: [],
+    hidden: false,
+    textContent: '',
+    onload: null,
+    onerror: null,
+    removed: false,
+    get firstChild() {
+      return this.children[0] || null;
+    },
+    appendChild(child) {
+      this.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      const index = this.children.indexOf(child);
+      if (index >= 0) this.children.splice(index, 1);
+      return child;
+    },
+    replaceChildren(...children) {
+      this.children = [...children];
+    },
+    remove() {
+      this.removed = true;
+    },
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+    },
+    getAttribute(name) {
+      return attributes.get(name) ?? null;
+    },
+    removeAttribute(name) {
+      attributes.delete(name);
+    },
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    click() {
+      const listener = listeners.get('click');
+      return listener ? listener() : undefined;
+    },
+    querySelector() {
+      return null;
+    }
+  };
+}
+
+function createEntryHarness(onScript) {
+  const elements = new Map([
+    ['vocabularyAdventurePreviewEntry', createElement('button')],
+    ['vocabularyAdventureHomeStatus', createElement('span')],
+    ['studentHomeNotice', createElement('div')]
+  ]);
+  elements.get('studentHomeNotice').hidden = true;
+
+  const document = {
+    readyState: 'complete',
+    head: {
+      appendChild(script) {
+        onScript(script, context);
+        return script;
+      }
+    },
+    body: createElement('body'),
+    createElement,
+    getElementById(id) {
+      return elements.get(id) || null;
+    },
+    querySelector() {
+      return null;
+    },
+    addEventListener() {}
+  };
+
+  const context = {
+    document,
+    console: { error() {}, warn() {} },
+    alert() {},
+    Blob: function Blob() {},
+    URL: {
+      createObjectURL() { return 'blob:test'; },
+      revokeObjectURL() {}
+    },
+    requestIdleCallback() { return 1; },
+    setTimeout,
+    clearTimeout,
+    loadHome() { return Promise.resolve(); }
+  };
+  context.window = context;
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(lazyFeaturesSource, context, { filename: 'js/lazyFeatures.js' });
+  vm.runInContext(mainLoaderSource, context, { filename: 'js/main.js#loader' });
+  return { context, elements };
+}
+
 function failFallback(group) {
   throw new Error(`unexpected fallback: ${group}`);
+}
+
+function flushTasks() {
+  return new Promise(resolve => setImmediate(resolve));
 }
 
 test('a failed base script clears the cached base promise and the same page can retry', async () => {
@@ -143,10 +269,35 @@ test('optional presentation helpers may fail without blocking the core player', 
   });
 
   await context.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup('adventurePlayer', failFallback);
-  await new Promise(resolve => setImmediate(resolve));
+  await flushTasks();
 
   assert.equal(typeof context.openVocabularyAdventure, 'function');
   assert.equal(warnings.filter(args => args[0] === 'optional vocabulary support unavailable').length, 3);
+});
+
+test('a failed optional helper retries on the next entry without reloading core or player', async () => {
+  let coreAttempts = 0;
+  let playerAttempts = 0;
+  let practiceAttempts = 0;
+  const { context } = createHarness(async (source, target) => {
+    if (source === 'js/vocabularyAdventureCore.js') coreAttempts += 1;
+    if (source === 'js/vocabularyAdventurePlayer.js') playerAttempts += 1;
+    if (source === 'js/vocabularyPracticeUI.js') {
+      practiceAttempts += 1;
+      if (practiceAttempts === 1) throw new Error('practice UI temporarily unavailable');
+    }
+    installLoadedModule(target, source);
+  });
+
+  await context.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup('adventurePlayer', failFallback);
+  await flushTasks();
+  await context.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup('adventurePlayer', failFallback);
+  await flushTasks();
+
+  assert.equal(coreAttempts, 1);
+  assert.equal(playerAttempts, 1);
+  assert.equal(practiceAttempts, 2);
+  assert.equal(typeof context.VocabularyPracticeUI?.afterFeatureGroup, 'function');
 });
 
 test('a hanging optional helper does not delay the feature-group promise', async () => {
@@ -169,7 +320,54 @@ test('a hanging optional helper does not delay the feature-group promise', async
 
   assert.equal(result, 'loaded');
   releaseSupport();
-  await new Promise(resolve => setImmediate(resolve));
+  await flushTasks();
+});
+
+test('the real lazy entry and main loader recover through the in-page retry', async () => {
+  let coreAttempts = 0;
+  let opened = 0;
+  const { context, elements } = createEntryHarness((script, target) => {
+    const source = script.src;
+    if (source === 'js/vocabularyQuestionTypesRepeatBootstrap.js') {
+      vm.runInContext(bootstrapSource, target, {
+        filename: 'js/vocabularyQuestionTypesRepeatBootstrap.js'
+      });
+      script.onload();
+      return;
+    }
+    if (source === 'js/vocabularyAdventureCore.js') {
+      coreAttempts += 1;
+      if (coreAttempts === 1) {
+        script.onerror();
+        return;
+      }
+    }
+    installLoadedModule(target, source);
+    if (source === 'js/vocabularyAdventurePlayer.js') {
+      target.openVocabularyAdventure = () => {
+        opened += 1;
+        return 'opened';
+      };
+    }
+    script.onload();
+  });
+
+  const first = await context.openVocabularyAdventure();
+  assert.equal(first, null);
+  assert.equal(coreAttempts, 1);
+  assert.equal(elements.get('vocabularyAdventureHomeStatus').textContent, '点击重试');
+
+  const notice = elements.get('studentHomeNotice');
+  assert.equal(notice.hidden, false);
+  assert.equal(notice.children.length, 2);
+  assert.equal(notice.children[1].textContent, '重新打开');
+
+  const retry = notice.children[1].click();
+  assert.equal(await retry, 'opened');
+  assert.equal(coreAttempts, 2);
+  assert.equal(opened, 1);
+  assert.equal(notice.hidden, true);
+  assert.equal(elements.get('vocabularyAdventurePreviewEntry').getAttribute('aria-busy'), null);
 });
 
 test('the old runtime recovery wrapper is no longer present', () => {
