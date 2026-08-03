@@ -61,10 +61,11 @@
     const current = root[name];
     if (typeof current !== 'function' || current.__runtimeFeatureLoadingWrapped || wrappedFunctions.has(current)) return;
     const wrapped = async function runtimeFeatureLoadingWrapper(...args) {
-      setLoading(name, true);
+      const timer = root.setTimeout(() => setLoading(name, true), 160);
       try {
         return await current.apply(this, args);
       } finally {
+        root.clearTimeout(timer);
         setLoading(name, false);
         root.setTimeout(() => root.RuntimeVocabularyUx?.scan?.(), 0);
       }
