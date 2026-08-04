@@ -161,7 +161,7 @@ body.is-teacher .current-mode { margin-top: 0; font-size: 11px; }
 #teacherDashboardGrid > #teacherDailyRoutePanel,
 #teacherDashboardGrid > #teacherActivityPanel,
 #teacherDashboardGrid > #teacherStudentTagPanel {
-  width: 100%; max-width: none; height: 100%;
+  width: 100%; max-width: none; height: 100%; margin: 0;
   flex-direction: column;
 }
 #teacherDashboardGrid > #teacherDailyRoutePanel { display: flex; }

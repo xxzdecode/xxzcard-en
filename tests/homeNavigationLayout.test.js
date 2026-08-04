@@ -42,6 +42,11 @@ assert.doesNotMatch(teacherNav, /openVocabularyReviewList|生词巩固/);
 
 assert.match(baseStyles, /\.teacher-dashboard-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
 assert.match(baseStyles, /\.teacher-dashboard-primary\s*\{/);
+assert.match(
+  baseStyles,
+  /#teacherDashboardGrid > #teacherDailyRoutePanel,[\s\S]*?#teacherDashboardGrid > #teacherStudentTagPanel\s*\{[^}]*margin:\s*0/s,
+  'dynamic teacher cards must override legacy panel margins'
+);
 assert.match(baseStyles, /\.vocabulary-tour-entry\s*\{/);
 assert.match(layoutStyles, /\.bottom-feature-nav\.student-only\s*\{[^}]*margin:\s*18px auto 6px[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
 assert.match(layoutStyles, />\s*\.bottom-feature-nav__item\s*\{[^}]*grid-column:\s*auto/s);
