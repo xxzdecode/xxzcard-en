@@ -410,6 +410,12 @@ try {
     viewport: [innerWidth, innerHeight],
     pageWidth: document.documentElement.scrollWidth,
     primaryTitle: document.querySelector('.teacher-dashboard-primary h1')?.textContent,
+    primaryBottom: document.querySelector('.teacher-dashboard-primary')?.getBoundingClientRect().bottom,
+    dynamicCards: ['teacherDailyRoutePanel', 'teacherActivityPanel', 'teacherStudentTagPanel'].map(id => {
+      const card = document.getElementById(id);
+      const rect = card.getBoundingClientRect();
+      return { id, top: rect.top, marginTop: getComputedStyle(card).marginTop };
+    }),
     cardOrders: [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
       .map(card => ({ id: card.id || '', order: getComputedStyle(card).order }))
       .sort((a, b) => Number(a.order) - Number(b.order))
@@ -417,6 +423,16 @@ try {
   assert.deepEqual(teacherLayout.viewport, [1180, 820]);
   assert.ok(teacherLayout.pageWidth <= 1180, `teacher dashboard overflowed to ${teacherLayout.pageWidth}px`);
   assert.equal(teacherLayout.primaryTitle, '单词卡管理');
+  assert.ok(
+    Math.max(...teacherLayout.dynamicCards.map(card => card.top))
+      - Math.min(...teacherLayout.dynamicCards.map(card => card.top)) <= 1,
+    `teacher cards are not top-aligned: ${JSON.stringify(teacherLayout.dynamicCards)}`
+  );
+  assert.ok(
+    teacherLayout.dynamicCards.every(card => card.top >= teacherLayout.primaryBottom + 13),
+    `teacher cards overlap the primary module: ${JSON.stringify(teacherLayout)}`
+  );
+  assert.deepEqual(teacherLayout.dynamicCards.map(card => card.marginTop), ['0px', '0px', '0px']);
   assert.deepEqual(teacherLayout.cardOrders.map(item => item.id || item.order), [
     'teacherDailyRoutePanel',
     'teacherActivityPanel',
