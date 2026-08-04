@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v53';
-const RUNTIME_CACHE = 'xxzcard-runtime-v53';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v54';
+const RUNTIME_CACHE = 'xxzcard-runtime-v54';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
