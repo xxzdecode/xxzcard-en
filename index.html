@@ -163,29 +163,43 @@
       <span>专项小游戏</span>
     </button>
   </nav>
-  <nav class="teacher-home-nav teacher-only" aria-label="老师主要功能">
-    <button class="bottom-feature-nav__item" onclick="openTeacherWordCards()">
-      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M3.604 7.197l7.138 -3.109c.997 -.434 2.156 .01 2.586 .991l2.916 6.695c.43 .982 -.03 2.13 -1.028 2.565l-7.138 3.109c-.996 .434 -2.155 -.01 -2.585 -.991l-2.916 -6.695c-.43 -.982 .03 -2.13 1.027 -2.565z" />
-        <path d="M15 4h1a2 2 0 0 1 2 2v10" />
-      </svg>
-      <span>单词卡</span>
-    </button>
-    <button class="bottom-feature-nav__item" onclick="openCoursewareList()">
-      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
-        <path d="M4 5.5v15M8 7h8M8 11h6" />
-      </svg>
-      <span>随堂练习</span>
-    </button>
-    <button class="bottom-feature-nav__item" onclick="openGrammarLibrary()">
-      <svg class="bottom-feature-nav__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1 -3 -3z" />
-        <path d="M5 17a3 3 0 0 1 3 -3h11M9 8h6M9 11h4" />
-      </svg>
-      <span>知识点库</span>
-    </button>
-  </nav>
+  <main class="teacher-dashboard teacher-only" id="teacherDashboard" aria-label="老师首页">
+    <nav class="teacher-home-nav teacher-dashboard-primary" aria-label="单词卡管理">
+      <div class="teacher-dashboard-primary__copy">
+        <span class="teacher-dashboard-primary__eyebrow">老师端</span>
+        <h1>单词卡管理</h1>
+        <p>管理现有单词本，或直接导入、导出当前词单。</p>
+      </div>
+      <div class="teacher-dashboard-primary__actions">
+        <button type="button" class="teacher-dashboard-button teacher-dashboard-button--primary" onclick="openTeacherWordCards()">
+          <span>进入管理</span>
+        </button>
+        <button type="button" class="teacher-dashboard-button" onclick="openTeacherWordImport()">
+          <span>导入</span>
+        </button>
+        <button type="button" class="teacher-dashboard-button" id="exportVocabularyCopyListsButton" onclick="exportVocabularyAdventureCopyLists()" aria-label="导出姐姐和弟弟的摸底抄写词单">
+          <span>导出词单</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="teacher-dashboard-grid" id="teacherDashboardGrid">
+      <section class="teacher-dashboard-card teacher-dashboard-entry-card teacher-dashboard-entry-card--courseware">
+        <div class="teacher-dashboard-card__heading">
+          <span class="teacher-dashboard-card__icon" aria-hidden="true">📖</span>
+          <div><h2>随堂练习</h2><p>查看并进入已有课堂练习。</p></div>
+        </div>
+        <button type="button" class="teacher-dashboard-card__action" onclick="openCoursewareList()">进入随堂练习</button>
+      </section>
+      <section class="teacher-dashboard-card teacher-dashboard-entry-card teacher-dashboard-entry-card--knowledge">
+        <div class="teacher-dashboard-card__heading">
+          <span class="teacher-dashboard-card__icon" aria-hidden="true">📚</span>
+          <div><h2>知识点库</h2><p>查看已有语法知识点与教学进度。</p></div>
+        </div>
+        <button type="button" class="teacher-dashboard-card__action" onclick="openGrammarLibrary()">进入知识点库</button>
+      </section>
+    </div>
+  </main>
 </div>
 
 <!-- ══ SCREEN: VOCABULARY ADVENTURE PREVIEW ══ -->

@@ -573,7 +573,7 @@
       if (!nav) return;
       const panel = document.createElement('section');
       panel.id = 'teacherActivityPanel';
-      panel.className = 'teacher-activity-panel teacher-only';
+      panel.className = 'teacher-activity-panel teacher-dashboard-card teacher-dashboard-card--activity teacher-only';
       panel.innerHTML = `
         <div class="teacher-activity-panel__top">
           <div class="teacher-activity-panel__summary"><h2>金币与次数调整</h2><p id="teacherActivityCurrent">正在读取…</p></div>
@@ -598,7 +598,9 @@
           </div>
         </div>
         <div class="teacher-activity-status" id="teacherActivityStatus" role="status" aria-live="polite"></div>`;
-      nav.insertAdjacentElement('afterend', panel);
+      const grid = document.getElementById('teacherDashboardGrid');
+      if (grid) grid.appendChild(panel);
+      else nav.insertAdjacentElement('afterend', panel);
       document.getElementById('teacherActivityStudent')?.addEventListener('change', refreshTeacherPanel);
       document.getElementById('teacherActivityProject')?.addEventListener('change', () => {
         const custom = document.getElementById('teacherActivityCustomWrap');

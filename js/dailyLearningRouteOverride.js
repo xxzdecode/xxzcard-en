@@ -415,22 +415,19 @@
     if (!home) return;
     const panel = document.createElement('section');
     panel.id = 'teacherDailyRoutePanel';
-    panel.className = 'teacher-only';
+    panel.className = 'teacher-dashboard-card teacher-dashboard-card--route teacher-only';
     panel.innerHTML = `
-      <style>
-        #teacherDailyRoutePanel{display:none;margin:12px auto;width:min(1180px,calc(100% - 24px));padding:14px;border:1px solid #ddd2f1;border-radius:18px;background:#fbf8ff;box-shadow:0 8px 24px rgba(101,73,159,.1)}
-        body.is-teacher #teacherDailyRoutePanel{display:block}#teacherDailyRoutePanel h2{margin:0 0 4px;color:#65499f;font-size:19px}#teacherDailyRoutePanel p{margin:0 0 12px;color:#756b7d;font-size:13px}
-        .daily-route-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.daily-route-field{display:grid;gap:6px}.daily-route-field label{font-weight:800}.daily-route-field select{min-height:44px;border:1px solid #d8cdeb;border-radius:11px;padding:8px;background:#fff}
-        .daily-route-actions{display:flex;align-items:center;gap:8px;margin-top:12px}.daily-route-actions span{margin-right:auto;font-size:13px;font-weight:700;color:#6e6474}.daily-route-actions button{min-height:42px;border:0;border-radius:999px;padding:8px 15px;font-weight:800}.daily-route-save{background:#7658ba;color:#fff}.daily-route-refresh{background:#eee8fb;color:#65499f}@media(max-width:760px){.daily-route-grid{grid-template-columns:1fr}}
-      </style>
       <h2>今日学习安排</h2><p>自动安排继续保留；这里只手动替换今天。选择“自动安排”即可恢复。</p>
       <div class="daily-route-grid">
         <div class="daily-route-field"><label for="teacherGrammarOverride">今日语法挑战</label><select id="teacherGrammarOverride"><option value="">自动安排</option></select><small>仅可选择含标准题目数据的随堂练习，最多抽取 10 题。</small></div>
         <div class="daily-route-field"><label for="teacherClassroomOverride">今日随堂练习</label><select id="teacherClassroomOverride"><option value="">自动安排</option></select><small>学生首页直接进入所选练习。</small></div>
       </div>
       <div class="daily-route-actions"><span id="teacherDailyRouteStatus"></span><button class="daily-route-refresh" id="teacherDailyRouteRefresh">重新读取</button><button class="daily-route-save" id="teacherDailyRouteSave">保存今日安排</button></div>`;
+    const grid = document.getElementById('teacherDashboardGrid');
     const anchor = document.getElementById('currentModeBadge');
-    anchor && anchor.parentNode === home ? anchor.insertAdjacentElement('afterend', panel) : home.prepend(panel);
+    if (grid) grid.appendChild(panel);
+    else if (anchor && anchor.parentNode === home) anchor.insertAdjacentElement('afterend', panel);
+    else home.prepend(panel);
     panel.querySelector('#teacherDailyRouteRefresh').onclick = refreshPanel;
     panel.querySelector('#teacherDailyRouteSave').onclick = savePanel;
   }

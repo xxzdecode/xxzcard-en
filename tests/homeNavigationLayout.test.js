@@ -12,7 +12,8 @@ const reviewScript = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
 const studentNav = html.match(/<nav class="bottom-feature-nav student-only"[\s\S]*?<\/nav>/)?.[0] || '';
-const teacherNav = html.match(/<nav class="teacher-home-nav teacher-only"[\s\S]*?<\/nav>/)?.[0] || '';
+const teacherNav = html.match(/<nav class="teacher-home-nav teacher-dashboard-primary"[\s\S]*?<\/nav>/)?.[0] || '';
+const teacherDashboard = html.match(/<main class="teacher-dashboard teacher-only"[\s\S]*?<\/main>/)?.[0] || '';
 const activeStudentNav = studentNav.replace(/<!--[\s\S]*?-->/g, '');
 const vocabularyTourEntry = html.match(/<article class="student-home-card[^"]*student-home-card--tour"[\s\S]*?<\/article>/)?.[0] || '';
 
@@ -29,13 +30,18 @@ assert.deepEqual(
 );
 assert.deepEqual(
   Array.from(teacherNav.matchAll(/<span>([^<]+)<\/span>/g), match => match[1]),
-  ['单词卡', '随堂练习', '知识点库']
+  ['进入管理', '导入', '导出词单']
 );
+assert.match(teacherNav, /<h1>单词卡管理<\/h1>/);
+assert.match(teacherDashboard, /onclick="openCoursewareList\(\)"[^>]*>进入随堂练习<\/button>/);
+assert.match(teacherDashboard, /onclick="openGrammarLibrary\(\)"[^>]*>进入知识点库<\/button>/);
+assert.doesNotMatch(teacherDashboard, /分类管理/);
 assert.match(reviewScript, /upgradeVocabularyLessonEntryLabels/);
 assert.doesNotMatch(activeStudentNav, /openVocabularyReviewList|生词巩固/);
 assert.doesNotMatch(teacherNav, /openVocabularyReviewList|生词巩固/);
 
-assert.match(baseStyles, /\.teacher-home-nav\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(baseStyles, /\.teacher-dashboard-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(baseStyles, /\.teacher-dashboard-primary\s*\{/);
 assert.match(baseStyles, /\.vocabulary-tour-entry\s*\{/);
 assert.match(layoutStyles, /\.bottom-feature-nav\.student-only\s*\{[^}]*margin:\s*18px auto 6px[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
 assert.match(layoutStyles, />\s*\.bottom-feature-nav__item\s*\{[^}]*grid-column:\s*auto/s);

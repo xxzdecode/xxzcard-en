@@ -320,6 +320,8 @@ try {
     await assertCachedHomeWorksOffline();
     console.log('student home offline cache test passed');
   } else {
+  const teacherDashboardOnly = process.argv.includes('--teacher-dashboard-only');
+  if (!teacherDashboardOnly) {
   const sister = await openHome('sister', iphone16Portrait);
   await assertStudentHome(sister.page, '姐姐', { orientation: 'portrait' });
   await sister.page.screenshot({ path: path.join(resultDir, 'sister-home-iphone16-portrait-393x852.png'), fullPage: true });
@@ -333,16 +335,95 @@ try {
   await brother.page.screenshot({ path: path.join(resultDir, 'brother-home-iphone16-portrait-393x852.png'), fullPage: true });
   assert.deepEqual(brother.errors, []);
   await brother.context.close();
+  }
 
-  const teacher = await openHome('teacher', iphone16Portrait);
+  const teacher = await openHome('teacher', ipadViewport(1180, 820));
   assert.equal(await teacher.page.locator('#studentDashboard').isHidden(), true);
   assert.equal(await teacher.page.locator('#studentFeatureNav').isHidden(), true);
-  assert.equal(await teacher.page.locator('.teacher-home-nav').isVisible(), true);
+  assert.equal(await teacher.page.locator('#teacherDashboard').isVisible(), true);
   assert.deepEqual(
-    await teacher.page.locator('.teacher-home-nav .bottom-feature-nav__item span').allTextContents(),
-    ['单词卡', '随堂练习', '知识点库', '导出词单']
+    await teacher.page.locator('.teacher-home-nav .teacher-dashboard-button span').allTextContents(),
+    ['进入管理', '导入', '导出词单']
   );
+  await teacher.page.waitForSelector('#teacherDailyRoutePanel:visible');
+  await teacher.page.waitForSelector('#teacherActivityPanel:visible');
   await teacher.page.waitForSelector('#teacherStudentTagPanel:visible');
+  const teacherStabilityBefore = await teacher.page.evaluate(() => {
+    const signature = () => [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
+      .map(card => card.id || getComputedStyle(card).order)
+      .join('|');
+    window.__teacherDashboardStabilityEvents = [];
+    window.__teacherDashboardStabilityObserver = new MutationObserver(records => {
+      records.forEach(record => {
+        if (record.type === 'attributes') {
+          if (record.target.matches?.('.screen, body')
+              && record.oldValue !== record.target.getAttribute('class')) {
+            window.__teacherDashboardStabilityEvents.push(`class:${record.target.id || 'body'}:${record.target.className}`);
+          }
+          return;
+        }
+        [...record.addedNodes].forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE
+              && (node.matches?.('#teacherRewardPanel') || node.querySelector?.('#teacherRewardPanel'))) {
+            window.__teacherDashboardStabilityEvents.push('legacy-reward-panel:added');
+          }
+        });
+        [...record.removedNodes].forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE
+              && (node.matches?.('#teacherRewardPanel') || node.querySelector?.('#teacherRewardPanel'))) {
+            window.__teacherDashboardStabilityEvents.push('legacy-reward-panel:removed');
+          }
+        });
+      });
+    });
+    window.__teacherDashboardStabilityObserver.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['class'],
+      attributeOldValue: true
+    });
+    return signature();
+  });
+  await teacher.page.evaluate(async () => {
+    await Promise.all(Array.from({ length: 4 }, (_, index) => (
+      window.loadHome({ background: true, reason: `teacher-stability-${index}` })
+    )));
+  });
+  await teacher.page.waitForTimeout(250);
+  const teacherStabilityAfter = await teacher.page.evaluate(() => {
+    window.__teacherDashboardStabilityObserver?.disconnect();
+    return {
+      signature: [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
+        .map(card => card.id || getComputedStyle(card).order)
+        .join('|'),
+      events: window.__teacherDashboardStabilityEvents,
+      activeScreens: [...document.querySelectorAll('.screen.active')].map(screen => screen.id),
+      legacyRewardPanel: Boolean(document.getElementById('teacherRewardPanel'))
+    };
+  });
+  assert.equal(teacherStabilityAfter.signature, teacherStabilityBefore);
+  assert.deepEqual(teacherStabilityAfter.events, []);
+  assert.deepEqual(teacherStabilityAfter.activeScreens, ['screenHome']);
+  assert.equal(teacherStabilityAfter.legacyRewardPanel, false);
+  const teacherLayout = await teacher.page.evaluate(() => ({
+    viewport: [innerWidth, innerHeight],
+    pageWidth: document.documentElement.scrollWidth,
+    primaryTitle: document.querySelector('.teacher-dashboard-primary h1')?.textContent,
+    cardOrders: [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
+      .map(card => ({ id: card.id || '', order: getComputedStyle(card).order }))
+      .sort((a, b) => Number(a.order) - Number(b.order))
+  }));
+  assert.deepEqual(teacherLayout.viewport, [1180, 820]);
+  assert.ok(teacherLayout.pageWidth <= 1180, `teacher dashboard overflowed to ${teacherLayout.pageWidth}px`);
+  assert.equal(teacherLayout.primaryTitle, '单词卡管理');
+  assert.deepEqual(teacherLayout.cardOrders.map(item => item.id || item.order), [
+    'teacherDailyRoutePanel',
+    'teacherActivityPanel',
+    'teacherStudentTagPanel',
+    '4',
+    '5'
+  ]);
   await teacher.page.locator('#teacherStudentTagSister').fill('阅读小达人');
   await teacher.page.locator('#teacherStudentTagBrother').fill('勇敢挑战者');
   await teacher.page.locator('#teacherStudentTagSave').click();
@@ -356,10 +437,13 @@ try {
     sister: '阅读小达人',
     brother: '勇敢挑战者'
   });
-  await teacher.page.screenshot({ path: path.join(resultDir, 'teacher-student-tags-iphone16-portrait-393x852.png'), fullPage: true });
+  await teacher.page.screenshot({ path: path.join(resultDir, 'teacher-dashboard-ipad-air11-landscape-1180x820.png'), fullPage: false });
   assert.deepEqual(teacher.errors, []);
   await teacher.context.close();
 
+  if (teacherDashboardOnly) {
+    console.log(`teacher dashboard iPad viewport test passed: ${resultDir}`);
+  } else {
   const ipadAir = await openHome('sister', ipadViewport(1180, 820));
   await assertStudentHome(ipadAir.page, '姐姐', {
     orientation: 'landscape',
@@ -444,6 +528,7 @@ try {
   await assertCachedHomeWorksOffline();
 
   console.log(`student home dashboard viewport tests passed: ${resultDir}`);
+  }
   }
 } finally {
   await browser.close();

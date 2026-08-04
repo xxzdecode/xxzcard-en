@@ -15,7 +15,7 @@
 
 `index.html` 中的主要 screen：
 
-- `screenHome`：首页、用户切换、学生今日/混合任务与学习入口，以及老师端“单词卡 / 随堂练习 / 生词巩固 / 知识点库”四个主入口。
+- `screenHome`：首页与用户切换；学生端显示今日学习仪表板，老师端显示置顶“单词卡管理”及今日安排、金币与次数、学生标签、随堂练习和知识点库卡片。
 - `screenVocabularyReviewList`：老师端生词巩固目录与单词选择页。
 - `screenVocabularyReview`：生词巩固学习/自测卡片页。
 - `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。

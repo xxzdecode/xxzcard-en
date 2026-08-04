@@ -223,6 +223,16 @@ async function openTeacherWordCards() {
   await refreshTeacherWordCards();
 }
 
+async function openTeacherWordImport() {
+  if (!isTeacher()) return;
+  if (typeof loadFeatureGroup === 'function') await loadFeatureGroup('teacherTools');
+  if (typeof showNewBatch !== 'function') {
+    alert('导入功能暂时无法加载，请刷新后重试。');
+    return;
+  }
+  showNewBatch();
+}
+
 function returnToTeacherHome() {
   if (!isTeacher()) return;
   showScreen('screenHome');

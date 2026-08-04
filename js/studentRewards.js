@@ -734,6 +734,10 @@
 
     function installTeacherPanel() {
       if (!root.isTeacher?.()) return;
+      if (typeof root.refreshTeacherActivityPanel === 'function' || document.getElementById('teacherActivityPanel')) {
+        document.getElementById('teacherRewardPanel')?.remove();
+        return;
+      }
       document.getElementById('teacherBreakthroughPanel')?.remove();
       if (document.getElementById('teacherRewardPanel')) {
         refreshTeacherPanel();
@@ -806,12 +810,13 @@
     function installStudentTagPanel() {
       if (!root.isTeacher?.()) return;
       const rewardPanel = document.getElementById('teacherRewardPanel');
-      if (!rewardPanel) return;
+      const grid = document.getElementById('teacherDashboardGrid');
+      if (!rewardPanel && !grid) return;
       let panel = document.getElementById('teacherStudentTagPanel');
       if (!panel) {
         panel = document.createElement('section');
         panel.id = 'teacherStudentTagPanel';
-        panel.className = 'teacher-student-tag-panel teacher-only';
+        panel.className = 'teacher-student-tag-panel teacher-dashboard-card teacher-dashboard-card--tags teacher-only';
         panel.innerHTML = `
           <h2>学生首页小标签</h2>
           <div class="teacher-student-tag-controls">
@@ -820,7 +825,8 @@
             <button id="teacherStudentTagSave" type="button">保存</button>
           </div>
           <div class="teacher-student-tag-status" id="teacherStudentTagStatus" role="status" aria-live="polite"></div>`;
-        rewardPanel.insertAdjacentElement('afterend', panel);
+        if (grid) grid.appendChild(panel);
+        else rewardPanel.insertAdjacentElement('afterend', panel);
         document.getElementById('teacherStudentTagSave')?.addEventListener('click', saveStudentTags);
         ['teacherStudentTagSister', 'teacherStudentTagBrother'].forEach(id => {
           document.getElementById(id)?.addEventListener('input', event => {
