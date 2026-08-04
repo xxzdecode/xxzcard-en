@@ -117,6 +117,8 @@ assert.match(task016Script, /encodeURIComponent\(String\(typeof currentUser/);
 assert.match(task016Script, /signature:\s*getVocabularyLessonProgressSignature/);
 assert.match(task016Script, /JSON\.parse\(localStorage\.getItem/);
 assert.match(task016Script, /catch \(_\) \{\s*return fallback;/);
+assert.match(task016Script, /const config = deriveGroupConfig\(batch\);/);
+assert.doesNotMatch(task016Script, /ensurePersistentGroupConfig/);
 assert.match(task016Script, /target >= 4/);
 assert.match(task016Script, /vocabularyLessonState\.hardWords/);
 assert.doesNotMatch(task016Script, /vocabularyReviewState\.rememberedWords\s*=/);

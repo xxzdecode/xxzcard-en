@@ -204,33 +204,6 @@
     );
   }
 
-  async function ensurePersistentGroupConfig(batch) {
-    const transient = deriveGroupConfig(batch);
-    if (isTransientBatch(batch)) return transient;
-    if (typeof updateMainDataSafely !== 'function') return transient;
-    const saved = await updateMainDataSafely(data => {
-      const remoteBatch = (Array.isArray(data.batches) ? data.batches : [])
-        .find(item => String(item && item.id || '') === String(batch && batch.id || ''));
-      if (!remoteBatch) return false;
-      const next = groupCore.reconcileVocabularyLessonGroups(
-        remoteBatch,
-        getStoredGroupConfig(remoteBatch, data),
-        groupCore.GROUP_SIZE
-      );
-      const previous = getStoredGroupConfig(remoteBatch, data);
-      if (JSON.stringify(previous || null) === JSON.stringify(next)) return false;
-      if (!data.vocabularyLessonGroups || typeof data.vocabularyLessonGroups !== 'object') {
-        data.vocabularyLessonGroups = {};
-      }
-      data.vocabularyLessonGroups[String(remoteBatch.id)] = next;
-      return true;
-    });
-    if (!saved) return transient;
-    const freshBatch = (Array.isArray(appData && appData.batches) ? appData.batches : [])
-      .find(item => String(item && item.id || '') === String(batch && batch.id || '')) || batch;
-    return deriveGroupConfig(freshBatch);
-  }
-
   function completionLabel(groupId) {
     const student = currentStudentUser();
     if (student) {
@@ -487,7 +460,10 @@
       ? batchOrId
       : selectVocabularyLessonBatch(appData, currentUser, batchOrId);
     if (!batch) return false;
-    const config = await ensurePersistentGroupConfig(batch);
+    // Opening the guide is a viewing action. Derive any missing grouping in
+    // memory and defer the global `main` write until the student completes a
+    // group, where sealCurrentGroupInMain() persists the stable grouping.
+    const config = deriveGroupConfig(batch);
     currentBatchId = isTransientBatch(batch) ? null : String(batch.id);
     vocabularyLessonState.batch = batch;
     vocabularyLessonState.words = buildVocabularyLessonWords(batch, vocabularyLessonVisualRegistry);
