@@ -110,7 +110,7 @@ async function openGuide(page) {
   await page.waitForFunction(() => Boolean(window.__vocabularyLessonLowPressureGroupsInstalled));
   assert.equal(await page.locator('#screenVocabularyReviewList .topbar-title').textContent(), '新词导览');
   assert.equal(await page.locator('#vocabularyLessonSelectionTitle').textContent(), '选择今天要讲的单词本');
-  assert.match(await page.locator('#vocabularyLessonBookList').first().textContent(), /^\s*📚?\s*今日新词/);
+  assert.match(await page.locator('#vocabularyLessonBookList').first().textContent(), /今日新词/);
   assert.equal(await page.locator('#vocabularyLessonCategoryEntry').count(), 1);
 }
 
@@ -135,6 +135,17 @@ async function assertLayout(page, viewport) {
 try {
   const ipad = await openApp({ width: 1180, height: 820 });
   await openGuide(ipad.page);
+  const mainWritesBeforeWorkbookOpen = ipad.writes.filter(write => write.key === 'main').length;
+  await ipad.page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-button').first().click();
+  await ipad.page.waitForSelector('#screenVocabularyReviewPlayer.active');
+  await ipad.page.waitForTimeout(550);
+  assert.equal(
+    ipad.writes.filter(write => write.key === 'main').length,
+    mainWritesBeforeWorkbookOpen,
+    'opening a workbook guide must not write global main data'
+  );
+  await ipad.page.locator('#screenVocabularyReviewPlayer .vocabulary-lesson-icon-button').click();
+  await ipad.page.waitForSelector('#screenVocabularyReviewList.active');
   await assertLayout(ipad.page, { width: 1180, height: 820 });
   assert.equal(
     await ipad.page.locator('script[data-feature-source="js/vocabularyLesson016.js"]').count(),
@@ -184,7 +195,7 @@ try {
     categoryId: vocabularyLessonState.categoryId || ''
   })), { user: 'brother', virtualInAppData: false, batch: null, categoryId: '' });
   await openGuide(ipad.page);
-  assert.match(await ipad.page.locator('#vocabularyLessonBookList').first().textContent(), /^\s*📚?\s*今日新词/);
+  assert.match(await ipad.page.locator('#vocabularyLessonBookList').first().textContent(), /今日新词/);
 
   await ipad.page.evaluate(async () => {
     const unsafe = JSON.parse(JSON.stringify(appData));
