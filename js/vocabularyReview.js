@@ -1,6 +1,7 @@
 const VOCABULARY_LESSON_HARD_KEY_PREFIX = 'wc_vocabulary_lesson_hard_v1:';
 const VOCABULARY_REVIEW_REMEMBERED_KEY = 'wc_vocabulary_review_remembered';
 const VOCABULARY_REVIEW_MIGRATION_KEY = 'wc_vocabulary_review_shared_migration_v1';
+const VOCABULARY_LESSON_VIRTUAL_BATCH_PREFIX = 'vocabulary-category:';
 const vocabularyReviewPreloadedImages = new Set();
 
 let vocabularyReviewRememberedWords = new Set();
@@ -25,6 +26,47 @@ const vocabularyLessonState = {
   revealed: false,
   reviewScrollTop: 0
 };
+
+function isVocabularyLessonVirtualBatch(batch) {
+  return Boolean(batch && (
+    batch.vocabularyLessonTransient === true
+    || String(batch.id || '').startsWith(VOCABULARY_LESSON_VIRTUAL_BATCH_PREFIX)
+  ));
+}
+
+function clearVocabularyLessonTransientState() {
+  const hasVirtualBatch = isVocabularyLessonVirtualBatch(vocabularyLessonState.batch);
+  const hasVirtualCurrentId = String(typeof currentBatchId === 'undefined' ? '' : currentBatchId || '')
+    .startsWith(VOCABULARY_LESSON_VIRTUAL_BATCH_PREFIX);
+  const hasCategoryState = Boolean(vocabularyLessonState.categoryId || vocabularyLessonState.categoryName);
+  if (!hasVirtualBatch && !hasVirtualCurrentId && !hasCategoryState) return false;
+
+  if (typeof window !== 'undefined' && typeof window.resetVocabularyLessonCategoryRuntime === 'function') {
+    window.resetVocabularyLessonCategoryRuntime();
+  }
+  vocabularyLessonState.mode = 'selection';
+  vocabularyLessonState.batch = null;
+  vocabularyLessonState.books = [];
+  vocabularyLessonState.words = [];
+  vocabularyLessonState.batches = [];
+  vocabularyLessonState.groupConfig = null;
+  vocabularyLessonState.batchPositions = [];
+  vocabularyLessonState.batchIndex = 0;
+  vocabularyLessonState.lastTeachingBatchIndex = 0;
+  vocabularyLessonState.wordIndex = 0;
+  vocabularyLessonState.reviewDetailIndex = 0;
+  vocabularyLessonState.hardWords = new Set();
+  vocabularyLessonState.randomWords = [];
+  vocabularyLessonState.randomIndex = 0;
+  vocabularyLessonState.randomPool = [];
+  vocabularyLessonState.revealed = false;
+  vocabularyLessonState.reviewScrollTop = 0;
+  delete vocabularyLessonState.categoryId;
+  delete vocabularyLessonState.categoryName;
+  if (hasVirtualCurrentId || hasVirtualBatch) currentBatchId = null;
+  document.body.classList.remove('vocabulary-review-open');
+  return true;
+}
 
 function canUseVocabularyReview() {
   return currentUser === 'teacher' || currentUser === 'sister' || currentUser === 'brother';
@@ -258,6 +300,7 @@ function renderVocabularyLessonSharedAdmin() {
 
 async function openVocabularyReviewList() {
   if (!canUseVocabularyReview()) return;
+  clearVocabularyLessonTransientState();
   installVocabularyLessonShell();
   document.body.classList.remove('vocabulary-review-open');
   await Promise.all([
@@ -270,6 +313,7 @@ async function openVocabularyReviewList() {
 
 function closeVocabularyReviewList() {
   if (!canUseVocabularyReview()) return;
+  clearVocabularyLessonTransientState();
   document.body.classList.remove('vocabulary-review-open');
   showScreen('screenHome');
   loadHome();
@@ -319,6 +363,7 @@ function startVocabularyReview(index = 0) {
 function closeVocabularyReviewPlayer() {
   if (!canUseVocabularyReview()) return;
   document.body.classList.remove('vocabulary-review-open');
+  clearVocabularyLessonTransientState();
   vocabularyLessonState.mode = 'selection';
   renderVocabularyLessonBookSelection();
   showScreen('screenVocabularyReviewList');

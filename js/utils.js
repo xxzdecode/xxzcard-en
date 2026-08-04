@@ -52,6 +52,9 @@ function getBookPurposeFilterState(commonFilterId, supportFilterId) {
 // SCREEN NAV
 // ══════════════════════════════════════
 function showScreen(id) {
+  if (id === 'screenHome' && typeof clearVocabularyLessonTransientState === 'function') {
+    clearVocabularyLessonTransientState();
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);

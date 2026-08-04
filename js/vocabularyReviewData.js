@@ -238,14 +238,6 @@ function buildVocabularyLessonWords(batch, registry = vocabularyLessonVisualRegi
     .filter(item => item.word && !seen.has(item.key) && seen.add(item.key));
 }
 
-// Task 016 is an additive enhancement. Load it separately so the established player stays intact.
-if (typeof document !== 'undefined') {
-  const enhancement = document.createElement('script');
-  enhancement.src = 'js/vocabularyLesson016.js';
-  enhancement.async = false;
-  document.head.appendChild(enhancement);
-}
-
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     VOCABULARY_LESSON_SUPPORTED_VISUAL_TYPES,

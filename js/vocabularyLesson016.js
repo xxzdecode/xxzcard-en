@@ -1,4 +1,7 @@
 (function installVocabularyLessonTask016() {
+  const runtimeRoot = typeof globalThis !== 'undefined' ? globalThis : window;
+  if (runtimeRoot.__vocabularyLessonTask016Bootstrapped) return;
+  runtimeRoot.__vocabularyLessonTask016Bootstrapped = true;
   const PROGRESS_KEY_PREFIX = 'wc_vocabulary_lesson_position_v1:';
   const CLOUD_PROGRESS_KEY_PREFIX = 'vocab_lesson_progress_v1_';
   const CIRCLED_BATCH_LABELS = ['①', '②', '③', '④'];
@@ -35,6 +38,14 @@
     const user = encodeURIComponent(String(typeof currentUser === 'undefined' ? '' : currentUser));
     const batchId = encodeURIComponent(String(batch && batch.id || 'none'));
     return `${PROGRESS_KEY_PREFIX}${user}:${batchId}`;
+  }
+
+  function isTransientBatch(batch) {
+    if (typeof isVocabularyLessonVirtualBatch === 'function') return isVocabularyLessonVirtualBatch(batch);
+    return Boolean(batch && (
+      batch.vocabularyLessonTransient === true
+      || String(batch.id || '').startsWith('vocabulary-category:')
+    ));
   }
 
   function getVocabularyLessonProgressSignature() {
@@ -87,7 +98,7 @@
   }
 
   function saveVocabularyLessonProgress() {
-    if (!vocabularyLessonState.batch || !vocabularyLessonState.batches.length) return;
+    if (!vocabularyLessonState.batch || isTransientBatch(vocabularyLessonState.batch) || !vocabularyLessonState.batches.length) return;
     ensureProgressState();
     if (vocabularyLessonState.mode === 'teaching') {
       vocabularyLessonState.batchPositions[vocabularyLessonState.batchIndex] = clampIndex(
@@ -170,7 +181,7 @@
   function saveCurrentCloudPosition() {
     const user = currentStudentUser();
     const group = activeGroupConfig();
-    if (!user || !group || !vocabularyLessonState.batch) return;
+    if (!user || !group || !vocabularyLessonState.batch || isTransientBatch(vocabularyLessonState.batch)) return;
     const current = progressForUser(user);
     cloudProgressByUser[user] = groupCore.updateVocabularyLessonGroupPosition(current, {
       groupId: group.id,
@@ -195,6 +206,7 @@
 
   async function ensurePersistentGroupConfig(batch) {
     const transient = deriveGroupConfig(batch);
+    if (isTransientBatch(batch)) return transient;
     if (typeof updateMainDataSafely !== 'function') return transient;
     const saved = await updateMainDataSafely(data => {
       const remoteBatch = (Array.isArray(data.batches) ? data.batches : [])
@@ -252,7 +264,7 @@
 
   async function migrateLegacyProgressForBook(batch, config, materialized) {
     const user = currentStudentUser();
-    if (!user || !batch || !config) return;
+    if (!user || !batch || !config || isTransientBatch(batch)) return;
     const progress = progressForUser(user);
     const migrationKey = String(batch.id);
     if (progress.migrations[migrationKey]) return;
@@ -468,18 +480,20 @@
     startVocabularyLessonRandomReview(false);
   }
 
-  async function selectVocabularyLessonGroup(batchId, requestedGroupIndex) {
+  async function selectVocabularyLessonGroup(batchOrId, requestedGroupIndex) {
     saveVocabularyLessonProgress();
     await loadRelevantCloudProgress();
-    const batch = selectVocabularyLessonBatch(appData, currentUser, batchId);
+    const batch = isTransientBatch(batchOrId)
+      ? batchOrId
+      : selectVocabularyLessonBatch(appData, currentUser, batchOrId);
     if (!batch) return false;
     const config = await ensurePersistentGroupConfig(batch);
-    currentBatchId = String(batch.id);
+    currentBatchId = isTransientBatch(batch) ? null : String(batch.id);
     vocabularyLessonState.batch = batch;
     vocabularyLessonState.words = buildVocabularyLessonWords(batch, vocabularyLessonVisualRegistry);
     vocabularyLessonState.groupConfig = config;
     vocabularyLessonState.batches = groupCore.materializeVocabularyLessonGroups(vocabularyLessonState.words, config);
-    const localProgress = readVocabularyLessonProgress();
+    const localProgress = isTransientBatch(batch) ? defaultProgressState() : readVocabularyLessonProgress();
     await migrateLegacyProgressForBook(batch, config, vocabularyLessonState.batches);
 
     const user = currentStudentUser();
@@ -526,6 +540,7 @@
     const batch = vocabularyLessonState.batch;
     const group = activeGroupConfig();
     if (!batch || !group || typeof updateMainDataSafely !== 'function') return false;
+    if (isTransientBatch(batch)) return true;
     const alreadySealed = deriveGroupConfig(batch).groups
       .find(item => item.id === group.id)?.sealed === true;
     if (alreadySealed) return true;
@@ -553,7 +568,7 @@
   async function completeCurrentGroup() {
     const user = currentStudentUser();
     const group = activeGroupConfig();
-    if (!user || !group) return true;
+    if (!user || !group || isTransientBatch(vocabularyLessonState.batch)) return true;
     const progress = progressForUser(user);
     if (groupCore.isVocabularyLessonGroupCompleted(progress, group.id)) return true;
 
@@ -668,6 +683,10 @@
     };
 
     window.selectVocabularyLessonGroup = selectVocabularyLessonGroup;
+    window.selectVocabularyLessonVirtualBatch = function selectVocabularyLessonVirtualBatch(batch, groupIndex) {
+      if (!isTransientBatch(batch)) return false;
+      return selectVocabularyLessonGroup(batch, groupIndex);
+    };
     window.jumpVocabularyLessonBatch = jumpVocabularyLessonBatch;
     window.openVocabularyLessonHardWordsFromNav = openVocabularyLessonHardWordsFromNav;
     window.openVocabularyLessonRandomFromNav = openVocabularyLessonRandomFromNav;

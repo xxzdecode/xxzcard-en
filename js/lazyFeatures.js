@@ -335,6 +335,15 @@ function setVocabularyAdventureEntryState(state, error = null) {
 function installLazyFeatureHandler(name, group) {
   let resolvedHandler = null;
   let launchPromise = null;
+  const keepsLazyEntry = group === 'adventurePlayer' || group === 'adventureChallenge';
+
+  function captureResolvedHandler(lazyHandler) {
+    const handler = window[name];
+    if (typeof handler === 'function' && handler !== lazyHandler) {
+      resolvedHandler = handler;
+    }
+    return resolvedHandler;
+  }
 
   const lazyHandler = (...args) => {
     if (launchPromise) return launchPromise;
@@ -342,14 +351,14 @@ function installLazyFeatureHandler(name, group) {
 
     launchPromise = (async () => {
       try {
-        if (!resolvedHandler) {
+        if (!resolvedHandler || keepsLazyEntry) {
           await loadFeatureGroup(group);
-          const handler = window[name];
+        }
+        if (!resolvedHandler) {
+          const handler = captureResolvedHandler(lazyHandler);
           if (typeof handler !== 'function' || handler === lazyHandler) {
             throw new Error(`功能入口未就绪：${name}`);
           }
-          resolvedHandler = handler;
-          if (group === 'adventurePlayer') window[name] = lazyHandler;
         }
         const result = await resolvedHandler(...args);
         if (group === 'adventurePlayer') {
@@ -358,6 +367,7 @@ function installLazyFeatureHandler(name, group) {
         }
         return result;
       } catch (error) {
+        captureResolvedHandler(lazyHandler);
         console.error(error);
         if (group === 'adventurePlayer') {
           setVocabularyAdventureEntryState('error', error);
@@ -366,6 +376,7 @@ function installLazyFeatureHandler(name, group) {
         }
         return null;
       } finally {
+        if (keepsLazyEntry) window[name] = lazyHandler;
         launchPromise = null;
       }
     })();

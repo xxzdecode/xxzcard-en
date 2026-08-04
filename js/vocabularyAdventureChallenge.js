@@ -421,7 +421,8 @@
       order: [],
       prepared: null,
       preparedMeta: null,
-      saving: false
+      saving: false,
+      retryForceNew: false
     };
 
     function element(id) {
@@ -442,6 +443,18 @@
       return typeof currentUser !== 'undefined' && ['sister', 'brother'].includes(currentUser)
         ? currentUser
         : '';
+    }
+
+    function knownCloudWriteUnavailable() {
+      if (window.navigator && window.navigator.onLine === false) return true;
+      if (window.__sbConnectionOnline === false) return true;
+      const connectionState = window.__storageResilience?.getConnectionState?.();
+      if (connectionState === 'unavailable') return true;
+      try {
+        return typeof sbOnline !== 'undefined' && sbOnline === false;
+      } catch (_) {
+        return false;
+      }
     }
 
     function toggleLegacyHome(hidden) {
@@ -502,11 +515,21 @@
       const challengeSub = element('vocabularyAdventureChallengeHomeSub');
       if (challengeButton) {
         challengeButton.disabled = status.state === 'locked' || status.state === 'insufficient';
-        challengeButton.dataset.state = status.state;
-        challengeButton.setAttribute('aria-label', `单词挑战，${status.text}，最高10金币`);
+        const storageUnavailable = !challengeButton.disabled && knownCloudWriteUnavailable();
+        challengeButton.dataset.state = storageUnavailable ? 'storage-unavailable' : status.state;
+        challengeButton.setAttribute(
+          'aria-label',
+          storageUnavailable
+            ? '单词挑战，云端连接异常，点击重试连接后开始'
+            : `单词挑战，${status.text}，最高10金币`
+        );
       }
       if (challengeTitle) challengeTitle.textContent = '单词挑战';
-      if (challengeSub) challengeSub.textContent = status.text;
+      if (challengeSub) {
+        challengeSub.textContent = !challengeButton?.disabled && knownCloudWriteUnavailable()
+          ? '云端连接异常 · 点击重试'
+          : status.text;
+      }
     }
 
     function resetRuntime() {
@@ -518,6 +541,7 @@
       runtime.prepared = null;
       runtime.preparedMeta = null;
       runtime.saving = false;
+      runtime.retryForceNew = false;
     }
 
     function setFeedback(message, tone, label, handler) {
@@ -681,16 +705,38 @@
       setFeedback('', '', '返回首页', 'closeVocabularyAdventureChallenge');
     }
 
+    function renderStorageRetry(message, handler) {
+      const body = element('vocabularyAdventureChallengeBody');
+      if (body) {
+        body.innerHTML = `<div class="vocabulary-adventure-terminal">
+          <div class="vocabulary-adventure-terminal-icon">☁️</div>
+          <h2>挑战尚未开始</h2><p>${escapeHtml(message)}</p>
+        </div>`;
+      }
+      setFeedback(
+        '挑战计划必须先可靠保存到云端，恢复连接后可直接重试。',
+        'failed',
+        handler === 'retryOpenVocabularyAdventureChallenge' ? '重试连接' : '重新保存',
+        handler
+      );
+    }
+
+    function retryOpenVocabularyAdventureChallenge() {
+      return openVocabularyAdventureChallenge(runtime.retryForceNew);
+    }
+
     async function openVocabularyAdventureChallenge(forceNew) {
       if (!studentUser()) return;
+      const shouldForceNew = forceNew === true;
       resetRuntime();
+      runtime.retryForceNew = shouldForceNew;
       runtime.user = studentUser();
       showScreen('screenVocabularyAdventureChallenge');
       const today = core.localDateKey(new Date());
 
       try {
         const [loaded, legacy] = await Promise.all([
-          loadVocabularyAdventureState(runtime.user),
+          loadVocabularyAdventureState(runtime.user, { requireRemote: true }),
           typeof getVocabularyAdventureLegacyChallengeUsage === 'function'
             ? getVocabularyAdventureLegacyChallengeUsage()
             : Promise.resolve({ attempts: 0, bestScore: 0 })
@@ -706,7 +752,7 @@
           legacyAttempts: legacy.attempts,
           legacyBestScore: legacy.bestScore
         });
-        if (!forceNew && status.state === 'continue') return renderCurrent();
+        if (!shouldForceNew && status.state === 'continue') return renderCurrent();
         if (status.attempts >= DAILY_LIMIT) {
           return renderUnavailable('今天的 2 次挑战已经完成，明天再来。');
         }
@@ -732,12 +778,7 @@
         }, today);
         runtime.preparedMeta = { kind: 'initial' };
         if (!await saveCurrentVocabularyAdventureState(runtime.prepared)) {
-          setFeedback(
-            '挑战计划保存失败，尚未开始。',
-            'failed',
-            '重新保存',
-            'retryVocabularyAdventureChallengeSave'
-          );
+          renderStorageRetry('挑战计划保存失败，尚未进入答题。', 'retryVocabularyAdventureChallengeSave');
           return;
         }
         runtime.state = runtime.prepared;
@@ -746,7 +787,7 @@
         renderCurrent();
       } catch (error) {
         console.error('Unable to open vocabulary adventure challenge', error);
-        renderUnavailable('读取挑战状态失败，请稍后重试。');
+        renderStorageRetry('无法读取最新云端挑战状态，请检查网络后重试。', 'retryOpenVocabularyAdventureChallenge');
       }
     }
 
@@ -918,6 +959,7 @@
       openVocabularyAdventureChallenge,
       closeVocabularyAdventureChallenge,
       startAnotherVocabularyAdventureChallenge,
+      retryOpenVocabularyAdventureChallenge,
       answerVocabularyAdventureChallengeChoice,
       submitVocabularyAdventureChallengeInput,
       selectVocabularyAdventureChallengeToken,

@@ -105,6 +105,7 @@ async function openPage(
   const page = await context.newPage();
   const errors = [];
   let adventureWriteCount = 0;
+  let failedAdventureReadsRemaining = 0;
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => {
     if (message.type() === 'error') errors.push(message.text());
@@ -140,6 +141,11 @@ async function openPage(
       return;
     }
     const key = (url.searchParams.get('key') || '').replace(/^eq\./, '');
+    if (key.startsWith('vocab_adventure_v1_') && failedAdventureReadsRemaining > 0) {
+      failedAdventureReadsRemaining -= 1;
+      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+      return;
+    }
     const value = state.get(key);
     await route.fulfill({
       status: 200,
@@ -151,7 +157,15 @@ async function openPage(
   await page.waitForFunction(() => typeof window.openVocabularyAdventureChallenge === 'function');
   await page.waitForFunction(() => typeof sbOnline !== 'undefined' && sbOnline === true);
   await page.waitForFunction(() => document.getElementById('currentModeBadge')?.textContent.includes('当前：'));
-  return { context, page, state, errors };
+  return {
+    context,
+    page,
+    state,
+    errors,
+    failNextAdventureReads(count = 2) {
+      failedAdventureReadsRemaining = Math.max(0, Number(count) || 0);
+    }
+  };
 }
 
 async function answerCurrent(page, state, correct = true, user = 'sister') {
@@ -218,6 +232,45 @@ try {
   assert.equal(saveFailure.state.get('vocab_adventure_v1_sister').challengeSession.cursor, 1);
   assert.equal(saveFailure.state.get('vocab_adventure_v1_sister').challengeSession.correctCount, 1);
   await saveFailure.context.close();
+
+  const offlineRecovery = await openPage({ width: 1024, height: 768 });
+  await offlineRecovery.page.waitForSelector('#studentDashboard:visible');
+  offlineRecovery.failNextAdventureReads(2);
+  await offlineRecovery.page.evaluate(async () => {
+    const error = Object.assign(new Error('offline test'), { code: 'NETWORK_OFFLINE' });
+    window.__storageResilience.markUnavailable(error);
+    await updateVocabularyAdventurePreviewEntry();
+  });
+  assert.equal(
+    await offlineRecovery.page.locator('#vocabularyAdventureChallengeHomeSub').textContent(),
+    '云端连接异常 · 点击重试'
+  );
+  assert.equal(
+    await offlineRecovery.page.locator('#vocabularyAdventureChallengeEntry').getAttribute('data-state'),
+    'storage-unavailable'
+  );
+  assert.equal(await offlineRecovery.page.locator('#vocabularyAdventureChallengeEntry').isEnabled(), true);
+
+  offlineRecovery.failNextAdventureReads(2);
+  await offlineRecovery.page.locator('#vocabularyAdventureChallengeEntry').click();
+  await offlineRecovery.page.waitForFunction(() => (
+    document.getElementById('vocabularyAdventureChallengeAction')?.textContent === '重试连接'
+  ));
+  assert.equal(
+    await offlineRecovery.page.locator('#vocabularyAdventureChallengeBody .vocabulary-adventure-question').count(),
+    0
+  );
+  assert.match(
+    await offlineRecovery.page.locator('#vocabularyAdventureChallengeFeedbackText').textContent(),
+    /必须先可靠保存到云端/
+  );
+  assert.equal(offlineRecovery.state.get('vocab_adventure_v1_sister').challengeSession, undefined);
+
+  await offlineRecovery.page.locator('#vocabularyAdventureChallengeAction').click();
+  await offlineRecovery.page.waitForSelector('#vocabularyAdventureChallengeBody .vocabulary-adventure-question');
+  assert.equal(offlineRecovery.state.get('vocab_adventure_v1_sister').challengeSession.status, 'active');
+  assert.equal(offlineRecovery.state.get('vocab_adventure_v1_sister').challengeSession.cursor, 0);
+  await offlineRecovery.context.close();
 
   const run = await openPage({
     name: 'ipad11-landscape',

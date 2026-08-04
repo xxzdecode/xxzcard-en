@@ -130,8 +130,41 @@ function scheduleDailySupabaseMirror(delay) {
   }, delay || nextSupabaseMirrorDelay());
 }
 
+function isVocabularyLessonTransientBatchRecord(batch) {
+  return Boolean(batch && (
+    batch.vocabularyLessonTransient === true
+    || String(batch.id || '').startsWith('vocabulary-category:')
+  ));
+}
+
+function stripVocabularyLessonTransientData(data) {
+  if (!data || typeof data !== 'object') return false;
+  let changed = false;
+  if (Array.isArray(data.batches)) {
+    const persistentBatches = data.batches.filter(batch => !isVocabularyLessonTransientBatchRecord(batch));
+    if (persistentBatches.length !== data.batches.length) {
+      data.batches = persistentBatches;
+      changed = true;
+    }
+  }
+  if (data.vocabularyLessonGroups && typeof data.vocabularyLessonGroups === 'object') {
+    Object.keys(data.vocabularyLessonGroups).forEach(batchId => {
+      if (!String(batchId).startsWith('vocabulary-category:')) return;
+      delete data.vocabularyLessonGroups[batchId];
+      changed = true;
+    });
+  }
+  return changed;
+}
+
 function cloneForStorage(value) {
   return value ? JSON.parse(JSON.stringify(value)) : value;
+}
+
+function cloneMainForStorage(value) {
+  const copy = cloneForStorage(value);
+  stripVocabularyLessonTransientData(copy);
+  return copy;
 }
 
 function fingerprintData(value) {
@@ -139,7 +172,7 @@ function fingerprintData(value) {
 }
 
 function setMainSnapshot(data) {
-  const copy = cloneForStorage(data);
+  const copy = cloneMainForStorage(data);
   if (copy) normalizeAppData(copy);
   mainSnapshot = fingerprintData(copy);
 }
@@ -213,14 +246,15 @@ async function sbGet(key) {
 async function sbSet(key, value) {
   if (!sbOnline) throw storageError('OFFLINE_READONLY', 'offline');
   try {
+    const storedValue = key === 'main' ? cloneMainForStorage(value) : value;
     const r = await sbFetchWithTimeout(`${SB_URL}/rest/v1/kv_store`, {
       method: 'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ key, value })
+      body: JSON.stringify({ key, value: storedValue })
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    lsSet(key, value);
-    updateMirrorValue(key, value);
+    lsSet(key, storedValue);
+    updateMirrorValue(key, storedValue);
   } catch(e) {
     console.warn('sbSet failed; blocked local-only write', e.message || e);
     sbOnline = false;
@@ -289,7 +323,7 @@ async function updateMainDataSafely(mutator, maxAttempts = 2) {
       const remote = await sbGetRemote('main');
       const base = remote || { batches: [], pin: null };
       normalizeAppData(base);
-      const next = cloneForStorage(base);
+      const next = cloneMainForStorage(base);
       const changed = mutator(next);
 
       if (changed === false) {
@@ -579,7 +613,7 @@ function normalizeBatch(batch) {
 function normalizeAppData(data) {
   if (!data || !Array.isArray(data.batches)) return false;
   normalizePhonemeLibraryIfAvailable(data);
-  let changed = false;
+  let changed = stripVocabularyLessonTransientData(data);
   data.batches.forEach(batch => {
     if (normalizeBatch(batch)) changed = true;
     if (typeof isCurrentEnglishCard !== 'function' || typeof normalizeCardDictionary !== 'function') return;

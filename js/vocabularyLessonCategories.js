@@ -11,6 +11,7 @@
   let installed = false;
   let originalSelectVocabularyLessonBook = null;
   let originalRenderVocabularyLesson = null;
+  let originalRenderVocabularyLessonBookSelection = null;
 
   function playerReady() {
     return typeof installVocabularyLessonShell === 'function'
@@ -259,8 +260,10 @@
     const copy = title && title.parentElement ? title.parentElement.querySelector('p') : null;
     const icon = document.querySelector('.vocabulary-lesson-selection-icon');
     const topbarTitle = document.querySelector('#screenVocabularyReviewList .topbar-title');
+    const selectionCopy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
     if (!list) return;
 
+    if (selectionCopy) selectionCopy.hidden = false;
     if (topbarTitle) topbarTitle.textContent = '分类词汇导览';
     if (title) title.textContent = '选择词汇类别';
     if (copy) copy.textContent = '同一个词可以出现在多个类别中；正式单词卡和探险记录不会改变。';
@@ -297,6 +300,60 @@
       empty.hidden = groups.length > 0;
     }
     if (typeof renderVocabularyLessonSharedAdmin === 'function') renderVocabularyLessonSharedAdmin();
+    if (typeof window.decorateVocabularyLessonCategoryProgress === 'function') {
+      window.decorateVocabularyLessonCategoryProgress();
+    }
+  }
+
+  function renderCategorySecondaryEntry() {
+    const list = document.getElementById('vocabularyLessonBookList');
+    if (!list || document.getElementById('vocabularyLessonCategoryEntry')) return;
+    const entry = document.createElement('button');
+    entry.id = 'vocabularyLessonCategoryEntry';
+    entry.className = 'vocabulary-lesson-book-button vocabulary-lesson-category-entry';
+    entry.type = 'button';
+    entry.addEventListener('click', openVocabularyLessonCategorySelection);
+    entry.innerHTML = `
+      <span aria-hidden="true">🗂️</span>
+      <span class="vocabulary-lesson-book-name">分类词汇<small>按主题浏览</small></span>
+      <span class="vocabulary-lesson-status-badge">次级入口</span>
+      <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>`;
+    list.appendChild(entry);
+  }
+
+  function renderBookSelectionWithCategoryEntry() {
+    if (!originalRenderVocabularyLessonBookSelection) return;
+    originalRenderVocabularyLessonBookSelection();
+    const topbarTitle = document.querySelector('#screenVocabularyReviewList .topbar-title');
+    const title = document.getElementById('vocabularyLessonSelectionTitle');
+    const copy = title && title.parentElement ? title.parentElement.querySelector('p') : null;
+    const icon = document.querySelector('.vocabulary-lesson-selection-icon');
+    const selectionCopy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
+    if (selectionCopy) selectionCopy.hidden = false;
+    if (topbarTitle) topbarTitle.textContent = '新词导览';
+    if (title) title.textContent = '选择今天要讲的单词本';
+    if (copy) copy.textContent = '优先显示今天或当前可见的单词本；分类词汇可从下方次级入口打开。';
+    if (icon) icon.textContent = '🖼️';
+    renderCategorySecondaryEntry();
+  }
+
+  function installSelectionBackButton(handler) {
+    const button = document.querySelector('#screenVocabularyReviewList .back-btn');
+    if (button) button.onclick = handler;
+  }
+
+  function openVocabularyLessonCategorySelection() {
+    if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
+    renderCategorySelection();
+    installSelectionBackButton(closeVocabularyLessonCategorySelection);
+    showScreen('screenVocabularyReviewList');
+  }
+
+  function closeVocabularyLessonCategorySelection() {
+    if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
+    renderBookSelectionWithCategoryEntry();
+    installSelectionBackButton(closeVocabularyReviewList);
+    showScreen('screenVocabularyReviewList');
   }
 
   function makeVirtualCategoryBatch(category) {
@@ -304,8 +361,7 @@
       id: `${VIRTUAL_BATCH_PREFIX}${category.id}`,
       name: `分类｜${category.name}`,
       bookPurpose: 'common',
-      sharedWith: ['sister', 'brother'],
-      createdAt: '9999-12-31',
+      vocabularyLessonTransient: true,
       cards: category.cards.slice()
     };
   }
@@ -315,17 +371,14 @@
     const category = categoryById(String(categoryId || ''));
     if (!category || !category.cards.length || !originalSelectVocabularyLessonBook) return false;
     const virtualBatch = makeVirtualCategoryBatch(category);
-    appData.batches.push(virtualBatch);
-    try {
-      originalSelectVocabularyLessonBook(virtualBatch.id);
-      vocabularyLessonState.categoryId = category.id;
-      vocabularyLessonState.categoryName = category.name;
-      renderVocabularyLesson();
-      return true;
-    } finally {
-      const index = appData.batches.indexOf(virtualBatch);
-      if (index >= 0) appData.batches.splice(index, 1);
-    }
+    const opened = typeof window.selectVocabularyLessonVirtualBatch === 'function'
+      ? await window.selectVocabularyLessonVirtualBatch(virtualBatch, null)
+      : false;
+    if (!opened) return false;
+    vocabularyLessonState.categoryId = category.id;
+    vocabularyLessonState.categoryName = category.name;
+    renderVocabularyLesson();
+    return true;
   }
 
   function installOverrides() {
@@ -334,7 +387,8 @@
     ensureCategoryStyles();
     originalSelectVocabularyLessonBook = selectVocabularyLessonBook;
     originalRenderVocabularyLesson = renderVocabularyLesson;
-    renderVocabularyLessonBookSelection = renderCategorySelection;
+    originalRenderVocabularyLessonBookSelection = renderVocabularyLessonBookSelection;
+    renderVocabularyLessonBookSelection = renderBookSelectionWithCategoryEntry;
     renderVocabularyLesson = function renderVocabularyLessonWithCategoryTitle() {
       originalRenderVocabularyLesson();
       const title = document.getElementById('vocabularyLessonModeTitle');
@@ -350,6 +404,8 @@
     window.getVocabularyLessonCategoryById = categoryById;
     window.makeVocabularyLessonVirtualCategoryBatch = makeVirtualCategoryBatch;
     window.renderVocabularyLessonCategorySelection = renderCategorySelection;
+    window.openVocabularyLessonCategorySelection = openVocabularyLessonCategorySelection;
+    window.closeVocabularyLessonCategorySelection = closeVocabularyLessonCategorySelection;
     window.getVocabularyLessonAvailableCategoryGroups = availableCategoryGroups;
     loadVocabularyLessonCategories().then(() => {
       if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {

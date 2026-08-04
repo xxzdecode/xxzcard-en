@@ -8,6 +8,9 @@ const registry = JSON.parse(fs.readFileSync(path.join(root, 'data/vocabularyCate
 const script = fs.readFileSync(path.join(root, 'js/vocabularyLessonCategories.js'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-vocabulary-lesson-categories.css'), 'utf8');
 const lazyFeatures = fs.readFileSync(path.join(root, 'js/lazyFeatures.js'), 'utf8');
+const reviewData = fs.readFileSync(path.join(root, 'js/vocabularyReviewData.js'), 'utf8');
+const lowPressure = fs.readFileSync(path.join(root, 'js/vocabularyLessonLowPressureGroups.js'), 'utf8');
+const repository = fs.readFileSync(path.join(root, 'js/repository.js'), 'utf8');
 
 assert.equal(registry.schemaVersion, 1);
 assert.ok(Array.isArray(registry.groups) && registry.groups.length >= 2);
@@ -50,15 +53,24 @@ assert.match(script, /effectiveCategoryRegistry/);
 assert.match(script, /categoryAssignments/);
 assert.match(script, /availableCategoryGroups/);
 assert.match(script, /其他未分类/);
-assert.match(script, /appData\.batches\.push\(virtualBatch\)/);
-assert.match(script, /appData\.batches\.splice\(index, 1\)/);
+assert.doesNotMatch(script, /appData\.batches\.(?:push|splice)\(/);
+assert.doesNotMatch(lowPressure, /appData\.batches\.(?:push|splice)\(/);
+assert.doesNotMatch(script, /createdAt:\s*['"]9999-12-31['"]/);
+assert.match(script, /vocabularyLessonTransient:\s*true/);
+assert.match(script, /selectVocabularyLessonVirtualBatch\(virtualBatch/);
+assert.match(repository, /stripVocabularyLessonTransientData/);
+assert.match(repository, /const storedValue = key === 'main' \? cloneMainForStorage\(value\) : value/);
 assert.doesNotMatch(script, /card\.(category|categories|topic)\s*=/, 'word-card JSON fields must remain untouched');
-assert.match(script, /originalSelectVocabularyLessonBook\(virtualBatch\.id\)/);
 assert.match(script, /同一个词可以出现在多个类别中/);
+assert.match(script, /renderVocabularyLessonBookSelection = renderBookSelectionWithCategoryEntry/);
+assert.match(script, /id = 'vocabularyLessonCategoryEntry'/);
+assert.match(script, /次级入口/);
 
 const taskIndex = lazyFeatures.indexOf("'js/vocabularyLesson016.js'");
 const categoryIndex = lazyFeatures.indexOf("'js/vocabularyLessonCategories.js'");
 assert.ok(taskIndex >= 0 && categoryIndex > taskIndex, 'category enhancement must load after task 016');
+assert.equal((lazyFeatures.match(/'js\/vocabularyLesson016\.js'/g) || []).length, 1);
+assert.doesNotMatch(reviewData, /vocabularyLesson016\.js/, 'task 016 must only load through the lazy feature group');
 
 assert.match(styles, /grid-template-columns:\s*repeat\(3,/);
 assert.match(styles, /orientation:\s*landscape/);

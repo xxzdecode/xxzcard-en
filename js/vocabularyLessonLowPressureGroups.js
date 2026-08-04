@@ -125,10 +125,6 @@
         return typeof currentUser === 'undefined' ? '' : currentUser;
       }
 
-      function appDataValue() {
-        return typeof appData === 'undefined' ? null : appData;
-      }
-
       function isStudent() {
         const user = currentUserValue();
         return user === 'sister' || user === 'brother';
@@ -172,21 +168,19 @@
         if (virtualBatch && virtualBatch.id === `${CATEGORY_BATCH_PREFIX}${category.id}`) return virtualBatch;
         removeVirtualBatch();
         virtualBatch = root.makeVocabularyLessonVirtualCategoryBatch(category);
-        const data = appDataValue();
-        if (!data || !Array.isArray(data.batches)) return null;
-        data.batches.push(virtualBatch);
         return virtualBatch;
       }
 
       function removeVirtualBatch() {
-        const data = appDataValue();
-        if (!virtualBatch || !data || !Array.isArray(data.batches)) {
-          virtualBatch = null;
-          return;
-        }
-        const index = data.batches.indexOf(virtualBatch);
-        if (index >= 0) data.batches.splice(index, 1);
         virtualBatch = null;
+      }
+
+      function resetCategoryRuntime() {
+        root.clearTimeout(positionSaveTimer);
+        positionSaveTimer = 0;
+        activeCategory = null;
+        virtualBatch = null;
+        progressCache = null;
       }
 
       function groupConfigForCategory(category) {
@@ -309,7 +303,10 @@
       async function openCategoryGroup(index) {
         if (!activeCategory) return false;
         const batch = ensureVirtualBatch(activeCategory);
-        await root.selectVocabularyLessonGroup(batch.id, index);
+        const opened = typeof root.selectVocabularyLessonVirtualBatch === 'function'
+          ? await root.selectVocabularyLessonVirtualBatch(batch, index)
+          : await root.selectVocabularyLessonGroup(batch, index);
+        if (!opened) return false;
         const state = lessonState();
         state.categoryId = activeCategory.id;
         state.categoryName = activeCategory.name;
@@ -332,7 +329,10 @@
         activeCategory = category;
         const batch = ensureVirtualBatch(category);
         await loadProgress(true);
-        await root.selectVocabularyLessonGroup(batch.id, null);
+        const opened = typeof root.selectVocabularyLessonVirtualBatch === 'function'
+          ? await root.selectVocabularyLessonVirtualBatch(batch, null)
+          : await root.selectVocabularyLessonGroup(batch, null);
+        if (!opened) return false;
         const state = lessonState();
         state.categoryId = category.id;
         state.categoryName = category.name;
@@ -341,12 +341,15 @@
       }
 
       function closeCategoryGroups() {
-        activeCategory = null;
-        removeVirtualBatch();
+        if (typeof root.clearVocabularyLessonTransientState === 'function') {
+          root.clearVocabularyLessonTransientState();
+        } else {
+          resetCategoryRuntime();
+        }
         const copy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
         if (copy) copy.hidden = false;
         baseRenderSelection();
-        installCategoryBackButton(root.closeVocabularyReviewList);
+        installCategoryBackButton(root.closeVocabularyLessonCategorySelection || root.closeVocabularyReviewList);
         decorateCategoryProgress();
         root.showScreen('screenVocabularyReviewList');
       }
@@ -424,23 +427,12 @@
         return saveProgress(result.progress);
       }
 
-      root.renderVocabularyLessonBookSelection = function renderVocabularyLessonBookSelectionLowPressure() {
-        const result = baseRenderSelection();
-        if (!activeCategory) {
-          Promise.resolve(root.loadVocabularyLessonCategories && root.loadVocabularyLessonCategories())
-            .then(() => {
-              if (activeCategory) return;
-              baseRenderSelection();
-              decorateCategoryProgress();
-            });
-        }
-        return result;
-      };
-
       root.selectVocabularyLessonCategory = openCategory;
       root.openVocabularyLessonCategoryGroup = openCategoryGroup;
       root.closeVocabularyLessonCategoryGroups = closeCategoryGroups;
       root.jumpVocabularyLessonRoundWord = jumpRoundWord;
+      root.decorateVocabularyLessonCategoryProgress = decorateCategoryProgress;
+      root.resetVocabularyLessonCategoryRuntime = resetCategoryRuntime;
 
       root.vocabularyLessonCurrentItems = function vocabularyLessonCurrentItemsLowPressure() {
         if (!isCategoryMode()) return baseCurrentItems();
@@ -545,11 +537,6 @@
         root.__baseSelectVocabularyLessonCategory = baseSelectCategory;
       }
 
-      Promise.resolve(root.loadVocabularyLessonCategories && root.loadVocabularyLessonCategories())
-        .then(() => {
-          baseRenderSelection();
-          decorateCategoryProgress();
-        });
     }
 
     function ensureStyles() {

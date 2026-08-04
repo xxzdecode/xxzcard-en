@@ -112,6 +112,7 @@ console.log('vocabulary adventure lesson queue tests passed');
 (async () => {
   let savedAdventure = null;
   let savedProgress = null;
+  let loadOptions = null;
   const screens = {
     screenVocabularyAdventure: false,
     screenVocabularyAdventureChallenge: false
@@ -132,7 +133,10 @@ console.log('vocabulary adventure lesson queue tests passed');
     collectVisibleVocabularyAdventureCandidates() {
       return ['word-1', 'word-2', 'old'].map(key => ({ key, word: key }));
     },
-    async loadVocabularyAdventureState() { return JSON.parse(JSON.stringify(actual)); },
+    async loadVocabularyAdventureState(_user, options) {
+      loadOptions = options || null;
+      return JSON.parse(JSON.stringify(actual));
+    },
     async saveCurrentVocabularyAdventureState(value) {
       savedAdventure = JSON.parse(JSON.stringify(value));
       return true;
@@ -142,7 +146,8 @@ console.log('vocabulary adventure lesson queue tests passed');
   };
 
   assert.equal(queue.installVocabularyAdventureLessonQueueBrowserPatch(fakeRoot), true);
-  const decorated = await fakeRoot.loadVocabularyAdventureState('sister');
+  const decorated = await fakeRoot.loadVocabularyAdventureState('sister', { requireRemote: true });
+  assert.deepEqual(loadOptions, { requireRemote: true });
   assert.equal(decorated.words['word-1'].lastResult, 'F');
   assert.equal(decorated.words.old.lastResult, 'D');
 

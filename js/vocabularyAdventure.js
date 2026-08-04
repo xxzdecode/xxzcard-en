@@ -40,6 +40,7 @@
         ? filterBatchesByBookPurpose(batches, true, false)
         : [],
       getValue: key => sbGet(key),
+      getRemoteValue: key => typeof sbGetRemote === 'function' ? sbGetRemote(key) : sbGet(key),
       setValue: (key, value) => sbSet(key, value),
       rewardApi: () => typeof StudentRewards === 'undefined' ? null : StudentRewards,
       reportStorageError: error => {
@@ -51,6 +52,10 @@
 
   function createVocabularyAdventureAdapter(overrides) {
     const dependencies = { ...defaultDependencies(), ...(overrides || {}) };
+    if (overrides && typeof overrides.getValue === 'function'
+        && typeof overrides.getRemoteValue !== 'function') {
+      dependencies.getRemoteValue = overrides.getValue;
+    }
     const rewardMarkerCache = new Map();
 
     function adventureStateKeyForUser(user) {
@@ -87,10 +92,13 @@
       return marker ? { challengeDaily: { rewardSettlement: marker } } : null;
     }
 
-    async function loadVocabularyAdventureState(user) {
+    async function loadVocabularyAdventureState(user, options) {
       const key = adventureStateKeyForUser(user);
       if (!key) return core.defaultVocabularyAdventureState();
-      const raw = await dependencies.getValue(key);
+      const getter = options && options.requireRemote === true
+        ? dependencies.getRemoteValue
+        : dependencies.getValue;
+      const raw = await getter(key);
       cacheRewardMarker(user, raw);
       return core.normalizeVocabularyAdventureState(raw);
     }

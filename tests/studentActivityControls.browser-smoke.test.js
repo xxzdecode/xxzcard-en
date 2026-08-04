@@ -31,6 +31,7 @@ const document = {
   addEventListener() {}
 };
 const listeners = new Map();
+const adventureLoadOptions = [];
 const context = vm.createContext({
   console,
   document,
@@ -41,6 +42,12 @@ const context = vm.createContext({
   isTeacher: () => false,
   loadHome: async () => 'home-loaded',
   loadFeatureGroup: async group => group,
+  loadVocabularyAdventureState: async (_user, options) => {
+    adventureLoadOptions.push(options || null);
+    return { version: 1, words: {}, session: null };
+  },
+  saveCurrentVocabularyAdventureState: async () => true,
+  getVocabularyAdventureLegacyChallengeUsage: async () => ({ attempts: 0, bestScore: 0 }),
   sbGet: async () => null,
   sbSet: async () => true,
   alert() {},
@@ -66,8 +73,12 @@ assert.equal(typeof context.openStudentGrammarChallenge, 'function');
 assert.equal(typeof context.openStudentClassroomPractice, 'function');
 assert.ok(elements.has('studentActivityControlStyles'));
 
-Promise.resolve(context.loadHome()).then(result => {
+Promise.all([
+  context.loadHome(),
+  context.loadVocabularyAdventureState('sister', { requireRemote: true })
+]).then(([result]) => {
   assert.equal(result, 'home-loaded');
+  assert.equal(adventureLoadOptions.some(options => options && options.requireRemote === true), true);
   console.log('student activity controls browser smoke test passed');
 }).catch(error => {
   console.error(error);

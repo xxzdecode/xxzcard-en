@@ -4,6 +4,18 @@
   gap: 18px;
 }
 
+.vocabulary-lesson-category-entry {
+  margin-top: 8px;
+  border-style: dashed;
+  border-color: #cfc5d8;
+  background: #fcfaff;
+}
+
+.vocabulary-lesson-category-entry .vocabulary-lesson-status-badge {
+  color: #7b6689;
+  background: #f1eaf6;
+}
+
 .vocabulary-lesson-category-group {
   min-width: 0;
   padding: 16px;

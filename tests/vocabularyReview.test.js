@@ -101,6 +101,9 @@ assert.match(reviewScript, /<strong>难词巩固<\/strong>/);
 assert.doesNotMatch(reviewScript, /已完成\$\{|剩余\$\{|\$\{[^}]*\}\s*\/\s*\$\{/);
 
 assert.match(task016Script, /CIRCLED_BATCH_LABELS\s*=\s*\['①', '②', '③', '④'\]/);
+assert.match(task016Script, /__vocabularyLessonTask016Bootstrapped/);
+assert.match(task016Script, /selectVocabularyLessonVirtualBatch/);
+assert.match(task016Script, /isTransientBatch\(vocabularyLessonState\.batch\)/);
 assert.match(task016Script, /★ 难词/);
 assert.match(task016Script, /↻ 随机/);
 assert.match(task016Script, /compareVocabularyLessonBatchesNewestFirst/);
@@ -144,7 +147,7 @@ assert.match(task016Styles, /max-height:\s*850px/);
 assert.match(placeholder, /<svg/);
 assert.doesNotMatch(placeholder, /<text|watermark/i);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v52/);
+assert.match(serviceWorker, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v\d+'/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.doesNotMatch(serviceWorker, /styles-vocabulary-lesson-016/);
 assert.doesNotMatch(serviceWorker, /vocabularyLesson016/);

@@ -187,9 +187,9 @@
       return result.progress;
     }
 
-    async function loadVocabularyAdventureStateWithLessonQueue(userValue) {
+    async function loadVocabularyAdventureStateWithLessonQueue(userValue, ...args) {
       const user = String(userValue || currentStudent());
-      const actual = await originalLoad.call(root, userValue);
+      const actual = await originalLoad.call(root, userValue, ...args);
       if (!user || screenActive('screenVocabularyAdventure')) return actual;
       actualStates.set(user, clone(actual));
       let progress = await readProgress(user);

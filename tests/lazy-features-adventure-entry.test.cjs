@@ -209,6 +209,31 @@ test('loadFeatureScript retries after a loading timeout', async () => {
   assert.deepEqual(clearedTimers, [1, 2]);
 });
 
+test('new-word guide real lazy entry loads task 016 once and resolves to the workbook handler', async () => {
+  const { context, scripts } = createHarness();
+  let opened = 0;
+  const launch = context.openVocabularyReviewList();
+  const expected = [
+    'js/vocabularyReviewData.js',
+    'js/vocabularyReview.js',
+    'js/vocabularyLesson016.js',
+    'js/vocabularyLessonCategories.js'
+  ];
+
+  for (let index = 0; index < expected.length; index += 1) {
+    while (scripts.length <= index) await Promise.resolve();
+    assert.equal(scripts[index].src, expected[index]);
+    if (scripts[index].src === 'js/vocabularyReview.js') {
+      context.openVocabularyReviewList = async () => { opened += 1; return 'workbook-route'; };
+    }
+    scripts[index].onload();
+  }
+
+  assert.equal(await launch, 'workbook-route');
+  assert.equal(opened, 1);
+  assert.equal(scripts.filter(script => script.src === 'js/vocabularyLesson016.js').length, 1);
+});
+
 test('adventure entry is single-flight and exposes loading feedback', async () => {
   const { context, elements } = createHarness();
   const group = deferred();

@@ -20,6 +20,7 @@ function switchUser(user) {
     }
   } else {
     resetStudentRuntimeView();
+    if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
     currentUser = user;
     localStorage.setItem('wc_user', user);
     document.body.classList.remove('is-teacher');
@@ -46,6 +47,7 @@ function pinInput(digit) {
       if (pinMode === 'verify') {
         if (pinBuffer === appData.pin) {
           resetStudentRuntimeView();
+          if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
           document.getElementById('modalPin').classList.remove('show');
           currentUser = 'teacher'; localStorage.setItem('wc_user','teacher');
           document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); await loadHome();
@@ -63,6 +65,7 @@ function pinInput(digit) {
           appData.pin = pinBuffer;
           if (!await saveData(appData)) return;
           resetStudentRuntimeView();
+          if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
           document.getElementById('modalPin').classList.remove('show');
           currentUser = 'teacher'; localStorage.setItem('wc_user','teacher');
           document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); await loadHome();

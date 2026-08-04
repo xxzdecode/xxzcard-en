@@ -49,6 +49,22 @@ function value(expression) {
   return vm.runInContext(expression, context);
 }
 
+const transientShape = {
+  batches: [{ id: 'vocabulary-category:vehicles', vocabularyLessonTransient: true }],
+  vocabularyLessonGroups: { 'vocabulary-category:vehicles': { groups: [] } }
+};
+context.__transientShape = transientShape;
+assert.deepEqual(
+  JSON.parse(JSON.stringify(value('cloneForStorage(__transientShape)'))),
+  transientShape,
+  'generic KV cloning must not apply main-data filtering'
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(value('cloneMainForStorage(__transientShape)'))),
+  { batches: [], vocabularyLessonGroups: {} },
+  'main-data cloning must remove transient category records'
+);
+
 async function verifyMainWriteSafety() {
   const remote = {
     pin: '0716',

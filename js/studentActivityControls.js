@@ -628,25 +628,29 @@
         runtime.rawLegacyUsage = root.getVocabularyAdventureLegacyChallengeUsage;
       }
 
+      async function virtualizeLoadedAdventureState(loader, user, args) {
+        const state = await loader(user, ...(Array.isArray(args) ? args : []));
+        if (!state || !ACTIVITY_PROJECT_KEYS.includes('vocabularyChallenge')) return state;
+        const student = studentKey(user);
+        const allowed = await getAttemptTotal(student, 'vocabularyChallenge', PROJECTS.vocabularyChallenge.baseAttempts);
+        const legacy = await rawLegacyUsage();
+        const today = dateKey();
+        const stateAttempts = state.challengeDaily && state.challengeDaily.date === today
+          ? nonNegativeInteger(state.challengeDaily.attempts)
+          : 0;
+        const virtual = virtualizeWordChallengeUsage(legacy.attempts, stateAttempts, allowed);
+        const next = JSON.parse(JSON.stringify(state));
+        next.challengeDaily = {
+          ...(isPlainObject(next.challengeDaily) ? next.challengeDaily : {}),
+          date: today,
+          attempts: virtual.virtualState
+        };
+        return next;
+      }
+
       if (!root.loadVocabularyAdventureState.__activityVirtualized) {
-        const wrappedLoad = async function activityAwareLoadVocabularyAdventureState(user) {
-          const state = await runtime.rawLoadAdventureState(user);
-          if (!state || !ACTIVITY_PROJECT_KEYS.includes('vocabularyChallenge')) return state;
-          const student = studentKey(user);
-          const allowed = await getAttemptTotal(student, 'vocabularyChallenge', PROJECTS.vocabularyChallenge.baseAttempts);
-          const legacy = await rawLegacyUsage();
-          const today = dateKey();
-          const stateAttempts = state.challengeDaily && state.challengeDaily.date === today
-            ? nonNegativeInteger(state.challengeDaily.attempts)
-            : 0;
-          const virtual = virtualizeWordChallengeUsage(legacy.attempts, stateAttempts, allowed);
-          const next = JSON.parse(JSON.stringify(state));
-          next.challengeDaily = {
-            ...(isPlainObject(next.challengeDaily) ? next.challengeDaily : {}),
-            date: today,
-            attempts: virtual.virtualState
-          };
-          return next;
+        const wrappedLoad = function activityAwareLoadVocabularyAdventureState(user, ...args) {
+          return virtualizeLoadedAdventureState(runtime.rawLoadAdventureState, user, args);
         };
         wrappedLoad.__activityVirtualized = true;
         root.loadVocabularyAdventureState = wrappedLoad;
@@ -957,7 +961,7 @@
     }
 
     function installFeatureHooks(group) {
-      if (group === 'adventure' || group === 'teacherTools') {
+      if (['adventure', 'adventurePlayer', 'adventureChallenge', 'teacherTools'].includes(group)) {
         installAdventureHooks().then(refreshStudentAttemptIndicators);
       }
       if (group === 'courseware') installCoursewareCompletionHook();

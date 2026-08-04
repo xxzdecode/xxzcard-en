@@ -299,6 +299,7 @@ assert.deepEqual(badState, {
 
 (async () => {
 const storage = new Map();
+let remoteReads = 0;
 const commonVisible = batch('common-visible', ['Apple'], { bookPurpose: 'common', sharedWith: ['sister'] });
 const supportVisible = batch('support-visible', ['Helper'], { bookPurpose: 'support', sharedWith: ['sister'] });
 const hidden = batch('hidden', ['Secret'], { bookPurpose: 'common', sharedWith: ['brother'] });
@@ -311,6 +312,10 @@ const adapter = createVocabularyAdventureAdapter({
   ),
   commonBatchesOnly: batches => batches.filter(item => item.bookPurpose === 'common'),
   getValue: async key => storage.get(key) || null,
+  getRemoteValue: async key => {
+    remoteReads += 1;
+    return storage.get(key) || null;
+  },
   setValue: async (key, value) => storage.set(key, structuredClone(value)),
   warn: () => {}
 });
@@ -322,6 +327,11 @@ assert.equal(await adapter.saveVocabularyAdventureState('sister', { words: { app
 assert.equal(await adapter.saveVocabularyAdventureState('brother', { words: { pear: firstH } }), true);
 assert.deepEqual(Object.keys((await adapter.loadVocabularyAdventureState('sister')).words), ['apple']);
 assert.deepEqual(Object.keys((await adapter.loadVocabularyAdventureState('brother')).words), ['pear']);
+assert.deepEqual(
+  Object.keys((await adapter.loadVocabularyAdventureState('sister', { requireRemote: true })).words),
+  ['apple']
+);
+assert.equal(remoteReads, 1);
 assert.deepEqual(await adapter.loadVocabularyAdventureState('teacher'), core.defaultVocabularyAdventureState());
 storage.clear();
 currentUser = 'sister';
