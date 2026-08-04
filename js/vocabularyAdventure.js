@@ -95,7 +95,16 @@
     async function loadVocabularyAdventureState(user, options) {
       const key = adventureStateKeyForUser(user);
       if (!key) return core.defaultVocabularyAdventureState();
-      const getter = options && options.requireRemote === true
+      const requireRemote = options && options.requireRemote === true;
+      const prefetched = root && root.__vocabularyAdventurePrefetchedState;
+      if (prefetched && Date.now() - Number(prefetched.loadedAt || 0) >= 1500) {
+        delete root.__vocabularyAdventurePrefetchedState;
+      } else if (!requireRemote && prefetched && prefetched.user === user) {
+        delete root.__vocabularyAdventurePrefetchedState;
+        cacheRewardMarker(user, prefetched.state);
+        return core.normalizeVocabularyAdventureState(prefetched.state);
+      }
+      const getter = requireRemote
         ? dependencies.getRemoteValue
         : dependencies.getValue;
       const raw = await getter(key);

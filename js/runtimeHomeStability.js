@@ -171,7 +171,9 @@
     if (typeof current !== 'function' || current.__runtimeHomeLoadingGuard || wrappedLoaders.has(current)) return;
     const wrapped = function runtimeHomeLoadingGuard(...args) {
       const callId = ++loadSequence;
-      const loadingTimer = root.setTimeout(() => {
+      const settings = args[0] && typeof args[0] === 'object' ? args[0] : {};
+      const background = settings.background === true;
+      const loadingTimer = background ? 0 : root.setTimeout(() => {
         if (callId === loadSequence) showLoading();
       }, 160);
       const safetyTimer = root.setTimeout(() => {
@@ -181,13 +183,13 @@
       try {
         result = current.apply(this, args);
       } catch (error) {
-        root.clearTimeout(loadingTimer);
+        if (loadingTimer) root.clearTimeout(loadingTimer);
         root.clearTimeout(safetyTimer);
         if (callId === loadSequence) hideLoading();
         throw error;
       }
       Promise.resolve(result).catch(() => null).finally(() => {
-        root.clearTimeout(loadingTimer);
+        if (loadingTimer) root.clearTimeout(loadingTimer);
         root.clearTimeout(safetyTimer);
         if (callId === loadSequence) hideLoading();
         contextSettling = false;

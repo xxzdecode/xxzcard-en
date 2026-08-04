@@ -15,6 +15,7 @@ const main = fs.readFileSync(path.join(root, 'js', 'main.js'), 'utf8');
 const dailyRoute = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'), 'utf8');
 const wordCardPerformance = fs.readFileSync(path.join(root, 'js', 'wordCardPerformance.js'), 'utf8');
 const wordCardStudySafety = fs.readFileSync(path.join(root, 'js', 'wordCardStudySafety.js'), 'utf8');
+const runtimeHomeStability = fs.readFileSync(path.join(root, 'js', 'runtimeHomeStability.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
 assert.match(html, /<link rel="stylesheet" href="styles-home-nav\.css"/);
@@ -63,6 +64,25 @@ assert.match(lazy, /teacherTools:/);
 assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
 assert.match(lazy, /requestIdleCallback/);
+assert.match(
+  lazy,
+  /Promise\.allSettled\(\[\s*loadFeatureGroup\('adventurePlayer'\),\s*loadFeatureGroup\('adventureChallenge'\)\s*\]\)/,
+  'idle warmup should preload both adventure entries concurrently'
+);
+assert.match(
+  lazy,
+  /loadHome\(\{ background: true, reason: 'adventure-preload' \}\)/,
+  'idle warmup refresh must stay silent'
+);
+assert.match(runtimeHomeStability, /const background = settings\.background === true/);
+assert.match(runtimeHomeStability, /const loadingTimer = background \? 0 : root\.setTimeout/);
+for (const reason of ['initial-cloud-refresh', 'cloud-reconnect', 'cloud-poll']) {
+  assert.match(
+    repository,
+    new RegExp(`loadHome\\(\\{ background: true, reason: '${reason}' \\}\\)`),
+    `${reason} must not show a user-initiated loading notice`
+  );
+}
 assert.match(adventureVisual, /const LAYOUT_STYLESHEET = 'styles-vocabulary-adventure-v2\.css'/);
 assert.match(adventureVisual, /function ensureLayoutStylesheet\(\)/);
 assert.match(adventureVisual, /if \(!root \|\| !ensureLayoutStylesheet\(\)\) return/);
@@ -70,8 +90,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v54/);
-assert.match(serviceWorker, /xxzcard-runtime-v54/);
+assert.match(serviceWorker, /xxzcard-app-shell-v55/);
+assert.match(serviceWorker, /xxzcard-runtime-v55/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),

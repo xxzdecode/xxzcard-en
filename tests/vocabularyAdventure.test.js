@@ -360,6 +360,28 @@ const failedAdapter = createVocabularyAdventureAdapter({
 assert.deepEqual(await failedAdapter.loadVocabularyAdventureState('sister'), core.defaultVocabularyAdventureState());
 assert.equal(await failedAdapter.saveVocabularyAdventureState('sister', { words: {} }), false);
 
+let prefetchedReads = 0;
+const prefetchedAdapter = createVocabularyAdventureAdapter({
+  getCurrentUser: () => 'sister',
+  isTeacherUser: () => false,
+  visibleBatchesForCurrentUser: () => [],
+  commonBatchesOnly: value => value,
+  getValue: async () => { prefetchedReads += 1; return null; },
+  setValue: async () => true,
+  warn: () => {}
+});
+globalThis.__vocabularyAdventurePrefetchedState = {
+  user: 'sister',
+  state: { words: { apple: firstD } },
+  loadedAt: Date.now()
+};
+assert.deepEqual(
+  Object.keys((await prefetchedAdapter.loadVocabularyAdventureState('sister')).words),
+  ['apple']
+);
+assert.equal(prefetchedReads, 0);
+assert.equal(globalThis.__vocabularyAdventurePrefetchedState, undefined);
+
 console.log(JSON.stringify({
   sample: '26 screening + 4 review',
   total: plan26And4.length,

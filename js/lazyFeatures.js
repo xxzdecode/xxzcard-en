@@ -407,12 +407,19 @@ if (document.readyState === 'loading') {
   installVocabularyCopyListExportButton();
 }
 
-const warmAdventure = () => loadFeatureGroup('adventurePlayer')
-  .then(() => {
-    loadAdventureVisualEnhancement();
-    return loadHome();
-  })
-  .catch(error => console.warn('adventure preload skipped', error.message || error));
+const warmAdventure = () => Promise.allSettled([
+  loadFeatureGroup('adventurePlayer'),
+  loadFeatureGroup('adventureChallenge')
+]).then(results => {
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      const group = index === 0 ? 'adventurePlayer' : 'adventureChallenge';
+      console.warn('adventure preload skipped', group, result.reason?.message || result.reason);
+    }
+  });
+  if (results[0].status === 'fulfilled') loadAdventureVisualEnhancement();
+  return loadHome({ background: true, reason: 'adventure-preload' });
+});
 
 if (typeof requestIdleCallback === 'function') requestIdleCallback(warmAdventure, { timeout: 1800 });
 else setTimeout(warmAdventure, 900);

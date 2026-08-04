@@ -232,8 +232,11 @@
       activeCoursewareToken: '',
       grammarFrameLoadInstalled: false,
       coursewareHookInstalled: false,
-      refreshSequence: 0
+      refreshSequence: 0,
+      controlCache: new Map(),
+      legacyUsageCache: null
     };
+    const ACTIVITY_READ_CACHE_MS = 1500;
 
     function studentKey(user) {
       return user === 'brother' ? 'brother' : 'sister';
@@ -265,13 +268,35 @@
 
     async function loadControl(user) {
       if (typeof root.sbGet !== 'function') return normalizeControlRecord(null);
-      return normalizeControlRecord(await root.sbGet(controlKey(user)));
+      const key = studentKey(user);
+      const cached = runtime.controlCache.get(key);
+      if (cached && cached.promise) return cached.promise;
+      if (cached && cached.value && Date.now() - cached.loadedAt < ACTIVITY_READ_CACHE_MS) {
+        return cached.value;
+      }
+      const promise = Promise.resolve(root.sbGet(controlKey(key)))
+        .then(value => normalizeControlRecord(value))
+        .then(value => {
+          runtime.controlCache.set(key, { value, loadedAt: Date.now(), promise: null });
+          return value;
+        })
+        .catch(error => {
+          runtime.controlCache.delete(key);
+          throw error;
+        });
+      runtime.controlCache.set(key, { value: cached && cached.value, loadedAt: 0, promise });
+      return promise;
     }
 
     async function saveControl(user, record) {
       if (typeof root.sbSet !== 'function') return false;
       try {
         await root.sbSet(controlKey(user), normalizeControlRecord(record));
+        runtime.controlCache.set(studentKey(user), {
+          value: normalizeControlRecord(record),
+          loadedAt: Date.now(),
+          promise: null
+        });
         return true;
       } catch (error) {
         root.showStorageError?.(error);
@@ -611,7 +636,21 @@
 
     async function rawLegacyUsage() {
       const loader = runtime.rawLegacyUsage || root.getVocabularyAdventureLegacyChallengeUsage;
-      return typeof loader === 'function' ? loader() : { attempts: 0, bestScore: 0 };
+      if (typeof loader !== 'function') return { attempts: 0, bestScore: 0 };
+      const cached = runtime.legacyUsageCache;
+      if (cached && cached.promise) return cached.promise;
+      if (cached && cached.value && Date.now() - cached.loadedAt < ACTIVITY_READ_CACHE_MS) {
+        return cached.value;
+      }
+      const promise = Promise.resolve(loader()).then(value => {
+        runtime.legacyUsageCache = { value, loadedAt: Date.now(), promise: null };
+        return value;
+      }).catch(error => {
+        runtime.legacyUsageCache = null;
+        throw error;
+      });
+      runtime.legacyUsageCache = { value: cached && cached.value, loadedAt: 0, promise };
+      return promise;
     }
 
     function adventureCompletedToday(state, today) {
@@ -703,16 +742,36 @@
       }
 
       if (typeof root.openVocabularyAdventure === 'function' && !root.openVocabularyAdventure.__activityAware) {
-        runtime.rawOpenAdventure = root.openVocabularyAdventure;
+        const rawOpenAdventure = root.openVocabularyAdventure;
+        if (!runtime.rawOpenAdventure) runtime.rawOpenAdventure = rawOpenAdventure;
         const wrappedOpenAdventure = async function activityAwareOpenAdventure() {
           const user = currentStudent();
           const today = dateKey();
           runtime.wordChallengeVirtualActive = false;
           runtime.adventurePlayerActive = true;
-          const state = await runtime.rawLoadAdventureState(user).catch(() => null);
+          let [state, control] = await Promise.all([
+            runtime.rawLoadAdventureState(user).catch(() => null),
+            loadControl(user).catch(() => normalizeControlRecord(null))
+          ]);
           const inferred = adventureCompletedToday(state, today) ? 1 : 0;
-          const usage = await getAttemptUsage(user, 'adventure', inferred);
-          const total = await getAttemptTotal(user, 'adventure', PROJECTS.adventure.baseAttempts);
+          const recordedUsage = projectAttemptUsage(control, today, 'adventure');
+          const usage = Math.max(recordedUsage, inferred);
+          let effectiveControl = control;
+          if (usage > recordedUsage) {
+            const result = applyUsageMinimum(control, {
+              date: today,
+              project: 'adventure',
+              minimum: usage
+            });
+            effectiveControl = result.record;
+            if (result.changed) await saveControl(user, result.record);
+          }
+          const total = projectAttemptTotal(
+            effectiveControl,
+            today,
+            'adventure',
+            PROJECTS.adventure.baseAttempts
+          );
           if (state && adventureCompletedToday(state, today) && usage < total) {
             const reset = resetAdventureSessionForAttempt(state, today, usage + 1);
             if (reset && !await runtime.rawSaveAdventureState(reset)) {
@@ -720,18 +779,27 @@
               runtime.adventurePlayerActive = false;
               return;
             }
+            if (reset) state = reset;
           }
-          return runtime.rawOpenAdventure.apply(this, arguments);
+          if (state) {
+            root.__vocabularyAdventurePrefetchedState = {
+              user,
+              state,
+              loadedAt: Date.now()
+            };
+          }
+          return rawOpenAdventure.apply(this, arguments);
         };
         wrappedOpenAdventure.__activityAware = true;
         root.openVocabularyAdventure = wrappedOpenAdventure;
       }
 
       if (typeof root.closeVocabularyAdventure === 'function' && !root.closeVocabularyAdventure.__activityAware) {
-        runtime.rawCloseAdventure = root.closeVocabularyAdventure;
+        const rawCloseAdventure = root.closeVocabularyAdventure;
+        if (!runtime.rawCloseAdventure) runtime.rawCloseAdventure = rawCloseAdventure;
         const wrappedCloseAdventure = function activityAwareCloseAdventure() {
           runtime.adventurePlayerActive = false;
-          return runtime.rawCloseAdventure.apply(this, arguments);
+          return rawCloseAdventure.apply(this, arguments);
         };
         wrappedCloseAdventure.__activityAware = true;
         root.closeVocabularyAdventure = wrappedCloseAdventure;
@@ -739,11 +807,12 @@
 
       if (typeof root.openVocabularyAdventureChallenge === 'function'
           && !root.openVocabularyAdventureChallenge.__activityAware) {
-        runtime.rawOpenWordChallenge = root.openVocabularyAdventureChallenge;
+        const rawOpenWordChallenge = root.openVocabularyAdventureChallenge;
+        if (!runtime.rawOpenWordChallenge) runtime.rawOpenWordChallenge = rawOpenWordChallenge;
         const wrappedOpenWordChallenge = function activityAwareOpenWordChallenge() {
           runtime.adventurePlayerActive = false;
           runtime.wordChallengeVirtualActive = true;
-          return runtime.rawOpenWordChallenge.apply(this, arguments);
+          return rawOpenWordChallenge.apply(this, arguments);
         };
         wrappedOpenWordChallenge.__activityAware = true;
         root.openVocabularyAdventureChallenge = wrappedOpenWordChallenge;
@@ -751,10 +820,11 @@
 
       if (typeof root.closeVocabularyAdventureChallenge === 'function'
           && !root.closeVocabularyAdventureChallenge.__activityAware) {
-        runtime.rawCloseWordChallenge = root.closeVocabularyAdventureChallenge;
+        const rawCloseWordChallenge = root.closeVocabularyAdventureChallenge;
+        if (!runtime.rawCloseWordChallenge) runtime.rawCloseWordChallenge = rawCloseWordChallenge;
         const wrappedCloseWordChallenge = function activityAwareCloseWordChallenge() {
           runtime.wordChallengeVirtualActive = false;
-          return runtime.rawCloseWordChallenge.apply(this, arguments);
+          return rawCloseWordChallenge.apply(this, arguments);
         };
         wrappedCloseWordChallenge.__activityAware = true;
         root.closeVocabularyAdventureChallenge = wrappedCloseWordChallenge;

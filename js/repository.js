@@ -419,7 +419,9 @@ async function initData() {
         setMainSnapshot(remote);
         appData = remote;
         const home = document.getElementById('screenHome');
-        if (home && home.classList.contains('active')) await loadHome();
+        if (home && home.classList.contains('active')) {
+          await loadHome({ background: true, reason: 'initial-cloud-refresh' });
+        }
       } catch(e) {
         // The local mirror is already rendered; background failure must not block it.
       }
@@ -651,7 +653,9 @@ setInterval(async () => {
     setMainSnapshot(appData);
     syncSupabaseMirrorIfDue(false);
     const home = document.getElementById('screenHome');
-    if (home && home.classList.contains('active')) loadHome();
+    if (home && home.classList.contains('active')) {
+      loadHome({ background: true, reason: 'cloud-reconnect' });
+    }
     const teacherCards = document.getElementById('screenTeacherWordCards');
     if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
     if (typeof refreshVocabularyReviewSharedStateFromAppData === 'function') {
@@ -665,7 +669,9 @@ setInterval(async () => {
   appData = fresh;
   setMainSnapshot(appData);
   const home = document.getElementById('screenHome');
-  if (home && home.classList.contains('active')) loadHome();
+  if (home && home.classList.contains('active')) {
+    loadHome({ background: true, reason: 'cloud-poll' });
+  }
   const teacherCards = document.getElementById('screenTeacherWordCards');
   if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
   if (typeof refreshVocabularyReviewSharedStateFromAppData === 'function') {

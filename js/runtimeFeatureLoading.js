@@ -14,6 +14,10 @@
     openPhonemeTraining: ['[onclick*="openPhonemeTraining"]', '音标训练']
   });
   const wrappedFunctions = new WeakSet();
+  const WRAPPER_MARKERS = Object.freeze([
+    '__activityAware',
+    '__questionRepeatWrapped'
+  ]);
 
   function installStyles() {
     if (root.document.getElementById('runtimeFeatureLoadingStyles')) return;
@@ -62,15 +66,21 @@
     if (typeof current !== 'function' || current.__runtimeFeatureLoadingWrapped || wrappedFunctions.has(current)) return;
     const wrapped = async function runtimeFeatureLoadingWrapper(...args) {
       const timer = root.setTimeout(() => setLoading(name, true), 160);
+      const safetyTimer = root.setTimeout(() => setLoading(name, false), 15000);
       try {
         return await current.apply(this, args);
       } finally {
         root.clearTimeout(timer);
+        root.clearTimeout(safetyTimer);
         setLoading(name, false);
         root.setTimeout(() => root.RuntimeVocabularyUx?.scan?.(), 0);
       }
     };
     wrapped.__runtimeFeatureLoadingWrapped = true;
+    wrapped.__runtimeFeatureLoadingInner = current;
+    WRAPPER_MARKERS.forEach(marker => {
+      if (current[marker] === true) wrapped[marker] = true;
+    });
     wrappedFunctions.add(current);
     root[name] = wrapped;
   }
