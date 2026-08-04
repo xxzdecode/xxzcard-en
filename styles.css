@@ -75,10 +75,170 @@ body {
 }
 .bottom-feature-nav.student-only > :nth-child(-n + 3) { grid-column: span 2; }
 .bottom-feature-nav.student-only > :nth-child(n + 4) { grid-column: span 3; }
+.teacher-dashboard {
+  display: none;
+  width: min(1120px, calc(100% - 32px));
+  margin: 6px auto 24px;
+}
+body.is-teacher .teacher-dashboard.teacher-only { display: block; }
+body.is-teacher .home-header { padding: 12px 20px 4px; }
+body.is-teacher .home-header .app-sub { display: none; }
+body.is-teacher .user-btn { height: 34px; }
+body.is-teacher .current-mode { margin-top: 0; font-size: 11px; }
 .teacher-home-nav {
-  width: calc(100% - 40px); max-width: 400px; margin: 18px auto 6px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  color: #8C6FCB;
+  width: 100%; margin: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px; align-items: center;
+  color: #fff;
+}
+.teacher-dashboard-primary {
+  min-height: 106px; padding: 16px 20px;
+  border: 1px solid rgba(104, 74, 163, 0.2); border-radius: 22px;
+  background: linear-gradient(135deg, #7b5abc 0%, #9677d0 58%, #ac91dc 100%);
+  box-shadow: 0 14px 30px rgba(89, 61, 142, 0.2);
+}
+.teacher-dashboard-primary__copy { min-width: 0; }
+.teacher-dashboard-primary__eyebrow {
+  display: block; margin-bottom: 3px;
+  color: rgba(255, 255, 255, 0.76); font-size: 11px; font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.teacher-dashboard-primary h1 { margin: 0; font-size: 25px; line-height: 1.2; }
+.teacher-dashboard-primary p {
+  margin: 7px 0 0; color: rgba(255, 255, 255, 0.82);
+  font-size: 13px; line-height: 1.45;
+}
+.teacher-dashboard-primary__actions {
+  display: grid; grid-template-columns: repeat(3, minmax(96px, 1fr)); gap: 9px;
+}
+.teacher-dashboard-button,
+.teacher-dashboard-card__action {
+  min-height: 44px; border: 1px solid rgba(255, 255, 255, 0.34); border-radius: 12px;
+  padding: 8px 14px; font: 800 13px/1.2 inherit; cursor: pointer;
+  touch-action: manipulation;
+}
+.teacher-dashboard-button { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.teacher-dashboard-button--primary { background: #fff; color: #68499f; }
+.teacher-dashboard-button:disabled { cursor: wait; opacity: 0.62; }
+.teacher-dashboard-button:focus-visible,
+.teacher-dashboard-card__action:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.74); outline-offset: 2px;
+}
+.teacher-dashboard-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px; align-items: stretch; margin-top: 14px;
+}
+.teacher-dashboard-card {
+  min-width: 0; min-height: 232px; margin: 0; padding: 16px;
+  border: 1px solid #e4dceb; border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 22px rgba(79, 60, 92, 0.08);
+}
+.teacher-dashboard-card h2 {
+  margin: 0; color: #604975; font-size: 18px; line-height: 1.25;
+}
+.teacher-dashboard-card p {
+  margin: 6px 0 0; color: #776c7c; font-size: 12px; line-height: 1.45;
+}
+.teacher-dashboard-card--route { order: 1; }
+.teacher-dashboard-card--activity { order: 2; }
+.teacher-dashboard-card--tags { order: 3; }
+.teacher-dashboard-entry-card--courseware { order: 4; }
+.teacher-dashboard-entry-card--knowledge { order: 5; }
+.teacher-dashboard-entry-card {
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.teacher-dashboard-card__heading { display: flex; align-items: flex-start; gap: 11px; }
+.teacher-dashboard-card__icon {
+  display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px;
+  border-radius: 13px; background: #f1ebfb; font-size: 21px;
+}
+.teacher-dashboard-card__action {
+  width: 100%; margin-top: 18px; border-color: #ddd0ef;
+  background: #eee7f8; color: #61458e;
+}
+
+#teacherDashboardGrid > #teacherDailyRoutePanel,
+#teacherDashboardGrid > #teacherActivityPanel,
+#teacherDashboardGrid > #teacherStudentTagPanel {
+  width: 100%; max-width: none; height: 100%;
+  flex-direction: column;
+}
+#teacherDashboardGrid > #teacherDailyRoutePanel { display: flex; }
+#teacherDashboardGrid #teacherDailyRoutePanel > p { min-height: 34px; }
+#teacherDashboardGrid .daily-route-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 12px;
+}
+#teacherDashboardGrid .daily-route-field { display: grid; gap: 4px; min-width: 0; }
+#teacherDashboardGrid .daily-route-field label { color: #66566f; font-size: 12px; font-weight: 800; }
+#teacherDashboardGrid .daily-route-field small { color: #8a7f8d; font-size: 10px; line-height: 1.35; }
+#teacherDashboardGrid .daily-route-field select {
+  width: 100%; min-width: 0; min-height: 44px; border: 1px solid #d8cdeb;
+  border-radius: 10px; padding: 7px 9px; background: #fff; color: #54495a; font: inherit;
+}
+#teacherDashboardGrid .daily-route-actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; padding-top: 12px;
+}
+#teacherDashboardGrid .daily-route-actions span {
+  grid-column: 1 / -1; min-height: 17px; color: #746a77;
+  font-size: 11px; font-weight: 700; line-height: 1.35;
+}
+#teacherDashboardGrid .daily-route-actions button {
+  min-height: 44px; border: 0; border-radius: 11px; padding: 7px 10px; font-weight: 800;
+}
+#teacherDashboardGrid .daily-route-save { background: #7658ba; color: #fff; }
+#teacherDashboardGrid .daily-route-refresh { background: #eee8fb; color: #65499f; }
+
+#teacherDashboardGrid > .teacher-activity-panel {
+  padding: 16px; border: 1px solid #e4dceb; border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96); box-shadow: 0 8px 22px rgba(79, 60, 92, 0.08);
+}
+#teacherDashboardGrid .teacher-activity-panel__top { display: grid; grid-template-columns: 1fr; gap: 10px; }
+#teacherDashboardGrid .teacher-activity-panel__summary { text-align: left; }
+#teacherDashboardGrid .teacher-activity-panel__summary h2 { color: #604975; font-size: 18px; }
+#teacherDashboardGrid .teacher-activity-panel__summary p {
+  display: block; min-height: 34px; margin: 6px 0 0; padding: 0;
+  background: transparent; color: #776c7c; text-align: left; font-size: 12px; line-height: 1.45;
+}
+#teacherDashboardGrid .teacher-activity-selectors {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+}
+#teacherDashboardGrid .teacher-activity-selectors label { min-width: 0; }
+#teacherDashboardGrid .teacher-activity-selectors select { min-height: 44px; height: 44px; }
+#teacherDashboardGrid .teacher-activity-actions {
+  display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 8px;
+  margin-top: 10px; padding-top: 10px;
+}
+#teacherDashboardGrid .teacher-activity-actions__buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+#teacherDashboardGrid .teacher-activity-actions button { min-height: 44px; height: 44px; }
+#teacherDashboardGrid .teacher-activity-custom input { min-height: 44px; height: 44px; }
+#teacherDashboardGrid .teacher-activity-status {
+  min-height: 17px; margin-top: auto; padding-top: 7px; text-align: left;
+}
+
+#teacherDashboardGrid > .teacher-student-tag-panel {
+  padding: 16px; border: 1px solid #e4dceb; border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96); box-shadow: 0 8px 22px rgba(79, 60, 92, 0.08);
+}
+#teacherDashboardGrid .teacher-student-tag-panel h2 { margin: 0 0 12px; color: #604975; }
+#teacherDashboardGrid .teacher-student-tag-controls {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px;
+}
+#teacherDashboardGrid .teacher-student-tag-controls label { min-width: 0; color: #776c7c; }
+#teacherDashboardGrid .teacher-student-tag-controls input {
+  width: 100%; min-height: 44px; height: 44px;
+}
+#teacherDashboardGrid .teacher-student-tag-controls button {
+  grid-column: 1 / -1; min-height: 44px; height: 44px; margin-top: 2px;
+  background: #7658ba; color: #fff;
+}
+#teacherDashboardGrid .teacher-student-tag-status {
+  min-height: 17px; margin-top: auto; padding-top: 8px; text-align: left;
+}
+@media (max-width: 899px) {
+  .teacher-home-nav { grid-template-columns: 1fr; }
+  .teacher-dashboard-primary__actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .teacher-dashboard-grid { grid-template-columns: 1fr; }
 }
 .bottom-feature-nav__item {
   position: relative; min-width: 0; min-height: 56px; padding: 8px 4px;

@@ -138,6 +138,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'js', 'studentActivityControls.js'), 'utf8');
+const rewardsSource = fs.readFileSync(path.join(root, 'js', 'studentRewards.js'), 'utf8');
 const main = fs.readFileSync(path.join(root, 'js', 'main.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
@@ -161,3 +162,8 @@ assert.match(source, /id="teacherActivityCustomConfirm">确定/);
 assert.doesNotMatch(source, /root\.prompt|window\.prompt/);
 assert.match(source, /activityAwareLoadVocabularyAdventureState\(user, \.\.\.args\)/);
 assert.match(source, /\['adventure', 'adventurePlayer', 'adventureChallenge', 'teacherTools'\]\.includes\(group\)/);
+assert.match(
+  rewardsSource,
+  /typeof root\.refreshTeacherActivityPanel === 'function' \|\| document\.getElementById\('teacherActivityPanel'\)/,
+  'the legacy reward panel must stay suppressed once the unified teacher activity controller is available'
+);
