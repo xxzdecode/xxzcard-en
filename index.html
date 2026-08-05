@@ -189,12 +189,33 @@
           <span class="teacher-dashboard-card__icon" aria-hidden="true">📖</span>
           <div><h2>随堂练习</h2><p>查看并进入已有课堂练习。</p></div>
         </div>
+        <div class="teacher-dashboard-card__insight" id="teacherLatestPracticeSummary" aria-live="polite" aria-busy="true">
+          <div class="teacher-dashboard-card__metric">
+            <span>最新练习</span>
+            <time id="teacherLatestPracticeDate">读取中</time>
+          </div>
+          <strong class="teacher-dashboard-card__insight-title" id="teacherLatestPracticeTitle">正在读取练习目录…</strong>
+        </div>
         <button type="button" class="teacher-dashboard-card__action" onclick="openCoursewareList()">进入随堂练习</button>
       </section>
       <section class="teacher-dashboard-card teacher-dashboard-entry-card teacher-dashboard-entry-card--knowledge">
         <div class="teacher-dashboard-card__heading">
           <span class="teacher-dashboard-card__icon" aria-hidden="true">📚</span>
           <div><h2>知识点库</h2><p>查看已有语法知识点与教学进度。</p></div>
+        </div>
+        <div class="teacher-dashboard-card__insight" id="teacherKnowledgeSummary" aria-live="polite" aria-busy="true">
+          <div class="teacher-dashboard-card__metric">
+            <span>已教授比例</span>
+            <strong id="teacherKnowledgeProgressCount">— / —</strong>
+          </div>
+          <div class="teacher-dashboard-card__topic-row">
+            <span>刚教过</span>
+            <strong id="teacherKnowledgeLastTopic">正在读取…</strong>
+          </div>
+          <div class="teacher-dashboard-card__topic-row teacher-dashboard-card__topic-row--next">
+            <span>下一项</span>
+            <strong id="teacherKnowledgeNextTopic">正在读取…</strong>
+          </div>
         </div>
         <button type="button" class="teacher-dashboard-card__action" onclick="openGrammarLibrary()">进入知识点库</button>
       </section>

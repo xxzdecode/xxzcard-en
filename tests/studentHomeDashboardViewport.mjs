@@ -12,6 +12,9 @@ const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\m
 const launchBrowser = () => chromium.launch({ executablePath: edgeExecutable });
 const resultDir = path.join(root, '.codex-backups', 'home-v4-visual-qa');
 fs.mkdirSync(resultDir, { recursive: true });
+const knowledgeTopicCount = JSON.parse(
+  fs.readFileSync(path.join(root, 'grammar-library', 'data', 'topics.json'), 'utf8')
+).length;
 
 const cards = Array.from({ length: 12 }, (_, index) => ({
   word: `home${index}`,
@@ -348,6 +351,33 @@ try {
   await teacher.page.waitForSelector('#teacherDailyRoutePanel:visible');
   await teacher.page.waitForSelector('#teacherActivityPanel:visible');
   await teacher.page.waitForSelector('#teacherStudentTagPanel:visible');
+  try {
+    await teacher.page.waitForFunction(() => (
+      document.getElementById('teacherLatestPracticeSummary')?.getAttribute('aria-busy') === 'false'
+        && document.getElementById('teacherKnowledgeSummary')?.getAttribute('aria-busy') === 'false'
+    ));
+  } catch (error) {
+    const summaryState = await teacher.page.evaluate(() => ({
+      practiceBusy: document.getElementById('teacherLatestPracticeSummary')?.getAttribute('aria-busy'),
+      knowledgeBusy: document.getElementById('teacherKnowledgeSummary')?.getAttribute('aria-busy'),
+      practiceTitle: document.getElementById('teacherLatestPracticeTitle')?.textContent,
+      knowledgeProgress: document.getElementById('teacherKnowledgeProgressCount')?.textContent,
+      hasRefreshFunction: typeof refreshTeacherDashboardSummaries,
+      hasFeatureLoader: typeof loadFeatureScript
+    }));
+    throw new Error(`teacher summaries did not finish: ${JSON.stringify({ summaryState, errors: teacher.errors })}`, { cause: error });
+  }
+  assert.equal(
+    await teacher.page.locator('#teacherLatestPracticeTitle').textContent(),
+    '时间介词 in / on / at 随堂练习'
+  );
+  assert.equal(await teacher.page.locator('#teacherLatestPracticeDate').textContent(), '2026年8月4日');
+  assert.match(
+    await teacher.page.locator('#teacherKnowledgeProgressCount').textContent(),
+    new RegExp(`^\\d+\\s/\\s${knowledgeTopicCount}$`)
+  );
+  assert.doesNotMatch(await teacher.page.locator('#teacherKnowledgeLastTopic').textContent(), /读取中/);
+  assert.doesNotMatch(await teacher.page.locator('#teacherKnowledgeNextTopic').textContent(), /读取中/);
   const teacherStabilityBefore = await teacher.page.evaluate(() => {
     const signature = () => [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
       .map(card => card.id || getComputedStyle(card).order)
@@ -457,8 +487,35 @@ try {
   assert.deepEqual(teacher.errors, []);
   await teacher.context.close();
 
+  const teacherPhone = await openHome('teacher', iphone16Portrait);
+  await teacherPhone.page.waitForSelector('#teacherDashboard:visible');
+  await teacherPhone.page.waitForFunction(() => (
+    document.getElementById('teacherLatestPracticeSummary')?.getAttribute('aria-busy') === 'false'
+      && document.getElementById('teacherKnowledgeSummary')?.getAttribute('aria-busy') === 'false'
+  ));
+  const teacherPhoneLayout = await teacherPhone.page.evaluate(() => ({
+    viewport: [innerWidth, innerHeight],
+    pageWidth: document.documentElement.scrollWidth,
+    cards: [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')].map(card => ({
+      width: card.getBoundingClientRect().width,
+      scrollWidth: card.scrollWidth,
+      clientWidth: card.clientWidth
+    })),
+    buttons: [...document.querySelectorAll('#teacherDashboard button')].map(button => ({
+      height: button.getBoundingClientRect().height,
+      right: button.getBoundingClientRect().right
+    }))
+  }));
+  assert.deepEqual(teacherPhoneLayout.viewport, [393, 852]);
+  assert.ok(teacherPhoneLayout.pageWidth <= 393, `teacher phone dashboard overflowed to ${teacherPhoneLayout.pageWidth}px`);
+  assert.ok(teacherPhoneLayout.cards.every(card => card.scrollWidth <= card.clientWidth));
+  assert.ok(teacherPhoneLayout.buttons.every(button => button.height >= 44 && button.right <= 393));
+  await teacherPhone.page.screenshot({ path: path.join(resultDir, 'teacher-dashboard-iphone16-portrait-393x852.png'), fullPage: true });
+  assert.deepEqual(teacherPhone.errors, []);
+  await teacherPhone.context.close();
+
   if (teacherDashboardOnly) {
-    console.log(`teacher dashboard iPad viewport test passed: ${resultDir}`);
+    console.log(`teacher dashboard iPad and iPhone viewport tests passed: ${resultDir}`);
   } else {
   const ipadAir = await openHome('sister', ipadViewport(1180, 820));
   await assertStudentHome(ipadAir.page, '姐姐', {
