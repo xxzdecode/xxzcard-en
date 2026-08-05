@@ -121,6 +121,7 @@ assert.equal(invalidCatalog.papers.length, 0);
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-wrong-answer-organizer.css'), 'utf8');
 const loader = fs.readFileSync(path.join(root, 'js', 'lazyFeatures.js'), 'utf8');
+const organizerSource = fs.readFileSync(path.join(root, 'js', 'wrongAnswerOrganizer.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
 assert.match(html, /<h2>错题整理<\/h2>/);
@@ -130,9 +131,15 @@ assert.match(html, /onclick="markWrongAnswerPaperAllCorrect\(\)"[^>]*>全对<\/b
 assert.match(html, /onclick="clearWrongAnswerSelection\(\)"[^>]*>清空<\/button>/);
 assert.match(html, /onclick="saveWrongAnswerGrading\(\)"[^>]*>保存批改<\/button>/);
 assert.doesNotMatch(html, /score|percentage|百分比/i);
+assert.ok(
+  html.indexOf('teacher-dashboard-entry-card--knowledge') < html.indexOf('teacher-dashboard-entry-card--wrong-answers'),
+  'wrong answer organizer must occupy the final dashboard slot after the knowledge library'
+);
 assert.match(styles, /\.wrong-answer-directory-grid\s*\{[^}]*repeat\(2,/s);
+assert.match(styles, /\.teacher-dashboard-entry-card--wrong-answers\s*\{\s*order:\s*6;/);
 assert.match(styles, /\.wrong-answer-question:has\(input:checked\)/);
 assert.match(loader, /wrongAnswerOrganizer:\s*\['js\/wrongAnswerOrganizer\.js'\]/);
+assert.doesNotMatch(organizerSource, /root\.loadHome\s*=|window\.loadHome\s*=/);
 assert.match(serviceWorker, /styles-wrong-answer-organizer\.css/);
 assert.match(serviceWorker, /js\/wrongAnswerOrganizer\.js/);
 

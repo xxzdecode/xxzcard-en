@@ -348,6 +348,7 @@ try {
   await teacher.page.waitForSelector('#teacherDailyRoutePanel:visible');
   await teacher.page.waitForSelector('#teacherActivityPanel:visible');
   await teacher.page.waitForSelector('#teacherStudentTagPanel:visible');
+  await teacher.page.waitForSelector('.teacher-dashboard-entry-card--wrong-answers:visible');
   const teacherStabilityBefore = await teacher.page.evaluate(() => {
     const signature = () => [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
       .map(card => card.id || getComputedStyle(card).order)
@@ -438,7 +439,8 @@ try {
     'teacherActivityPanel',
     'teacherStudentTagPanel',
     '4',
-    '5'
+    '5',
+    '6'
   ]);
   await teacher.page.locator('#teacherStudentTagSister').fill('阅读小达人');
   await teacher.page.locator('#teacherStudentTagBrother').fill('勇敢挑战者');
