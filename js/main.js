@@ -263,12 +263,7 @@
     updateUserBar();
     if (currentUser === 'teacher') document.body.classList.add('is-teacher');
     else document.body.classList.remove('is-teacher');
-    if (!user) {
-      if (currentUser === 'teacher' && typeof root.refreshTeacherDashboardSummaries === 'function') {
-        await root.refreshTeacherDashboardSummaries();
-      }
-      return;
-    }
+    if (!user) return;
 
     await loadRewardFor(user, id);
     if (!isCurrent(user, id)) return;
