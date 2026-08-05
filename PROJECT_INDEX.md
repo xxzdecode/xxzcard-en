@@ -15,12 +15,13 @@
 
 `index.html` 中的主要 screen：
 
-- `screenHome`：首页与用户切换；学生端显示今日学习仪表板，老师端显示置顶“单词卡管理”及今日安排、金币与次数、学生标签、随堂练习和知识点库卡片。
+- `screenHome`：首页与用户切换；学生端显示今日学习仪表板，老师端显示置顶“单词卡管理”及今日安排、金币与次数、学生标签、随堂练习、知识点库和“错题整理”卡片。
 - `screenVocabularyReviewList`：老师端生词巩固目录与单词选择页。
 - `screenVocabularyReview`：生词巩固学习/自测卡片页。
 - `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。
 - `screenCourseware` / `screenCoursewarePlayer`：老师端随堂练习目录与独立 iframe 播放页；内部 ID 保留旧名称以兼容已有入口。
 - `screenGrammarLibrary`：老师端“知识点库”入口与 iframe 容器，加载结构化英语语法知识点库。
+- `screenWrongAnswerDirectory` / `screenWrongAnswerDetail`：老师端“错题整理”双学生目录与单卷错题登记页；登记页只显示题号层级，不保存或显示题目正文。
 - `screenWordCards`：学生单词卡列表和单词卡查看。
 - `screenPhonemeTraining`：音标训练。
 - `screenThemeQuizzes`：专项小游戏列表。
@@ -56,6 +57,8 @@
 - `js/courseware.js`：独立随堂练习清单、老师端目录渲染和 iframe 播放器开关逻辑；文件名保留用于兼容。
 - `js/courseware-data.js`：由练习上传脚本维护的随堂练习目录数据；文件名和旧全局变量别名保留用于兼容。
 - `js/grammarLibrary.js`：老师端知识点库 iframe 的打开和返回逻辑。
+- `js/wrongAnswerOrganizer.js`：老师端错题目录、最新练习入口、题号勾选和批改记录保存；通过 `js/lazyFeatures.js` 按需加载。
+- `styles-wrong-answer-organizer.css`：错题整理首页卡片、双栏目录和登记页样式；正式验收视口为 iPad Air 11 英寸横屏 `1180 × 820`。
 - `grammar-library/`：英语语法知识点库独立页面、结构化教学顺序、来源覆盖矩阵和进度交互。
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
 - `js/vocabularyReviewData.js`：生词巩固当前词表、音标、释义和图片路径。
@@ -80,6 +83,8 @@
 - `js/batch.js`：修改单词本、编辑单词、推送可见学生、清空学生记录。
 - `js/tasks.js`：读写每日任务、挑战次数、混合词库设置。
 - `js/home.js`：根据 appData、用户记录和任务状态渲染首页。
+- `assessment_catalog_v1`：由出卷流程后续上传的试卷元数据目录；网站只读取稳定 `assessment_id`、`paper_id`、`question_id`、`kp_ids`、题号显示标签和 `map_revision`，不保存题目正文。
+- `assessment_grading_v1_sister` / `assessment_grading_v1_brother`：按学生保存每张卷子的批改结果；记录 `wrong_question_ids`、对应 `kp_ids` 和映射版本，用于后续错题汇集与知识点统计。
 - `js/dictionary.js`：对卡片字段做标准化和展示层解析。
 
 随堂练习目录（保留历史路径）：
@@ -112,7 +117,7 @@
 7. `js/lazyFeatures.js`
 8. `js/main.js`
 
-其余业务模块由 `js/lazyFeatures.js` 按功能组加载，包括词汇探险、挑战、专项小游戏、随堂练习、知识点库、老师工具、生词巩固和摸底。修改模块入口时必须同时检查真实调用链、Service Worker 缓存和对应 loader 测试。
+其余业务模块由 `js/lazyFeatures.js` 按功能组加载，包括词汇探险、挑战、专项小游戏、随堂练习、知识点库、错题整理、老师工具、生词巩固和摸底。修改模块入口时必须同时检查真实调用链、Service Worker 缓存和对应 loader 测试。
 
 ## 6. 常见任务应该先看哪些文件
 
@@ -131,6 +136,7 @@
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看注册表实际指向的 `quizzes/三单变形练习.html`。
 - 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
 - 看老师端知识点库：先看 `grammar-library/data/topics.json` 与 `grammar-library/app.js`，再看 `js/grammarLibrary.js` 和 Supabase `kv_store/grammar_progress` 进度记录。
+- 看老师端错题整理：先看 `js/wrongAnswerOrganizer.js` 和 `styles-wrong-answer-organizer.css`，再看 `index.html` 的两个 wrong-answer screen；试卷元数据由外部出卷流程写入 `assessment_catalog_v1`。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 执行已完成内容的单词本任务：先看 `docs/create-wordbook-automation.md`，再使用 `scripts/create-wordbook.mjs`；不得跳过 dry-run 或改成普通多次写入。
 - 同步正式分类引用式单词本：先看 `docs/reference-wordbook-import-format.md`，再使用 `scripts/sync-category-wordbook.mjs`；正式 RPC 尚未安装或未获本次写入授权时只做 dry-run。
