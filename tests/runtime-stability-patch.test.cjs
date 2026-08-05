@@ -40,7 +40,8 @@ test('reward-state ranking prevents pending and claimed cards from regressing to
   assert.equal(homeStability.rank({ state: 'idle', completed: false }), 0);
   assert.equal(homeStability.rank({ state: 'idle', completed: true }), 1);
   assert.equal(homeStability.rank({ state: 'pending', completed: true }), 2);
-  assert.equal(homeStability.rank({ state: 'claimed', completed: true }), 3);
+  assert.equal(homeStability.rank({ state: 'opening', completed: true }), 3);
+  assert.equal(homeStability.rank({ state: 'claimed', completed: true }), 4);
 });
 
 test('home loading indicator is time-bounded and never serializes refresh promises', () => {

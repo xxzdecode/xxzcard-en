@@ -259,6 +259,36 @@
     return Number.isFinite(target) && target >= 0 ? Math.floor(target) : fallback;
   }
 
+  function rotateAdventurePlan(values, offset) {
+    const list = Array.isArray(values) ? values.slice() : [];
+    if (list.length < 2) return list;
+    const distance = Math.max(0, Number(offset) || 0) % list.length;
+    return distance ? [...list.slice(distance), ...list.slice(0, distance)] : list;
+  }
+
+  function orderVocabularyAdventurePlanForUser(planValue, today, userKey) {
+    const plan = Array.isArray(planValue) ? planValue.slice() : [];
+    const user = userKey === 'brother' ? 'brother' : userKey === 'sister' ? 'sister' : '';
+    if (!user) return plan;
+
+    const orderPhase = phase => {
+      const phaseItems = plan.filter(item => item.phase === phase);
+      const dailyOrder = deterministicAdventureShuffle(
+        phaseItems,
+        `${today}|adventure-plan|${phase}`,
+        item => item.wordKey
+      );
+      if (user !== 'brother' || dailyOrder.length < 2) return dailyOrder;
+      const offset = 1 + (stableAdventureHash(`${today}|brother|${phase}`) % (dailyOrder.length - 1));
+      return rotateAdventurePlan(dailyOrder, offset);
+    };
+
+    const screening = orderPhase('screening');
+    const review = orderPhase('review');
+    const known = new Set([...screening, ...review]);
+    return [...screening, ...review, ...plan.filter(item => !known.has(item))];
+  }
+
   function buildVocabularyAdventurePlan(options) {
     const settings = isPlainObject(options) ? options : {};
     const candidates = Array.isArray(settings.candidates) ? settings.candidates : [];
@@ -271,7 +301,8 @@
     const firstSession = !Object.values(state.words).some(wordState => wordState.reviewCount > 0);
 
     if (firstSession) {
-      return pools.screening.slice(0, firstSessionTarget).map(candidate => planItem(candidate, 'screening'));
+      const selected = pools.screening.slice(0, firstSessionTarget).map(candidate => planItem(candidate, 'screening'));
+      return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey);
     }
 
     const totalTarget = screeningTarget + reviewTarget;
@@ -286,11 +317,12 @@
     remaining -= extraUrgentReview;
     const stableReviewCount = Math.min(remaining, pools.stableReview.length);
 
-    return [
+    const selected = [
       ...pools.screening.slice(0, screeningCount).map(candidate => planItem(candidate, 'screening')),
       ...pools.urgentReview.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason)),
       ...pools.stableReview.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason))
     ];
+    return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey);
   }
 
   function stableAdventureHash(value) {
@@ -607,6 +639,7 @@
     collectVocabularyAdventureCandidates,
     classifyVocabularyAdventureCandidates,
     buildVocabularyAdventurePlan,
+    orderVocabularyAdventurePlanForUser,
     stableAdventureHash,
     deterministicAdventureShuffle,
     assignVocabularyAdventureTaskType,

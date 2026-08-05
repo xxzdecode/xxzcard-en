@@ -1,6 +1,8 @@
 (function vocabularyAdventureVisualV2Incremental() {
   'use strict';
 
+  window.__VOCABULARY_ADVENTURE_VISUAL_V2_INCREMENTAL__ = true;
+
   const SCREEN_ID = 'screenVocabularyAdventure';
   const LAYOUT_STYLESHEET = 'styles-vocabulary-adventure-v2.css';
   const WRAPPED_FUNCTIONS = [
@@ -14,7 +16,13 @@
     'clearVocabularyAdventureReviewOrder',
     'retryVocabularyAdventureResultSave'
   ];
-  const state = { refreshQueued:false, transitionRunning:false, lastTransitionAt:-1 };
+  const state = {
+    refreshQueued:false,
+    transitionRunning:false,
+    lastTransitionAt:-1,
+    hintSignature:'',
+    hintCollapsed:false
+  };
   const scheduleMicrotask = typeof queueMicrotask === 'function'
     ? queueMicrotask
     : callback => Promise.resolve().then(callback);
@@ -75,10 +83,44 @@
       panel = document.createElement('aside');
       panel.className = 'vav2-guide-panel';
       panel.setAttribute('aria-live','polite');
-      panel.innerHTML = '<div class="vav2-guide-bubble" hidden></div><img class="vav2-guide-fox" src="assets/vocabulary-adventure/fox.webp" width="746" height="928" alt="">';
+      panel.innerHTML = '<div class="vav2-guide-bubble" id="vav2GuideBubble" hidden></div><img class="vav2-guide-fox" src="assets/vocabulary-adventure/fox.webp" width="746" height="928" alt="小狐狸提示" role="button" tabindex="0" aria-controls="vav2GuideBubble" aria-expanded="false" aria-label="小狐狸提示，当前没有提示">';
       root.appendChild(panel);
     }
+    bindGuideInteractions(panel);
     return panel;
+  }
+
+  function setGuideToggleState(panel, hasHint) {
+    const fox = panel && panel.querySelector('.vav2-guide-fox');
+    if (!fox) return;
+    fox.dataset.hasHint = hasHint ? 'true' : 'false';
+    fox.setAttribute('aria-expanded',hasHint && !state.hintCollapsed ? 'true' : 'false');
+    fox.setAttribute('aria-label',!hasHint
+      ? '小狐狸提示，当前没有提示'
+      : state.hintCollapsed
+        ? '小狐狸提示，点击展开提示'
+        : '小狐狸提示，点击收起提示');
+  }
+
+  function toggleGuideHint(panel) {
+    if (!state.hintSignature) return;
+    state.hintCollapsed = !state.hintCollapsed;
+    const bubble = panel && panel.querySelector('.vav2-guide-bubble');
+    if (bubble) bubble.hidden = state.hintCollapsed;
+    setGuideToggleState(panel,true);
+    if (!state.hintCollapsed) queueRefresh();
+  }
+
+  function bindGuideInteractions(panel) {
+    if (!panel || panel.dataset.hintToggleBound === 'true') return;
+    panel.dataset.hintToggleBound = 'true';
+    const fox = panel.querySelector('.vav2-guide-fox');
+    fox?.addEventListener('click',() => toggleGuideHint(panel));
+    fox?.addEventListener('keydown',event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      toggleGuideHint(panel);
+    });
   }
 
   function setBubble(panel, sourceHint, allowReplay) {
@@ -105,7 +147,19 @@
       });
       bubble.appendChild(button);
     }
-    bubble.hidden = false;
+    const collapse = document.createElement('button');
+    collapse.type = 'button';
+    collapse.className = 'vav2-bubble-collapse';
+    collapse.textContent = '收起';
+    collapse.setAttribute('aria-label','收起小狐狸提示');
+    collapse.addEventListener('click',event => {
+      event.stopPropagation();
+      state.hintCollapsed = true;
+      bubble.hidden = true;
+      setGuideToggleState(panel,true);
+    });
+    bubble.appendChild(collapse);
+    bubble.hidden = state.hintCollapsed;
   }
 
   function prepareTopbarContent() {
@@ -129,7 +183,7 @@
       control.hidden = index > 0;
       control.classList.toggle('vav2-primary-audio',index === 0);
       if (index === 0) {
-        control.innerHTML = '<span aria-hidden="true"></span><b>听读音</b>';
+        control.innerHTML = '<span aria-hidden="true">🔊</span><b>听读音</b>';
         control.setAttribute('aria-label','听读音');
       }
     });
@@ -144,7 +198,17 @@
     const allHints = [...root.querySelectorAll('.vocabulary-adventure-hint,.vocabulary-adventure-review-hint')];
     const visibleHints = allHints.filter(visible);
     allHints.forEach(hint => hint.classList.toggle('vav2-hint-source',visibleHints.includes(hint)));
-    setBubble(panel,visibleHints[0] || null,!hasPrimaryAudio && visibleHints.length > 0);
+    const sourceHint = visibleHints[0] || null;
+    const signature = sourceHint ? `${sourceHint.id}|${sourceHint.innerHTML}` : '';
+    if (!signature) {
+      state.hintSignature = '';
+      state.hintCollapsed = false;
+    } else if (signature !== state.hintSignature) {
+      state.hintSignature = signature;
+      state.hintCollapsed = false;
+    }
+    setBubble(panel,sourceHint,!hasPrimaryAudio && visibleHints.length > 0);
+    setGuideToggleState(panel,!!sourceHint);
     const feedback = byId('vocabularyAdventureFeedbackText');
     if (visibleHints.length && feedback && feedback.dataset.tone === 'hinted') feedback.textContent = '';
   }

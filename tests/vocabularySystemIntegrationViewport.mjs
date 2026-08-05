@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const { webkit } = createRequire(import.meta.url)('playwright');
+const { chromium, webkit } = createRequire(import.meta.url)('playwright');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const resultDir = path.join(root, 'test-results');
@@ -132,7 +132,11 @@ const server = http.createServer((request, response) => {
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
-const browser = await webkit.launch();
+const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const webkitExecutable = webkit.executablePath();
+const browser = fs.existsSync(webkitExecutable)
+  ? await webkit.launch()
+  : await chromium.launch({ executablePath: edgeExecutable });
 
 async function openPage(viewport, name) {
   const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
@@ -301,8 +305,9 @@ async function waitForTeaching(run, targetName) {
 
 try {
   for (const target of [
-    { name: 'ipad-1180x820', viewport: { width: 1180, height: 820 }, landscape: true },
-    { name: 'iphone-393x852', viewport: { width: 393, height: 852 }, landscape: false }
+    { name: 'ipad-1180x820', viewport: { width: 1180, height: 820 }, allowedColumns: [1, 2] },
+    { name: 'iphone-393x852', viewport: { width: 393, height: 852 }, allowedColumns: [1] },
+    { name: 'ipad-portrait-820x1180', viewport: { width: 820, height: 1180 }, allowedColumns: [1, 2], teachingScroll: true }
   ]) {
     const run = await openPage(target.viewport, target.name);
     await assertScopedSelection(run.page);
@@ -310,7 +315,8 @@ try {
     const columns = await run.page.locator(
       '#vocabularyAdventureChallengeBody .vocabulary-adventure-options'
     ).evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
-    assert.equal(columns, target.landscape ? 2 : 1);
+    assert.ok(target.allowedColumns.includes(columns),
+      `${target.name} option columns must stay within the supported layout: ${columns}`);
 
     await startFeedbackTrace(run.page);
     await clickChoice(run.page, false);
@@ -325,6 +331,29 @@ try {
       /正确答案/
     );
     assert.equal(await run.page.locator('#vocabularyAdventureChallengeAction:not([hidden])').count(), 0);
+    if (target.teachingScroll) {
+      const next = run.page.locator('#vocabularyAdventureChallengeBody .vte-next');
+      await next.evaluate(node => node.scrollIntoView({ block: 'end' }));
+      const scrollState = await run.page.evaluate(() => {
+        const stage = document.querySelector('#screenVocabularyAdventureChallenge .vocabulary-adventure-stage');
+        const button = document.querySelector('#vocabularyAdventureChallengeBody .vte-next');
+        const rect = button.getBoundingClientRect();
+        return {
+          stageOverflowY: getComputedStyle(stage).overflowY,
+          stageScrollTop: stage.scrollTop,
+          buttonTop: rect.top,
+          buttonBottom: rect.bottom,
+          viewportHeight: innerHeight
+        };
+      });
+      assert.match(scrollState.stageOverflowY, /auto|scroll/);
+      assert.ok(scrollState.buttonTop >= 0 && scrollState.buttonBottom <= scrollState.viewportHeight,
+        `iPad portrait next button must be reachable after scrolling: ${JSON.stringify(scrollState)}`);
+      await run.page.screenshot({
+        path: path.join(resultDir, 'vocabulary-system-ipad-portrait-820x1180-teaching-scroll.png'),
+        fullPage: true
+      });
+    }
     await run.page.locator('#vocabularyAdventureChallengeBody .vte-next').click();
     await run.page.waitForFunction(() => (
       document.getElementById('vocabularyAdventureChallengeCount')?.textContent === '2/10'
@@ -363,7 +392,7 @@ try {
     assert.deepEqual(unexpectedErrors, []);
     await run.context.close();
   }
-  console.log('vocabulary system WebKit viewport tests passed');
+  console.log('vocabulary system browser viewport tests passed');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

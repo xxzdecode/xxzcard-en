@@ -74,6 +74,38 @@ const firstPlan = core.buildVocabularyAdventurePlan({
 assert.equal(firstPlan.length, 30);
 assert.ok(firstPlan.every(item => item.phase === 'screening'));
 assert.equal(new Set(firstPlan.map(item => item.wordKey)).size, 30);
+const sisterFirstPlan = core.buildVocabularyAdventurePlan({
+  candidates: firstCandidates,
+  state: core.defaultVocabularyAdventureState(),
+  today: TODAY,
+  userKey: 'sister'
+});
+const brotherFirstPlan = core.buildVocabularyAdventurePlan({
+  candidates: firstCandidates,
+  state: core.defaultVocabularyAdventureState(),
+  today: TODAY,
+  userKey: 'brother'
+});
+assert.deepEqual(
+  sisterFirstPlan.map(item => item.wordKey).slice().sort(),
+  brotherFirstPlan.map(item => item.wordKey).slice().sort(),
+  'siblings must receive the same daily word set'
+);
+assert.notDeepEqual(
+  sisterFirstPlan.map(item => item.wordKey),
+  brotherFirstPlan.map(item => item.wordKey),
+  'siblings must receive a different stable order'
+);
+assert.deepEqual(
+  core.buildVocabularyAdventurePlan({
+    candidates: firstCandidates,
+    state: core.defaultVocabularyAdventureState(),
+    today: TODAY,
+    userKey: 'sister'
+  }),
+  sisterFirstPlan,
+  'daily sibling order must be stable across reloads'
+);
 assert.equal(core.buildVocabularyAdventurePlan({
   candidates: candidates(7, 'short-first'),
   state: core.defaultVocabularyAdventureState(),

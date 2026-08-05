@@ -8,15 +8,9 @@
   const AUTO_ADVANCE_MS = 720;
   const TEACHING_DELAY_MS = 520;
   const STYLE_ID = 'vocabularyFeedbackTeachingStyles';
-  const INTERNAL_COPY = /(?:已记录为|第一次就答对|提示后答对|明天会更快|间隔保持|使用较弱|待加强|\bD\b|\bH\b|\bF\b)/i;
   const state = {
-    saveWrapped: false,
-    observers: new Map(),
-    handled: new Set(),
     nextActions: new Map(),
-    sequence: 0,
-    adventureToken: 0,
-    challengeToken: 0
+    sequence: 0
   };
 
   function text(value) {
@@ -391,181 +385,6 @@
     };
   }
 
-  function feedbackElements(mode) {
-    const challenge = mode === 'challenge';
-    return {
-      body: root.document.getElementById(
-        challenge ? 'vocabularyAdventureChallengeBody' : 'vocabularyAdventureBody'
-      ),
-      text: root.document.getElementById(
-        challenge ? 'vocabularyAdventureChallengeFeedbackText' : 'vocabularyAdventureFeedbackText'
-      ),
-      action: root.document.getElementById(
-        challenge ? 'vocabularyAdventureChallengeAction' : 'vocabularyAdventureAction'
-      )
-    };
-  }
-
-  function setFeedback(mode, message, tone) {
-    const elements = feedbackElements(mode);
-    if (elements.text) {
-      elements.text.textContent = message || '';
-      elements.text.dataset.tone = tone || '';
-    }
-    if (elements.action) {
-      elements.action.hidden = true;
-      elements.action.onclick = null;
-    }
-  }
-
-  function decorateQuestion(body, detail) {
-    if (!body) return;
-    const question = detail.question || {};
-    const interaction = question.interaction || (Array.isArray(question.options) ? 'choice' : '');
-    body.querySelectorAll('button,input').forEach(control => { control.disabled = true; });
-
-    if (interaction === 'choice') {
-      const buttons = [...body.querySelectorAll('.vocabulary-adventure-options button')];
-      const selectedIndex = Number(detail.answer);
-      buttons.forEach((button, index) => {
-        button.classList.remove('is-selected', 'is-correct', 'is-wrong');
-        if (index === Number(question.correctIndex)) button.classList.add('is-correct');
-        if (!detail.correct && index === selectedIndex && index !== Number(question.correctIndex)) {
-          button.classList.add('is-wrong');
-        }
-      });
-    } else if (interaction === 'input') {
-      body.querySelectorAll('input').forEach(input => {
-        input.classList.add(detail.correct ? 'vte-answer-correct' : 'vte-answer-wrong');
-      });
-    } else if (interaction === 'order') {
-      body.querySelectorAll('.vocabulary-adventure-order-answer').forEach(node => {
-        node.classList.add(detail.correct ? 'vte-answer-correct' : 'vte-answer-wrong');
-      });
-    }
-    body.dataset.mode = 'question-feedback';
-    root.VocabularyPracticeUI?.syncOptionStates?.(body);
-  }
-
-  function restoreQuestion(detail) {
-    const elements = feedbackElements(detail.mode);
-    if (!elements.body || !detail.snapshot) return elements.body;
-    elements.body.innerHTML = detail.snapshot;
-    decorateQuestion(elements.body, detail);
-    return elements.body;
-  }
-
-  function applyCorrect(detail) {
-    restoreQuestion(detail);
-    setFeedback(detail.mode, '✓ 回答正确', 'direct');
-    const tokenName = detail.mode === 'challenge' ? 'challengeToken' : 'adventureToken';
-    const token = ++state[tokenName];
-    root.setTimeout(() => {
-      if (token !== state[tokenName]) return;
-      if (detail.mode === 'challenge') root.nextVocabularyAdventureChallenge?.();
-      else root.nextVocabularyAdventure?.();
-    }, AUTO_ADVANCE_MS);
-  }
-
-  function applyWrong(detail) {
-    const body = restoreQuestion(detail);
-    setFeedback(detail.mode, '× 回答错误，看看正确答案', 'failed');
-    const tokenName = detail.mode === 'challenge' ? 'challengeToken' : 'adventureToken';
-    const token = ++state[tokenName];
-    root.setTimeout(() => {
-      if (token !== state[tokenName] || !body || !body.isConnected) return;
-      const card = findCardByWord(detail.wordKey, root) || {
-        word: detail.wordKey,
-        meaning: ''
-      };
-      mount(body, card, {
-        source: detail.mode,
-        title: detail.mode === 'challenge'
-          ? '这道题的正确答案'
-          : '再认识一次这个词',
-        correctAnswer: detail.correctAnswer || text(card.word),
-        userAnswer: detail.userAnswer,
-        onNext: () => {
-          if (detail.mode === 'challenge') root.nextVocabularyAdventureChallenge?.();
-          else root.nextVocabularyAdventure?.();
-        }
-      });
-      setFeedback(detail.mode, '', '');
-    }, TEACHING_DELAY_MS);
-  }
-
-  function applySavedResult(detail) {
-    if (!detail || state.handled.has(detail.fingerprint)) return;
-    state.handled.add(detail.fingerprint);
-    root.setTimeout(() => {
-      if (detail.correct) applyCorrect(detail);
-      else applyWrong(detail);
-    }, 0);
-  }
-
-  function selectedAnswerForMode(isChallenge) {
-    const selection = root.__vocabularyPracticeLastSelection;
-    if (!selection) return null;
-    const expected = isChallenge ? 'challenge' : 'adventure';
-    return selection.mode === expected ? selection.index : null;
-  }
-
-  function wrapSaveFunction() {
-    if (state.saveWrapped || typeof root.saveCurrentVocabularyAdventureState !== 'function') return;
-    const original = root.saveCurrentVocabularyAdventureState;
-    if (original.__vteWrapped) {
-      state.saveWrapped = true;
-      return;
-    }
-
-    const wrapped = async function saveCurrentVocabularyAdventureStateWithFeedback(nextState, ...args) {
-      const isChallenge = !!(
-        nextState && nextState.challengeSession && Number(nextState.challengeSession.cursor) > 0
-      );
-      const body = root.document.getElementById(
-        isChallenge ? 'vocabularyAdventureChallengeBody' : 'vocabularyAdventureBody'
-      );
-      const detail = extractSavedResult(nextState, {
-        snapshot: body ? body.innerHTML : '',
-        selectedAnswer: selectedAnswerForMode(isChallenge),
-        gradeContext: clone(root.__vocabularyFeedbackGradeContext),
-        questionContext: clone(root.__vocabularyFeedbackQuestionContext)
-      });
-      const saved = await original.call(this, nextState, ...args);
-      if (saved !== false && detail) applySavedResult(detail);
-      return saved;
-    };
-    wrapped.__vteWrapped = true;
-    wrapped.__vteOriginal = original;
-    root.saveCurrentVocabularyAdventureState = wrapped;
-    try { saveCurrentVocabularyAdventureState = wrapped; } catch (_) {}
-    state.saveWrapped = true;
-  }
-
-  function sanitizeAdventureBody() {
-    const body = root.document.getElementById('vocabularyAdventureBody');
-    if (!body) return;
-    const summary = body.querySelector('.vocabulary-adventure-summary');
-    if (summary && summary.querySelector('.vocabulary-adventure-summary-grid')) {
-      summary.innerHTML = '<div class="vocabulary-adventure-terminal-icon">✅</div><h2>今天的词汇探险完成了</h2><p>今天的学习记录已经保存。</p>';
-    }
-    const feedback = root.document.getElementById('vocabularyAdventureFeedbackText');
-    if (feedback && INTERNAL_COPY.test(feedback.textContent || '')) {
-      feedback.textContent = '继续完成今天的词汇探险';
-      feedback.dataset.tone = '';
-    }
-  }
-
-  function observeBody(id) {
-    const body = root.document.getElementById(id);
-    if (!body || state.observers.has(id) || typeof root.MutationObserver !== 'function') return;
-    const observer = new root.MutationObserver(() => {
-      if (id === 'vocabularyAdventureBody') sanitizeAdventureBody();
-    });
-    observer.observe(body, { childList: true, subtree: true, characterData: true });
-    state.observers.set(id, observer);
-  }
-
   function installStyles() {
     if (!root.document || root.document.getElementById(STYLE_ID)) return;
     const style = root.document.createElement('style');
@@ -605,7 +424,7 @@
       .vte-more summary{cursor:pointer;font-weight:800}
       .vte-next{margin-top:auto;align-self:flex-end;min-width:170px;min-height:54px;padding:10px 26px;border:0;border-radius:999px;background:#98c9a8;color:#fff;font-size:19px;font-weight:900;box-shadow:0 8px 18px rgba(80,135,96,.22);cursor:pointer}
       .vte-next:disabled{opacity:.55;cursor:default}
-      @media (max-width:700px){.vte-shell{height:auto;min-height:100%;grid-template-columns:1fr;overflow:auto}.vte-visual-media{height:240px;min-height:180px}.vte-answer-grid{grid-template-columns:1fr}.vte-next{width:100%;align-self:stretch}.vte-info-panel{overflow:visible}}
+      @media (orientation:portrait) and (max-width:900px){#screenVocabularyAdventure .vocabulary-adventure-stage,#screenVocabularyAdventureChallenge .vocabulary-adventure-stage{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}#screenVocabularyAdventure .vocabulary-adventure-body[data-mode="error-teaching"],#screenVocabularyAdventureChallenge .vocabulary-adventure-body[data-mode="error-teaching"]{max-height:none;align-items:flex-start;overflow:visible}.vte-shell{height:auto;min-height:100%;grid-template-columns:1fr;overflow:visible}.vte-visual-media{height:min(30dvh,280px);min-height:180px}.vte-answer-grid{grid-template-columns:1fr}.vte-next{width:100%;align-self:stretch}.vte-info-panel{overflow:visible}}
       @media (orientation:landscape) and (max-height:560px){.vte-shell{padding:10px;gap:10px;border-radius:18px}.vte-visual-media{height:calc(100dvh - 170px);min-height:150px}.vte-info-panel{gap:7px}.vte-heading h2{font-size:34px}.vte-answer{padding:8px 10px}.vte-teaching-points p{padding:7px 9px}.vte-next{min-height:46px}}
     `;
     root.document.head.appendChild(style);
@@ -614,15 +433,10 @@
   function install() {
     if (!root.document) return;
     installStyles();
-    wrapSaveFunction();
-    observeBody('vocabularyAdventureBody');
-    observeBody('vocabularyAdventureChallengeBody');
-    sanitizeAdventureBody();
   }
 
   function afterFeatureGroup() {
     install();
-    wrapSaveFunction();
   }
 
   return Object.freeze({

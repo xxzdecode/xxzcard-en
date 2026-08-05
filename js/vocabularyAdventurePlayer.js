@@ -791,6 +791,7 @@
       };
       runtime.preparedState = null;
       runtime.preparedMeta = null;
+      if (window.VocabularyFeedbackSaveCoordinator?.ownsFeedback?.()) return;
       renderCurrentVocabularyAdventure();
     }
 

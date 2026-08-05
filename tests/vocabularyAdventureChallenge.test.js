@@ -214,6 +214,13 @@ assert.equal(activeState.challengeSession.status, 'completed');
 assert.equal(activeState.challengeSession.cursor, 10);
 assert.equal(activeState.challengeDaily.attempts, 1);
 assert.equal(activeState.challengeDaily.bestScore, 90);
+assert.equal(activeState.challengeDaily.rewardSettlement.status, 'pending');
+assert.equal(activeState.challengeDaily.rewardSettlement.target, 9);
+assert.equal(
+  challenge.normalizeChallengeState(activeState, today).challengeDaily.rewardSettlement.target,
+  9,
+  'reward eligibility must survive normalization before the settlement module loads'
+);
 assert.equal(activeState.challengeSession.wrongItems.length, 1);
 assert.equal(activeState.words[firstItem.wordKey].challengeFlagAt, '2026-07-29T02:00:00.000Z');
 

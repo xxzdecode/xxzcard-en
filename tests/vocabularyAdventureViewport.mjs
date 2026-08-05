@@ -4,7 +4,7 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const { devices, webkit } = createRequire(import.meta.url)('playwright');
+const { chromium, devices, webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -69,7 +69,11 @@ const server = http.createServer((request, response) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const address = server.address();
 const baseUrl = `http://127.0.0.1:${address.port}`;
-const browser = await webkit.launch();
+const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const webkitExecutable = webkit.executablePath();
+const browser = fs.existsSync(webkitExecutable)
+  ? await webkit.launch()
+  : await chromium.launch({ executablePath: edgeExecutable });
 
 async function openRealPage({
   viewport,
@@ -184,6 +188,46 @@ function adventureWordState(lastResult = 'D') {
 }
 
 try {
+  if (process.argv.includes('--hint-toggle-only')) {
+    const hintRun = await openRealPage({ viewport: { width: 393, height: 852 } });
+    const { page } = hintRun;
+    await page.locator('#vocabularyAdventurePreviewEntry').click();
+    await page.waitForSelector('#vocabularyAdventureOptions button');
+    const wrongIndex = await page.evaluate(() => {
+      const candidates = collectVisibleVocabularyAdventureCandidates();
+      const state = JSON.parse(localStorage.getItem('wc_sb_vocab_adventure_v1_sister'));
+      const item = state.session.plan[state.session.cursor];
+      const question = window.VocabularyAdventureCore.buildVocabularyAdventureQuestion({
+        candidates,
+        sessionDate: state.session.date,
+        wordKey: item.wordKey,
+        planIndex: state.session.cursor,
+        lastTaskType: state.words[item.wordKey]?.lastTaskType
+      });
+      return question.options.findIndex((_, index) => index !== question.correctIndex);
+    });
+    const optionsBefore = await page.locator('#vocabularyAdventureOptions button').allTextContents();
+    await page.locator(`#vocabularyAdventureOptions button[data-option-index="${wrongIndex}"]`).click();
+    await page.waitForSelector('.vav2-guide-bubble:visible');
+    assert.equal(await page.locator('.vav2-bubble-collapse').innerText(), '收起');
+    await page.locator('.vav2-bubble-collapse').click();
+    await page.waitForSelector('.vav2-guide-bubble', { state: 'hidden' });
+    assert.deepEqual(await page.locator('#vocabularyAdventureOptions button').allTextContents(), optionsBefore);
+    await page.locator('.vav2-guide-fox').click();
+    await page.waitForSelector('.vav2-guide-bubble:visible');
+    assert.deepEqual(await page.locator('#vocabularyAdventureOptions button').allTextContents(), optionsBefore);
+    assert.equal(await page.locator('.vav2-guide-fox').getAttribute('aria-expanded'), 'true');
+    await page.screenshot({
+      path: path.join(resultDir, 'vocabulary-adventure-hint-toggle-iphone16-portrait-393x852.png'),
+      fullPage: true
+    });
+    assert.deepEqual(
+      hintRun.errors.filter(error => !/Failed to load resource: net::ERR_FAILED/.test(error)),
+      []
+    );
+    await hintRun.context.close();
+    console.log('vocabulary adventure hint toggle viewport test passed');
+  } else {
   const hidden = await openRealPage({ viewport: { width: 1024, height: 768 }, preview: false });
   assert.equal(await hidden.page.locator('#vocabularyAdventurePreviewEntry').isVisible(), true);
   assert.equal(await hidden.page.locator('#studentDashboard').isVisible(), true);
@@ -442,7 +486,8 @@ try {
   assert.deepEqual(retryEvidence, { sameObject: true, attempts: 2, reviewCount: 1, cursor: 1 });
   await saveRetry.context.close();
 
-  console.log('vocabulary adventure card 2 WebKit viewport tests passed');
+  console.log('vocabulary adventure card 2 browser viewport tests passed');
+  }
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

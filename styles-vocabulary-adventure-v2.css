@@ -34,6 +34,15 @@
   object-fit:contain;
   object-position:right bottom;
   filter:drop-shadow(0 10px 16px rgba(34,72,52,.22));
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+  border-radius:38% 38% 30% 30%;
+}
+#screenVocabularyAdventure .vav2-guide-fox:focus-visible {
+  outline:4px solid #fff7a8;
+  outline-offset:3px;
+  filter:drop-shadow(0 0 10px rgba(255,220,83,.9)) drop-shadow(0 10px 16px rgba(34,72,52,.22));
 }
 #screenVocabularyAdventure .vav2-guide-bubble {
   position:absolute;
@@ -89,6 +98,29 @@
   font-weight:900;
   text-shadow:none;
   pointer-events:auto;
+}
+#screenVocabularyAdventure .vav2-bubble-collapse {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:72px;
+  min-height:44px;
+  margin-top:4px;
+  padding:7px 15px;
+  border:1px solid rgba(167,126,32,.35);
+  border-radius:999px;
+  background:#fff8cc;
+  color:#6b4a08;
+  font-size:13px;
+  font-weight:900;
+  text-shadow:none;
+  cursor:pointer;
+  touch-action:manipulation;
+  pointer-events:auto;
+}
+#screenVocabularyAdventure .vav2-bubble-collapse:focus-visible {
+  outline:3px solid #3b70a7;
+  outline-offset:2px;
 }
 
 #screenVocabularyAdventure .vocabulary-adventure-hint.vav2-hint-source,
@@ -183,7 +215,7 @@
   #screenVocabularyAdventure { background-image:url('assets/vocabulary-adventure/forest-portrait.webp'); background-position:center 42%; }
   #screenVocabularyAdventure .vocabulary-adventure-stage { padding-bottom:86px; overflow:visible; }
   #screenVocabularyAdventure .vav2-guide-panel { right:2px; bottom:74px; width:92px; min-height:150px; }
-  #screenVocabularyAdventure .vav2-guide-bubble { right:98px; bottom:34px; width:min(190px,54vw); padding:27px 24px 24px; font-size:12px; }
+  #screenVocabularyAdventure .vav2-guide-bubble { right:98px; bottom:34px; width:min(205px,58vw); min-height:160px; aspect-ratio:auto; padding:25px 22px 22px; font-size:12px; }
   #screenVocabularyAdventure .vav2-guide-bubble::after { right:15px; bottom:-10px; width:20px; height:20px; }
   #screenVocabularyAdventure .vocabulary-adventure-audio-prompt.vav2-primary-audio { width:76px; min-width:76px; height:72px; min-height:72px; padding-top:51px; background-size:52px 53px; }
   #screenVocabularyAdventure .vocabulary-adventure-feedback #vocabularyAdventureAction { width:164px!important; min-width:164px!important; height:66px!important; min-height:66px!important; }

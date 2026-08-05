@@ -4,6 +4,25 @@ const assert = require('node:assert/strict');
 const patch = require('../js/vocabularyQuestionTypesRepeatBootstrap.js');
 const feedback = require('../js/vocabularyFeedbackErrorUI.js');
 const practiceUI = require('../js/vocabularyPracticeUI.js');
+const feedbackRendererSource = require('node:fs').readFileSync(
+  require('node:path').join(__dirname, '..', 'js', 'vocabularyFeedbackErrorUI.js'),
+  'utf8'
+);
+const feedbackCoordinatorSource = require('node:fs').readFileSync(
+  require('node:path').join(__dirname, '..', 'js', 'vocabularyFeedbackSaveCoordinator.js'),
+  'utf8'
+);
+const playerSource = require('node:fs').readFileSync(
+  require('node:path').join(__dirname, '..', 'js', 'vocabularyAdventurePlayer.js'),
+  'utf8'
+);
+
+assert.doesNotMatch(feedbackRendererSource, /wrapSaveFunction|__vteWrapped/,
+  'the teaching renderer must not own save orchestration');
+assert.match(feedbackCoordinatorSource, /function ownsFeedback\(\)/,
+  'the save coordinator must expose feedback ownership');
+assert.match(playerSource, /VocabularyFeedbackSaveCoordinator\?\.ownsFeedback\?\.\(\)/,
+  'the player must suppress its legacy continue page when coordinated feedback is active');
 
 const duplicateHistory = {
   challengeSession: {

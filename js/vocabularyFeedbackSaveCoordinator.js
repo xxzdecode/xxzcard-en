@@ -219,8 +219,13 @@
     ensureSaveHook();
   }
 
+  function ownsFeedback() {
+    return !!root.saveCurrentVocabularyAdventureState?.__vteCoordinatorWrapped;
+  }
+
   return Object.freeze({
     ensureSaveHook,
+    ownsFeedback,
     install,
     afterFeatureGroup
   });

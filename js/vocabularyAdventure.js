@@ -165,7 +165,7 @@
       }
       const state = await loadVocabularyAdventureState(user);
       const candidates = collectVisibleVocabularyAdventureCandidates();
-      return core.resolveVocabularyAdventureSession({ candidates, state, today });
+      return core.resolveVocabularyAdventureSession({ candidates, state, today, userKey: user });
     }
 
     async function loadOrCreateVocabularyAdventureSession(today) {

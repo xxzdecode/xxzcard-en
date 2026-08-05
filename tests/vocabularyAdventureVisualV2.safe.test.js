@@ -10,6 +10,8 @@ assert(!source.includes('MutationObserver'), 'must not install a MutationObserve
 assert(!source.includes('setInterval'), 'must not install a polling interval');
 assert(source.includes('styles-vocabulary-adventure-v2.css'), 'must load the incremental layout stylesheet');
 assert(source.includes('vav2-guide-fox'), 'must render the illustrated fox layer');
+assert(source.includes("collapse.textContent = '收起'"), 'must expose an explicit hint collapse control');
+assert(source.includes('toggleGuideHint(panel)'), 'the fox must toggle the current hint without rerendering the question');
 assert(source.includes("title.textContent = '词汇探险'"), 'must keep the current main topbar title');
 assert(source.includes("button.textContent = '🔊 再听一次'"), 'must support replay only inside the hint bubble');
 assert(source.includes("control.innerHTML = '<span aria-hidden=\"true\">🔊</span><b>听读音</b>'"), 'must expose one fixed 听读音 control');
@@ -29,6 +31,7 @@ const document = {
       dataset: {},
       classList: { add() {}, remove() {}, toggle() {} },
       setAttribute() {},
+      addEventListener() {},
       appendChild() {},
       remove() {}
     };
