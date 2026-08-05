@@ -264,8 +264,12 @@
     if (currentUser === 'teacher') document.body.classList.add('is-teacher');
     else document.body.classList.remove('is-teacher');
     if (!user) {
-      if (currentUser === 'teacher' && typeof root.refreshTeacherDashboardSummaries === 'function') {
-        await root.refreshTeacherDashboardSummaries();
+      if (currentUser === 'teacher') {
+        root.ensureTeacherActivityPanel?.();
+        root.ensureTeacherStudentTagPanel?.();
+        if (typeof root.refreshTeacherDashboardSummaries === 'function') {
+          await root.refreshTeacherDashboardSummaries();
+        }
       }
       return;
     }

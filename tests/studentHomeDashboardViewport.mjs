@@ -501,10 +501,12 @@ try {
       scrollWidth: card.scrollWidth,
       clientWidth: card.clientWidth
     })),
-    buttons: [...document.querySelectorAll('#teacherDashboard button')].map(button => ({
-      height: button.getBoundingClientRect().height,
-      right: button.getBoundingClientRect().right
-    }))
+    buttons: [...document.querySelectorAll('#teacherDashboard button')]
+      .filter(button => button.getClientRects().length > 0)
+      .map(button => ({
+        height: button.getBoundingClientRect().height,
+        right: button.getBoundingClientRect().right
+      }))
   }));
   assert.deepEqual(teacherPhoneLayout.viewport, [393, 852]);
   assert.ok(teacherPhoneLayout.pageWidth <= 393, `teacher phone dashboard overflowed to ${teacherPhoneLayout.pageWidth}px`);

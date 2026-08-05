@@ -1053,6 +1053,9 @@
       };
     }
 
+    root.ensureTeacherStudentTagPanel = installStudentTagPanel;
+    if (root.isTeacher?.()) installStudentTagPanel();
+
     root.recordStudentRewardSource = recordSource;
     root.recordStudentBreakthroughAdjustment = (user, delta) => adjustRewardProject(user, 'breakthrough', delta);
     root.recordStudentRewardAdjustment = adjustRewardProject;
