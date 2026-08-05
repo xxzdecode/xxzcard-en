@@ -16,6 +16,7 @@ const FEATURE_GROUPS = {
   themeQuiz: ['js/themeQuizzes.js'],
   courseware: ['js/courseware-data.js', 'js/courseware.js'],
   grammarLibrary: ['js/grammarLibrary.js'],
+  wrongAnswerOrganizer: ['js/wrongAnswerOrganizer.js'],
   teacherTools: [
     'js/dictionary.js',
     'js/batch.js',
@@ -393,6 +394,8 @@ function installLazyFeatureHandler(name, group) {
   ['openThemeQuizList', 'themeQuiz'],
   ['openCoursewareList', 'courseware'],
   ['openGrammarLibrary', 'grammarLibrary'],
+  ['openWrongAnswerOrganizer', 'wrongAnswerOrganizer'],
+  ['openLatestWrongAnswerPaper', 'wrongAnswerOrganizer'],
   ['openWordCards', 'teacherTools'],
   ['openPhonemeTraining', 'teacherTools'],
   ['openVocabularyReviewList', 'vocabularyReview'],
@@ -423,3 +426,18 @@ const warmAdventure = () => Promise.allSettled([
 
 if (typeof requestIdleCallback === 'function') requestIdleCallback(warmAdventure, { timeout: 1800 });
 else setTimeout(warmAdventure, 900);
+
+const warmWrongAnswerOrganizer = () => loadFeatureGroup('wrongAnswerOrganizer')
+  .then(() => {
+    if (typeof isTeacher === 'function' && isTeacher()) {
+      return window.refreshWrongAnswerOrganizerHome?.();
+    }
+    return null;
+  })
+  .catch(error => {
+    console.warn('wrong answer organizer preload skipped', error && (error.message || error));
+    return null;
+  });
+
+if (typeof requestIdleCallback === 'function') requestIdleCallback(warmWrongAnswerOrganizer, { timeout: 2200 });
+else setTimeout(warmWrongAnswerOrganizer, 1200);

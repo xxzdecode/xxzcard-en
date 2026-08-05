@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v61';
-const RUNTIME_CACHE = 'xxzcard-runtime-v61';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v62';
+const RUNTIME_CACHE = 'xxzcard-runtime-v62';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -8,6 +8,7 @@ const APP_SHELL = [
   './styles-vocabulary-adventure-v2.css',
   './styles-home-nav.css',
   './styles-student-home-dashboard.css',
+  './styles-wrong-answer-organizer.css',
   './js/config.js',
   './js/runtimeStabilityPatch.js',
   './js/runtimeFeatureLoading.js',
@@ -20,9 +21,7 @@ const APP_SHELL = [
   './js/auth.js',
   './js/home.js',
   './js/lazyFeatures.js',
-  './js/courseware-data.js',
-  './grammar-library/data/topics.json',
-  './grammar-library/data/initial-progress.json',
+  './js/wrongAnswerOrganizer.js',
   './js/main.js',
   './js/storageResilience.js',
   './js/vocabularyQuestionTypesRepeatBootstrap.js',

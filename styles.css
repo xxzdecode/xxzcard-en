@@ -146,49 +146,15 @@ body.is-teacher .current-mode { margin-top: 0; font-size: 11px; }
 .teacher-dashboard-entry-card--courseware { order: 4; }
 .teacher-dashboard-entry-card--knowledge { order: 5; }
 .teacher-dashboard-entry-card {
-  min-height: 286px; display: flex; flex-direction: column;
+  display: flex; flex-direction: column; justify-content: space-between;
 }
 .teacher-dashboard-card__heading { display: flex; align-items: flex-start; gap: 11px; }
 .teacher-dashboard-card__icon {
   display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px;
   border-radius: 13px; background: #f1ebfb; font-size: 21px;
 }
-.teacher-dashboard-card__insight {
-  display: grid; gap: 9px; min-width: 0; margin-top: 14px; padding: 12px 13px;
-  border: 1px solid #e9e1f1; border-radius: 14px;
-  background: linear-gradient(145deg, #fbf9fd 0%, #f6f1fb 100%);
-}
-.teacher-dashboard-card__metric {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  color: #76687f; font-size: 11px; font-weight: 800;
-}
-.teacher-dashboard-card__metric time,
-.teacher-dashboard-card__metric strong {
-  color: #7658b5; font-size: 12px; font-weight: 900; white-space: nowrap;
-}
-.teacher-dashboard-card__insight-title {
-  min-width: 0; color: #56465f; font-size: 14px; line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-.teacher-dashboard-card__topic-row {
-  display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: start; gap: 8px;
-  min-width: 0; padding-top: 8px; border-top: 1px solid rgba(124, 96, 156, 0.12);
-}
-.teacher-dashboard-card__topic-row > span {
-  color: #8b7c91; font-size: 10px; font-weight: 800; line-height: 1.45;
-}
-.teacher-dashboard-card__topic-row > strong {
-  min-width: 0; color: #5d5063; font-size: 12px; line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-.teacher-dashboard-card__topic-row--next > span,
-.teacher-dashboard-card__topic-row--next > strong { color: #6e4fac; }
-.teacher-dashboard-card__insight[data-state="unavailable"] .teacher-dashboard-card__insight-title,
-.teacher-dashboard-card__insight[data-state="unavailable"] .teacher-dashboard-card__topic-row > strong {
-  color: #8b7f8f; font-weight: 700;
-}
 .teacher-dashboard-card__action {
-  width: 100%; margin-top: auto; padding-top: 8px; border-color: #ddd0ef;
+  width: 100%; margin-top: 18px; border-color: #ddd0ef;
   background: #eee7f8; color: #61458e;
 }
 

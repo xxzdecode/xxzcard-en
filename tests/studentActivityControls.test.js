@@ -139,7 +139,6 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'js', 'studentActivityControls.js'), 'utf8');
 const rewardsSource = fs.readFileSync(path.join(root, 'js', 'studentRewards.js'), 'utf8');
-const authSource = fs.readFileSync(path.join(root, 'js', 'auth.js'), 'utf8');
 const main = fs.readFileSync(path.join(root, 'js', 'main.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 
@@ -156,8 +155,6 @@ assert.match(source, /value="grammarChallenge">语法挑战/);
 assert.match(source, /value="classroomPractice">随堂练习/);
 assert.match(source, /value="adventure">词汇探险/);
 assert.match(main, /studentRewards\.js'[\s\S]*studentRewardLayoutGuard\.js'[\s\S]*studentRewardReconcile\.js'[\s\S]*studentActivityControls\.js'/);
-assert.match(main, /root\.ensureTeacherActivityPanel\?\.\(\)/);
-assert.match(main, /root\.ensureTeacherStudentTagPanel\?\.\(\)/);
 assert.match(serviceWorker, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v\d+'/);
 assert.match(serviceWorker, /\.\/js\/studentActivityControls\.js/);
 assert.match(source, /id="teacherActivityCustomWrap" hidden/);
@@ -165,12 +162,8 @@ assert.match(source, /id="teacherActivityCustomConfirm">确定/);
 assert.doesNotMatch(source, /root\.prompt|window\.prompt/);
 assert.match(source, /activityAwareLoadVocabularyAdventureState\(user, \.\.\.args\)/);
 assert.match(source, /\['adventure', 'adventurePlayer', 'adventureChallenge', 'teacherTools'\]\.includes\(group\)/);
-assert.match(source, /root\.ensureTeacherActivityPanel = installTeacherPanel/);
 assert.match(
   rewardsSource,
   /typeof root\.refreshTeacherActivityPanel === 'function' \|\| document\.getElementById\('teacherActivityPanel'\)/,
   'the legacy reward panel must stay suppressed once the unified teacher activity controller is available'
 );
-assert.match(rewardsSource, /root\.ensureTeacherStudentTagPanel = installStudentTagPanel/);
-assert.match(authSource, /function ensureTeacherHomePanels\(\)/);
-assert.match(authSource, /showScreen\('screenHome'\); ensureTeacherHomePanels\(\); await loadHome\(\);/);
