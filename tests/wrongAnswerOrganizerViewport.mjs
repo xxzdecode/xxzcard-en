@@ -12,37 +12,18 @@ const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\m
 const resultDir = path.join(root, '.codex-backups', 'wrong-answer-organizer-visual-qa');
 fs.mkdirSync(resultDir, { recursive: true });
 
+const realDailyMap = JSON.parse(fs.readFileSync(path.join(
+  root,
+  'tests',
+  'fixtures',
+  'daily-2026-08-06-brother-sentence-parts-01-question-map.json'
+), 'utf8'));
+
 const catalog = {
   schema_version: 1,
-  latest_paper_id: 'daily-2026-08-05-brother:brother',
+  latest_paper_id: 'paper-daily-2026-08-06-brother-sentence-parts-01-brother',
   assessments: [
-    {
-      assessment_id: 'daily-2026-08-05-brother',
-      assessment_type: 'daily',
-      assessment_date: '2026-08-05',
-      student_id: 'brother',
-      title: '句子骨架与基础语序',
-      map_revision: 'sha256:daily-v1',
-      sections: [
-        {
-          section_id: 'section-1',
-          display_label: '一、找出句子成分',
-          items: [
-            { question_id: 'Q01', display_label: '第 1 小问', kp_ids: ['sentence-parts'] },
-            { question_id: 'Q02', display_label: '第 2 小问', kp_ids: ['sentence-parts', 'sentence-be-action-aux'] }
-          ]
-        },
-        {
-          section_id: 'section-2',
-          display_label: '二、按正确语序完成句子',
-          items: [
-            { question_id: 'Q03', display_label: '第 1 小问', kp_ids: ['sentence-order'] },
-            { question_id: 'Q04', display_label: '第 2 小问', kp_ids: ['sentence-order'] },
-            { question_id: 'Q05', display_label: '第 3 小问', kp_ids: ['sentence-order'] }
-          ]
-        }
-      ]
-    },
+    realDailyMap,
     {
       assessment_id: 'weekly-2026-W31',
       assessment_type: 'weekly',
@@ -52,6 +33,7 @@ const catalog = {
         paper_id: 'weekly-2026-W31:sister',
         student_id: 'sister',
         map_revision: 'sha256:weekly-v1',
+        map_hash: 'sha256:weekly-map-v1',
         sections: [{
           section_id: 'section-1',
           display_label: '一、选择',
@@ -144,32 +126,36 @@ try {
     return entry && !entry.disabled && entry.getAttribute('aria-busy') === 'false';
   });
   await page.waitForFunction(() => document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card').length === 6);
-  assert.equal(await page.locator('#teacherLatestAssessmentTitle').textContent(), '句子骨架与基础语序');
-  assert.equal(await page.locator('#teacherLatestAssessmentStatus').textContent(), '待批改 · 共 5 小问');
+  assert.equal(await page.locator('#teacherLatestAssessmentTitle').textContent(), '26/08/06_Gavin日测1');
+  assert.equal(await page.locator('#teacherLatestAssessmentStatus').textContent(), '待批改 · 共 10 小问');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: path.join(resultDir, 'home-1180x820.png'), fullPage: false });
 
   await page.locator('#teacherLatestAssessmentEntry').click();
   await page.waitForSelector('#screenWrongAnswerDetail.active');
-  assert.equal(await page.locator('.wrong-answer-section').count(), 2);
-  assert.deepEqual(await page.locator('.wrong-answer-section').evaluateAll(nodes => nodes.map(node => node.open)), [true, true]);
+  assert.equal(await page.locator('.wrong-answer-section').count(), 3);
+  assert.deepEqual(await page.locator('.wrong-answer-section').evaluateAll(nodes => nodes.map(node => node.open)), [true, true, true]);
   const detailText = await page.locator('#screenWrongAnswerDetail').innerText();
   assert.doesNotMatch(detailText, /\d+\s*分|%|百分比/);
-  await page.locator('input[value="Q02"]').check();
-  await page.locator('input[value="Q04"]').check();
+  await page.locator('input[value="daily-2026-08-06-brother-sentence-parts-01.s1.q2"]').check();
+  await page.locator('input[value="daily-2026-08-06-brother-sentence-parts-01.s3.q2"]').check();
   assert.equal(await page.locator('#wrongAnswerSelectedCount').textContent(), '2');
   await page.locator('#wrongAnswerSaveButton').click();
-  await page.waitForFunction(() => document.getElementById('wrongAnswerSaveStatus')?.textContent === '已保存：错 2 / 5 小问');
+  await page.waitForFunction(() => document.getElementById('wrongAnswerSaveStatus')?.textContent === '已保存：错 2 / 10 小问');
 
   const savedPost = posts.find(post => post.key === 'assessment_grading_v1_brother');
   assert.ok(savedPost, 'grading save POST was not sent');
-  const saved = savedPost.value.records['daily-2026-08-05-brother:brother'];
-  assert.deepEqual(saved.wrong_question_ids, ['Q02', 'Q04']);
-  assert.deepEqual(saved.wrong_items, [
-    { question_id: 'Q02', kp_ids: ['sentence-parts', 'sentence-be-action-aux'] },
-    { question_id: 'Q04', kp_ids: ['sentence-order'] }
+  const saved = savedPost.value.records['paper-daily-2026-08-06-brother-sentence-parts-01-brother'];
+  assert.deepEqual(saved.wrong_question_ids, [
+    'daily-2026-08-06-brother-sentence-parts-01.s1.q2',
+    'daily-2026-08-06-brother-sentence-parts-01.s3.q2'
   ]);
-  assert.equal(saved.map_revision, 'sha256:daily-v1');
+  assert.deepEqual(saved.wrong_items, [
+    { question_id: 'daily-2026-08-06-brother-sentence-parts-01.s1.q2', kp_ids: ['sentence-parts'] },
+    { question_id: 'daily-2026-08-06-brother-sentence-parts-01.s3.q2', kp_ids: ['sentence-parts'] }
+  ]);
+  assert.equal(saved.map_revision, '1');
+  assert.equal(saved.map_hash, 'sha256:19c6715e294085fb347ef49ac93092617ec9a7e65eda2e73eb0a338ddc04094c');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: path.join(resultDir, 'detail-1180x820.png'), fullPage: false });
 
@@ -177,8 +163,12 @@ try {
   await page.waitForSelector('#screenWrongAnswerDirectory.active');
   assert.equal(await page.locator('#wrongAnswerDirectoryStatus').textContent(), '按学生查看每天、每张卷子的批改记录。');
   assert.equal(
-    await page.locator('[data-paper-id="daily-2026-08-05-brother:brother"] .wrong-answer-paper-row__count').textContent(),
-    '错 2 / 5 小问'
+    await page.locator('[data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"] .wrong-answer-paper-row__count').textContent(),
+    '错 2 / 10 小问'
+  );
+  assert.equal(
+    await page.locator('[data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"] small').textContent(),
+    '练习范围：句子骨架：主语、谓语、宾语'
   );
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: path.join(resultDir, 'directory-1180x820.png'), fullPage: false });

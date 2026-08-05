@@ -100,9 +100,10 @@ async function syncSupabaseMirror() {
     writeSupabaseMirror(mirror);
     return mirror;
   } catch(e) {
-    console.warn('syncSupabaseMirror failed; switching to offline mode', e.message || e);
-    sbOnline = false;
-    showOfflineBanner();
+    // A full mirror refresh is background maintenance. It can exceed the
+    // short legacy timeout even while small key reads and writes still work,
+    // so it must not disable cloud saving for the whole session.
+    console.warn('syncSupabaseMirror failed; keeping key storage available', e.message || e);
     return null;
   }
 }

@@ -16,6 +16,7 @@ const sourceCatalog = {
       student_id: 'brother',
       title: '句子骨架与基础语序',
       map_revision: 'sha256:daily-v1',
+      map_hash: 'sha256:daily-map-v1',
       sections: [
         {
           section_id: 'section-1',
@@ -42,6 +43,7 @@ const sourceCatalog = {
       assessment_date: '2026-08-01',
       title: '基础语法周测',
       map_revision: 'sha256:weekly-v1',
+      map_hash: 'sha256:weekly-map-v1',
       papers: [
         {
           paper_id: 'weekly-2026-W31:sister',
@@ -74,6 +76,7 @@ assert.deepEqual(record.wrong_items, [
 ]);
 assert.equal(record.total_questions, 5);
 assert.equal(record.map_revision, 'sha256:daily-v1');
+assert.equal(record.map_hash, 'sha256:daily-map-v1');
 
 const store = api.mergeGradingStore(null, daily, ['Q02', 'Q04'], '2026-08-05T12:30:00.000Z');
 const current = api.recordForPaper(store, daily);
@@ -87,6 +90,11 @@ assert.equal(stale.record, null);
 assert.equal(stale.stale, true);
 assert.equal(api.paperProgressLabel(revisedDaily, stale), '映射已更新 · 共 5 小问');
 
+const revisedHashDaily = { ...daily, mapHash: 'sha256:daily-map-v2' };
+const staleHash = api.recordForPaper(store, revisedHashDaily);
+assert.equal(staleHash.record, null);
+assert.equal(staleHash.stale, true);
+
 const missingRevision = api.recordForPaper({
   ...store,
   records: {
@@ -96,15 +104,26 @@ const missingRevision = api.recordForPaper({
 assert.equal(missingRevision.record, null);
 assert.equal(missingRevision.stale, true);
 
+const missingHash = api.recordForPaper({
+  ...store,
+  records: {
+    [daily.paperId]: { ...store.records[daily.paperId], map_hash: '' }
+  }
+}, daily);
+assert.equal(missingHash.record, null);
+assert.equal(missingHash.stale, true);
+
 const invalidCatalog = api.normalizeCatalog({
   assessments: [{
     assessment_id: 'invalid-paper',
     student_id: 'sister',
+    map_hash: 'sha256:missing-revision',
     sections: [{ items: [{ question_id: 'Q01', kp_ids: ['articles'] }] }]
   }, {
     assessment_id: 'duplicate-question-id',
     student_id: 'sister',
     map_revision: 'sha256:duplicate',
+    map_hash: 'sha256:duplicate-map',
     sections: [
       { items: [{ question_id: 'Q01', kp_ids: ['articles'] }] },
       { items: [{ question_id: 'Q01', kp_ids: ['nouns'] }] }
@@ -113,10 +132,30 @@ const invalidCatalog = api.normalizeCatalog({
     assessment_id: 'missing-kp-id',
     student_id: 'sister',
     map_revision: 'sha256:missing-kp',
+    map_hash: 'sha256:missing-kp-map',
     sections: [{ items: [{ question_id: 'Q01', kp_ids: [] }] }]
   }]
 });
 assert.equal(invalidCatalog.papers.length, 0);
+
+const realDailyMap = JSON.parse(fs.readFileSync(path.join(
+  root,
+  'tests',
+  'fixtures',
+  'daily-2026-08-06-brother-sentence-parts-01-question-map.json'
+), 'utf8'));
+const realDailyCatalog = api.normalizeCatalog(realDailyMap);
+assert.equal(realDailyCatalog.papers.length, 1);
+assert.equal(realDailyCatalog.papers[0].title, '26/08/06_Gavin日测1');
+assert.equal(realDailyCatalog.papers[0].paperId, 'paper-daily-2026-08-06-brother-sentence-parts-01-brother');
+assert.deepEqual(realDailyCatalog.papers[0].sections.map(section => section.items.length), [4, 3, 3]);
+assert.equal(realDailyCatalog.papers[0].totalQuestions, 10);
+assert.equal(realDailyCatalog.papers[0].mapRevision, '1');
+assert.equal(realDailyCatalog.papers[0].mapHash, 'sha256:19c6715e294085fb347ef49ac93092617ec9a7e65eda2e73eb0a338ddc04094c');
+assert.deepEqual(
+  [...new Set(realDailyCatalog.papers[0].sections.flatMap(section => section.items.flatMap(item => item.kpIds)))],
+  ['sentence-parts']
+);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-wrong-answer-organizer.css'), 'utf8');
@@ -142,5 +181,7 @@ assert.match(loader, /wrongAnswerOrganizer:\s*\['js\/wrongAnswerOrganizer\.js'\]
 assert.doesNotMatch(organizerSource, /root\.loadHome\s*=|window\.loadHome\s*=/);
 assert.match(serviceWorker, /styles-wrong-answer-organizer\.css/);
 assert.match(serviceWorker, /js\/wrongAnswerOrganizer\.js/);
+assert.doesNotMatch(organizerSource, /日测范围与生成状态|active_assessment_id|next_topic_key/);
+assert.match(organizerSource, /root\.showStorageError\(error\)/);
 
 console.log('wrong answer organizer tests passed');

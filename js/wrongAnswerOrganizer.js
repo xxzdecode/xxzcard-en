@@ -91,19 +91,23 @@
     const paperKpIds = strings(source.kpIds || source.kp_ids);
     const rawSections = Array.isArray(source.sections) ? source.sections : [];
     const sections = rawSections.map((section, sectionIndex) => normalizeSection(section, sectionIndex, paperKpIds));
-    const mapRevision = text(source.mapRevision || source.map_revision || source.mapHash || source.map_hash
-      || assessment.mapRevision || assessment.map_revision || assessment.mapHash || assessment.map_hash);
-    if (!mapRevision || !sections.length || sections.some(section => !section)) return null;
+    const mapRevision = text(source.mapRevision || source.map_revision || assessment.mapRevision || assessment.map_revision);
+    const mapHash = text(source.mapHash || source.map_hash || assessment.mapHash || assessment.map_hash);
+    if (!mapRevision || !mapHash || !sections.length || sections.some(section => !section)) return null;
     const allQuestionIds = sections.flatMap(section => section.items.map(item => item.questionId));
     if (new Set(allQuestionIds).size !== allQuestionIds.length) return null;
     return {
       assessmentId,
       paperId,
       studentId: student,
-      title: text(source.title || assessment.title) || '未命名练习',
+      title: text(source.displayName || source.display_name || source.title
+        || assessment.displayName || assessment.display_name || assessment.title) || '未命名练习',
+      scopeLabel: text(source.scopeLabel || source.scope_label || source.rangeLabel || source.range_label
+        || assessment.scopeLabel || assessment.scope_label || assessment.rangeLabel || assessment.range_label),
       assessmentType: assessmentType(source.assessmentType || source.assessment_type || assessment.assessmentType || assessment.assessment_type),
       assessmentDate: isoDate(source.assessmentDate || source.assessment_date || assessment.assessmentDate || assessment.assessment_date),
       mapRevision,
+      mapHash,
       sourceIndex: index,
       sections,
       totalQuestions: sections.reduce((sum, section) => sum + section.items.length, 0)
@@ -124,7 +128,10 @@
 
   function normalizeCatalog(value) {
     const source = Array.isArray(value) ? { assessments: value } : isObject(value) ? value : {};
-    const assessments = (Array.isArray(source.assessments) ? source.assessments : [])
+    const rawAssessments = Array.isArray(source.assessments)
+      ? source.assessments
+      : text(source.assessmentId || source.assessment_id || source.id) ? [source] : [];
+    const assessments = rawAssessments
       .map(normalizeAssessment)
       .filter(Boolean);
     return {
@@ -145,7 +152,8 @@
       studentId: studentId(source.studentId || source.student_id),
       assessmentId: text(source.assessmentId || source.assessment_id),
       paperId: id,
-      mapRevision: text(source.mapRevision || source.map_revision || source.mapHash || source.map_hash),
+      mapRevision: text(source.mapRevision || source.map_revision),
+      mapHash: text(source.mapHash || source.map_hash),
       totalQuestions: Math.max(0, Number(source.totalQuestions || source.total_questions) || 0),
       wrongQuestionIds: strings(source.wrongQuestionIds || source.wrong_question_ids),
       wrongItems: (Array.isArray(source.wrongItems || source.wrong_items) ? source.wrongItems || source.wrong_items : [])
@@ -187,6 +195,7 @@
       assessment_id: paper.assessmentId,
       paper_id: paper.paperId,
       map_revision: paper.mapRevision,
+      map_hash: paper.mapHash,
       total_questions: paper.totalQuestions,
       wrong_question_ids: wrongIds,
       wrong_items: wrongIds.map(questionId => ({
@@ -214,7 +223,10 @@
     const store = normalizeGradingStore(storeValue, paper.studentId);
     const record = store.records[paper.paperId] || null;
     if (!record) return { record: null, stale: false };
-    const stale = Boolean(paper.mapRevision && record.mapRevision !== paper.mapRevision);
+    const stale = Boolean(
+      !record.mapRevision || record.mapRevision !== paper.mapRevision
+      || !record.mapHash || record.mapHash !== paper.mapHash
+    );
     return { record: stale ? null : record, stale };
   }
 
@@ -272,6 +284,7 @@
     const runtime = {
       catalog: normalizeCatalog(null),
       grading: { sister: normalizeGradingStore(null, 'sister'), brother: normalizeGradingStore(null, 'brother') },
+      topicTitles: new Map(),
       activePaper: null,
       loadPromise: null,
       savePromise: null
@@ -295,6 +308,13 @@
       return recordForPaper(runtime.grading[paper.studentId], paper);
     }
 
+    function paperScopeLabel(paper) {
+      if (paper.scopeLabel) return paper.scopeLabel;
+      const kpIds = strings(paper.sections.flatMap(section => section.items.flatMap(item => item.kpIds)));
+      const labels = kpIds.map(kpId => runtime.topicTitles.get(kpId) || kpId);
+      return labels.join('、') || '范围未标注';
+    }
+
     function renderHome() {
       const button = doc.getElementById('teacherLatestAssessmentEntry');
       const paper = latestPaper(runtime.catalog);
@@ -310,7 +330,7 @@
       }
       setText(
         'teacherLatestAssessmentLabel',
-        `${studentName(paper.studentId)} · ${shortDate(paper.assessmentDate)}${typeLabel(paper.assessmentType)}`
+        `${studentName(paper.studentId)} · ${typeLabel(paper.assessmentType)}`
       );
       setText('teacherLatestAssessmentTitle', paper.title);
       setText('teacherLatestAssessmentStatus', paperProgressLabel(paper, paperRecordState(paper)));
@@ -331,9 +351,9 @@
       const copy = doc.createElement('span');
       copy.className = 'wrong-answer-paper-row__copy';
       const title = doc.createElement('strong');
-      title.textContent = `${shortDate(paper.assessmentDate)}${typeLabel(paper.assessmentType)}｜${paper.title}`;
+      title.textContent = paper.title;
       const meta = doc.createElement('small');
-      meta.textContent = `${typeLabel(paper.assessmentType)} · ${paper.assessmentDate || '日期未标注'}`;
+      meta.textContent = `练习范围：${paperScopeLabel(paper)}`;
       copy.append(title, meta);
       const count = doc.createElement('span');
       count.className = 'wrong-answer-paper-row__count';
@@ -445,12 +465,27 @@
       renderDirectory();
     }
 
+    async function loadTopicTitles() {
+      if (runtime.topicTitles.size || typeof root.fetch !== 'function') return;
+      try {
+        const response = await root.fetch('grammar-library/data/topics.json');
+        if (!response || !response.ok) return;
+        const topics = await response.json();
+        (Array.isArray(topics) ? topics : []).forEach(topic => {
+          const kpId = text(topic && (topic.topicKey || topic.topic_key));
+          const label = text(topic && (topic.titleZh || topic.title_zh || topic.title));
+          if (kpId && label) runtime.topicTitles.set(kpId, label);
+        });
+      } catch (_) {}
+    }
+
     function loadAll(preferRemote) {
       if (runtime.loadPromise) return runtime.loadPromise;
       runtime.loadPromise = Promise.all([
         readValue(CATALOG_KEY, preferRemote),
         readValue(gradingKey('sister'), preferRemote),
-        readValue(gradingKey('brother'), preferRemote)
+        readValue(gradingKey('brother'), preferRemote),
+        loadTopicTitles()
       ]).then(([catalog, sister, brother]) => {
         applyLoadedData(catalog, { sister, brother });
         return runtime.catalog;
@@ -519,6 +554,7 @@
         updateSelectionStatus(allCorrect ? '已保存：本卷全对' : `已保存：错 ${wrongIds.length} / ${paper.totalQuestions} 小问`);
       })().catch(error => {
         console.warn('wrong answer grading save failed', error && (error.message || error));
+        if (typeof root.showStorageError === 'function') root.showStorageError(error);
         updateSelectionStatus('保存失败，请确认网络后重试');
       }).finally(() => {
         runtime.savePromise = null;

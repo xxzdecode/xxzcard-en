@@ -78,7 +78,7 @@
       return '保存失败：网络已断开。当前题目和答案已保留，请恢复网络后点击“重新保存”。';
     }
     if (error.code === 'NETWORK_ERROR') {
-      return '保存失败：网络连接异常。当前题目和答案已保留，请检查网络后重试。';
+      return '保存失败：云端连接被阻断。当前题目和答案已保留，请检查浏览器扩展、代理或网络工具是否拦截 supabase.co，然后重试。';
     }
     if (error.code === 'REQUEST_TIMEOUT') {
       return '保存失败：请求超时。当前题目和答案已保留，请稍后重新保存。';
@@ -94,7 +94,10 @@
     }
     if (error.code === 'RETRIES_EXHAUSTED') {
       const retries = Math.max(0, Number(error.attempts || 1) - 1);
-      return `保存失败：已自动重试 ${retries} 次仍未成功。最后原因：${causeLabel(error)}。当前题目和答案已保留。`;
+      const blockedHint = error.causeCode === 'NETWORK_ERROR'
+        ? ' 请检查浏览器扩展、代理或网络工具是否拦截 supabase.co。'
+        : '';
+      return `保存失败：已自动重试 ${retries} 次仍未成功。最后原因：${causeLabel(error)}。当前题目和答案已保留。${blockedHint}`;
     }
     if (error.code === 'MAIN_CONFLICT') {
       return '云端数据刚刚被其他设备更新。为避免覆盖新内容，本次保存已停止。';

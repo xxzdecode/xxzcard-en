@@ -122,6 +122,17 @@ test('exhausted retries do not persist a false success', async () => {
   assert.equal(persisted, 0);
 });
 
+test('network failures explain likely browser or proxy blocking', () => {
+  const message = formatStorageError({
+    code: 'RETRIES_EXHAUSTED',
+    attempts: 2,
+    causeCode: 'NETWORK_ERROR'
+  });
+  assert.match(message, /自动重试 1 次/);
+  assert.match(message, /浏览器扩展、代理或网络工具/);
+  assert.match(message, /supabase\.co/);
+});
+
 test('network recovery allows saving without recreating the layer', async () => {
   const navigatorRef = { onLine: false };
   let calls = 0;
