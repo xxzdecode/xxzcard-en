@@ -16,6 +16,10 @@ function clamp(value, min, max) {
 }
 
 const rewardApi = {
+  challengeRewardAmount(user, score, maxAmount) {
+    const fullScore = user === 'brother' ? 80 : 100;
+    return clamp((clamp(score, 0, 100) / fullScore) * maxAmount, 0, maxAmount);
+  },
   normalizeDay(value) {
     const raw = value && typeof value === 'object' ? value : {};
     const sources = { vocabularyChallenge: clamp(raw.sources?.vocabularyChallenge, 0, 10) };
@@ -257,6 +261,26 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     await saveCompletedAndSettle(storage, 'sister', challengeState(10));
     assert.deepEqual(storage.rows.get(settlement.rewardKey('brother')), brotherBefore);
     assert.equal(storage.calls.some(call => call.key === settlement.rewardKey('brother')), false);
+  }
+
+  // Brother reaches the full vocabulary reward at 80, while lower scores scale proportionally.
+  {
+    const storage = createStorage({
+      [settlement.rewardKey('brother')]: rewardRecord('brother', 0)
+    });
+    const full = await saveCompletedAndSettle(storage, 'brother', challengeState(8));
+    assert.equal(full.audit.target, 10);
+    assert.equal(full.claim.amount, 10);
+
+    const secondDateState = challengeState(7);
+    secondDateState.challengeSession.date = DATE;
+    const scaledAudit = settlement.auditVocabularyChallengeReward({
+      user: 'brother',
+      adventureState: secondDateState,
+      rewardRecord: rewardRecord('brother', 0),
+      rewardApi
+    });
+    assert.equal(scaledAudit.target, 9);
   }
 
   // Teacher override blocks automatic settlement and remains unchanged.

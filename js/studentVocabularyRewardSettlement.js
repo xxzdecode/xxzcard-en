@@ -10,7 +10,7 @@
 
   const SOURCE = 'vocabularyChallenge';
   const MAX_REWARD = 10;
-  const MARKER_VERSION = 1;
+  const MARKER_VERSION = 2;
   const MARKER_STATUSES = new Set(['pending', 'settled', 'blocked']);
 
   function plainObject(value) {
@@ -93,8 +93,12 @@
     let marker = nextMarker || previousMarker;
 
     if (challenge) {
+      const rewardApi = rewardApiFrom(settings);
       const previousTarget = marker && marker.date === challenge.date ? marker.target : 0;
-      const target = Math.max(previousTarget, challenge.correctCount);
+      const target = Math.max(
+        previousTarget,
+        challengeRewardTarget(normalizeUser(settings.user), challenge.correctCount, rewardApi)
+      );
       const alreadySettled = marker
         && marker.date === challenge.date
         && marker.status === 'settled'
@@ -129,6 +133,15 @@
       || null;
   }
 
+  function challengeRewardTarget(user, correctCount, rewardApi) {
+    const score = clampInteger(correctCount, 0, MAX_REWARD) * 10;
+    if (rewardApi && typeof rewardApi.challengeRewardAmount === 'function') {
+      return rewardApi.challengeRewardAmount(user, score, MAX_REWARD);
+    }
+    const fullScore = user === 'brother' ? 80 : 100;
+    return clampInteger((score / fullScore) * MAX_REWARD, 0, MAX_REWARD);
+  }
+
   function dayForAudit(rewardApi, record, date) {
     if (rewardApi && typeof rewardApi.normalizeDay === 'function') {
       return rewardApi.normalizeDay(record && record.daily && record.daily[date]);
@@ -145,11 +158,23 @@
     };
   }
 
-  function challengeTarget(value) {
+  function challengeTarget(value, user, rewardApi) {
     const marker = markerFromState(value);
     const completed = completedChallengeFacts(value);
-    if (marker) return { date: marker.date, target: marker.target, marker, completed };
-    if (completed) return { date: completed.date, target: completed.correctCount, marker: null, completed };
+    const completedTarget = completed
+      ? challengeRewardTarget(user, completed.correctCount, rewardApi)
+      : 0;
+    if (marker) {
+      return {
+        date: marker.date,
+        target: completed && marker.date === completed.date
+          ? Math.max(marker.target, completedTarget)
+          : marker.target,
+        marker,
+        completed
+      };
+    }
+    if (completed) return { date: completed.date, target: completedTarget, marker: null, completed };
     return { date: '', target: 0, marker: null, completed: null };
   }
 
@@ -161,7 +186,7 @@
     const rewardRecord = rewardApi && typeof rewardApi.normalizeRewardRecord === 'function'
       ? rewardApi.normalizeRewardRecord(settings.rewardRecord)
       : (plainObject(settings.rewardRecord) ? clone(settings.rewardRecord) : { daily: {}, transactions: [], totalCoins: 0 });
-    const targetInfo = challengeTarget(adventureState);
+    const targetInfo = challengeTarget(adventureState, user, rewardApi);
     const daily = plainObject(adventureState.challengeDaily) ? adventureState.challengeDaily : {};
     const date = targetInfo.date || (localDate(daily.date) ? daily.date : '');
     const day = date ? dayForAudit(rewardApi, rewardRecord, date) : dayForAudit(rewardApi, rewardRecord, '');
@@ -176,13 +201,13 @@
       : [];
     const completed = targetInfo.completed;
     const perfectRepairEligible = !!(user && completed && completed.status === 'completed'
-      && completed.correctCount === MAX_REWARD
+      && targetInfo.target === MAX_REWARD
       && claimStatus !== 'claimed'
       && claimAmount < MAX_REWARD
       && !hasOverride);
     const repairToken = user && date
       ? [user, date, completed && completed.status || '', completed && completed.correctCount || 0,
-        currentSource, hasOverride ? `override:${overrideValue}` : 'no-override'].join('|')
+        targetInfo.target, currentSource, hasOverride ? `override:${overrideValue}` : 'no-override'].join('|')
       : '';
 
     return {
@@ -197,7 +222,11 @@
       dailyAttempts: clampInteger(daily.attempts, 0, 2),
       dailyBestScore: clampInteger(daily.bestScore, 0, 100),
       historyMismatch: !completed && clampInteger(daily.bestScore, 0, 100) > 0
-        && currentSource < Math.round(clampInteger(daily.bestScore, 0, 100) / 10),
+        && currentSource < challengeRewardTarget(
+          user,
+          clampInteger(daily.bestScore, 0, 100) / 10,
+          rewardApi
+        ),
       marker: targetInfo.marker,
       currentSource,
       claimStatus,
@@ -435,6 +464,7 @@
     rewardKey,
     adventureKey,
     normalizeMarker,
+    challengeRewardTarget,
     markerFromState,
     completedChallengeFacts,
     prepareAdventureStateForVocabularyChallengeSave,

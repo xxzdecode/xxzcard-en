@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const rewards = require(path.join(root, 'js', 'studentRewards.js'));
 const source = fs.readFileSync(path.join(root, 'js', 'studentRewards.js'), 'utf8');
+const dailyLearningRouteSource = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'), 'utf8');
 const date = '2026-07-30';
 
 assert.deepEqual(rewards.SOURCE_MAX, {
@@ -16,6 +17,16 @@ assert.deepEqual(rewards.SOURCE_MAX, {
 assert.equal(rewards.REGULAR_DAILY_MAX, 30);
 assert.equal(rewards.BREAKTHROUGH_DAILY_MAX, 10);
 assert.equal(rewards.DAILY_TOTAL_MAX, 40);
+assert.deepEqual(rewards.CHALLENGE_FULL_SCORE, { sister: 100, brother: 80 });
+assert.equal(rewards.challengeRewardAmount('sister', 80, 10), 8);
+assert.equal(rewards.challengeRewardAmount('sister', 100, 10), 10);
+assert.equal(rewards.challengeRewardAmount('brother', 80, 10), 10);
+assert.equal(rewards.challengeRewardAmount('brother', 100, 10), 10);
+assert.equal(rewards.challengeRewardAmount('brother', 70, 10), 9);
+assert.equal(rewards.challengeRewardAmount('sister', 80, 5), 4);
+assert.equal(rewards.challengeRewardAmount('brother', 80, 5), 5);
+assert.equal(rewards.challengeRewardAmount('brother', 40, 5), 3);
+assert.equal(rewards.challengeRewardAmount('brother', 0, 5), 0);
 
 const migrated = rewards.normalizeRewardRecord({
   version: 2,
@@ -137,7 +148,7 @@ const claimedAdventure = rewards.claimSourceReward(pendingAdventure.record, {
 assert.equal(claimedAdventure.record.totalCoins, 25);
 assert.equal(claimedAdventure.record.daily[claimDate].coins, 5);
 assert.equal(claimedAdventure.record.daily[claimDate].claims.adventure.status, 'claimed');
-assert.equal(claimedAdventure.record.transactions.at(-1).id, `${claimDate}:adventure:claim`);
+assert.equal(claimedAdventure.record.transactions.at(-1).id, `${claimDate}:adventure:claim:5`);
 
 const duplicateClaim = rewards.claimSourceReward(claimedAdventure.record, {
   date: claimDate,
@@ -146,6 +157,32 @@ const duplicateClaim = rewards.claimSourceReward(claimedAdventure.record, {
 assert.equal(duplicateClaim.changed, false, 'refreshes and repeated clicks must not award twice');
 assert.equal(duplicateClaim.record.totalCoins, 25);
 assert.equal(duplicateClaim.record.transactions.length, claimedAdventure.record.transactions.length);
+
+const firstChallengeClaim = rewards.claimSourceReward(
+  rewards.markSourceClaim(null, {
+    date: claimDate,
+    source: 'vocabularyChallenge',
+    amount: 9,
+    mode: 'max'
+  }).record,
+  { date: claimDate, source: 'vocabularyChallenge' }
+);
+const improvedChallenge = rewards.markSourceClaim(firstChallengeClaim.record, {
+  date: claimDate,
+  source: 'vocabularyChallenge',
+  amount: 10,
+  mode: 'max'
+});
+assert.equal(improvedChallenge.changed, true, 'a higher second score must reopen the claimed chest');
+assert.equal(improvedChallenge.claim.status, 'pending');
+assert.equal(improvedChallenge.claim.amount, 10);
+const improvedChallengeClaim = rewards.claimSourceReward(improvedChallenge.record, {
+  date: claimDate,
+  source: 'vocabularyChallenge'
+});
+assert.equal(improvedChallengeClaim.delta, 1, 'the second claim awards only the improvement');
+assert.equal(improvedChallengeClaim.record.totalCoins, 10);
+assert.equal(improvedChallengeClaim.record.transactions.length, 2);
 
 const completedWithoutCoins = rewards.markSourceClaim(null, {
   date: claimDate,
@@ -164,5 +201,7 @@ assert.doesNotMatch(source, /observe\(document\.documentElement/, 'reward code m
 assert.doesNotMatch(source, /characterData\s*:\s*true/, 'reward observers must not react to their own text changes');
 assert.match(source, /vocabularyAdventureBody/);
 assert.match(source, /attributeFilter:\s*\['data-complete'\]/);
+assert.match(source, /challengeRewardAmount\(user, rawScore, SOURCE_MAX\.grammarChallenge\)/);
+assert.match(dailyLearningRouteSource, /StudentRewards\.challengeRewardAmount\(user, result\.score, 5\)/);
 
 console.log('student reward tests passed');
