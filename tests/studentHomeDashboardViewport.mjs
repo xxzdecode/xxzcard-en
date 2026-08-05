@@ -104,6 +104,12 @@ async function openHome(user, contextOptions, options = {}) {
   page.on('console', message => {
     if (message.type() === 'error' && !message.text().includes('Service Worker')) errors.push(message.text());
   });
+  if (options.masterVocabularyDelayMs) {
+    await page.route('**/js/masterVocabularyLibrary.js', async route => {
+      await new Promise(resolve => setTimeout(resolve, options.masterVocabularyDelayMs));
+      await route.continue();
+    });
+  }
   await page.route('**/rest/v1/kv_store*', async route => {
     const request = route.request();
     if (request.method() === 'POST') {
@@ -337,10 +343,18 @@ try {
   await brother.context.close();
   }
 
-  const teacher = await openHome('teacher', ipadViewport(1180, 820));
+  const teacher = await openHome('teacher', ipadViewport(1180, 820), {
+    masterVocabularyDelayMs: 3000
+  });
   assert.equal(await teacher.page.locator('#studentDashboard').isHidden(), true);
   assert.equal(await teacher.page.locator('#studentFeatureNav').isHidden(), true);
   assert.equal(await teacher.page.locator('#teacherDashboard').isVisible(), true);
+  await teacher.page.waitForSelector('#teacherActivityPanel:visible', { timeout: 1500 });
+  assert.equal(
+    await teacher.page.evaluate(() => typeof window.MasterVocabularyLibrary),
+    'undefined',
+    'coin controls must appear before an unrelated optional module finishes loading'
+  );
   assert.deepEqual(
     await teacher.page.locator('.teacher-home-nav .teacher-dashboard-button span').allTextContents(),
     ['进入管理', '导入', '导出词单']

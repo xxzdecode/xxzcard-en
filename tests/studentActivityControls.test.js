@@ -154,7 +154,19 @@ assert.match(source, /value="vocabularyChallenge">单词挑战/);
 assert.match(source, /value="grammarChallenge">语法挑战/);
 assert.match(source, /value="classroomPractice">随堂练习/);
 assert.match(source, /value="adventure">词汇探险/);
-assert.match(main, /studentRewards\.js'[\s\S]*studentRewardLayoutGuard\.js'[\s\S]*studentRewardReconcile\.js'[\s\S]*studentActivityControls\.js'/);
+assert.match(main, /studentActivityStartup = loadFeatureScript\('js\/studentActivityControls\.js'\)/);
+assert.match(main, /window\.ensureTeacherActivityPanel\?\.\(\)/);
+assert.ok(
+  main.indexOf("loadFeatureScript('js/studentActivityControls.js')")
+    < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
+  'teacher coin controls must start before unrelated optional startup enhancements'
+);
+assert.equal(
+  (main.match(/loadFeatureScript\('js\/studentActivityControls\.js'\)/g) || []).length,
+  1,
+  'student activity controls must have one independent startup request'
+);
+assert.match(source, /root\.ensureTeacherActivityPanel = installTeacherPanel;\s*if \(isTeacherMode\(\)\) installTeacherPanel\(\);/);
 assert.match(serviceWorker, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v\d+'/);
 assert.match(serviceWorker, /\.\/js\/studentActivityControls\.js/);
 assert.match(source, /id="teacherActivityCustomWrap" hidden/);
