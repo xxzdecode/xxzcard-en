@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
+const serviceWorkerSource = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const savedLocalValues = new Map();
 const context = vm.createContext({
   console,
@@ -64,6 +65,16 @@ assert.deepEqual(
   { batches: [], vocabularyLessonGroups: {} },
   'main-data cloning must remove transient category records'
 );
+
+async function verifyMirrorFailureDoesNotDisableKeyStorage() {
+  context.fetch = async () => { throw new TypeError('full mirror request failed'); };
+  value('sbOnline = true');
+  assert.equal(await value('syncSupabaseMirror()'), null);
+  assert.equal(value('sbOnline'), true, 'background mirror failure must not disable small key reads and writes');
+}
+
+assert.doesNotMatch(serviceWorkerSource, /apiNetworkFirst|isSupabaseApi|\.supabase\.co/,
+  'the service worker must not add a second timeout or cache layer to Supabase transport');
 
 async function verifyMainWriteSafety() {
   const remote = {
@@ -128,7 +139,8 @@ async function verifyMainWriteSafety() {
   );
 }
 
-verifyMainWriteSafety()
+verifyMirrorFailureDoesNotDisableKeyStorage()
+  .then(verifyMainWriteSafety)
   .then(() => console.log('repository safety tests passed'))
   .catch(error => {
     console.error(error);

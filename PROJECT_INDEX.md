@@ -83,8 +83,8 @@
 - `js/batch.js`：修改单词本、编辑单词、推送可见学生、清空学生记录。
 - `js/tasks.js`：读写每日任务、挑战次数、混合词库设置。
 - `js/home.js`：根据 appData、用户记录和任务状态渲染首页。
-- `assessment_catalog_v1`：由出卷流程后续上传的试卷元数据目录；网站只读取稳定 `assessment_id`、`paper_id`、`question_id`、`kp_ids`、题号显示标签和 `map_revision`，不保存题目正文。
-- `assessment_grading_v1_sister` / `assessment_grading_v1_brother`：按学生保存每张卷子的批改结果；记录 `wrong_question_ids`、对应 `kp_ids` 和映射版本，用于后续错题汇集与知识点统计。
+- `assessment_catalog_v1`：由出卷流程后续上传的试卷元数据目录；可直接收录 daily / weekly / monthly 的 `question-map.json` 对象。网站只读取稳定 `assessment_id`、`paper_id`、`question_id`、`kp_ids`、题号显示标签、`map_revision` 和 `map_hash`，不保存题目正文。
+- `assessment_grading_v1_sister` / `assessment_grading_v1_brother`：按学生保存每张卷子的批改结果；记录 `wrong_question_ids`、对应 `kp_ids`、`map_revision` 和 `map_hash`，用于后续错题汇集与知识点统计，并阻止重生成后的映射静默错位。
 - `js/dictionary.js`：对卡片字段做标准化和展示层解析。
 
 随堂练习目录（保留历史路径）：

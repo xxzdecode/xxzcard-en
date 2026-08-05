@@ -90,8 +90,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v62/);
-assert.match(serviceWorker, /xxzcard-runtime-v62/);
+assert.match(serviceWorker, /xxzcard-app-shell-v63/);
+assert.match(serviceWorker, /xxzcard-runtime-v63/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -141,7 +141,7 @@ assert.doesNotMatch(serviceWorker, /courseware\//);
 assert.match(serviceWorker, /navigationNetworkFirst/);
 assert.match(serviceWorker, /staticNetworkFirst/);
 assert.doesNotMatch(serviceWorker, /navigationStaleWhileRevalidate/);
-assert.match(serviceWorker, /apiNetworkFirst/);
+assert.doesNotMatch(serviceWorker, /apiNetworkFirst|isSupabaseApi|\.supabase\.co/);
 assert.match(serviceWorker, /cacheFirst/);
 assert.match(serviceWorker, /const cached = await cache\.match\(request\)/);
 assert.match(serviceWorker, /requestUrl\.pathname === appRoot\.pathname/);

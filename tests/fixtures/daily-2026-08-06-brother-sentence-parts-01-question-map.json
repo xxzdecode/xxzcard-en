@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "assessment_id": "daily-2026-08-06-brother-sentence-parts-01",
+  "assessment_type": "daily",
+  "assessment_date": "2026-08-06",
+  "display_name": "26/08/06_Gavin日测1",
+  "map_revision": 1,
+  "papers": [
+    {
+      "paper_id": "paper-daily-2026-08-06-brother-sentence-parts-01-brother",
+      "student_id": "brother",
+      "student_name": "Gavin",
+      "student_file": "26.08.06_Gavin日测1.docx",
+      "sections": [
+        {
+          "section_id": "section-1",
+          "display_label": "大题一",
+          "items": [
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s1.q1", "display_label": "大题一第1题", "kp_ids": ["sentence-parts"] },
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s1.q2", "display_label": "大题一第2题", "kp_ids": ["sentence-parts"] },
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s1.q3", "display_label": "大题一第3题", "kp_ids": ["sentence-parts"] },
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s1.q4", "display_label": "大题一第4题", "kp_ids": ["sentence-parts"] }
+          ]
+        },
+        {
+          "section_id": "section-2",
+          "display_label": "大题二",
+          "items": [
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s2.q1", "display_label": "大题二第1题", "kp_ids": ["sentence-parts"] },
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s2.q2", "display_label": "大题二第2题", "kp_ids": ["sentence-parts"] },
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s2.q3", "display_label": "大题二第3题", "kp_ids": ["sentence-parts"] }
+          ]
+        },
+        {
+          "section_id": "section-3",
+          "display_label": "大题三",
+          "items": [
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s3.q1", "display_label": "大题三第1题", "kp_ids": ["sentence-parts"] },
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s3.q2", "display_label": "大题三第2题", "kp_ids": ["sentence-parts"] },
+            { "question_id": "daily-2026-08-06-brother-sentence-parts-01.s3.q3", "display_label": "大题三第3题", "kp_ids": ["sentence-parts"] }
+          ]
+        }
+      ]
+    }
+  ],
+  "map_hash": "sha256:19c6715e294085fb347ef49ac93092617ec9a7e65eda2e73eb0a338ddc04094c"
+}

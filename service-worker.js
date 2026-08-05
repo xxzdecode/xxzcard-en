@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v62';
-const RUNTIME_CACHE = 'xxzcard-runtime-v62';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v63';
+const RUNTIME_CACHE = 'xxzcard-runtime-v63';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -157,25 +157,6 @@ async function navigationNetworkFirst(request) {
   }
 }
 
-async function apiNetworkFirst(request) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
-  try {
-    const response = await fetch(request, { signal: controller.signal });
-    if (response && response.ok) {
-      const cache = await caches.open(RUNTIME_CACHE);
-      await cache.put(request, response.clone());
-    }
-    return response;
-  } catch (error) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 // The current lesson route must never fall back to an older cached course.
 // It is tiny, so a short network-only request is cheaper and safer than
 // rendering stale content. On failure the UI keeps both cards in retry mode.
@@ -212,7 +193,6 @@ self.addEventListener('fetch', event => {
   const isNavigation = event.request.mode === 'navigate'
     && url.origin === appRoot.origin
     && url.pathname.startsWith(appRoot.pathname);
-  const isSupabaseApi = url.hostname.endsWith('.supabase.co');
   const isDailyLearningRoute = url.origin === self.location.origin
     && url.pathname.endsWith('/data/daily-learning-route.json');
   const isCodeAsset = url.origin === self.location.origin
@@ -224,10 +204,6 @@ self.addEventListener('fetch', event => {
   }
   if (isDailyLearningRoute) {
     event.respondWith(dailyRouteNetworkOnly(event.request));
-    return;
-  }
-  if (isSupabaseApi) {
-    event.respondWith(apiNetworkFirst(event.request));
     return;
   }
   if (isCodeAsset) {
