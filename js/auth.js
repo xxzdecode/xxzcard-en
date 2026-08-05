@@ -1,10 +1,5 @@
 // USER SWITCHING + PIN
 // ══════════════════════════════════════
-function ensureTeacherHomePanels() {
-  window.ensureTeacherActivityPanel?.();
-  window.ensureTeacherStudentTagPanel?.();
-}
-
 function switchUser(user) {
   if (user === 'teacher') {
     if (currentUser === 'teacher') return;
@@ -55,7 +50,7 @@ function pinInput(digit) {
           if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
           document.getElementById('modalPin').classList.remove('show');
           currentUser = 'teacher'; localStorage.setItem('wc_user','teacher');
-          document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); ensureTeacherHomePanels(); await loadHome();
+          document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); await loadHome();
         } else {
           document.getElementById('pinError').textContent = '密码错误，请重试';
           pinBuffer = ''; renderPinDots();
@@ -73,7 +68,7 @@ function pinInput(digit) {
           if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
           document.getElementById('modalPin').classList.remove('show');
           currentUser = 'teacher'; localStorage.setItem('wc_user','teacher');
-          document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); ensureTeacherHomePanels(); await loadHome();
+          document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); await loadHome();
         } else {
           document.getElementById('pinError').textContent = '两次输入不一致，重新开始';
           pinBuffer = ''; pinTemp = ''; pinMode = 'set1';

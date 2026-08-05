@@ -1081,8 +1081,6 @@
     installStyles();
     wrapFeatureLoader();
     wrapHome();
-    root.ensureTeacherActivityPanel = installTeacherPanel;
-    if (isTeacherMode()) installTeacherPanel();
     reassertStudentEntrypoints();
     installAdventureHooks();
     [0, 120, 400, 1000, 2200].forEach(delay => {
