@@ -16,6 +16,9 @@
 
   const CHALLENGE_LIMIT = 10;
   const DAILY_LIMIT = 2;
+  const REWARD_SOURCE = 'vocabularyChallenge';
+  const REWARD_MARKER_VERSION = 1;
+  const REWARD_MARKER_STATUSES = new Set(['pending', 'settled', 'blocked']);
   const CHALLENGE_TYPES = Object.freeze([
     'exampleCloze',
     'meaningToWord',
@@ -52,12 +55,49 @@
       && date.getDate() === Number(match[3]);
   }
 
+  function normalizeChallengeRewardSettlement(value, today) {
+    if (!plainObject(value) || value.date !== today || !localDate(value.date)) return null;
+    return {
+      version: REWARD_MARKER_VERSION,
+      source: REWARD_SOURCE,
+      date: today,
+      target: Math.min(CHALLENGE_LIMIT, count(value.target)),
+      status: REWARD_MARKER_STATUSES.has(value.status) ? value.status : 'pending',
+      awarded: Math.min(CHALLENGE_LIMIT, count(value.awarded)),
+      updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : '',
+      settledAt: typeof value.settledAt === 'string' ? value.settledAt : '',
+      blockedReason: typeof value.blockedReason === 'string' ? value.blockedReason : ''
+    };
+  }
+
   function normalizeChallengeDaily(value, today) {
     const source = plainObject(value) && value.date === today ? value : {};
-    return {
+    const normalized = {
       date: today,
       attempts: Math.min(DAILY_LIMIT, count(source.attempts)),
       bestScore: Math.max(0, Math.min(100, count(source.bestScore)))
+    };
+    const marker = normalizeChallengeRewardSettlement(source.rewardSettlement, today);
+    if (marker) normalized.rewardSettlement = marker;
+    return normalized;
+  }
+
+  function createCompletedChallengeRewardMarker(dailyValue, session, completedAt) {
+    const daily = normalizeChallengeDaily(dailyValue, session.date);
+    const previous = daily.rewardSettlement || null;
+    const target = Math.max(previous ? previous.target : 0, Math.min(CHALLENGE_LIMIT, count(session.correctCount)));
+    const keepSettled = previous && previous.status === 'settled' && previous.awarded >= target;
+    const keepBlocked = previous && previous.status === 'blocked' && previous.target >= target;
+    return {
+      version: REWARD_MARKER_VERSION,
+      source: REWARD_SOURCE,
+      date: session.date,
+      target,
+      status: keepSettled ? 'settled' : keepBlocked ? 'blocked' : 'pending',
+      awarded: previous ? previous.awarded : 0,
+      updatedAt: String(completedAt || new Date().toISOString()),
+      settledAt: keepSettled ? previous.settledAt : '',
+      blockedReason: keepBlocked ? previous.blockedReason : ''
     };
   }
 
@@ -324,6 +364,11 @@
       next.challengeDaily.attempts = Math.min(DAILY_LIMIT, next.challengeDaily.attempts + 1);
       const score = Math.round((nextSession.correctCount / CHALLENGE_LIMIT) * 100);
       next.challengeDaily.bestScore = Math.max(next.challengeDaily.bestScore, score);
+      next.challengeDaily.rewardSettlement = createCompletedChallengeRewardMarker(
+        next.challengeDaily,
+        nextSession,
+        nextItem.answeredAt
+      );
     }
 
     return {
@@ -655,9 +700,16 @@
       const daily = normalizeChallengeDaily(runtime.state.challengeDaily, session.date);
       const totalAttempts = Math.min(DAILY_LIMIT, runtime.legacy.attempts + daily.attempts);
       const bestScore = Math.max(runtime.legacy.bestScore || 0, daily.bestScore);
+      const rewardMarker = daily.rewardSettlement;
+      const rewardCopy = rewardMarker && rewardMarker.status === 'pending'
+        ? `奖励资格已保存，正在同步 ${rewardMarker.target} 金币…`
+        : rewardMarker && rewardMarker.status === 'settled'
+          ? `预计可获得 ${rewardMarker.target} 金币，返回首页点击宝箱领取`
+          : '挑战成绩已保存';
       body.innerHTML = `<div class="vocabulary-adventure-challenge-result">
         <div class="vocabulary-adventure-terminal-icon">🏁</div>
         <h2>挑战完成</h2>
+        <p class="vocabulary-adventure-earned-coins">${escapeHtml(rewardCopy)}</p>
         <p class="vocabulary-adventure-challenge-score">${session.correctCount * 10} 分</p>
         <div class="vocabulary-adventure-summary-grid">
           <div><strong>${session.correctCount}</strong><span>答对</span></div>
@@ -829,6 +881,7 @@
         runtime.state = runtime.prepared;
         runtime.prepared = null;
         runtime.preparedMeta = null;
+        if (window.VocabularyFeedbackSaveCoordinator?.ownsFeedback?.()) return;
         const card = targetCard(item.wordKey) || {};
         const detail = prepared.correct
           ? '回答正确'
@@ -976,6 +1029,8 @@
     DAILY_LIMIT,
     CHALLENGE_TYPES,
     normalizeChallengeDaily,
+    normalizeChallengeRewardSettlement,
+    createCompletedChallengeRewardMarker,
     normalizeChallengeSession,
     normalizeChallengeState,
     collectChallengeCandidates,

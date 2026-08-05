@@ -548,9 +548,11 @@
         if (!chest || !image) return;
         chest.dataset.state = state;
         chest.disabled = state !== 'pending';
-        image.src = state === 'claimed'
-          ? 'assets/student-home/home-v4/ui/chest-claimed.png'
-          : 'assets/student-home/home-v4/ui/chest-idle.png';
+        image.src = state === 'pending'
+          ? 'assets/student-home/home-v4/ui/chest-opening.png'
+          : state === 'claimed'
+            ? 'assets/student-home/home-v4/ui/chest-claimed.png'
+            : 'assets/student-home/home-v4/ui/chest-idle.png';
         const label = REWARD_PROJECTS[source].label;
         chest.setAttribute(
           'aria-label',

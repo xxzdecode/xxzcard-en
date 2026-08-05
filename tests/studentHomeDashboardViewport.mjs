@@ -527,9 +527,42 @@ try {
   await rewardStates.page.waitForSelector('.student-home-card[data-reward-source="adventure"][data-reward-state="pending"]');
   assert.equal(await rewardStates.page.locator('.student-home-card[data-reward-source="adventure"] .student-home-card__stamp').isVisible(), true);
   await rewardStates.page.screenshot({ path: path.join(resultDir, 'cleared-pending-claim-ipad-air11-landscape-1180x820.png'), fullPage: true });
+  const pendingPhone = await openHome('sister', iphone16Portrait, { rewardRecord: pendingReward });
+  await pendingPhone.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="pending"]');
+  const pendingPhoneVisual = await pendingPhone.page.locator(
+    '.student-reward-chest[data-reward-source="adventure"]'
+  ).evaluate(button => ({
+    image: button.querySelector('img')?.getAttribute('src') || '',
+    label: getComputedStyle(button, '::after').content,
+    width: button.getBoundingClientRect().width,
+    height: button.getBoundingClientRect().height
+  }));
+  assert.match(pendingPhoneVisual.image, /chest-opening\.png$/);
+  assert.match(pendingPhoneVisual.label, /点击领取/);
+  assert.ok(pendingPhoneVisual.width >= 44 && pendingPhoneVisual.height >= 44);
+  await pendingPhone.page.screenshot({
+    path: path.join(resultDir, 'pending-claim-iphone16-portrait-393x852.png'),
+    fullPage: true
+  });
+  assert.deepEqual(pendingPhone.errors, []);
+  await pendingPhone.context.close();
   const chest = rewardStates.page.locator('.student-reward-chest[data-reward-source="adventure"]');
   await chest.click();
-  await rewardStates.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="opening"]');
+  try {
+    await rewardStates.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="opening"]', { timeout: 5000 });
+  } catch (error) {
+    const claimDiagnostic = await rewardStates.page.evaluate(() => {
+      const button = document.querySelector('.student-reward-chest[data-reward-source="adventure"]');
+      return {
+        state: button?.dataset.state,
+        claiming: button?.dataset.claiming,
+        handlerInstalled: button?.dataset.handlerInstalled,
+        disabled: button?.disabled,
+        notice: document.getElementById('studentHomeNotice')?.textContent || ''
+      };
+    });
+    throw new Error(`claim animation did not enter opening state: ${JSON.stringify(claimDiagnostic)}`, { cause: error });
+  }
   await rewardStates.page.screenshot({ path: path.join(resultDir, 'claiming-ipad-air11-landscape-1180x820.png'), fullPage: true });
   await rewardStates.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="claimed"]');
   assert.equal(await rewardStates.page.locator('#studentTotalCoins').textContent(), '411');

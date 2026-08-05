@@ -41,7 +41,8 @@
 
   function rank(value) {
     if (!value) return 0;
-    if (value.state === 'claimed') return 3;
+    if (value.state === 'claimed') return 4;
+    if (value.state === 'opening') return 3;
     if (value.state === 'pending') return 2;
     return value.completed ? 1 : 0;
   }
@@ -54,10 +55,8 @@
       #studentDashboard{position:relative}
       .runtime-home-loading-badge{position:absolute;z-index:40;top:8px;left:50%;transform:translateX(-50%);min-height:38px;padding:8px 15px;border-radius:999px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.96);box-shadow:0 8px 24px rgba(55,82,100,.18);color:#365f7b;font-size:14px;font-weight:900;pointer-events:none}
       .runtime-home-loading-badge::before{content:'';width:14px;height:14px;border:2px solid rgba(54,95,123,.22);border-top-color:#365f7b;border-radius:50%;animation:runtime-home-spin .75s linear infinite}
-      .student-reward-chest[data-state="pending"]{animation:runtime-chest-glow 1.3s ease-in-out infinite;filter:drop-shadow(0 0 9px rgba(255,193,61,.78)) drop-shadow(0 0 18px rgba(255,218,112,.58))}
       @keyframes runtime-home-spin{to{transform:rotate(360deg)}}
-      @keyframes runtime-chest-glow{0%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 7px rgba(255,193,61,.58)) drop-shadow(0 0 13px rgba(255,218,112,.38))}50%{transform:translateY(-3px) scale(1.045);filter:drop-shadow(0 0 13px rgba(255,177,24,.92)) drop-shadow(0 0 25px rgba(255,222,115,.82))}}
-      @media(prefers-reduced-motion:reduce){.runtime-home-loading-badge::before,.student-reward-chest[data-state="pending"]{animation:none}}
+      @media(prefers-reduced-motion:reduce){.runtime-home-loading-badge::before{animation:none}}
     `;
     root.document.head.appendChild(style);
   }

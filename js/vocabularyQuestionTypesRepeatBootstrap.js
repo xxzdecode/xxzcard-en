@@ -699,6 +699,7 @@
       loadOptionalSupport('js/vocabularyFeedbackErrorUI.js')
     ]).then(results => {
       root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group, installed);
+      root.VocabularyFeedbackSaveCoordinator?.afterFeatureGroup?.(group, installed);
       const ready = results.every(Boolean);
       if (ready) optionalSupportReadyGroups.add(group);
       return ready;
