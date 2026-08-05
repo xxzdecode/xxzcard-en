@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="styles-vocabulary-adventure.css">
 <link rel="stylesheet" href="styles-home-nav.css" data-home-navigation-layout="three-columns">
 <link rel="stylesheet" href="styles-student-home-dashboard.css" data-student-home-dashboard="home-v4">
+<link rel="stylesheet" href="styles-wrong-answer-organizer.css">
 </head>
 <body>
 
@@ -197,6 +198,19 @@
           <div><h2>知识点库</h2><p>查看已有语法知识点与教学进度。</p></div>
         </div>
         <button type="button" class="teacher-dashboard-card__action" onclick="openGrammarLibrary()">进入知识点库</button>
+      </section>
+      <section class="teacher-dashboard-card teacher-dashboard-entry-card teacher-dashboard-entry-card--wrong-answers">
+        <div class="teacher-dashboard-card__heading">
+          <span class="teacher-dashboard-card__icon" aria-hidden="true">📝</span>
+          <div><h2>错题整理</h2><p>快速登记纸质练习的错题。</p></div>
+        </div>
+        <button class="teacher-latest-assessment" id="teacherLatestAssessmentEntry" type="button"
+          onclick="openLatestWrongAnswerPaper()" aria-busy="true" disabled>
+          <strong id="teacherLatestAssessmentLabel">正在读取最新练习…</strong>
+          <span id="teacherLatestAssessmentTitle">请稍候</span>
+          <em id="teacherLatestAssessmentStatus">正在读取</em>
+        </button>
+        <button type="button" class="teacher-dashboard-card__action" onclick="openWrongAnswerOrganizer()">进入错题整理</button>
       </section>
     </div>
   </main>
@@ -436,6 +450,76 @@
     <span class="topbar-title">知识点库</span>
   </div>
   <iframe class="grammar-library-frame" id="grammarLibraryFrame" title="英语语法知识点库"></iframe>
+</div>
+
+<!-- ══ SCREEN: WRONG ANSWER DIRECTORY ══ -->
+<div class="screen" id="screenWrongAnswerDirectory">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeWrongAnswerOrganizer()">←</button>
+    <span class="topbar-title">错题整理</span>
+  </div>
+  <main class="wrong-answer-page">
+    <div class="wrong-answer-page__heading">
+      <div>
+        <span class="wrong-answer-page__eyebrow">错题整理</span>
+        <h1>练习目录</h1>
+        <p id="wrongAnswerDirectoryStatus" aria-live="polite">正在读取练习目录…</p>
+      </div>
+    </div>
+    <div class="wrong-answer-directory-grid">
+      <section class="wrong-answer-student-column" aria-labelledby="wrongAnswerSisterHeading">
+        <div class="wrong-answer-student-column__heading">
+          <span class="wrong-answer-student-column__avatar" aria-hidden="true">👧</span>
+          <div><h2 id="wrongAnswerSisterHeading">姐姐</h2><span>最近练习</span></div>
+        </div>
+        <div class="wrong-answer-paper-list" id="wrongAnswerSisterList"></div>
+      </section>
+      <section class="wrong-answer-student-column" aria-labelledby="wrongAnswerBrotherHeading">
+        <div class="wrong-answer-student-column__heading">
+          <span class="wrong-answer-student-column__avatar" aria-hidden="true">👦</span>
+          <div><h2 id="wrongAnswerBrotherHeading">弟弟</h2><span>最近练习</span></div>
+        </div>
+        <div class="wrong-answer-paper-list" id="wrongAnswerBrotherList"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- ══ SCREEN: WRONG ANSWER GRADING ══ -->
+<div class="screen" id="screenWrongAnswerDetail">
+  <div class="topbar">
+    <button class="back-btn" onclick="backToWrongAnswerDirectory()">←</button>
+    <span class="topbar-title">错题登记</span>
+  </div>
+  <main class="wrong-answer-page">
+    <div class="wrong-answer-detail-grid">
+      <section class="wrong-answer-paper">
+        <header class="wrong-answer-paper-heading">
+          <div>
+            <span class="wrong-answer-page__eyebrow" id="wrongAnswerPaperStudent"></span>
+            <h1 id="wrongAnswerPaperTitle">练习</h1>
+            <p id="wrongAnswerPaperMeta"></p>
+          </div>
+          <span class="wrong-answer-paper-type" id="wrongAnswerPaperType">练习</span>
+        </header>
+        <div class="wrong-answer-helper">直接勾选答错的小问；未勾选的小问在保存批改后记为正确。</div>
+        <div id="wrongAnswerQuestionSections"></div>
+      </section>
+      <aside class="wrong-answer-grading-panel" aria-label="批改操作">
+        <h2>批改记录</h2>
+        <p>勾选项默认记为错题</p>
+        <div class="wrong-answer-selection-count" aria-live="polite">
+          已选 <span id="wrongAnswerSelectedCount">0</span> / <span id="wrongAnswerTotalCount">0</span> 小问
+        </div>
+        <div class="wrong-answer-actions">
+          <button type="button" onclick="markWrongAnswerPaperAllCorrect()">全对</button>
+          <button type="button" onclick="clearWrongAnswerSelection()">清空</button>
+          <button class="wrong-answer-save" id="wrongAnswerSaveButton" type="button" onclick="saveWrongAnswerGrading()">保存批改</button>
+        </div>
+        <div class="wrong-answer-save-status" id="wrongAnswerSaveStatus" role="status" aria-live="polite">尚未保存</div>
+      </aside>
+    </div>
+  </main>
 </div>
 
 <!-- ══ SCREEN: WORD TASK MENU ══ -->
