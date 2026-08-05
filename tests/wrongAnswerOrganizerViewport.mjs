@@ -76,6 +76,33 @@ const server = http.createServer((request, response) => {
   response.end(fs.readFileSync(filePath));
 });
 
+async function handleStorageRoute(route) {
+  const request = route.request();
+  if (request.method() === 'POST') {
+    const payload = request.postDataJSON();
+    posts.push(structuredClone(payload));
+    state.set(payload.key, structuredClone(payload.value));
+    await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+    return;
+  }
+  const url = new URL(request.url());
+  if (url.searchParams.get('select') === 'key,value') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([...state].map(([key, value]) => ({ key, value })))
+    });
+    return;
+  }
+  const key = (url.searchParams.get('key') || '').replace(/^eq\./, '');
+  const value = state.get(key);
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(typeof value === 'undefined' ? [] : [{ value }])
+  });
+}
+
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 let browser;
 try {
@@ -91,32 +118,7 @@ try {
   page.on('console', message => {
     if (message.type() === 'error' && !message.text().includes('Service Worker')) errors.push(message.text());
   });
-  await page.route('**/rest/v1/kv_store*', async route => {
-    const request = route.request();
-    if (request.method() === 'POST') {
-      const payload = request.postDataJSON();
-      posts.push(structuredClone(payload));
-      state.set(payload.key, structuredClone(payload.value));
-      await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
-      return;
-    }
-    const url = new URL(request.url());
-    if (url.searchParams.get('select') === 'key,value') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([...state].map(([key, value]) => ({ key, value })))
-      });
-      return;
-    }
-    const key = (url.searchParams.get('key') || '').replace(/^eq\./, '');
-    const value = state.get(key);
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(typeof value === 'undefined' ? [] : [{ value }])
-    });
-  });
+  await page.route('**/rest/v1/kv_store*', handleStorageRoute);
 
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
@@ -162,6 +164,11 @@ try {
   await page.locator('#screenWrongAnswerDetail .back-btn').click();
   await page.waitForSelector('#screenWrongAnswerDirectory.active');
   assert.equal(await page.locator('#wrongAnswerDirectoryStatus').textContent(), '按学生查看每天、每张卷子的批改记录。');
+  assert.equal(await page.locator('.wrong-answer-roadmap-card').count(), 2);
+  assert.deepEqual(
+    await page.locator('.wrong-answer-roadmap-card h3').allTextContents(),
+    ['整理错题集', '分析薄弱知识点']
+  );
   assert.equal(
     await page.locator('[data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"] .wrong-answer-paper-row__count').textContent(),
     '错 2 / 10 小问'
@@ -180,7 +187,33 @@ try {
   assert.equal(await page.locator('#wrongAnswerDirectoryStatus').textContent(), '按学生查看每天、每张卷子的批改记录。');
   assert.deepEqual(errors, []);
   await context.close();
-  console.log(`wrong answer organizer iPad viewport test passed: ${resultDir}`);
+
+  const phoneContext = await browser.newContext({ viewport: { width: 393, height: 852 }, serviceWorkers: 'block' });
+  await phoneContext.addInitScript(mirror => {
+    localStorage.setItem('wc_user', 'teacher');
+    localStorage.setItem('wc_sb_main', JSON.stringify(mirror));
+  }, mainData);
+  const phonePage = await phoneContext.newPage();
+  await phonePage.route('**/rest/v1/kv_store*', handleStorageRoute);
+  await phonePage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  await phonePage.waitForFunction(() => document.body.classList.contains('is-teacher'));
+  await phonePage.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
+  await phonePage.waitForSelector('#screenWrongAnswerDirectory.active');
+  assert.equal(await phonePage.locator('.wrong-answer-roadmap-card').count(), 2);
+  assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  assert.deepEqual(
+    await phonePage.locator('.wrong-answer-roadmap-card').evaluateAll(cards => cards.map(card => ({
+      withinViewport: card.getBoundingClientRect().left >= 0 && card.getBoundingClientRect().right <= innerWidth,
+      textFits: card.scrollWidth <= card.clientWidth && card.scrollHeight <= card.clientHeight
+    }))),
+    [
+      { withinViewport: true, textFits: true },
+      { withinViewport: true, textFits: true }
+    ]
+  );
+  await phonePage.screenshot({ path: path.join(resultDir, 'directory-393x852.png'), fullPage: true });
+  await phoneContext.close();
+  console.log(`wrong answer organizer iPad and iPhone viewport tests passed: ${resultDir}`);
 } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));

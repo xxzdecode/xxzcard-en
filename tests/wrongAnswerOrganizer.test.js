@@ -166,6 +166,10 @@ const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf
 assert.match(html, /<h2>错题整理<\/h2>/);
 assert.match(html, /id="screenWrongAnswerDirectory"/);
 assert.match(html, /id="screenWrongAnswerDetail"/);
+assert.match(html, /<h2 id="wrongAnswerRoadmapHeading">让登记结果继续发挥作用<\/h2>/);
+assert.match(html, /<h3>整理错题集<\/h3>/);
+assert.match(html, /<h3>分析薄弱知识点<\/h3>/);
+assert.match(html, /wrong-answer-roadmap__status">规划中<\/span>/);
 assert.match(html, /onclick="markWrongAnswerPaperAllCorrect\(\)"[^>]*>全对<\/button>/);
 assert.match(html, /onclick="clearWrongAnswerSelection\(\)"[^>]*>清空<\/button>/);
 assert.match(html, /onclick="saveWrongAnswerGrading\(\)"[^>]*>保存批改<\/button>/);
@@ -175,6 +179,7 @@ assert.ok(
   'wrong answer organizer must occupy the final dashboard slot after the knowledge library'
 );
 assert.match(styles, /\.wrong-answer-directory-grid\s*\{[^}]*repeat\(2,/s);
+assert.match(styles, /\.wrong-answer-roadmap__grid\s*\{[^}]*repeat\(2,/s);
 assert.match(styles, /\.teacher-dashboard-entry-card--wrong-answers\s*\{\s*order:\s*6;/);
 assert.match(styles, /\.wrong-answer-question:has\(input:checked\)/);
 assert.match(loader, /wrongAnswerOrganizer:\s*\['js\/wrongAnswerOrganizer\.js'\]/);
