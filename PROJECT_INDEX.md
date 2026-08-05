@@ -63,6 +63,7 @@
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
 - `scripts/add-practice.mjs`：随堂练习上传的主命令；`scripts/add-courseware.mjs` 作为旧命令兼容入口保留。详细触发流程由 `xxzdecode/xxz-tools` 的 `xxzcard-en-hub/README.md` 维护。
 - `scripts/create-wordbook.mjs`：从已完成内容的真实导入 TXT 自动校验、查重并通过事务 RPC 新建单词本；使用说明见 `docs/create-wordbook-automation.md`。
+- `scripts/sync-category-wordbook.mjs`：按正式分类骨架审计引用式分类单词本；先 dry-run 生成绑定 Git 包与 Supabase 基线的 `planHash`，再通过事务 RPC 建立快照并原子写入。
 - `scripts/publish-vocabulary-review-images.py`：生词巩固图片批量发布命令；`prepare` 统一处理全部 pending 批次，推送成功后再用 `finalize` 一次性回写完成状态。
 
 ## 4. 数据流相关文件
@@ -144,6 +145,7 @@
 - 看老师端知识点库：先看 `grammar-library/data/topics.json` 与 `grammar-library/app.js`，再看 `js/grammarLibrary.js` 和 Supabase `kv_store/grammar_progress` 进度记录。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 执行已完成内容的单词本任务：先看 `docs/create-wordbook-automation.md`，再使用 `scripts/create-wordbook.mjs`；不得跳过 dry-run 或改成普通多次写入。
+- 同步正式分类引用式单词本：先看 `docs/reference-wordbook-import-format.md`，再使用 `scripts/sync-category-wordbook.mjs`；正式 RPC 尚未安装或未获本次写入授权时只做 dry-run。
 - 看老师端生词巩固：先看 `js/vocabularyReview.js` 和 `js/vocabularyReviewData.js`，再看 `index.html` 中两个 vocabulary review screen。
 - 上传生词巩固图片：先按外部固定流程确认来源，再使用 `scripts/publish-vocabulary-review-images.py prepare`；统一提交推送成功后使用 `finalize`。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。

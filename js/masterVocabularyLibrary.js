@@ -158,7 +158,13 @@
     const existingRefs = (Array.isArray(batch.cardRefs) ? batch.cardRefs : [])
       .map(normalizeRef)
       .filter(Boolean);
-    const runtimeCards = Array.isArray(batch.cards) ? batch.cards : null;
+    const cardsDescriptor = Object.getOwnPropertyDescriptor(batch, 'cards');
+    const cardsAreHydratedRuntime = Boolean(
+      cardsDescriptor
+      && cardsDescriptor.enumerable === false
+      && existingRefs.length === (Array.isArray(batch.cards) ? batch.cards.length : -1)
+    );
+    const runtimeCards = !cardsAreHydratedRuntime && Array.isArray(batch.cards) ? batch.cards : null;
     const refs = [];
 
     if (runtimeCards) {
