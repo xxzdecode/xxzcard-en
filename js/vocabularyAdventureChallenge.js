@@ -5,19 +5,22 @@
   const review = typeof module === 'object' && module.exports
     ? require('./vocabularyAdventureReview.js')
     : root.VocabularyAdventureReview;
-  const exported = factory(core, review);
+  const rewards = typeof module === 'object' && module.exports
+    ? require('./studentRewards.js')
+    : root.StudentRewards;
+  const exported = factory(core, review, rewards);
   if (typeof module === 'object' && module.exports) module.exports = exported;
   if (root && typeof module !== 'object') {
     root.VocabularyAdventureChallenge = exported;
     Object.assign(root, exported.createVocabularyAdventureChallengeBrowserApi());
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureChallengeModule(core, review) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureChallengeModule(core, review, rewards) {
   'use strict';
 
   const CHALLENGE_LIMIT = 10;
   const DAILY_LIMIT = 2;
   const REWARD_SOURCE = 'vocabularyChallenge';
-  const REWARD_MARKER_VERSION = 1;
+  const REWARD_MARKER_VERSION = 2;
   const REWARD_MARKER_STATUSES = new Set(['pending', 'settled', 'blocked']);
   const CHALLENGE_TYPES = Object.freeze([
     'exampleCloze',
@@ -82,10 +85,14 @@
     return normalized;
   }
 
-  function createCompletedChallengeRewardMarker(dailyValue, session, completedAt) {
+  function createCompletedChallengeRewardMarker(dailyValue, session, completedAt, userKey) {
     const daily = normalizeChallengeDaily(dailyValue, session.date);
     const previous = daily.rewardSettlement || null;
-    const target = Math.max(previous ? previous.target : 0, Math.min(CHALLENGE_LIMIT, count(session.correctCount)));
+    const score = Math.min(100, count(session.correctCount) * 10);
+    const calculatedTarget = typeof rewards?.challengeRewardAmount === 'function'
+      ? rewards.challengeRewardAmount(userKey, score, CHALLENGE_LIMIT)
+      : Math.min(CHALLENGE_LIMIT, count(session.correctCount));
+    const target = Math.max(previous ? previous.target : 0, calculatedTarget);
     const keepSettled = previous && previous.status === 'settled' && previous.awarded >= target;
     const keepBlocked = previous && previous.status === 'blocked' && previous.target >= target;
     return {
@@ -367,7 +374,8 @@
       next.challengeDaily.rewardSettlement = createCompletedChallengeRewardMarker(
         next.challengeDaily,
         nextSession,
-        nextItem.answeredAt
+        nextItem.answeredAt,
+        input.userKey
       );
     }
 
@@ -858,6 +866,7 @@
       try {
         const prepared = prepareChallengeAnswer(runtime.state, {
           today: session.date,
+          userKey: runtime.user,
           expectedCursor: session.cursor,
           wordKey: item.wordKey,
           answer,

@@ -429,7 +429,11 @@
     };
     await saveGrammarRecord(user, record);
     if (typeof root.recordStudentRewardSource === 'function') {
-      await root.recordStudentRewardSource(user, 'grammarChallenge', 5, 'set');
+      const rewardAmount = Number.isFinite(result.score)
+        && typeof root.StudentRewards?.challengeRewardAmount === 'function'
+        ? root.StudentRewards.challengeRewardAmount(user, result.score, 5)
+        : 5;
+      await root.recordStudentRewardSource(user, 'grammarChallenge', rewardAmount, 'set');
     }
   }
 

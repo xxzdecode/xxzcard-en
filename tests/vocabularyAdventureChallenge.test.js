@@ -224,6 +224,28 @@ assert.equal(
 assert.equal(activeState.challengeSession.wrongItems.length, 1);
 assert.equal(activeState.words[firstItem.wordKey].challengeFlagAt, '2026-07-29T02:00:00.000Z');
 
+const sisterEightyReward = challenge.createCompletedChallengeRewardMarker(
+  { date: today, attempts: 1, bestScore: 80 },
+  { date: today, correctCount: 8 },
+  '2026-07-29T02:40:00.000Z',
+  'sister'
+);
+const brotherEightyReward = challenge.createCompletedChallengeRewardMarker(
+  { date: today, attempts: 1, bestScore: 80 },
+  { date: today, correctCount: 8 },
+  '2026-07-29T02:40:00.000Z',
+  'brother'
+);
+const brotherSeventyReward = challenge.createCompletedChallengeRewardMarker(
+  { date: today, attempts: 1, bestScore: 70 },
+  { date: today, correctCount: 7 },
+  '2026-07-29T02:40:00.000Z',
+  'brother'
+);
+assert.equal(sisterEightyReward.target, 8);
+assert.equal(brotherEightyReward.target, 10);
+assert.equal(brotherSeventyReward.target, 9);
+
 const pendingWord = first.session.items[1].wordKey;
 const pendingState = challenge.normalizeChallengeState({
   ...state,

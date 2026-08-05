@@ -25,6 +25,10 @@
     grammarChallenge: 5,
     classroomPractice: 10
   });
+  const CHALLENGE_FULL_SCORE = Object.freeze({
+    sister: 100,
+    brother: 80
+  });
   const REWARD_PROJECTS = Object.freeze({
     breakthrough: Object.freeze({ label: '挑战金币', max: BREAKTHROUGH_DAILY_MAX, regular: false }),
     adventure: Object.freeze({ label: '词汇探险', max: SOURCE_MAX.adventure, regular: true }),
@@ -56,6 +60,14 @@
       (sum, key) => sum + clampInteger(sources && sources[key], 0, SOURCE_MAX[key]),
       0
     );
+  }
+
+  function challengeRewardAmount(user, score, maxAmount) {
+    const student = user === 'brother' ? 'brother' : 'sister';
+    const fullScore = CHALLENGE_FULL_SCORE[student];
+    const normalizedScore = clampInteger(score, 0, 100);
+    const maximum = clampInteger(maxAmount, 0, 100);
+    return clampInteger((normalizedScore / fullScore) * maximum, 0, maximum);
   }
 
   function normalizeStudentTag(value, user) {
@@ -201,18 +213,24 @@
     }
     const day = normalizeDay(record.daily[date]);
     const current = normalizeClaim(day.claims[source], source, day.sources[source]);
-    if (current.status === 'claimed' || current.status === 'completed') {
-      return { record, changed: false, claim: current };
-    }
     const requested = clampInteger(settings.amount, 0, SOURCE_MAX[source]);
     const amount = settings.mode === 'max' ? Math.max(current.amount, requested) : requested;
+    if (current.status === 'claimed' && amount <= current.amount) {
+      return { record, changed: false, claim: current };
+    }
+    if (current.status === 'completed' && amount <= 0) {
+      return { record, changed: false, claim: current };
+    }
+    const reopening = current.status === 'claimed' || current.status === 'completed';
     const now = String(settings.at || new Date().toISOString());
     const claim = {
       ...current,
       status: amount > 0 ? 'pending' : 'completed',
       amount,
       mode: settings.mode === 'max' ? 'max' : 'set',
-      completedAt: current.completedAt || now
+      completedAt: current.completedAt || now,
+      claimedAt: reopening ? '' : current.claimedAt,
+      transactionId: reopening ? '' : current.transactionId
     };
     const changed = JSON.stringify(claim) !== JSON.stringify(current);
     if (changed) {
@@ -238,7 +256,7 @@
     if (claim.status !== 'pending' || claim.amount <= 0) {
       return { record, changed: false, delta: 0, projectDelta: 0, claim, code: 'NOT_CLAIMABLE' };
     }
-    const transactionId = claim.transactionId || `${date}:${source}:claim`;
+    const transactionId = claim.transactionId || `${date}:${source}:claim:${claim.amount}`;
     const applied = applySourceReward(record, {
       date,
       source,
@@ -902,7 +920,13 @@
       summary.dataset.rewardHandled = 'pending';
       const correctNode = summary.querySelector('.vocabulary-adventure-summary-grid div:first-child strong');
       const correct = clampInteger(correctNode?.textContent, 0, SOURCE_MAX.vocabularyChallenge);
-      const result = await recordSource(currentUserValue(), 'vocabularyChallenge', correct, 'max');
+      const user = currentUserValue();
+      const rewardAmount = challengeRewardAmount(
+        user,
+        correct * 10,
+        SOURCE_MAX.vocabularyChallenge
+      );
+      const result = await recordSource(user, 'vocabularyChallenge', rewardAmount, 'max');
       summary.dataset.rewardHandled = result.ok ? 'done' : 'failed';
       let reward = summary.querySelector('.vocabulary-adventure-earned-coins');
       if (!reward) {
@@ -911,7 +935,7 @@
         summary.querySelector('h2')?.insertAdjacentElement('afterend', reward);
       }
       reward.textContent = result.ok
-        ? `预计可获得 ${correct} 金币，返回首页点击宝箱领取`
+        ? `预计可获得 ${rewardAmount} 金币，返回首页点击宝箱领取`
         : '挑战成绩已保存，奖励状态稍后同步';
     }
 
@@ -963,7 +987,12 @@
           if (!dialog && !(resultScreen && !resultScreen.hidden)) return;
           granted = true;
           observers.forEach(observer => observer.disconnect());
-          await recordSource(currentUserValue(), 'grammarChallenge', SOURCE_MAX.grammarChallenge, 'set');
+          const user = currentUserValue();
+          const rawScore = Number.parseInt(String(documentRef.getElementById('scoreText')?.textContent || ''), 10);
+          const rewardAmount = Number.isFinite(rawScore)
+            ? challengeRewardAmount(user, rawScore, SOURCE_MAX.grammarChallenge)
+            : SOURCE_MAX.grammarChallenge;
+          await recordSource(user, 'grammarChallenge', rewardAmount, 'set');
         };
         const dialogState = documentRef.querySelector('[data-complete]');
         const resultScreen = documentRef.getElementById('resultScreen');
@@ -1041,11 +1070,13 @@
     DAILY_TOTAL_MAX,
     INITIAL_BREAKTHROUGH_DATE,
     SOURCE_MAX,
+    CHALLENGE_FULL_SCORE,
     REWARD_PROJECTS,
     STUDENT_TAG_MAX_LENGTH,
     DEFAULT_STUDENT_TAGS,
     dateKey,
     clampInteger,
+    challengeRewardAmount,
     normalizeStudentTag,
     normalizeClaim,
     normalizeDay,
