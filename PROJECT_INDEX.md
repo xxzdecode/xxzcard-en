@@ -10,7 +10,7 @@
 
 - `index.html`：主页面入口，包含所有主要 screen 容器、弹窗、按钮绑定和脚本加载顺序。
 - `styles.css`：全局样式、首页、任务按钮、单词卡、复习/挑战、弹窗、老师/学生视图等样式。
-- `quizzes/third-person-sort.html`：独立专项小游戏页面，当前由主应用通过 iframe 打开。
+- `quizzes/三单变形练习.html`：独立专项小游戏页面，当前由主应用通过 iframe 打开；稳定注册 ID 仍为 `third-person-sort`。
 - `js/main.js`：把函数暴露到 `window`，供 `index.html` 内联事件使用；同时执行应用初始化。
 
 `index.html` 中的主要 screen：
@@ -95,36 +95,24 @@
 - `scripts/add-practice.mjs`：无构建系统下的随堂练习上传主命令；旧脚本路径继续兼容。
 - `scripts/create-wordbook.mjs`：复用网页 `parseCards()` 的新建单词本 CLI，支持夹具/只读 `--dry-run`、事务 `--apply` 和 `result.json` 验收报告。
 - `scripts/publish-vocabulary-review-images.py`：生词巩固图片的批量校验、WebP 转换、数据路径与离线缓存更新，以及推送后的本地状态回写。
+- `package.json`：Node 测试、视口测试和维护脚本入口；项目仍无需构建即可作为静态网站运行。
+- `tests/`：单元、集成、浏览器烟测与视口测试；具体编排以 `package.json` 为准。
 - `.gitignore`：Git 忽略规则文件。
 
-当前项目目录中没有看到 `package.json`、打包配置或测试配置；项目形态更接近直接由浏览器加载的静态 HTML/CSS/JS。
+项目是无需构建即可直接部署的静态 HTML/CSS/JS，同时保留 Node/Playwright 测试与维护脚本；测试依赖不参与网页运行。
 
-`index.html` 当前脚本加载顺序：
+`index.html` 当前只直接加载以下 8 个入口脚本：
 
 1. `js/config.js`
 2. `js/state.js`
 3. `js/repository.js`
 4. `js/utils.js`
-5. `js/dictionary.js`
-6. `js/auth.js`
-7. `js/home.js`
-8. `js/themeQuizzes.js`
-9. `js/courseware-data.js`
-10. `js/courseware.js`
-11. `js/grammarLibrary.js`
-12. `js/batch.js`
-13. `js/import.js`
-14. `js/tasks.js`
-15. `js/review.js`
-16. `js/study.js`
-17. `js/quiz.js`
-18. `js/questionTypes.js`
-19. `js/taskEngine.js`
-20. `js/merge.js`
-21. `js/wordDedupe.js`
-22. `js/vocabularyReviewData.js`
-23. `js/vocabularyReview.js`
-24. `js/main.js`
+5. `js/auth.js`
+6. `js/home.js`
+7. `js/lazyFeatures.js`
+8. `js/main.js`
+
+其余业务模块由 `js/lazyFeatures.js` 按功能组加载，包括词汇探险、挑战、专项小游戏、随堂练习、知识点库、老师工具、生词巩固和摸底。修改模块入口时必须同时检查真实调用链、Service Worker 缓存和对应 loader 测试。
 
 ## 6. 常见任务应该先看哪些文件
 
@@ -140,7 +128,7 @@
 - 看挑战题型和判题：先看 `js/questionTypes.js`，再看 `js/quiz.js`。
 - 看单词卡背面、词典字段、搜索、词族/搭配/例句：先看 `js/dictionary.js`。
 - 看音标训练：先看 `js/dictionary.js` 中的 phoneme 相关函数，再看 `index.html` 的 `screenPhonemeTraining`。
-- 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看 `quizzes/third-person-sort.html`。
+- 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看注册表实际指向的 `quizzes/三单变形练习.html`。
 - 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
 - 看老师端知识点库：先看 `grammar-library/data/topics.json` 与 `grammar-library/app.js`，再看 `js/grammarLibrary.js` 和 Supabase `kv_store/grammar_progress` 进度记录。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
@@ -149,6 +137,7 @@
 - 看老师端生词巩固：先看 `js/vocabularyReview.js` 和 `js/vocabularyReviewData.js`，再看 `index.html` 中两个 vocabulary review screen。
 - 上传生词巩固图片：先按外部固定流程确认来源，再使用 `scripts/publish-vocabulary-review-images.py prepare`；统一提交推送成功后使用 `finalize`。
 - 看样式定位：先看 `styles.css`，再用 `index.html` 中对应 screen 的 class/id 对照。
+- `docs/execution-batches/` 只保存历史批次和追溯证据，不是现行任务入口；当前任务以用户要求、正式队列或 `PROJECT_STATE.md` 的未完成事项为准。
 
 ## 7. 不要随便动的地方
 
