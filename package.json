@@ -15,7 +15,8 @@
     "test:grammar-options": "node tests/grammarOptionEditing.test.js && node tests/grammarOptionDirectLinksViewport.mjs",
     "test:adventure-mvp-qa": "node tests/vocabularySystemIntegrationViewport.mjs",
     "vocabulary:lesson-import": "node scripts/importVocabularyLesson.js",
-    "vocabulary:master-migrate": "node scripts/migrateMasterVocabularyLibrary.js"
+    "vocabulary:master-migrate": "node scripts/migrateMasterVocabularyLibrary.js",
+    "vocabulary:category-sync": "node scripts/sync-category-wordbook.mjs"
   },
   "dependencies": {
     "sharp": "0.34.1"

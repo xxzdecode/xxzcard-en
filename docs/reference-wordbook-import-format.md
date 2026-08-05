@@ -154,3 +154,28 @@
 - 老师端“添加单词”：向当前单词本追加引用并按 `wordKey` 去重；
 - 持久化结果只保留 `cardRefs`，运行时卡片从 `masterCards` 还原；
 - 删除、归档或改名单词本不得删除总库词条，也不得联动删除新词导览图片。
+
+## 9. 分类同步 CLI 与事务门禁
+
+正式分类同步使用 `scripts/sync-category-wordbook.mjs`。分类定义仍只以 `data/vocabularyCategories.json` 为准；脚本不会向导入包或单词卡写入分类字段。
+
+先执行只读预演：
+
+```powershell
+$env:SUPABASE_URL = "https://PROJECT.supabase.co"
+$env:SUPABASE_KEY = "按当前项目权限单独提供"
+node scripts/sync-category-wordbook.mjs --category "人物" --dry-run --result result.json
+```
+
+预演会严格核对分类名称、稳定 ID、正式词序、总库复用、新建、补空、追加、同形词覆盖和非空字段冲突。任何冲突、缺失引用、同名异 ID 或分类字段泄漏都会停止。历史映射如 `people-family` 对应 `book-people`，只能通过正式包名称和完整 `cardRefs` 精确匹配复用，不进行猜测式改名。
+
+正式写入必须满足以下全部条件：
+
+1. 管理者已单独审核并安装 `scripts/sql/apply-reference-wordbook-atomic.sql`；
+2. 本次已明确授权使用对应 Supabase 凭据和正式写入；
+3. 使用同一基线 dry-run 输出的 `planHash`；
+4. 执行 `--apply --plan-hash <sha256>`，不得改成普通 REST 多次写入。
+
+RPC 在同一事务中锁定 `kv_store.main`、比较完整基线、创建 `pre_<category-id>_reference_import_YYYY_MM_DD_HHMM` 全量快照并替换 `main`。写入后 CLI 会重新读取 `main` 与快照，核对计划哈希、引用数量、全库缺失引用、持久化 `cards`、稳定 ID 和固定 `sharedWith: ["sister", "brother"]`。重复执行得到 `already_applied`，不会新建第二本词本。
+
+`SUPABASE_URL` 与 `SUPABASE_KEY` 只从命令参数或环境变量读取；不得从浏览器端 `js/config.js` 提取凭据。SQL 文件随代码发布不代表已经安装到正式库，安装、授权角色调整与每次正式写入都保留为人工权限节点。
