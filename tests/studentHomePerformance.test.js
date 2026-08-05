@@ -105,6 +105,11 @@ assert.match(main, /loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardLayoutGuard\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardReconcile\.js'\)/);
+assert.match(main, /studentActivityStartup = loadFeatureScript\('js\/studentActivityControls\.js'\)/);
+assert.ok(
+  main.indexOf("loadFeatureScript('js/studentActivityControls.js')")
+    < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')")
+);
 assert.match(main, /installHomeRefreshCoordinator/);
 assert.match(main, /id === requestId/);
 assert.match(main, /while \(rerunRequested\)/);

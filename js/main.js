@@ -311,6 +311,7 @@
 (async () => {
   let dailyRouteStartup = Promise.resolve(null);
   let teacherToolsWarmup = Promise.resolve(null);
+  let studentActivityStartup = Promise.resolve(null);
 
   function showDailyRouteStartupLoading() {
     if (currentUser === 'teacher' || typeof document.getElementById !== 'function') return;
@@ -333,6 +334,19 @@
   showDailyRouteStartupLoading();
   try {
     if (typeof loadFeatureScript === 'function') {
+      // The teacher coin/attempt panel is a primary home control. Start it
+      // independently so an unrelated optional enhancement cannot delay or
+      // suppress the panel on a cold or weak-network load.
+      studentActivityStartup = loadFeatureScript('js/studentActivityControls.js')
+        .then(() => {
+          window.ensureTeacherActivityPanel?.();
+          return loadFeatureScript('js/studentActivityControlsCompactUI.js');
+        })
+        .catch(error => {
+          console.warn('student activity controls unavailable', error && (error.message || error));
+          return null;
+        });
+
       try {
         await loadFeatureScript('js/storageResilience.js');
       } catch (error) {
@@ -389,8 +403,6 @@
       await loadFeatureScript('js/studentRewards.js');
       await loadFeatureScript('js/studentRewardLayoutGuard.js');
       await loadFeatureScript('js/studentRewardReconcile.js');
-      await loadFeatureScript('js/studentActivityControls.js');
-      await loadFeatureScript('js/studentActivityControlsCompactUI.js');
       await loadFeatureScript('js/grammarChallengeRecords.js');
     }
   } catch (error) {
@@ -402,6 +414,7 @@
   await loadHome();
   dailyRouteStartup.catch(() => {});
   teacherToolsWarmup.catch(() => {});
+  studentActivityStartup.catch(() => {});
 })();
 
 if ('serviceWorker' in navigator) {
