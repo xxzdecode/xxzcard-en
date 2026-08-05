@@ -1,6 +1,6 @@
 # PROJECT_STATE
 
-更新时间：2026-07-31 21:30（UTC+8）
+更新时间：2026-08-05（UTC+8）
 
 ## 0. 已确认决策
 
@@ -226,8 +226,8 @@
 - 打开单词本详情、查看具体单词、字典搜索结果和词内跳转时，先使用本地镜像立即显示，不再等待 `loadUserBatch()`；
 - 老师端列表不再为了统计对所有单词本执行阻塞式 `Promise.all`；
 - “全部学习 / 随机模式 / 生词池”等可能写入 `known / unknown` 的正式学习模式仍在开始前读取最新云端记录，避免旧镜像覆盖其他设备的新进度；
-- Service Worker 已升级为 `xxzcard-app-shell-v47`，相关脚本已进入应用壳缓存；
-- 已增加静态回归断言，覆盖预加载、缓存、无阻塞查看和学习写入安全边界；当前提交没有对应 GitHub Actions 运行记录；
+- Service Worker 当前为 `xxzcard-app-shell-v59` / `xxzcard-runtime-v59`，相关脚本已进入应用壳缓存；
+- 已增加静态回归断言，覆盖预加载、缓存、无阻塞查看和学习写入安全边界；CI 状态必须按当前提交或 PR 实时核对，不沿用旧快照结论；
 - 用户已确认刷新后“颜色”单词本出现，证明后台主数据刷新链路有效；用户尚未明确确认点击速度在所有设备上均已达标。
 
 相关正式边界已写入 `docs/vocabulary-master-library-contract.md`。
@@ -264,7 +264,7 @@
 - 蔬菜导入前快照：`pre_vegetables_reference_import_2026_07_31_2130`；
 - Git 存档分支：`archive/pre-master-library-2026-07-30`。
 
-迁移记录见 `docs/master-vocabulary-library-migration-2026-07-30.md`。
+迁移记录见 `reports/master-vocabulary-migration-2026-07-30.md`。
 
 ## 3. 已确认开发顺序
 
