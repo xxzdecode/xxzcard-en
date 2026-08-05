@@ -131,6 +131,62 @@
   text-align: center;
 }
 
+.wrong-answer-roadmap {
+  margin-top: 14px;
+  padding: 15px 16px 16px;
+  border: 1px dashed #d7cae0;
+  border-radius: 19px;
+  background: #f1ebf6;
+}
+.wrong-answer-roadmap__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.wrong-answer-roadmap__heading h2 {
+  margin: 0;
+  color: #584765;
+  font-size: 18px;
+}
+.wrong-answer-roadmap__status {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #ded3e8;
+  color: #685575;
+  font-size: 11px;
+  font-weight: 900;
+}
+.wrong-answer-roadmap__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.wrong-answer-roadmap-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #ded4e5;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.wrong-answer-roadmap-card__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 20px;
+}
+.wrong-answer-roadmap-card h3 { margin: 0; color: #5c4a68; font-size: 14px; }
+.wrong-answer-roadmap-card p { margin: 4px 0 0; color: #7c6f82; font-size: 11px; line-height: 1.45; }
+
 .wrong-answer-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 224px;
@@ -267,6 +323,7 @@
 
 @media (max-width: 899px) {
   .wrong-answer-directory-grid,
-  .wrong-answer-detail-grid { grid-template-columns: 1fr; }
+  .wrong-answer-detail-grid,
+  .wrong-answer-roadmap__grid { grid-template-columns: 1fr; }
   .wrong-answer-grading-panel { position: static; }
 }
