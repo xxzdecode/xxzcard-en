@@ -234,7 +234,9 @@
       coursewareHookInstalled: false,
       refreshSequence: 0,
       controlCache: new Map(),
-      legacyUsageCache: null
+      legacyUsageCache: null,
+      adventureStateCache: new Map(),
+      wordChallengeVirtualization: new Map()
     };
     const ACTIVITY_READ_CACHE_MS = 1500;
 
@@ -673,6 +675,7 @@
         const state = await loader(user, ...(Array.isArray(args) ? args : []));
         if (!state || !ACTIVITY_PROJECT_KEYS.includes('vocabularyChallenge')) return state;
         const student = studentKey(user);
+        runtime.adventureStateCache.set(student, JSON.parse(JSON.stringify(state)));
         const allowed = await getAttemptTotal(student, 'vocabularyChallenge', PROJECTS.vocabularyChallenge.baseAttempts);
         const legacy = await rawLegacyUsage();
         const today = dateKey();
@@ -680,6 +683,7 @@
           ? nonNegativeInteger(state.challengeDaily.attempts)
           : 0;
         const virtual = virtualizeWordChallengeUsage(legacy.attempts, stateAttempts, allowed);
+        runtime.wordChallengeVirtualization.set(student, virtual);
         const next = JSON.parse(JSON.stringify(state));
         next.challengeDaily = {
           ...(isPlainObject(next.challengeDaily) ? next.challengeDaily : {}),
@@ -709,21 +713,28 @@
       }
 
       if (!root.saveCurrentVocabularyAdventureState.__activityAware) {
-        const wrappedSave = async function activityAwareSaveVocabularyAdventureState(nextState) {
+        const wrappedSave = async function activityAwareSaveVocabularyAdventureState(nextState, ...saveArgs) {
           const user = currentStudent();
           const today = dateKey();
           let prepared = nextState && typeof nextState === 'object'
             ? JSON.parse(JSON.stringify(nextState))
             : nextState;
-          const current = await runtime.rawLoadAdventureState(user).catch(() => null);
+          const cachedCurrent = runtime.adventureStateCache.get(user);
+          const current = cachedCurrent
+            ? JSON.parse(JSON.stringify(cachedCurrent))
+            : await runtime.rawLoadAdventureState(user).catch(() => null);
 
           if (runtime.wordChallengeVirtualActive && prepared && prepared.challengeDaily) {
-            const allowed = await getAttemptTotal(user, 'vocabularyChallenge', PROJECTS.vocabularyChallenge.baseAttempts);
-            const actualLegacy = await rawLegacyUsage();
-            const actualStateAttempts = current && current.challengeDaily && current.challengeDaily.date === today
-              ? nonNegativeInteger(current.challengeDaily.attempts)
-              : 0;
-            const virtual = virtualizeWordChallengeUsage(actualLegacy.attempts, actualStateAttempts, allowed);
+            let virtual = runtime.wordChallengeVirtualization.get(user);
+            if (!virtual) {
+              const allowed = await getAttemptTotal(user, 'vocabularyChallenge', PROJECTS.vocabularyChallenge.baseAttempts);
+              const actualLegacy = await rawLegacyUsage();
+              const actualStateAttempts = current && current.challengeDaily && current.challengeDaily.date === today
+                ? nonNegativeInteger(current.challengeDaily.attempts)
+                : 0;
+              virtual = virtualizeWordChallengeUsage(actualLegacy.attempts, actualStateAttempts, allowed);
+              runtime.wordChallengeVirtualization.set(user, virtual);
+            }
             prepared.challengeDaily.attempts = nonNegativeInteger(prepared.challengeDaily.attempts) + virtual.residualBonus;
           }
 
@@ -735,11 +746,15 @@
             && prepared.session.completed === true
             && !(current && current.session && current.session.date === today && current.session.completed === true)
           );
-          const saved = await runtime.rawSaveAdventureState(prepared);
+          const saved = await runtime.rawSaveAdventureState(prepared, ...saveArgs);
+          if (saved && prepared && typeof prepared === 'object') {
+            runtime.adventureStateCache.set(user, JSON.parse(JSON.stringify(prepared)));
+          }
           if (saved && adventureTransitioned) await incrementUsage(user, 'adventure');
           return saved;
         };
         wrappedSave.__activityAware = true;
+        wrappedSave.__vteCoordinatorWrapped = runtime.rawSaveAdventureState.__vteCoordinatorWrapped === true;
         root.saveCurrentVocabularyAdventureState = wrappedSave;
       }
 

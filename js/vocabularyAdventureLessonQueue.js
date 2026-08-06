@@ -206,15 +206,15 @@
       }).state;
     }
 
-    async function saveCurrentVocabularyAdventureStateWithLessonQueue(stateValue) {
+    async function saveCurrentVocabularyAdventureStateWithLessonQueue(stateValue, ...saveArgs) {
       const user = currentStudent();
       if (!user || !screenActive('screenVocabularyAdventureChallenge')) {
-        return originalSave.call(root, stateValue);
+        return originalSave.call(root, stateValue, ...saveArgs);
       }
       let actual = actualStates.get(user);
       if (!actual) actual = await originalLoad.call(root, user);
       const merged = mergeChallengeStateIntoOriginal(actual, stateValue);
-      const saved = await originalSave.call(root, merged);
+      const saved = await originalSave.call(root, merged, ...saveArgs);
       if (!saved) return false;
       actualStates.set(user, clone(merged));
 
@@ -226,6 +226,9 @@
       }
       return true;
     }
+
+    saveCurrentVocabularyAdventureStateWithLessonQueue.__vteCoordinatorWrapped =
+      originalSave.__vteCoordinatorWrapped === true;
 
     root.loadVocabularyAdventureState = loadVocabularyAdventureStateWithLessonQueue;
     root.saveCurrentVocabularyAdventureState = saveCurrentVocabularyAdventureStateWithLessonQueue;

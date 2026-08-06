@@ -15,6 +15,20 @@
       .then(result => group === 'adventureChallenge'
         ? root.loadFeatureScript('js/vocabularyAdventureLessonQueue.js').then(() => result)
         : result)
+      .then(async result => {
+        if (group !== 'adventureChallenge') return result;
+        // Answer persistence is local-first, so there is no longer a slow cloud
+        // write that accidentally gives the feedback coordinator time to load.
+        // Make the two small feedback modules part of the challenge entry gate
+        // so every first tap can advance automatically, even on a cold start.
+        await Promise.all([
+          root.loadFeatureScript('js/vocabularyFeedbackErrorUI.js'),
+          root.loadFeatureScript('js/vocabularyFeedbackSaveCoordinator.js')
+        ]);
+        root.VocabularyFeedbackErrorUI?.afterFeatureGroup?.(group);
+        root.VocabularyFeedbackSaveCoordinator?.afterFeatureGroup?.(group);
+        return result;
+      })
       .then(result => {
         root.installVocabularyAdventurePreviewLatestGuard?.();
         return result;
@@ -312,6 +326,7 @@
   let dailyRouteStartup = Promise.resolve(null);
   let teacherToolsWarmup = Promise.resolve(null);
   let studentActivityStartup = Promise.resolve(null);
+  let startupEnhancements = Promise.resolve(null);
 
   function showDailyRouteStartupLoading() {
     if (currentUser === 'teacher' || typeof document.getElementById !== 'function') return;
@@ -346,17 +361,6 @@
           console.warn('student activity controls unavailable', error && (error.message || error));
           return null;
         });
-
-      try {
-        await loadFeatureScript('js/storageResilience.js');
-      } catch (error) {
-        console.warn('storage resilience unavailable', error && (error.message || error));
-      }
-      try {
-        await loadFeatureScript('js/vocabularyFeedbackSaveCoordinator.js');
-      } catch (error) {
-        console.warn('vocabulary feedback save coordinator unavailable', error && (error.message || error));
-      }
 
       // Start the tiny current-route request before loading any optional
       // startup script. The helper consumes this promise when it becomes ready,
@@ -399,22 +403,46 @@
           });
       }
 
-      await loadFeatureScript('js/masterVocabularyLibrary.js');
-      await loadFeatureScript('js/studentRewards.js');
-      await loadFeatureScript('js/studentRewardLayoutGuard.js');
-      await loadFeatureScript('js/studentRewardReconcile.js');
-      await loadFeatureScript('js/grammarChallengeRecords.js');
+      // Only storage and master-card normalization are required before the
+      // first home render. Load them together; reward/history enhancements
+      // must never hold a cached home screen behind slow optional requests.
+      await Promise.all([
+        loadFeatureScript('js/storageResilience.js'),
+        loadFeatureScript('js/masterVocabularyLibrary.js')
+      ]);
     }
   } catch (error) {
-    console.warn('startup enhancements unavailable', error && (error.message || error));
+    console.warn('critical startup helper unavailable', error && (error.message || error));
   }
   if (currentUser === 'teacher') { document.body.classList.add('is-teacher'); }
   appData = await initData();
   window.appData = appData;
   await loadHome();
+
+  if (typeof loadFeatureScript === 'function') {
+    const rewardEnhancements = loadFeatureScript('js/studentRewards.js')
+      .then(() => loadFeatureScript('js/studentRewardLayoutGuard.js'))
+      .then(() => loadFeatureScript('js/studentRewardReconcile.js'));
+    startupEnhancements = Promise.allSettled([
+      rewardEnhancements,
+      loadFeatureScript('js/grammarChallengeRecords.js'),
+      loadFeatureScript('js/vocabularyFeedbackSaveCoordinator.js')
+    ]).then(async results => {
+      results.forEach(result => {
+        if (result.status === 'rejected') {
+          console.warn('startup enhancement unavailable', result.reason && (result.reason.message || result.reason));
+        }
+      });
+      const home = document.getElementById('screenHome');
+      if (home && home.classList.contains('active')) {
+        await loadHome({ background: true, reason: 'startup-enhancements-ready' });
+      }
+    });
+  }
   dailyRouteStartup.catch(() => {});
   teacherToolsWarmup.catch(() => {});
   studentActivityStartup.catch(() => {});
+  startupEnhancements.catch(() => {});
 })();
 
 if ('serviceWorker' in navigator) {

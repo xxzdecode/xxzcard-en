@@ -8,6 +8,10 @@ const source = fs.readFileSync(path.join(root, 'js', 'studentRewards.js'), 'utf8
 const dailyLearningRouteSource = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'), 'utf8');
 const date = '2026-07-30';
 
+const loadRewardSource = source.match(/async function loadReward\(user\) \{[\s\S]*?\n    \}/)?.[0] || '';
+assert.match(loadRewardSource, /root\.sbGet\(rewardKey\(user\)\)/);
+assert.doesNotMatch(loadRewardSource, /root\.sbSet\(|await saveReward\(/, 'opening the home screen must not write reward data');
+
 assert.deepEqual(rewards.SOURCE_MAX, {
   adventure: 5,
   vocabularyChallenge: 10,

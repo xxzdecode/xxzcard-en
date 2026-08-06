@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v64';
-const RUNTIME_CACHE = 'xxzcard-runtime-v64';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v65';
+const RUNTIME_CACHE = 'xxzcard-runtime-v65';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -116,45 +116,39 @@ async function cacheFirst(request) {
   return response;
 }
 
-async function staticNetworkFirst(request) {
+async function refreshStaticAsset(request) {
   const cache = await caches.open(RUNTIME_CACHE);
-  try {
-    const response = await fetch(request, { cache: 'no-cache' });
-    if (response && response.ok) await cache.put(request, response.clone());
-    return response;
-  } catch (error) {
-    const cached = await cache.match(request) || await caches.match(request);
-    if (cached) return cached;
-    throw error;
-  }
+  const response = await fetch(request, { cache: 'no-cache' });
+  if (response && response.ok) await cache.put(request, response.clone());
+  return response;
 }
 
-async function navigationNetworkFirst(request) {
-  const cache = await caches.open(RUNTIME_CACHE);
-  try {
-    const response = await fetch(request, { cache: 'no-cache' });
-    if (response && response.ok) await cache.put(request, response.clone());
-    return response;
-  } catch (error) {
-    const cached = await cache.match(request);
+async function cachedNavigation(request) {
+  const runtime = await caches.open(RUNTIME_CACHE);
+  const direct = await runtime.match(request);
+  if (direct) return direct;
+  const appRoot = new URL('./', self.location.href);
+  const indexUrl = new URL('./index.html', self.location.href);
+  const requestUrl = new URL(request.url);
+  if (requestUrl.pathname !== appRoot.pathname && requestUrl.pathname !== indexUrl.pathname) return null;
+  const shell = await caches.open(APP_SHELL_CACHE);
+  return await shell.match(indexUrl.href) || await shell.match('./index.html') || null;
+}
+
+function offlineNavigationResponse() {
+  return new Response(
+    '<!doctype html><meta charset="utf-8"><title>暂时无法打开</title><p>当前页面暂时无法离线打开，请联网后重试。</p>',
+    { status: 503, headers: { 'Content-Type': 'text/html;charset=utf-8' } }
+  );
+}
+
+function staleWhileRevalidate(request, cachedPromise, event, fallback) {
+  const refresh = refreshStaticAsset(request);
+  event.waitUntil(refresh.then(() => undefined).catch(() => undefined));
+  return cachedPromise.then(cached => {
     if (cached) return cached;
-
-    const requestUrl = new URL(request.url);
-    const appRoot = new URL('./', self.location.href);
-    const indexUrl = new URL('./index.html', self.location.href);
-    const isAppEntry = requestUrl.pathname === appRoot.pathname
-      || requestUrl.pathname === indexUrl.pathname;
-    if (isAppEntry) {
-      const shell = await caches.open(APP_SHELL_CACHE);
-      const fallback = await shell.match(indexUrl.href) || await shell.match('./index.html');
-      if (fallback) return fallback;
-    }
-
-    return new Response(
-      '<!doctype html><meta charset="utf-8"><title>暂时无法打开</title><p>当前页面暂时无法离线打开，请联网后重试。</p>',
-      { status: 503, headers: { 'Content-Type': 'text/html;charset=utf-8' } }
-    );
-  }
+    return refresh.catch(() => typeof fallback === 'function' ? fallback() : fallback);
+  });
 }
 
 // The current lesson route must never fall back to an older cached course.
@@ -199,7 +193,12 @@ self.addEventListener('fetch', event => {
     && /\.(?:js|css|html)$/.test(url.pathname);
 
   if (isNavigation) {
-    event.respondWith(navigationNetworkFirst(event.request));
+    event.respondWith(staleWhileRevalidate(
+      event.request,
+      cachedNavigation(event.request),
+      event,
+      offlineNavigationResponse
+    ));
     return;
   }
   if (isDailyLearningRoute) {
@@ -207,7 +206,12 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (isCodeAsset) {
-    event.respondWith(staticNetworkFirst(event.request));
+    event.respondWith(staleWhileRevalidate(
+      event.request,
+      caches.match(event.request),
+      event,
+      () => new Response('', { status: 503 })
+    ));
     return;
   }
   if (url.origin === self.location.origin) {

@@ -29,7 +29,8 @@
     if (typeof root.settleVocabularyChallengeReward !== 'function') return false;
     const result = await root.settleVocabularyChallengeReward({
       user: student,
-      adventureState: adventure
+      adventureState: adventure,
+      silent: true
     });
     return result && result.ok !== false;
   }

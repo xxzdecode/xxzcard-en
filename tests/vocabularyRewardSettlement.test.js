@@ -377,7 +377,8 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
   assert.doesNotMatch(source, /totalCoins\s*\+=\s*10/);
   assert.doesNotMatch(source, /querySelector\([^)]*summary-grid[^)]*\)/);
   assert.match(adapterSource, /prepareAdventureStateForVocabularyChallengeSave/);
-  assert.match(adapterSource, /const saved = await dependencies\.setValue/);
+  assert.match(adapterSource, /const setter = settings\.background \? dependencies\.setBackgroundValue : dependencies\.setValue/);
+  assert.match(adapterSource, /const saved = await setter\(key, normalized\)/);
   assert.match(adapterSource, /settleVocabularyChallengeReward/);
   assert.doesNotMatch(reconcileSource, /correctCount\)\s*\|\|\s*0/);
   assert.doesNotMatch(reconcileSource, /scoreCoins/);

@@ -6,7 +6,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "时间介词 in / on / at 基础随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.08.04｜时间介词 in-on-at 随堂练习.html"
+    "path": "courseware/26.08.04｜时间介词 in-on-at 随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-08-01",
@@ -14,7 +15,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "日期、月份与星期名字来历配对练习",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.08.01｜日期、月份与星期名字的来历配对练习.html"
+    "path": "courseware/26.08.01｜日期、月份与星期名字的来历配对练习.html",
+    "grammarCompatible": false
   },
   {
     "id": "courseware-2026-08-03",
@@ -22,7 +24,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "基数词与序数词基础课堂互动练习",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.08.03｜基数词与序数词随堂练习.html"
+    "path": "courseware/26.08.03｜基数词与序数词随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-08-02-word-family-basics",
@@ -30,7 +33,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "词族工作坊基础随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.08.02｜词族工作坊随堂练习.html"
+    "path": "courseware/26.08.02｜词族工作坊随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-08-01-adverb-basics-ly",
@@ -38,7 +42,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "方式副词的作用、常见位置、-ly 线索与基础例外随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.08.01｜方式副词与 -ly 线索随堂练习.html"
+    "path": "courseware/26.08.01｜方式副词与 -ly 线索随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-31-adjective-basics-suffixes",
@@ -46,7 +51,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "形容词基本作用、常见位置与高频词尾线索随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/形容词与词尾线索随堂练习.html"
+    "path": "courseware/形容词与词尾线索随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-30",
@@ -54,7 +60,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "句子成分与词性的区别随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/词性地图随堂练习.html"
+    "path": "courseware/词性地图随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-27",
@@ -62,7 +69,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "形容词性与名词性物主代词随堂练习",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/my 与 mine 随堂练习.html"
+    "path": "courseware/my 与 mine 随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-26-subject-object-pronouns",
@@ -70,7 +78,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "人称代词主格与宾格随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.26｜谁在做动作给谁.html"
+    "path": "courseware/26.07.26｜谁在做动作给谁.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-25-possessive-whose-of",
@@ -78,7 +87,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "名词所有格、Whose 与 of 部分整体结构随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.25｜这是谁的东西的哪一部分.html"
+    "path": "courseware/26.07.25｜这是谁的东西的哪一部分.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-24-can-there-be-it",
@@ -86,7 +96,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "can、there be 与虚位主语 it 随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.24｜会做什么哪里有什么今天是什么.html"
+    "path": "courseware/26.07.24｜会做什么哪里有什么今天是什么.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-24-frequency-adverbs",
@@ -94,7 +105,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "频度副词专项课随堂练习，共20题，覆盖频率高低、be后动作前、How often与次数表达",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.24｜频度副词专项课.html"
+    "path": "courseware/26.07.24｜频度副词专项课.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-23-special-questions",
@@ -102,7 +114,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "特殊疑问句专项课随堂练习，共20题，覆盖疑问词选择、be/do/does路线与Who主语例外",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.23｜特殊疑问句专项课.html"
+    "path": "courseware/26.07.23｜特殊疑问句专项课.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-22-simple-present-2",
@@ -110,7 +123,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "一般现在时第二课随堂练习，共20题，覆盖否定句、一般疑问句与简短回答",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.22｜一般现在时第二课.html"
+    "path": "courseware/26.07.22｜一般现在时第二课.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-07-17-articles",
@@ -118,7 +132,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "冠词课堂即时练习，共 24 题，覆盖 a/an、the、零冠词与易混辨析",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.17｜冠词闯关.html"
+    "path": "courseware/26.07.17｜冠词闯关.html",
+    "grammarCompatible": false
   },
   {
     "id": "courseware-2026-07-17",
@@ -126,7 +141,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "名词单复数课堂即时练习，共 14 题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.17｜名词变身工厂.html"
+    "path": "courseware/26.07.17｜名词变身工厂.html",
+    "grammarCompatible": false
   },
   {
     "id": "courseware-2026-07-16",
@@ -134,7 +150,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "代词与 be 动词课堂即时练习",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.16.html"
+    "path": "courseware/26.07.16.html",
+    "grammarCompatible": false
   },
   {
     "id": "sentence-structure-2026-07-15",
@@ -142,7 +159,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "句子骨架、句型判断、句型转换与扩句练习",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.07.15.html"
+    "path": "courseware/26.07.15.html",
+    "grammarCompatible": false
   }
 ];
 // Legacy alias: keep existing integrations and historical pages working.

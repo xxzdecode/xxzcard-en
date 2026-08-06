@@ -837,7 +837,7 @@
           challengeSession: built.session
         }, today);
         runtime.preparedMeta = { kind: 'initial' };
-        if (!await saveCurrentVocabularyAdventureState(runtime.prepared)) {
+        if (!await saveCurrentVocabularyAdventureState(runtime.prepared, { queue: true })) {
           renderStorageRetry('挑战计划保存失败，尚未进入答题。', 'retryVocabularyAdventureChallengeSave');
           return;
         }
@@ -875,7 +875,7 @@
         runtime.prepared = prepared.state;
         runtime.preparedMeta = prepared;
         runtime.saving = true;
-        const saved = await saveCurrentVocabularyAdventureState(runtime.prepared);
+        const saved = await saveCurrentVocabularyAdventureState(runtime.prepared, { queue: true });
         runtime.saving = false;
         if (!saved) {
           setFeedback(
@@ -911,7 +911,7 @@
     async function retryVocabularyAdventureChallengeSave() {
       if (!runtime.prepared || runtime.saving) return;
       runtime.saving = true;
-      const saved = await saveCurrentVocabularyAdventureState(runtime.prepared);
+      const saved = await saveCurrentVocabularyAdventureState(runtime.prepared, { queue: true });
       runtime.saving = false;
       if (!saved) {
         setFeedback(
@@ -997,7 +997,7 @@
             today: session.date,
             exitedAt: new Date().toISOString()
           });
-          if (!await saveCurrentVocabularyAdventureState(prepared)) {
+          if (!await saveCurrentVocabularyAdventureState(prepared, { queue: true })) {
             setFeedback('退出状态保存失败，请重试。', 'failed', '', '');
             return;
           }

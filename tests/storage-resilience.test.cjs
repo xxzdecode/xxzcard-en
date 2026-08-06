@@ -8,6 +8,15 @@ const {
   DEFAULT_RETRY_DELAYS_MS,
   DEFAULT_WRITE_TIMEOUT_MS
 } = require('../js/storageResilience.js');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const storageSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'storageResilience.js'), 'utf8');
+assert.match(
+  storageSource,
+  /const backgroundWriteConfig = \{[\s\S]*?timeoutMs: 5000,[\s\S]*?maxAttempts: 1,/,
+  'background synchronization must use one bounded five-second attempt'
+);
 
 function response(status, jsonValue = null, textValue = '') {
   return {

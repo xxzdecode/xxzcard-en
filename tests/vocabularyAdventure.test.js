@@ -10,6 +10,8 @@ assert.match(adapterSource, /visibleBatches\(\)/);
 assert.match(adapterSource, /filterBatchesByBookPurpose\(batches,\s*true,\s*false\)/);
 assert.match(adapterSource, /getValue:\s*key\s*=>\s*sbGet\(key\)/);
 assert.match(adapterSource, /setValue:\s*\(key,\s*value\)\s*=>\s*sbSet\(key,\s*value\)/);
+assert.match(adapterSource, /PENDING_STATE_PREFIX = 'wc_vocab_adventure_pending_v1_'/);
+assert.match(adapterSource, /root\.addEventListener\('online'/);
 
 function card(word, meaning = `meaning-${word}`) {
   return { word, meaning };
@@ -391,6 +393,70 @@ const failedAdapter = createVocabularyAdventureAdapter({
 });
 assert.deepEqual(await failedAdapter.loadVocabularyAdventureState('sister'), core.defaultVocabularyAdventureState());
 assert.equal(await failedAdapter.saveVocabularyAdventureState('sister', { words: {} }), false);
+
+function challengeState(cursor, updatedAt) {
+  return {
+    version: 1,
+    words: {},
+    session: null,
+    challengeSession: {
+      date: TODAY,
+      attemptIndex: 1,
+      startedAt: `${TODAY}T08:00:00.000Z`,
+      updatedAt,
+      cursor,
+      status: cursor >= 10 ? 'completed' : 'active'
+    }
+  };
+}
+
+const pendingStorage = new Map();
+const backgroundWrites = [];
+let backgroundAvailable = false;
+const remoteState = challengeState(1, `${TODAY}T08:01:00.000Z`);
+const queuedAdapter = createVocabularyAdventureAdapter({
+  getCurrentUser: () => 'sister',
+  isTeacherUser: () => false,
+  visibleBatchesForCurrentUser: () => [],
+  commonBatchesOnly: value => value,
+  getValue: async () => structuredClone(remoteState),
+  setValue: async () => { throw new Error('foreground cloud unavailable'); },
+  setBackgroundValue: async (_key, value) => {
+    backgroundWrites.push(structuredClone(value));
+    return backgroundAvailable;
+  },
+  readPending: key => pendingStorage.get(key) || null,
+  writePending: (key, value) => { pendingStorage.set(key, value); return true; },
+  removePending: key => pendingStorage.delete(key),
+  schedule: () => {},
+  warn: () => {}
+});
+const queuedCursorTwo = challengeState(2, `${TODAY}T08:02:00.000Z`);
+assert.equal(
+  await queuedAdapter.saveCurrentVocabularyAdventureState(queuedCursorTwo, { queue: true }),
+  true,
+  'queue saves must succeed immediately after the local pending record is durable'
+);
+assert.equal(pendingStorage.size, 1);
+assert.equal(
+  (await queuedAdapter.loadVocabularyAdventureState('sister')).challengeSession.cursor,
+  2,
+  'a newer local cursor must win over the older cloud cursor'
+);
+assert.equal(await queuedAdapter.flushPendingVocabularyAdventureState('sister'), false);
+assert.equal(pendingStorage.size, 1, 'a failed background write must retain pending progress');
+
+const queuedCursorThree = challengeState(3, `${TODAY}T08:03:00.000Z`);
+assert.equal(await queuedAdapter.queueVocabularyAdventureState('sister', queuedCursorThree), true);
+backgroundAvailable = true;
+assert.equal(await queuedAdapter.flushPendingVocabularyAdventureState('sister'), true);
+assert.equal(pendingStorage.size, 0, 'successful recovery must clear the pending record');
+assert.equal(backgroundWrites.at(-1).challengeSession.cursor, 3);
+assert.equal(
+  backgroundWrites.filter(value => value.challengeSession.cursor === 2).length,
+  1,
+  'recovery must not replay stale queued states after a newer cursor replaces them'
+);
 
 let prefetchedReads = 0;
 const prefetchedAdapter = createVocabularyAdventureAdapter({
