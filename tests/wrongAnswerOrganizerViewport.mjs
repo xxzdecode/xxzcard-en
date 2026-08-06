@@ -141,6 +141,7 @@ try {
   assert.doesNotMatch(detailText, /\d+\s*分|%|百分比/);
   await page.locator('input[value="daily-2026-08-06-brother-sentence-parts-01.s1.q2"]').check();
   await page.locator('input[value="daily-2026-08-06-brother-sentence-parts-01.s3.q2"]').check();
+  await page.locator('#wrongAnswerTeacherNote').fill('大题三第2题：没有认出 after school 是补充信息。');
   assert.equal(await page.locator('#wrongAnswerSelectedCount').textContent(), '2');
   await page.locator('#wrongAnswerSaveButton').click();
   await page.waitForFunction(() => document.getElementById('wrongAnswerSaveStatus')?.textContent === '已保存：错 2 / 10 小问');
@@ -158,6 +159,7 @@ try {
   ]);
   assert.equal(saved.map_revision, '1');
   assert.equal(saved.map_hash, 'sha256:19c6715e294085fb347ef49ac93092617ec9a7e65eda2e73eb0a338ddc04094c');
+  assert.equal(saved.teacher_note, '大题三第2题：没有认出 after school 是补充信息。');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: path.join(resultDir, 'detail-1180x820.png'), fullPage: false });
 
@@ -212,6 +214,20 @@ try {
     ]
   );
   await phonePage.screenshot({ path: path.join(resultDir, 'directory-393x852.png'), fullPage: true });
+  await phonePage.locator('#screenWrongAnswerDirectory [data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"]').click();
+  await phonePage.waitForSelector('#screenWrongAnswerDetail.active');
+  assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  assert.deepEqual(
+    await phonePage.locator('#wrongAnswerTeacherNote, #wrongAnswerSaveButton').evaluateAll(nodes => nodes.map(node => ({
+      withinViewport: node.getBoundingClientRect().left >= 0 && node.getBoundingClientRect().right <= innerWidth,
+      touchHeight: node.getBoundingClientRect().height >= 44
+    }))),
+    [
+      { withinViewport: true, touchHeight: true },
+      { withinViewport: true, touchHeight: true }
+    ]
+  );
+  await phonePage.screenshot({ path: path.join(resultDir, 'detail-393x852.png'), fullPage: true });
   await phoneContext.close();
   console.log(`wrong answer organizer iPad and iPhone viewport tests passed: ${resultDir}`);
 } finally {

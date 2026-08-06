@@ -557,6 +557,10 @@
         <div class="wrong-answer-selection-count" aria-live="polite">
           已选 <span id="wrongAnswerSelectedCount">0</span> / <span id="wrongAnswerTotalCount">0</span> 小问
         </div>
+        <label class="wrong-answer-teacher-note" for="wrongAnswerTeacherNote">
+          <span>补充说明（可选）</span>
+          <textarea id="wrongAnswerTeacherNote" rows="5" maxlength="2000" placeholder="例如：大题三第1题——认为每个句子都必须有宾语。后续分析会优先参考这里。"></textarea>
+        </label>
         <div class="wrong-answer-actions">
           <button type="button" onclick="markWrongAnswerPaperAllCorrect()">全对</button>
           <button type="button" onclick="clearWrongAnswerSelection()">清空</button>

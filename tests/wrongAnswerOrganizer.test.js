@@ -68,7 +68,12 @@ assert.deepEqual(catalog.papers[0].sections[0].items.map(item => item.questionId
 assert.equal(api.latestPaper(catalog).title, '句子骨架与基础语序');
 
 const daily = catalog.papers[0];
-const record = api.createGradingRecord(daily, ['Q02', 'Q04', 'unknown'], '2026-08-05T12:30:00.000Z');
+const record = api.createGradingRecord(
+  daily,
+  ['Q02', 'Q04', 'unknown'],
+  '2026-08-05T12:30:00.000Z',
+  '第 2 题：没有把主语看成一个整体。'
+);
 assert.deepEqual(record.wrong_question_ids, ['Q02', 'Q04']);
 assert.deepEqual(record.wrong_items, [
   { question_id: 'Q02', kp_ids: ['sentence-parts', 'sentence-be-action-aux'] },
@@ -77,10 +82,18 @@ assert.deepEqual(record.wrong_items, [
 assert.equal(record.total_questions, 5);
 assert.equal(record.map_revision, 'sha256:daily-v1');
 assert.equal(record.map_hash, 'sha256:daily-map-v1');
+assert.equal(record.teacher_note, '第 2 题：没有把主语看成一个整体。');
 
-const store = api.mergeGradingStore(null, daily, ['Q02', 'Q04'], '2026-08-05T12:30:00.000Z');
+const store = api.mergeGradingStore(
+  null,
+  daily,
+  ['Q02', 'Q04'],
+  '2026-08-05T12:30:00.000Z',
+  '第 2 题：没有把主语看成一个整体。'
+);
 const current = api.recordForPaper(store, daily);
 assert.deepEqual(current.record.wrongQuestionIds, ['Q02', 'Q04']);
+assert.equal(current.record.teacherNote, '第 2 题：没有把主语看成一个整体。');
 assert.equal(current.stale, false);
 assert.equal(api.paperProgressLabel(daily, current), '错 2 / 5 小问');
 
@@ -170,6 +183,8 @@ assert.match(html, /<h2 id="wrongAnswerRoadmapHeading">让登记结果继续发�
 assert.match(html, /<h3>整理错题集<\/h3>/);
 assert.match(html, /<h3>分析薄弱知识点<\/h3>/);
 assert.match(html, /wrong-answer-roadmap__status">规划中<\/span>/);
+assert.match(html, /id="wrongAnswerTeacherNote"/);
+assert.match(html, /补充说明（可选）/);
 assert.match(html, /onclick="markWrongAnswerPaperAllCorrect\(\)"[^>]*>全对<\/button>/);
 assert.match(html, /onclick="clearWrongAnswerSelection\(\)"[^>]*>清空<\/button>/);
 assert.match(html, /onclick="saveWrongAnswerGrading\(\)"[^>]*>保存批改<\/button>/);
