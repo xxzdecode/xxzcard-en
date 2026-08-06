@@ -139,12 +139,13 @@
   }
 
   function applyWrong(detail, feedbackApi) {
-    const body = restoreQuestion(detail);
+    restoreQuestion(detail);
     setFeedback(detail.mode, '× 回答错误，看看正确答案', 'failed');
     const tokenName = detail.mode === 'challenge' ? 'challengeToken' : 'adventureToken';
     const token = ++state[tokenName];
     root.setTimeout(() => {
-      if (token !== state[tokenName] || !body || !body.isConnected) return;
+      const body = feedbackElements(detail.mode).body;
+      if (token !== state[tokenName] || !body) return;
       const card = findCard(detail.wordKey);
       feedbackApi.mount(body, card, {
         source: detail.mode,

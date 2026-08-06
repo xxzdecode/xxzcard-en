@@ -12,6 +12,7 @@
   'use strict';
 
   const ALLOWED_USERS = new Set(['sister', 'brother']);
+  const PENDING_STATE_PREFIX = 'wc_vocab_adventure_pending_v1_';
 
   function rewardSettlementApi() {
     return initialRewardSettlement || (root && root.StudentVocabularyRewardSettlement) || null;
@@ -42,6 +43,26 @@
       getValue: key => sbGet(key),
       getRemoteValue: key => typeof sbGetRemote === 'function' ? sbGetRemote(key) : sbGet(key),
       setValue: (key, value) => sbSet(key, value),
+      setBackgroundValue: (key, value) => typeof root.sbSetBackground === 'function'
+        ? root.sbSetBackground(key, value)
+        : sbSet(key, value),
+      readPending: key => {
+        try { return root.localStorage ? root.localStorage.getItem(key) : null; } catch (_) { return null; }
+      },
+      writePending: (key, value) => {
+        try {
+          if (!root.localStorage) return false;
+          root.localStorage.setItem(key, value);
+          return true;
+        } catch (error) {
+          console.warn('Vocabulary adventure local pending save failed', error);
+          return false;
+        }
+      },
+      removePending: key => {
+        try { root.localStorage?.removeItem(key); } catch (_) {}
+      },
+      schedule: (task, delay = 0) => root.setTimeout(task, delay),
       rewardApi: () => typeof StudentRewards === 'undefined' ? null : StudentRewards,
       reportStorageError: error => {
         if (typeof showStorageError === 'function') showStorageError(error);
@@ -57,6 +78,86 @@
       dependencies.getRemoteValue = overrides.getValue;
     }
     const rewardMarkerCache = new Map();
+    const pendingFlushes = new Map();
+
+    function pendingStateKey(user) {
+      return PENDING_STATE_PREFIX + user;
+    }
+
+    function stateFingerprint(value) {
+      try { return JSON.stringify(value || null); } catch (_) { return ''; }
+    }
+
+    function readPendingEnvelope(user) {
+      let value;
+      try { value = JSON.parse(dependencies.readPending(pendingStateKey(user)) || 'null'); }
+      catch (_) { return null; }
+      if (!value || value.version !== 1 || value.user !== user || !value.state) return null;
+      return {
+        version: 1,
+        user,
+        queuedAt: String(value.queuedAt || ''),
+        state: core.normalizeVocabularyAdventureState(value.state)
+      };
+    }
+
+    function removePendingEnvelope(user) {
+      dependencies.removePending(pendingStateKey(user));
+    }
+
+    function setSyncStatus(status) {
+      const node = root && root.document
+        ? root.document.getElementById('vocabularyAdventureChallengeSyncStatus')
+        : null;
+      if (!node) return;
+      node.dataset.syncState = status || '';
+      node.textContent = status === 'pending'
+        ? '本机已保存 · 待同步'
+        : status === 'synced'
+          ? '云端已同步'
+          : '无提示 · 正式计分';
+    }
+
+    function writePendingEnvelope(user, state) {
+      const envelope = {
+        version: 1,
+        user,
+        queuedAt: new Date().toISOString(),
+        state: core.normalizeVocabularyAdventureState(state)
+      };
+      const written = dependencies.writePending(pendingStateKey(user), JSON.stringify(envelope));
+      if (written) setSyncStatus('pending');
+      return written ? envelope : null;
+    }
+
+    function sessionStatusRank(status) {
+      return status === 'completed' ? 3 : status === 'abandoned' ? 2 : status === 'active' ? 1 : 0;
+    }
+
+    function pendingStateIsNewer(pendingValue, remoteValue) {
+      const pending = core.normalizeVocabularyAdventureState(pendingValue);
+      const remote = core.normalizeVocabularyAdventureState(remoteValue);
+      const left = pending.challengeSession;
+      const right = remote.challengeSession;
+      if (!left) return false;
+      if (!right) return true;
+      if (String(left.date || '') !== String(right.date || '')) {
+        return String(left.date || '') > String(right.date || '');
+      }
+      if (Number(left.attemptIndex || 0) !== Number(right.attemptIndex || 0)) {
+        return Number(left.attemptIndex || 0) > Number(right.attemptIndex || 0);
+      }
+      if (String(left.startedAt || '') !== String(right.startedAt || '')) {
+        return String(left.startedAt || '') > String(right.startedAt || '');
+      }
+      if (Number(left.cursor || 0) !== Number(right.cursor || 0)) {
+        return Number(left.cursor || 0) > Number(right.cursor || 0);
+      }
+      if (sessionStatusRank(left.status) !== sessionStatusRank(right.status)) {
+        return sessionStatusRank(left.status) > sessionStatusRank(right.status);
+      }
+      return String(left.updatedAt || '') > String(right.updatedAt || '');
+    }
 
     function adventureStateKeyForUser(user) {
       return ALLOWED_USERS.has(user) ? `vocab_adventure_v1_${user}` : '';
@@ -96,6 +197,7 @@
       const key = adventureStateKeyForUser(user);
       if (!key) return core.defaultVocabularyAdventureState();
       const requireRemote = options && options.requireRemote === true;
+      const pending = readPendingEnvelope(user);
       const prefetched = root && root.__vocabularyAdventurePrefetchedState;
       if (prefetched && Date.now() - Number(prefetched.loadedAt || 0) >= 1500) {
         delete root.__vocabularyAdventurePrefetchedState;
@@ -107,14 +209,33 @@
       const getter = requireRemote
         ? dependencies.getRemoteValue
         : dependencies.getValue;
-      const raw = await getter(key);
-      cacheRewardMarker(user, raw);
-      return core.normalizeVocabularyAdventureState(raw);
+      let raw;
+      try {
+        raw = await getter(key);
+      } catch (error) {
+        if (!pending) throw error;
+        setSyncStatus('pending');
+        flushPendingVocabularyAdventureState(user).catch(() => {});
+        cacheRewardMarker(user, pending.state);
+        return pending.state;
+      }
+      const remote = core.normalizeVocabularyAdventureState(raw);
+      if (pending && pendingStateIsNewer(pending.state, remote)) {
+        setSyncStatus('pending');
+        flushPendingVocabularyAdventureState(user).catch(() => {});
+        cacheRewardMarker(user, pending.state);
+        return pending.state;
+      }
+      if (pending) removePendingEnvelope(user);
+      setSyncStatus('');
+      cacheRewardMarker(user, remote);
+      return remote;
     }
 
-    async function saveVocabularyAdventureState(user, value) {
+    async function saveVocabularyAdventureState(user, value, options) {
       const key = adventureStateKeyForUser(user);
       if (!key) return false;
+      const settings = options && typeof options === 'object' ? options : {};
       try {
         let normalized = core.normalizeVocabularyAdventureState(value);
         const settlement = await ensureRewardSettlementApi();
@@ -128,7 +249,8 @@
           cacheRewardMarker(user, normalized);
         }
 
-        const saved = await dependencies.setValue(key, normalized) !== false;
+        const setter = settings.background ? dependencies.setBackgroundValue : dependencies.setValue;
+        const saved = await setter(key, normalized) !== false;
         if (!saved) return false;
 
         if (settlement
@@ -142,8 +264,8 @@
               ? dependencies.rewardApi()
               : dependencies.rewardApi,
             getValue: dependencies.getValue,
-            setValue: dependencies.setValue,
-            reportError: dependencies.reportStorageError
+            setValue: settings.background ? dependencies.setBackgroundValue : dependencies.setValue,
+            reportError: settings.background ? dependencies.warn : dependencies.reportStorageError
           });
           if (result && result.adventureState) cacheRewardMarker(user, result.adventureState);
           if (result && result.ok === false) {
@@ -153,9 +275,61 @@
         return true;
       } catch (error) {
         dependencies.warn('Vocabulary adventure state save failed', error);
-        dependencies.reportStorageError(error);
+        if (!settings.background) dependencies.reportStorageError(error);
         return false;
       }
+    }
+
+    function flushPendingVocabularyAdventureState(user) {
+      if (!ALLOWED_USERS.has(user)) return Promise.resolve(false);
+      if (pendingFlushes.has(user)) return pendingFlushes.get(user);
+      const task = (async () => {
+        const envelope = readPendingEnvelope(user);
+        if (!envelope) return true;
+        const fingerprint = stateFingerprint(envelope.state);
+        const saved = await saveVocabularyAdventureState(user, envelope.state, { background: true });
+        if (!saved) {
+          setSyncStatus('pending');
+          return false;
+        }
+        const latest = readPendingEnvelope(user);
+        if (latest && stateFingerprint(latest.state) === fingerprint) {
+          removePendingEnvelope(user);
+          setSyncStatus('synced');
+          dependencies.schedule(() => {
+            if (!readPendingEnvelope(user)) setSyncStatus('');
+          }, 1200);
+        }
+        return true;
+      })();
+      pendingFlushes.set(user, task);
+      task.then(saved => {
+        pendingFlushes.delete(user);
+        if (saved && readPendingEnvelope(user)) {
+          dependencies.schedule(() => flushPendingVocabularyAdventureState(user).catch(() => {}));
+        }
+      }, () => pendingFlushes.delete(user));
+      return task;
+    }
+
+    async function queueVocabularyAdventureState(user, value) {
+      const key = adventureStateKeyForUser(user);
+      if (!key) return false;
+      let normalized = core.normalizeVocabularyAdventureState(value);
+      const settlement = rewardSettlementApi();
+      if (settlement && typeof settlement.prepareAdventureStateForVocabularyChallengeSave === 'function') {
+        normalized = settlement.prepareAdventureStateForVocabularyChallengeSave(
+          normalized,
+          previousRewardState(user),
+          { user }
+        );
+      }
+      cacheRewardMarker(user, normalized);
+      if (!writePendingEnvelope(user, normalized)) {
+        return saveVocabularyAdventureState(user, normalized);
+      }
+      dependencies.schedule(() => flushPendingVocabularyAdventureState(user).catch(() => {}));
+      return true;
     }
 
     async function previewVocabularyAdventurePlan(today) {
@@ -195,9 +369,19 @@
       };
     }
 
-    async function saveCurrentVocabularyAdventureState(state) {
+    async function saveCurrentVocabularyAdventureState(state, options) {
       const user = currentVocabularyAdventureUser();
-      return user ? saveVocabularyAdventureState(user, state) : false;
+      if (!user) return false;
+      return options && options.queue === true
+        ? queueVocabularyAdventureState(user, state)
+        : saveVocabularyAdventureState(user, state);
+    }
+
+    if (root && typeof root.addEventListener === 'function' && !root.__vocabularyAdventurePendingSyncInstalled) {
+      root.__vocabularyAdventurePendingSyncInstalled = true;
+      root.addEventListener('online', () => {
+        ALLOWED_USERS.forEach(user => flushPendingVocabularyAdventureState(user).catch(() => {}));
+      });
     }
 
     return {
@@ -210,7 +394,10 @@
       previewVocabularyAdventurePlan,
       loadOrCreateVocabularyAdventureSession,
       loadVocabularyAdventurePlayerContext,
-      saveCurrentVocabularyAdventureState
+      saveCurrentVocabularyAdventureState,
+      queueVocabularyAdventureState,
+      flushPendingVocabularyAdventureState,
+      pendingStateIsNewer
     };
   }
 

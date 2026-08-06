@@ -380,7 +380,9 @@
       rewardApi: root.StudentRewards,
       getValue: key => root.sbGet(key),
       setValue: (key, value) => root.sbSet(key, value),
-      reportError: error => root.showStorageError?.(error)
+      reportError: plainObject(extra) && extra.silent === true
+        ? error => console.warn('Background vocabulary reward settlement pending retry', error)
+        : error => root.showStorageError?.(error)
     });
     root.settleVocabularyChallengeReward = options => settleVocabularyChallengeReward(browserOptions(options));
     root.diagnoseVocabularyChallengeReward = async user => {

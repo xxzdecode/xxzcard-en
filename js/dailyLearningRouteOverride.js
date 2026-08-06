@@ -204,6 +204,11 @@
 
   async function verifyGrammarCompatibility(item) {
     if (!item || !item.path) return { state: 'incompatible', reason: 'missing-path' };
+    if (typeof item.grammarCompatible === 'boolean') {
+      return item.grammarCompatible
+        ? { state: 'compatible', reason: 'catalog' }
+        : { state: 'incompatible', reason: 'catalog-missing-practice-data' };
+    }
     const key = String(item.path);
     if (compatibilityCache.has(key)) return compatibilityCache.get(key);
     const promise = timedFetch(key, {
@@ -465,9 +470,14 @@
       grammar.replaceChildren(new Option('自动安排', ''), ...grammarOptions);
       grammar.value = day.grammarChallenge && day.grammarChallenge.practiceId || '';
       classroom.value = day.classroomPractice && day.classroomPractice.practiceId || '';
-      const unavailableCount = checks.filter(item => item.state !== 'compatible').length;
+      const incompatibleCount = checks.filter(item => item.state === 'incompatible').length;
+      const unverifiedCount = checks.filter(item => item.state === 'unverified').length;
       const base = day.grammarChallenge || day.classroomPractice ? '今天有手动替换。' : '今天使用自动安排。';
-      status(unavailableCount ? `${base} 已禁用 ${unavailableCount} 条不可转换或暂时无法验证的练习。` : base);
+      const details = [
+        incompatibleCount ? `已禁用 ${incompatibleCount} 条不可转换练习。` : '',
+        unverifiedCount ? `另有 ${unverifiedCount} 条暂时无法验证，请重新读取。` : ''
+      ].filter(Boolean).join(' ');
+      status(details ? `${base} ${details}` : base);
     } catch (_) {
       status('读取失败，请检查网络。');
     }

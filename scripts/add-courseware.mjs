@@ -95,6 +95,22 @@ function requireText(value, label) {
   return value.trim();
 }
 
+function hasPracticeData(value) {
+  return /\bid\s*=\s*["']practice-data["']/i.test(String(value || ''));
+}
+
+async function annotateCompatibility(items) {
+  return Promise.all(items.map(async item => {
+    if (typeof item.grammarCompatible === 'boolean') return item;
+    try {
+      const html = await readFile(path.join(REPO_ROOT, item.path), 'utf8');
+      return { ...item, grammarCompatible: hasPracticeData(html) };
+    } catch {
+      return { ...item, grammarCompatible: false };
+    }
+  }));
+}
+
 function formatLocalDate(date = new Date()) {
   const year = String(date.getFullYear() % 100).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -258,7 +274,7 @@ async function preparePlan(options) {
   } catch (error) {
     fail(`无法读取随堂练习清单 ${path.relative(REPO_ROOT, DATA_FILE)}：${error.message}`);
   }
-  const currentItems = parseDataFile(dataSource);
+  const currentItems = await annotateCompatibility(parseDataFile(dataSource));
   if (customId && currentItems.some(item => item.id === customId)) {
     fail(`自定义 ID 已存在：${customId}`);
   }
@@ -272,7 +288,15 @@ async function preparePlan(options) {
     const relativePath = `courseware/${title}.html`;
     const id = customId || `courseware-${date.iso}${suffix}`;
     targetPath = path.join(COURSEWARE_DIR, `${title}.html`);
-    item = { id, title, description, icon, tone, path: relativePath };
+    item = {
+      id,
+      title,
+      description,
+      icon,
+      tone,
+      path: relativePath,
+      grammarCompatible: hasPracticeData(source.content.toString('utf8'))
+    };
 
     const conflicts =
       await pathExists(targetPath) ||

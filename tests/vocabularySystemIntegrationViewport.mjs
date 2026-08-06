@@ -146,7 +146,7 @@ async function openPage(viewport, name) {
     ['vocab_adventure_v1_sister', initialAdventureState()],
     ['daily_task_sister', {}]
   ]);
-  let failedWritesRemaining = 0;
+  let cloudUnavailable = false;
   const page = await context.newPage();
   const errors = [];
   page.on('dialog', dialog => dialog.dismiss());
@@ -157,14 +157,17 @@ async function openPage(viewport, name) {
   await page.route('**/rest/v1/kv_store*', async route => {
     const request = route.request();
     if (request.method() === 'POST') {
-      if (failedWritesRemaining > 0) {
-        failedWritesRemaining -= 1;
+      const payload = request.postDataJSON();
+      if (payload.key === 'vocab_adventure_v1_sister' && cloudUnavailable) {
         await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
         return;
       }
-      const payload = request.postDataJSON();
       store.set(payload.key, structuredClone(payload.value));
       await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+      return;
+    }
+    if (cloudUnavailable) {
+      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
       return;
     }
     const url = new URL(request.url());
@@ -201,7 +204,8 @@ async function openPage(viewport, name) {
     store,
     errors,
     name,
-    failNextSave: () => { failedWritesRemaining = 4; }
+    failNextSave: () => { cloudUnavailable = true; },
+    allowSaves: () => { cloudUnavailable = false; }
   };
 }
 
@@ -294,6 +298,7 @@ async function waitForTeaching(run, targetName) {
       };
     });
     diagnostic.savedCursor = run.store.get('vocab_adventure_v1_sister')?.challengeSession?.cursor;
+    diagnostic.errors = run.errors;
     console.error(`[${targetName}] teaching timeout diagnostic: ${JSON.stringify(diagnostic)}`);
     await run.page.screenshot({
       path: path.join(resultDir, `vocabulary-system-${targetName}-teaching-timeout.png`),
@@ -321,6 +326,7 @@ try {
     await startFeedbackTrace(run.page);
     await clickChoice(run.page, false);
     await waitForTeaching(run, target.name);
+    await run.page.waitForTimeout(50);
     const wrongTrace = await readFeedbackTrace(run.page);
     assert.ok(
       wrongTrace.some(entry => entry.mode === 'question-feedback' && entry.wrong === 1 && entry.correct === 1),
@@ -372,13 +378,45 @@ try {
 
     run.failNextSave();
     await clickChoice(run.page, true);
-    await run.page.waitForFunction(() => (
-      document.getElementById('vocabularyAdventureChallengeAction')?.textContent === '重新保存'
-    ));
+    try {
+      await run.page.waitForFunction(() => (
+        document.getElementById('vocabularyAdventureChallengeCount')?.textContent === '4/10'
+      ), null, { timeout: 8000 });
+    } catch (error) {
+      const diagnostic = await run.page.evaluate(() => ({
+        count: document.getElementById('vocabularyAdventureChallengeCount')?.textContent || '',
+        feedback: document.getElementById('vocabularyAdventureChallengeFeedbackText')?.textContent || '',
+        action: document.getElementById('vocabularyAdventureChallengeAction')?.textContent || '',
+        actionHidden: document.getElementById('vocabularyAdventureChallengeAction')?.hidden,
+        pending: localStorage.getItem('wc_vocab_adventure_pending_v1_sister'),
+        bodyMode: document.getElementById('vocabularyAdventureChallengeBody')?.dataset.mode || '',
+        localKeys: Object.keys(localStorage),
+        storageProbe: (() => {
+          try {
+            localStorage.setItem('__pending_probe', 'ok');
+            localStorage.removeItem('__pending_probe');
+            return 'ok';
+          } catch (error) {
+            return `${error.name}: ${error.message}`;
+          }
+        })()
+      }));
+      console.error(`[${target.name}] weak-save diagnostic: ${JSON.stringify(diagnostic)}`);
+      throw error;
+    }
     assert.equal(run.store.get('vocab_adventure_v1_sister').challengeSession.cursor, 2);
-    await run.page.locator('#vocabularyAdventureChallengeAction').click();
+    const pendingCursor = await run.page.evaluate(() => {
+      const value = JSON.parse(localStorage.getItem('wc_vocab_adventure_pending_v1_sister') || 'null');
+      return {
+        cursor: value?.state?.challengeSession?.cursor,
+        syncText: document.getElementById('vocabularyAdventureChallengeSyncStatus')?.textContent || ''
+      };
+    });
+    assert.deepEqual(pendingCursor, { cursor: 3, syncText: '本机已保存 · 待同步' });
+    run.allowSaves();
+    await run.page.evaluate(() => flushPendingVocabularyAdventureState('sister'));
     await run.page.waitForFunction(() => (
-      document.getElementById('vocabularyAdventureChallengeCount')?.textContent === '4/10'
+      !localStorage.getItem('wc_vocab_adventure_pending_v1_sister')
     ));
     assert.equal(run.store.get('vocab_adventure_v1_sister').challengeSession.cursor, 3);
 
@@ -388,7 +426,7 @@ try {
     });
     const expectedRetryErrors = run.errors.filter(error => /503 \(Service Unavailable\)/.test(error));
     const unexpectedErrors = run.errors.filter(error => !/503 \(Service Unavailable\)/.test(error));
-    assert.equal(expectedRetryErrors.length, 4, 'the injected failure must exercise all four save attempts');
+    assert.ok(expectedRetryErrors.length >= 1, 'the injected failure must exercise a bounded background save');
     assert.deepEqual(unexpectedErrors, []);
     await run.context.close();
   }

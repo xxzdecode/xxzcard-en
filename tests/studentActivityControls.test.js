@@ -173,6 +173,9 @@ assert.match(source, /id="teacherActivityCustomWrap" hidden/);
 assert.match(source, /id="teacherActivityCustomConfirm">确定/);
 assert.doesNotMatch(source, /root\.prompt|window\.prompt/);
 assert.match(source, /activityAwareLoadVocabularyAdventureState\(user, \.\.\.args\)/);
+assert.match(source, /activityAwareSaveVocabularyAdventureState\(nextState, \.\.\.saveArgs\)/);
+assert.match(source, /runtime\.rawSaveAdventureState\(prepared, \.\.\.saveArgs\)/);
+assert.match(source, /wrappedSave\.__vteCoordinatorWrapped = runtime\.rawSaveAdventureState\.__vteCoordinatorWrapped === true/);
 assert.match(source, /\['adventure', 'adventurePlayer', 'adventureChallenge', 'teacherTools'\]\.includes\(group\)/);
 assert.match(
   rewardsSource,

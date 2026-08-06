@@ -396,9 +396,20 @@
       probeTimeoutMs: 6000,
       probeMaxAttempts: 2
     };
+    const backgroundWriteConfig = {
+      ...writeConfig,
+      timeoutMs: 5000,
+      maxAttempts: 1,
+      probeTimeoutMs: 3500,
+      probeMaxAttempts: 1
+    };
 
     async function resilientSbSet(key, value) {
       return resilience.writeKey(writeConfig, key, value);
+    }
+
+    async function resilientSbSetBackground(key, value) {
+      return resilience.writeKey(backgroundWriteConfig, key, value);
     }
 
     async function resilientSbGetRemote(key) {
@@ -451,6 +462,7 @@
     try { canWriteCloudData = resilientCanWriteCloudData; } catch (_) {}
     try { showStorageError = detailedShowStorageError; } catch (_) {}
     root.sbSet = resilientSbSet;
+    root.sbSetBackground = resilientSbSetBackground;
     root.sbGetRemote = resilientSbGetRemote;
     root.sbGet = resilientSbGet;
     root.canWriteCloudData = resilientCanWriteCloudData;

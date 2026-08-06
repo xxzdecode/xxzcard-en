@@ -90,8 +90,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v64/);
-assert.match(serviceWorker, /xxzcard-runtime-v64/);
+assert.match(serviceWorker, /xxzcard-app-shell-v65/);
+assert.match(serviceWorker, /xxzcard-runtime-v65/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -105,6 +105,16 @@ assert.match(main, /loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardLayoutGuard\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardReconcile\.js'\)/);
+assert.match(
+  main,
+  /group !== 'adventureChallenge'[\s\S]*?vocabularyFeedbackErrorUI\.js[\s\S]*?vocabularyFeedbackSaveCoordinator\.js/,
+  'challenge entry must wait for automatic feedback and next-question coordination'
+);
+assert.ok(
+  main.indexOf('await loadHome();') < main.indexOf("loadFeatureScript('js/studentRewards.js')"),
+  'the cached home must render before optional reward/history enhancements load'
+);
+assert.match(main, /await Promise\.all\(\[\s*loadFeatureScript\('js\/storageResilience\.js'\),\s*loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/s);
 assert.match(main, /studentActivityStartup = loadFeatureScript\('js\/studentActivityControls\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/studentActivityControls.js')")
@@ -143,13 +153,14 @@ assert.doesNotMatch(serviceWorker, /cache\.addAll/);
 assert.doesNotMatch(serviceWorker, /assets\/vocabulary-review\//);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 assert.doesNotMatch(serviceWorker, /courseware\//);
-assert.match(serviceWorker, /navigationNetworkFirst/);
-assert.match(serviceWorker, /staticNetworkFirst/);
-assert.doesNotMatch(serviceWorker, /navigationStaleWhileRevalidate/);
+assert.match(serviceWorker, /staleWhileRevalidate/);
+assert.match(serviceWorker, /cachedNavigation/);
+assert.match(serviceWorker, /refreshStaticAsset/);
+assert.doesNotMatch(serviceWorker, /navigationNetworkFirst|staticNetworkFirst/);
 assert.doesNotMatch(serviceWorker, /apiNetworkFirst|isSupabaseApi|\.supabase\.co/);
 assert.match(serviceWorker, /cacheFirst/);
-assert.match(serviceWorker, /const cached = await cache\.match\(request\)/);
-assert.match(serviceWorker, /requestUrl\.pathname === appRoot\.pathname/);
+assert.match(serviceWorker, /const cached = await caches\.match\(request\)/);
+assert.match(serviceWorker, /requestUrl\.pathname !== appRoot\.pathname/);
 
 for (const [name, maxBytes] of [
   ['home-background.webp', 180000],

@@ -100,6 +100,7 @@ async function openHome(user, contextOptions, options = {}) {
   ]);
   const page = await context.newPage();
   const errors = [];
+  const postKeys = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => {
     if (message.type() === 'error' && !message.text().includes('Service Worker')) errors.push(message.text());
@@ -114,6 +115,7 @@ async function openHome(user, contextOptions, options = {}) {
     const request = route.request();
     if (request.method() === 'POST') {
       const payload = request.postDataJSON();
+      postKeys.push(payload.key);
       if (options.saveDelayMs) await new Promise(resolve => setTimeout(resolve, options.saveDelayMs));
       state.set(payload.key, structuredClone(payload.value));
       await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
@@ -160,7 +162,7 @@ async function openHome(user, contextOptions, options = {}) {
     }
     await page.evaluate(() => window.scrollTo(0, 0));
   }
-  return { context, page, errors, state };
+  return { context, page, errors, state, postKeys };
 }
 
 async function assertStudentHome(page, expectedName, {
@@ -330,6 +332,8 @@ try {
   if (!teacherDashboardOnly) {
   const sister = await openHome('sister', iphone16Portrait);
   await assertStudentHome(sister.page, '姐姐', { orientation: 'portrait' });
+  await sister.page.waitForTimeout(500);
+  assert.deepEqual(sister.postKeys, [], 'opening the student home must not trigger a cloud write');
   await sister.page.screenshot({ path: path.join(resultDir, 'sister-home-iphone16-portrait-393x852.png'), fullPage: true });
   assert.deepEqual(sister.errors, []);
   await sister.context.close();
@@ -371,7 +375,7 @@ try {
     window.__teacherDashboardStabilityObserver = new MutationObserver(records => {
       records.forEach(record => {
         if (record.type === 'attributes') {
-          if (record.target.matches?.('.screen, body')
+          if (record.target.matches?.('body, .screen.active')
               && record.oldValue !== record.target.getAttribute('class')) {
             window.__teacherDashboardStabilityEvents.push(`class:${record.target.id || 'body'}:${record.target.className}`);
           }

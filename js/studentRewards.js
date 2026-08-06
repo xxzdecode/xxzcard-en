@@ -420,12 +420,11 @@
     async function loadReward(user) {
       if (typeof root.sbGet !== 'function') return normalizeRewardRecord(null);
       const raw = await root.sbGet(rewardKey(user));
-      const record = normalizeRewardRecord(raw);
-      if (typeof root.sbSet === 'function' && JSON.stringify(raw || null) !== JSON.stringify(record)) {
-        try { await root.sbSet(rewardKey(user), record); }
-        catch (error) { root.showStorageError?.(error); }
-      }
-      return record;
+      // Normalization is a read concern. Persisting it during every home load
+      // caused an unsolicited cloud write (and a retry alert) before the user
+      // had performed any action. Explicit reward mutations save the normalized
+      // record through saveReward/recordSource instead.
+      return normalizeRewardRecord(raw);
     }
 
     async function saveReward(user, record) {

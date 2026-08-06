@@ -1,6 +1,13 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const queue = require('../js/vocabularyAdventureLessonQueue.js');
 const groups = require('../js/vocabularyLessonGroups.js');
+
+const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'vocabularyAdventureLessonQueue.js'), 'utf8');
+assert.match(source, /saveCurrentVocabularyAdventureStateWithLessonQueue\(stateValue, \.\.\.saveArgs\)/);
+assert.equal((source.match(/originalSave\.call\(root, (?:stateValue|merged), \.\.\.saveArgs\)/g) || []).length, 2);
+assert.match(source, /saveCurrentVocabularyAdventureStateWithLessonQueue\.__vteCoordinatorWrapped/);
 
 // Dependency gate: this stacked PR must continue running against the current
 // 20-word lesson-group base. The base branch's own safety tests cover failed

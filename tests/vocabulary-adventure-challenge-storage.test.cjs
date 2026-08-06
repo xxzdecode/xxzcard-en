@@ -2,7 +2,19 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const challenge = require('../js/vocabularyAdventureChallenge.js');
+
+const root = path.resolve(__dirname, '..');
+const challengeSource = fs.readFileSync(path.join(root, 'js', 'vocabularyAdventureChallenge.js'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+assert.equal(
+  (challengeSource.match(/saveCurrentVocabularyAdventureState\([^;]+\{ queue: true \}\)/g) || []).length,
+  4,
+  'challenge start, answer, retry, and exit must all use local-first queued saves'
+);
+assert.match(html, /id="vocabularyAdventureChallengeSyncStatus" aria-live="polite"/);
 
 function createElement() {
   const attributes = new Map();
