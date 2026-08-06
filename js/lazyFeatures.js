@@ -41,6 +41,7 @@ const FEATURE_GROUPS = {
 
 const loadedFeatureScripts = new Set();
 const featureScriptPromises = new Map();
+const independentFeatureScriptPromises = new Map();
 const featureGroupPromises = new Map();
 
 const VOCABULARY_COPY_LIST_STUDENTS = Object.freeze([
@@ -217,6 +218,7 @@ function installVocabularyCopyListExportButton() {
 function loadFeatureScript(src) {
   if (loadedFeatureScripts.has(src)) return Promise.resolve();
   if (featureScriptPromises.has(src)) return featureScriptPromises.get(src);
+  if (independentFeatureScriptPromises.has(src)) return independentFeatureScriptPromises.get(src);
 
   let resolvePromise;
   let rejectPromise;
@@ -265,6 +267,52 @@ function loadFeatureScript(src) {
     finish(error instanceof Error ? error : new Error(`功能资源加载失败：${src}`));
   }
 
+  return promise;
+}
+
+function loadIndependentFeatureScript(src) {
+  if (loadedFeatureScripts.has(src)) return Promise.resolve();
+  if (featureScriptPromises.has(src)) return featureScriptPromises.get(src);
+  if (independentFeatureScriptPromises.has(src)) return independentFeatureScriptPromises.get(src);
+
+  let resolvePromise;
+  let rejectPromise;
+  const promise = new Promise((resolve, reject) => {
+    resolvePromise = resolve;
+    rejectPromise = reject;
+  });
+  independentFeatureScriptPromises.set(src, promise);
+
+  const script = document.createElement('script');
+  let settled = false;
+  let timeout = 0;
+  const finish = error => {
+    if (settled) return;
+    settled = true;
+    if (timeout) window.clearTimeout(timeout);
+    script.onload = null;
+    script.onerror = null;
+    independentFeatureScriptPromises.delete(src);
+    if (error) {
+      script.remove();
+      rejectPromise(error);
+      return;
+    }
+    loadedFeatureScripts.add(src);
+    resolvePromise();
+  };
+  try {
+    script.src = src;
+    script.async = true;
+    script.dataset.featureSource = src;
+    script.dataset.loadingMode = 'independent';
+    script.onload = () => finish();
+    script.onerror = () => finish(new Error(`独立功能资源加载失败：${src}`));
+    timeout = window.setTimeout(() => finish(new Error(`独立功能资源加载超时：${src}`)), 10000);
+    document.head.appendChild(script);
+  } catch (error) {
+    finish(error instanceof Error ? error : new Error(`独立功能资源加载失败：${src}`));
+  }
   return promise;
 }
 
@@ -403,6 +451,30 @@ function installLazyFeatureHandler(name, group) {
 ].forEach(([name, group]) => installLazyFeatureHandler(name, group));
 
 window.exportVocabularyAdventureCopyLists = exportVocabularyAdventureCopyLists;
+window.loadIndependentFeatureScript = loadIndependentFeatureScript;
+
+let teacherDashboardSummaryRefreshPromise = null;
+function refreshTeacherDashboardSummaries() {
+  if (typeof isTeacher === 'function' && !isTeacher()) return Promise.resolve(null);
+  if (teacherDashboardSummaryRefreshPromise) return teacherDashboardSummaryRefreshPromise;
+  teacherDashboardSummaryRefreshPromise = loadIndependentFeatureScript('js/teacherDashboardSummaries.js')
+    .then(() => window.TeacherDashboardSummaries?.refresh?.())
+    .catch(error => {
+      console.warn('teacher dashboard summaries unavailable', error && (error.message || error));
+      ['teacherLatestPracticeSummary', 'teacherKnowledgeSummary'].forEach(id => {
+        const panel = document.getElementById(id);
+        if (!panel) return;
+        panel.dataset.state = 'unavailable';
+        panel.setAttribute('aria-busy', 'false');
+      });
+      return null;
+    })
+    .finally(() => {
+      teacherDashboardSummaryRefreshPromise = null;
+    });
+  return teacherDashboardSummaryRefreshPromise;
+}
+window.refreshTeacherDashboardSummaries = refreshTeacherDashboardSummaries;
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', installVocabularyCopyListExportButton, { once: true });

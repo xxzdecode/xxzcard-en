@@ -33,6 +33,29 @@ const mainData = {
     cards
   }]
 };
+const grammarTopics = JSON.parse(fs.readFileSync(path.join(root, 'grammar-library', 'data', 'topics.json'), 'utf8'));
+const teacherGrammarProgress = {
+  schemaVersion: 1,
+  scopeKey: 'shared',
+  topics: {
+    'sentence-parts': {
+      status: 'confirmed_complete',
+      last_lesson_date: '2026-07-20',
+      title: '句子骨架：主语、谓语、宾语'
+    },
+    'time-prepositions': {
+      status: 'confirmed_complete',
+      last_lesson_date: '2026-08-04',
+      title: '时间介词 at / on / in'
+    },
+    'place-prepositions': {
+      status: 'materials_ready',
+      last_lesson_date: '2026-08-07',
+      title: '地点介词'
+    }
+  },
+  events: []
+};
 const adventureState = {
   version: 1,
   words: Object.fromEntries(cards.map(card => [card.word, {
@@ -91,6 +114,7 @@ async function openHome(user, contextOptions, options = {}) {
     ['main', structuredClone(mainData)],
     [`vocab_adventure_v1_${user}`, structuredClone(adventureState)],
     [`daily_task_${user}`, {}],
+    ['grammar_progress', structuredClone(teacherGrammarProgress)],
     [`student_reward_v1_${user}`, options.rewardRecord || {
       version: 1,
       user,
@@ -108,6 +132,12 @@ async function openHome(user, contextOptions, options = {}) {
   if (options.masterVocabularyDelayMs) {
     await page.route('**/js/masterVocabularyLibrary.js', async route => {
       await new Promise(resolve => setTimeout(resolve, options.masterVocabularyDelayMs));
+      await route.continue();
+    });
+  }
+  if (options.summaryModuleDelayMs) {
+    await page.route('**/js/teacherDashboardSummaries.js', async route => {
+      await new Promise(resolve => setTimeout(resolve, options.summaryModuleDelayMs));
       await route.continue();
     });
   }
@@ -348,7 +378,8 @@ try {
   }
 
   const teacher = await openHome('teacher', ipadViewport(1180, 820), {
-    masterVocabularyDelayMs: 3000
+    masterVocabularyDelayMs: 3000,
+    summaryModuleDelayMs: 5000
   });
   assert.equal(await teacher.page.locator('#studentDashboard').isHidden(), true);
   assert.equal(await teacher.page.locator('#studentFeatureNav').isHidden(), true);
@@ -359,6 +390,11 @@ try {
     'undefined',
     'coin controls must appear before an unrelated optional module finishes loading'
   );
+  assert.equal(
+    await teacher.page.evaluate(() => typeof window.TeacherDashboardSummaries),
+    'undefined',
+    'coin controls must not wait for the independent dashboard summary module'
+  );
   assert.deepEqual(
     await teacher.page.locator('.teacher-home-nav .teacher-dashboard-button span').allTextContents(),
     ['进入管理', '导入', '导出词单']
@@ -367,6 +403,30 @@ try {
   await teacher.page.waitForSelector('#teacherActivityPanel:visible');
   await teacher.page.waitForSelector('#teacherStudentTagPanel:visible');
   await teacher.page.waitForSelector('.teacher-dashboard-entry-card--wrong-answers:visible');
+  await teacher.page.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
+  await teacher.page.waitForSelector('#screenWrongAnswerDirectory.active');
+  assert.equal(
+    await teacher.page.evaluate(() => typeof window.TeacherDashboardSummaries),
+    'undefined',
+    'wrong-answer navigation must not wait for the dashboard summary module'
+  );
+  await teacher.page.locator('#screenWrongAnswerDirectory .back-btn').click();
+  await teacher.page.waitForSelector('#screenHome.active');
+  await teacher.page.waitForFunction(() => (
+    document.getElementById('teacherLatestPracticeSummary')?.dataset.state === 'ready'
+      && document.getElementById('teacherKnowledgeSummary')?.dataset.state === 'ready'
+  ), null, { timeout: 8000 });
+  assert.equal(await teacher.page.locator('#teacherLatestPracticeDate').textContent(), '2026年8月6日');
+  assert.equal(
+    await teacher.page.locator('#teacherLatestPracticeTitle').textContent(),
+    '地点介词“上与下”随堂练习'
+  );
+  assert.equal(
+    await teacher.page.locator('#teacherKnowledgeProgressCount').textContent(),
+    `2 / ${grammarTopics.length}`
+  );
+  assert.equal(await teacher.page.locator('#teacherKnowledgeLastTopic').textContent(), '时间介词 at / on / in');
+  assert.equal(await teacher.page.locator('#teacherKnowledgeNextTopic').textContent(), '地点介词');
   const teacherStabilityBefore = await teacher.page.evaluate(() => {
     const signature = () => [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
       .map(card => card.id || getComputedStyle(card).order)
@@ -435,6 +495,10 @@ try {
       const rect = card.getBoundingClientRect();
       return { id, top: rect.top, marginTop: getComputedStyle(card).marginTop };
     }),
+    summaryCardsFit: ['teacherLatestPracticeSummary', 'teacherKnowledgeSummary'].map(id => {
+      const panel = document.getElementById(id);
+      return panel.scrollWidth <= panel.clientWidth && panel.scrollHeight <= panel.clientHeight;
+    }),
     cardOrders: [...document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card')]
       .map(card => ({ id: card.id || '', order: getComputedStyle(card).order }))
       .sort((a, b) => Number(a.order) - Number(b.order))
@@ -442,6 +506,7 @@ try {
   assert.deepEqual(teacherLayout.viewport, [1180, 820]);
   assert.ok(teacherLayout.pageWidth <= 1180, `teacher dashboard overflowed to ${teacherLayout.pageWidth}px`);
   assert.equal(teacherLayout.primaryTitle, '单词卡管理');
+  assert.deepEqual(teacherLayout.summaryCardsFit, [true, true]);
   assert.ok(
     Math.max(...teacherLayout.dynamicCards.map(card => card.top))
       - Math.min(...teacherLayout.dynamicCards.map(card => card.top)) <= 1,
@@ -477,8 +542,39 @@ try {
   assert.deepEqual(teacher.errors, []);
   await teacher.context.close();
 
+  const teacherPhone = await openHome('teacher', iphone16Portrait);
+  await teacherPhone.page.waitForFunction(() => (
+    document.getElementById('teacherLatestPracticeSummary')?.dataset.state === 'ready'
+      && document.getElementById('teacherKnowledgeSummary')?.dataset.state === 'ready'
+  ));
+  await teacherPhone.page.waitForSelector('#teacherActivityPanel:visible');
+  await teacherPhone.page.waitForSelector('.teacher-dashboard-entry-card--wrong-answers:visible');
+  const teacherPhoneLayout = await teacherPhone.page.evaluate(() => ({
+    pageWidth: document.documentElement.scrollWidth,
+    viewportWidth: innerWidth,
+    minimumSummaryActionHeight: Math.min(...[...document.querySelectorAll(
+      '.teacher-dashboard-entry-card--courseware .teacher-dashboard-card__action,'
+        + '.teacher-dashboard-entry-card--knowledge .teacher-dashboard-card__action,'
+        + '.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action'
+    )]
+      .map(button => button.getBoundingClientRect().height)),
+    summariesFit: ['teacherLatestPracticeSummary', 'teacherKnowledgeSummary'].map(id => {
+      const panel = document.getElementById(id);
+      return panel.scrollWidth <= panel.clientWidth && panel.scrollHeight <= panel.clientHeight;
+    })
+  }));
+  assert.ok(teacherPhoneLayout.pageWidth <= teacherPhoneLayout.viewportWidth);
+  assert.ok(teacherPhoneLayout.minimumSummaryActionHeight >= 44);
+  assert.deepEqual(teacherPhoneLayout.summariesFit, [true, true]);
+  await teacherPhone.page.screenshot({
+    path: path.join(resultDir, 'teacher-dashboard-iphone16-portrait-393x852.png'),
+    fullPage: true
+  });
+  assert.deepEqual(teacherPhone.errors, []);
+  await teacherPhone.context.close();
+
   if (teacherDashboardOnly) {
-    console.log(`teacher dashboard iPad viewport test passed: ${resultDir}`);
+    console.log(`teacher dashboard iPad and iPhone viewport tests passed: ${resultDir}`);
   } else {
   const ipadAir = await openHome('sister', ipadViewport(1180, 820));
   await assertStudentHome(ipadAir.page, '姐姐', {
