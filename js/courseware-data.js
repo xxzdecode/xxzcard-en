@@ -6,7 +6,8 @@ window.CLASSROOM_PRACTICE_ITEMS = [
     "description": "地点介词 on / over / above / under / below 随堂练习，共20题",
     "icon": "screen",
     "tone": "purple",
-    "path": "courseware/26.08.06｜地点介词“上与下”随堂练习.html"
+    "path": "courseware/26.08.06｜地点介词“上与下”随堂练习.html",
+    "grammarCompatible": true
   },
   {
     "id": "courseware-2026-08-04",
