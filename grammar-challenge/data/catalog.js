@@ -3,6 +3,26 @@
   // lessonKey / kpIds 是长期语法挑战记录与周测、月测汇总的正式映射。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-06-time-prepositions-review',
+      date: '2026-08-06',
+      title: '时间介词快速挑战',
+      lessonKey: 'time-prepositions-in-on-at',
+      kpIds: ['time-prepositions-in-on-at'],
+      questionKpIds: {
+        GC01: ['time-prepositions-in-on-at'],
+        GC02: ['time-prepositions-in-on-at'],
+        GC03: ['time-prepositions-in-on-at'],
+        GC04: ['time-prepositions-in-on-at'],
+        GC05: ['time-prepositions-in-on-at'],
+        GC06: ['time-prepositions-in-on-at'],
+        GC07: ['time-prepositions-in-on-at'],
+        GC08: ['time-prepositions-in-on-at'],
+        GC09: ['time-prepositions-in-on-at'],
+        GC10: ['time-prepositions-in-on-at']
+      },
+      pagePath: './practices/2026-08-06.html'
+    },
+    {
       id: 'grammar-2026-08-04-cardinal-ordinal-review',
       date: '2026-08-04',
       title: '数字排队快速挑战',
