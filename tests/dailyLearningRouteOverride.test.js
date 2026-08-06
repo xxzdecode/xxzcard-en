@@ -78,7 +78,7 @@ assert.match(overrideRuntime, /AbortController/);
 assert.match(overrideRuntime, /option\.disabled = check\.state !== 'compatible'/);
 assert.match(overrideRuntime, /typeof item\.grammarCompatible === 'boolean'/);
 assert.match(overrideRuntime, /另有 \$\{unverifiedCount\} 条暂时无法验证/);
-assert.equal((coursewareData.match(/"grammarCompatible": true/g) || []).length, 13);
+assert.equal((coursewareData.match(/"grammarCompatible": true/g) || []).length, 14);
 assert.equal((coursewareData.match(/"grammarCompatible": false/g) || []).length, 5);
 assert.match(overrideRuntime, /ensurePinnedSlot/);
 assert.match(overrideRuntime, /openStudentGrammarChallenge/);
