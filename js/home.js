@@ -156,7 +156,10 @@ async function loadHome() {
   updateUserBar();
   if (currentUser === 'teacher') document.body.classList.add('is-teacher');
   else document.body.classList.remove('is-teacher');
-  if (isTeacher()) return;
+  if (isTeacher()) {
+    window.refreshTeacherDashboardSummaries?.();
+    return;
+  }
 
   await loadStudentRewardSummary();
   const notice = document.getElementById('studentHomeNotice');
