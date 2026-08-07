@@ -45,11 +45,35 @@ const catalog = {
 };
 
 const mainData = { pin: '1234', batches: [], mixedAssignments: [], taskAssignments: [] };
+const weaknessView = {
+  schema_version: 1,
+  source_updated_at: '2026-08-07T16:55:00+08:00',
+  source_hash: 'sha256:weakness-view-test',
+  published_at: '2026-08-07T09:00:00.000Z',
+  students: {
+    sister: { item_count: 0, groups: [] },
+    brother: {
+      item_count: 3,
+      groups: [{
+        kp_id: 'sentence-parts',
+        title: '句子结构',
+        item_count: 3,
+        evidence_count: 4,
+        items: [
+          { weakness_id: 'brother.sentence-parts.time-adjunct', title: '识别时间信息属于补充信息', status: 'active', evidence_count: 2, last_seen_at: '2026-08-06' },
+          { weakness_id: 'brother.sentence-parts.subject-boundary', title: '识别完整主语，并判断句子是否需要宾语', status: 'active', evidence_count: 1, last_seen_at: '2026-08-06' },
+          { weakness_id: 'brother.sentence-parts.predicate', title: '理解 be 动词与表语共同构成状态谓语', status: 'active', evidence_count: 1, last_seen_at: '2026-08-06' }
+        ]
+      }]
+    }
+  }
+};
 const state = new Map([
   ['main', structuredClone(mainData)],
   ['assessment_catalog_v1', structuredClone(catalog)],
   ['assessment_grading_v1_sister', { schema_version: 1, student_id: 'sister', records: {} }],
-  ['assessment_grading_v1_brother', { schema_version: 1, student_id: 'brother', records: {} }]
+  ['assessment_grading_v1_brother', { schema_version: 1, student_id: 'brother', records: {} }],
+  ['assessment_weakness_view_v1', structuredClone(weaknessView)]
 ]);
 const posts = [];
 
@@ -166,11 +190,25 @@ try {
   await page.locator('#screenWrongAnswerDetail .back-btn').click();
   await page.waitForSelector('#screenWrongAnswerDirectory.active');
   assert.equal(await page.locator('#wrongAnswerDirectoryStatus').textContent(), '按学生查看每天、每张卷子的批改记录。');
-  assert.equal(await page.locator('.wrong-answer-roadmap-card').count(), 2);
+  assert.equal(await page.locator('.wrong-answer-roadmap-card').count(), 1);
   assert.deepEqual(
     await page.locator('.wrong-answer-roadmap-card h3').allTextContents(),
-    ['整理错题集', '分析薄弱知识点']
+    ['整理错题集']
   );
+  assert.equal(await page.locator('.wrong-answer-weakness-donut__segment').count(), 1);
+  assert.equal(await page.locator('.wrong-answer-weakness-donut__center strong').textContent(), '3');
+  assert.equal(await page.locator('.wrong-answer-weakness-legend__item').textContent(), '句子结构3');
+  assert.equal(await page.locator('.wrong-answer-weakness-donut__segment').evaluate(node => {
+    const segment = node.getBoundingClientRect();
+    const chart = node.closest('.wrong-answer-weakness-chart').getBoundingClientRect();
+    return segment.left >= chart.left && segment.right <= chart.right && segment.top >= chart.top && segment.bottom <= chart.bottom;
+  }), true);
+  const donutBox = await page.locator('.wrong-answer-weakness-chart svg').boundingBox();
+  assert.ok(donutBox, 'weakness donut must be visible');
+  await page.mouse.move(donutBox.x + donutBox.width / 2, donutBox.y + 18);
+  await page.waitForSelector('#wrongAnswerWeaknessTooltip:not([hidden])');
+  assert.match(await page.locator('#wrongAnswerWeaknessTooltip').innerText(), /识别时间信息属于补充信息/);
+  assert.match(await page.locator('#wrongAnswerWeaknessTooltip').innerText(), /2 条证据/);
   assert.equal(
     await page.locator('[data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"] .wrong-answer-paper-row__count').textContent(),
     '错 2 / 10 小问'
@@ -190,7 +228,7 @@ try {
   assert.deepEqual(errors, []);
   await context.close();
 
-  const phoneContext = await browser.newContext({ viewport: { width: 393, height: 852 }, serviceWorkers: 'block' });
+  const phoneContext = await browser.newContext({ viewport: { width: 393, height: 852 }, hasTouch: true, serviceWorkers: 'block' });
   await phoneContext.addInitScript(mirror => {
     localStorage.setItem('wc_user', 'teacher');
     localStorage.setItem('wc_sb_main', JSON.stringify(mirror));
@@ -201,19 +239,22 @@ try {
   await phonePage.waitForFunction(() => document.body.classList.contains('is-teacher'));
   await phonePage.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
   await phonePage.waitForSelector('#screenWrongAnswerDirectory.active');
-  assert.equal(await phonePage.locator('.wrong-answer-roadmap-card').count(), 2);
+  assert.equal(await phonePage.locator('.wrong-answer-roadmap-card').count(), 1);
   assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   assert.deepEqual(
     await phonePage.locator('.wrong-answer-roadmap-card').evaluateAll(cards => cards.map(card => ({
       withinViewport: card.getBoundingClientRect().left >= 0 && card.getBoundingClientRect().right <= innerWidth,
       textFits: card.scrollWidth <= card.clientWidth && card.scrollHeight <= card.clientHeight
     }))),
-    [
-      { withinViewport: true, textFits: true },
-      { withinViewport: true, textFits: true }
-    ]
+    [{ withinViewport: true, textFits: true }]
   );
+  assert.equal(await phonePage.locator('.wrong-answer-weakness-donut__segment').count(), 1);
   await phonePage.screenshot({ path: path.join(resultDir, 'directory-393x852.png'), fullPage: true });
+  await phonePage.locator('.wrong-answer-weakness-legend__item').tap();
+  await phonePage.waitForSelector('#wrongAnswerWeaknessTooltip:not([hidden])');
+  assert.match(await phonePage.locator('#wrongAnswerWeaknessTooltip').innerText(), /理解 be 动词与表语共同构成状态谓语/);
+  assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await phonePage.screenshot({ path: path.join(resultDir, 'directory-tooltip-393x852.png'), fullPage: true });
   await phonePage.locator('#screenWrongAnswerDirectory [data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"]').click();
   await phonePage.waitForSelector('#screenWrongAnswerDetail.active');
   assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
