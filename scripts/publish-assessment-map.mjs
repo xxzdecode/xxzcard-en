@@ -156,7 +156,12 @@ export function mergeAssessmentCatalog(currentValue, questionMap, now = new Date
     String(left.assessment_date || '').localeCompare(String(right.assessment_date || ''))
     || String(left.assessment_id || '').localeCompare(String(right.assessment_id || ''))
   ));
-  const latestPaperId = questionMap.papers[0].paper_id;
+  const latestAssessment = assessments[assessments.length - 1];
+  const currentLatestBelongsToLatest = Array.isArray(latestAssessment && latestAssessment.papers)
+    && latestAssessment.papers.some(paper => paper && paper.paper_id === current.latest_paper_id);
+  const latestPaperId = currentLatestBelongsToLatest
+    ? current.latest_paper_id
+    : latestAssessment.papers[0].paper_id;
   const unchanged = existingIndex >= 0
     && sameJson(current.assessments[existingIndex], questionMap)
     && current.latest_paper_id === latestPaperId;
