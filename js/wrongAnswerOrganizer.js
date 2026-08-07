@@ -162,6 +162,7 @@
           kpIds: strings(item && (item.kpIds || item.kp_ids))
         }))
         .filter(item => item.questionId),
+      teacherNote: text(source.teacherNote || source.teacher_note),
       status: 'graded',
       gradedAt: text(source.gradedAt || source.graded_at),
       updatedAt: text(source.updatedAt || source.updated_at)
@@ -184,7 +185,7 @@
     };
   }
 
-  function createGradingRecord(paper, wrongQuestionIds, nowValue) {
+  function createGradingRecord(paper, wrongQuestionIds, nowValue, teacherNote) {
     const now = text(nowValue) || new Date().toISOString();
     const validQuestionIds = new Set(paper.sections.flatMap(section => section.items.map(item => item.questionId)));
     const wrongIds = strings(wrongQuestionIds).filter(id => validQuestionIds.has(id));
@@ -202,15 +203,16 @@
         question_id: questionId,
         kp_ids: questionById.get(questionId)?.kpIds || []
       })),
+      teacher_note: text(teacherNote),
       status: 'graded',
       graded_at: now,
       updated_at: now
     };
   }
 
-  function mergeGradingStore(value, paper, wrongQuestionIds, nowValue) {
+  function mergeGradingStore(value, paper, wrongQuestionIds, nowValue, teacherNote) {
     const current = normalizeGradingStore(value, paper.studentId);
-    const record = createGradingRecord(paper, wrongQuestionIds, nowValue);
+    const record = createGradingRecord(paper, wrongQuestionIds, nowValue, teacherNote);
     return {
       schema_version: VERSION,
       student_id: paper.studentId,
@@ -431,6 +433,8 @@
           sections.append(details);
         });
       }
+      const note = doc.getElementById('wrongAnswerTeacherNote');
+      if (note) note.value = recordState.record ? recordState.record.teacherNote : '';
       updateSelectionStatus(recordState.stale
         ? '题号映射已更新，请重新核对并保存'
         : recordState.record
@@ -540,12 +544,13 @@
           .forEach(input => { input.checked = false; });
       }
       const wrongIds = allCorrect ? [] : selectedWrongQuestionIds();
+      const teacherNote = text(doc.getElementById('wrongAnswerTeacherNote')?.value);
       if (saveButton) saveButton.disabled = true;
       updateSelectionStatus('正在保存…');
       runtime.savePromise = (async () => {
         const key = gradingKey(paper.studentId);
         const remote = await readValue(key, true);
-        const next = mergeGradingStore(remote, paper, wrongIds);
+        const next = mergeGradingStore(remote, paper, wrongIds, undefined, teacherNote);
         if (typeof root.sbSet !== 'function') throw new Error('批改记录存储不可用');
         await root.sbSet(key, next);
         runtime.grading[paper.studentId] = normalizeGradingStore(next, paper.studentId);

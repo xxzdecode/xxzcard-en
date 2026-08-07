@@ -293,6 +293,34 @@
   font-weight: 900;
   text-align: center;
 }
+.wrong-answer-teacher-note {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 12px;
+}
+.wrong-answer-teacher-note span {
+  color: #574563;
+  font-size: 12px;
+  font-weight: 900;
+}
+.wrong-answer-teacher-note textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid #ddd3e3;
+  border-radius: 11px;
+  padding: 10px;
+  background: #fffdf8;
+  color: #4f4254;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.wrong-answer-teacher-note textarea:focus-visible {
+  outline: 3px solid rgba(118, 88, 186, 0.22);
+  border-color: #7658ba;
+}
 .wrong-answer-actions { display: grid; gap: 8px; }
 .wrong-answer-actions button {
   min-height: 44px;
