@@ -21,7 +21,7 @@
 - `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。
 - `screenCourseware` / `screenCoursewarePlayer`：老师端随堂练习目录与独立 iframe 播放页；内部 ID 保留旧名称以兼容已有入口。
 - `screenGrammarLibrary`：老师端“知识点库”入口与 iframe 容器，加载结构化英语语法知识点库。
-- `screenWrongAnswerDirectory` / `screenWrongAnswerDetail`：老师端“错题整理”双学生目录与单卷错题登记页；登记页只显示题号层级，不保存或显示题目正文。
+- `screenWrongAnswerDirectory` / `screenWrongAnswerDetail`：老师端“错题整理”双学生目录与单卷错题登记页；目录内直接显示按学生切换的薄弱知识点圆环图，登记页只显示题号层级，不保存或显示题目正文。
 - `screenWordCards`：学生单词卡列表和单词卡查看。
 - `screenPhonemeTraining`：音标训练。
 - `screenThemeQuizzes`：专项小游戏列表。
@@ -57,7 +57,7 @@
 - `js/courseware.js`：独立随堂练习清单、老师端目录渲染和 iframe 播放器开关逻辑；文件名保留用于兼容。
 - `js/courseware-data.js`：由练习上传脚本维护的随堂练习目录数据；文件名和旧全局变量别名保留用于兼容。
 - `js/grammarLibrary.js`：老师端知识点库 iframe 的打开和返回逻辑。
-- `js/wrongAnswerOrganizer.js`：老师端错题目录、最新练习入口、题号勾选和批改记录保存；通过 `js/lazyFeatures.js` 按需加载。
+- `js/wrongAnswerOrganizer.js`：老师端错题目录、最新练习入口、题号勾选、批改记录保存和脱敏薄弱项快照展示；通过 `js/lazyFeatures.js` 按需加载。
 - `styles-wrong-answer-organizer.css`：错题整理首页卡片、双栏目录和登记页样式；正式验收视口为 iPad Air 11 英寸横屏 `1180 × 820`。
 - `grammar-library/`：英语语法知识点库独立页面、结构化教学顺序、来源覆盖矩阵和进度交互。
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
@@ -69,6 +69,7 @@
 - `scripts/sync-category-wordbook.mjs`：按正式分类骨架审计引用式分类单词本；先 dry-run 生成绑定 Git 包与 Supabase 基线的 `planHash`，再通过事务 RPC 建立快照并原子写入。
 - `scripts/publish-vocabulary-review-images.py`：生词巩固图片批量发布命令；`prepare` 统一处理全部 pending 批次，推送成功后再用 `finalize` 一次性回写完成状态。
 - `scripts/publish-assessment-map.mjs`：把 Material Hub 的 daily / weekly / monthly `question-map.json` 校验、合并并发布到 `assessment_catalog_v1`；默认 dry-run，`--apply` 前后二次读取并做写后验收，不上传题目正文或答案。
+- `scripts/publish-weakness-view.mjs`：把 Material Hub 的正式薄弱项状态转换为不含原题、答案、老师说明和分析观察的展示快照，并原子发布到 `assessment_weakness_view_v1`；默认 dry-run，`--apply` 写后回读验收。
 
 ## 4. 数据流相关文件
 
@@ -137,7 +138,7 @@
 - 看专项小游戏入口：先看 `js/themeQuizzes.js`，再看注册表实际指向的 `quizzes/三单变形练习.html`。
 - 看老师端随堂练习目录和播放器：先看 `js/courseware.js`、`js/courseware-data.js`，再看 `index.html` 的 `screenCourseware` 与 `screenCoursewarePlayer`；练习上传任务再看 `scripts/add-practice.mjs`。
 - 看老师端知识点库：先看 `grammar-library/data/topics.json` 与 `grammar-library/app.js`，再看 `js/grammarLibrary.js` 和 Supabase `kv_store/grammar_progress` 进度记录。
-- 看老师端错题整理：先看 `js/wrongAnswerOrganizer.js` 和 `styles-wrong-answer-organizer.css`，再看 `index.html` 的两个 wrong-answer screen；试卷元数据由外部出卷流程写入 `assessment_catalog_v1`。
+- 看老师端错题整理：先看 `js/wrongAnswerOrganizer.js` 和 `styles-wrong-answer-organizer.css`，再看 `index.html` 的两个 wrong-answer screen；试卷元数据由外部出卷流程写入 `assessment_catalog_v1`，薄弱项图读取 `assessment_weakness_view_v1`。
 - 看老师端单词去重入口：先看 `js/wordDedupe.js`，再看 `tools/word-dedupe/index.html`。
 - 执行已完成内容的单词本任务：先看 `docs/create-wordbook-automation.md`，再使用 `scripts/create-wordbook.mjs`；不得跳过 dry-run 或改成普通多次写入。
 - 同步正式分类引用式单词本：先看 `docs/reference-wordbook-import-format.md`，再使用 `scripts/sync-category-wordbook.mjs`；正式 RPC 尚未安装或未获本次写入授权时只做 dry-run。

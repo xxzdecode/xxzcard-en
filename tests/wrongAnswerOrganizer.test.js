@@ -97,6 +97,32 @@ assert.equal(current.record.teacherNote, '第 2 题：没有把主语看成一�
 assert.equal(current.stale, false);
 assert.equal(api.paperProgressLabel(daily, current), '错 2 / 5 小问');
 
+const weaknessView = api.normalizeWeaknessView({
+  schema_version: 1,
+  source_updated_at: '2026-08-07T16:55:00+08:00',
+  source_hash: 'sha256:test',
+  students: {
+    sister: { item_count: 0, groups: [] },
+    brother: {
+      item_count: 3,
+      groups: [{
+        kp_id: 'sentence-parts',
+        title: '句子结构',
+        item_count: 3,
+        evidence_count: 4,
+        items: [
+          { weakness_id: 'time', title: '识别时间信息属于补充信息', status: 'active', evidence_count: 2, last_seen_at: '2026-08-06' },
+          { weakness_id: 'subject', title: '识别完整主语', status: 'active', evidence_count: 1, last_seen_at: '2026-08-06' },
+          { weakness_id: 'predicate', title: '识别完整谓语', status: 'improving', evidence_count: 1, last_seen_at: '2026-08-06' }
+        ]
+      }]
+    }
+  }
+});
+assert.equal(weaknessView.students.brother.itemCount, 3);
+assert.equal(weaknessView.students.brother.groups[0].title, '句子结构');
+assert.deepEqual(api.weaknessDonutSegments(weaknessView.students.brother.groups).map(item => item.percent), [100]);
+
 const revisedDaily = { ...daily, mapRevision: 'sha256:daily-v2' };
 const stale = api.recordForPaper(store, revisedDaily);
 assert.equal(stale.record, null);
@@ -181,8 +207,11 @@ assert.match(html, /id="screenWrongAnswerDirectory"/);
 assert.match(html, /id="screenWrongAnswerDetail"/);
 assert.match(html, /<h2 id="wrongAnswerRoadmapHeading">让登记结果继续发挥作用<\/h2>/);
 assert.match(html, /<h3>整理错题集<\/h3>/);
-assert.match(html, /<h3>分析薄弱知识点<\/h3>/);
-assert.match(html, /wrong-answer-roadmap__status">规划中<\/span>/);
+assert.match(html, /id="wrongAnswerWeaknessHeading">薄弱知识点<\/h3>/);
+assert.match(html, /wrong-answer-roadmap__status">每天 14:00 更新<\/span>/);
+assert.match(html, /id="wrongAnswerWeaknessChart"/);
+assert.match(html, /data-weakness-student="sister"/);
+assert.match(html, /data-weakness-student="brother"/);
 assert.match(html, /id="wrongAnswerTeacherNote"/);
 assert.match(html, /补充说明（可选）/);
 assert.match(html, /onclick="markWrongAnswerPaperAllCorrect\(\)"[^>]*>全对<\/button>/);
@@ -194,13 +223,15 @@ assert.ok(
   'wrong answer organizer must occupy the final dashboard slot after the knowledge library'
 );
 assert.match(styles, /\.wrong-answer-directory-grid\s*\{[^}]*repeat\(2,/s);
-assert.match(styles, /\.wrong-answer-roadmap__grid\s*\{[^}]*repeat\(2,/s);
+assert.match(styles, /\.wrong-answer-roadmap__grid\s*\{[^}]*minmax\(180px,/s);
+assert.match(styles, /\.wrong-answer-weakness-donut__segment/);
 assert.match(styles, /\.teacher-dashboard-entry-card--wrong-answers\s*\{\s*order:\s*6;/);
 assert.match(styles, /\.wrong-answer-question:has\(input:checked\)/);
 assert.match(loader, /wrongAnswerOrganizer:\s*\['js\/wrongAnswerOrganizer\.js'\]/);
 assert.doesNotMatch(organizerSource, /root\.loadHome\s*=|window\.loadHome\s*=/);
 assert.match(serviceWorker, /styles-wrong-answer-organizer\.css/);
 assert.match(serviceWorker, /js\/wrongAnswerOrganizer\.js/);
+assert.match(organizerSource, /assessment_weakness_view_v1/);
 assert.doesNotMatch(organizerSource, /日测范围与生成状态|active_assessment_id|next_topic_key/);
 assert.match(organizerSource, /root\.showStorageError\(error\)/);
 

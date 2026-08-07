@@ -10,7 +10,9 @@
 
   const CATALOG_KEY = 'assessment_catalog_v1';
   const GRADING_KEY_PREFIX = 'assessment_grading_v1_';
+  const WEAKNESS_VIEW_KEY = 'assessment_weakness_view_v1';
   const VERSION = 1;
+  const WEAKNESS_COLORS = Object.freeze(['#7658ba', '#e78aa9', '#f0a45d', '#5fa7a0', '#6f8fd1', '#9b78b5']);
   const STUDENTS = Object.freeze([
     { id: 'sister', name: '姐姐', emoji: '👧' },
     { id: 'brother', name: '弟弟', emoji: '👦' }
@@ -279,6 +281,74 @@
       : `待批改 · 共 ${paper.totalQuestions} 小问`;
   }
 
+  function normalizeWeaknessItem(value) {
+    const source = isObject(value) ? value : {};
+    const weaknessId = text(source.weaknessId || source.weakness_id);
+    const title = text(source.title);
+    const status = text(source.status);
+    if (!weaknessId || !title || !['active', 'improving'].includes(status)) return null;
+    return {
+      weaknessId,
+      title,
+      status,
+      evidenceCount: Math.max(0, Number(source.evidenceCount || source.evidence_count) || 0),
+      lastSeenAt: isoDate(source.lastSeenAt || source.last_seen_at)
+    };
+  }
+
+  function normalizeWeaknessGroup(value) {
+    const source = isObject(value) ? value : {};
+    const kpId = text(source.kpId || source.kp_id);
+    const title = text(source.title);
+    const items = (Array.isArray(source.items) ? source.items : []).map(normalizeWeaknessItem).filter(Boolean);
+    if (!kpId || !title || !items.length) return null;
+    return {
+      kpId,
+      title,
+      itemCount: items.length,
+      evidenceCount: items.reduce((sum, item) => sum + item.evidenceCount, 0),
+      items
+    };
+  }
+
+  function normalizeWeaknessStudent(value) {
+    const source = isObject(value) ? value : {};
+    const groups = (Array.isArray(source.groups) ? source.groups : []).map(normalizeWeaknessGroup).filter(Boolean);
+    return { itemCount: groups.reduce((sum, group) => sum + group.itemCount, 0), groups };
+  }
+
+  function normalizeWeaknessView(value) {
+    const source = isObject(value) ? value : {};
+    const students = isObject(source.students) ? source.students : {};
+    return {
+      schemaVersion: Number(source.schemaVersion || source.schema_version) || VERSION,
+      sourceUpdatedAt: text(source.sourceUpdatedAt || source.source_updated_at),
+      sourceHash: text(source.sourceHash || source.source_hash),
+      students: {
+        sister: normalizeWeaknessStudent(students.sister),
+        brother: normalizeWeaknessStudent(students.brother)
+      }
+    };
+  }
+
+  function weaknessColor(kpId) {
+    let hash = 0;
+    for (const character of text(kpId)) hash = ((hash << 5) - hash + character.charCodeAt(0)) | 0;
+    return WEAKNESS_COLORS[Math.abs(hash) % WEAKNESS_COLORS.length];
+  }
+
+  function weaknessDonutSegments(groups) {
+    const valid = (Array.isArray(groups) ? groups : []).filter(group => group && group.itemCount > 0);
+    const total = valid.reduce((sum, group) => sum + group.itemCount, 0);
+    let offset = 0;
+    return valid.map(group => {
+      const percent = total ? group.itemCount / total * 100 : 0;
+      const result = { group, percent, offset, color: weaknessColor(group.kpId) };
+      offset += percent;
+      return result;
+    });
+  }
+
   function install(root) {
     if (!root || !root.document || root.__wrongAnswerOrganizerInstalled) return;
     root.__wrongAnswerOrganizerInstalled = true;
@@ -286,6 +356,8 @@
     const runtime = {
       catalog: normalizeCatalog(null),
       grading: { sister: normalizeGradingStore(null, 'sister'), brother: normalizeGradingStore(null, 'brother') },
+      weaknessView: normalizeWeaknessView(null),
+      activeWeaknessStudent: 'brother',
       topicTitles: new Map(),
       activePaper: null,
       loadPromise: null,
@@ -379,6 +451,151 @@
       });
     }
 
+    function shortTimestamp(value) {
+      const parsed = new Date(value);
+      if (!Number.isFinite(parsed.getTime())) return '尚未同步';
+      return `${parsed.getMonth() + 1}月${parsed.getDate()}日 ${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function hideWeaknessTooltip(force) {
+      const tooltip = doc.getElementById('wrongAnswerWeaknessTooltip');
+      if (tooltip) {
+        if (!force && tooltip.dataset.pinned === 'true') return;
+        delete tooltip.dataset.pinned;
+        tooltip.hidden = true;
+        tooltip.replaceChildren();
+      }
+    }
+
+    function showWeaknessTooltip(group, color, pinned) {
+      const tooltip = doc.getElementById('wrongAnswerWeaknessTooltip');
+      if (!tooltip) return;
+      if (pinned) tooltip.dataset.pinned = 'true';
+      else delete tooltip.dataset.pinned;
+      const heading = doc.createElement('strong');
+      heading.textContent = `${group.title} · ${group.itemCount} 个薄弱项`;
+      heading.style.setProperty('--weakness-color', color);
+      const list = doc.createElement('ul');
+      group.items.forEach(item => {
+        const row = doc.createElement('li');
+        const title = doc.createElement('span');
+        title.textContent = item.title;
+        const count = doc.createElement('small');
+        count.textContent = `${item.evidenceCount} 条证据${item.status === 'improving' ? ' · 巩固中' : ''}`;
+        row.append(title, count);
+        list.append(row);
+      });
+      tooltip.replaceChildren(heading, list);
+      tooltip.hidden = false;
+    }
+
+    function bindWeaknessGroupTarget(node, segment) {
+      node.addEventListener('mouseenter', () => showWeaknessTooltip(segment.group, segment.color));
+      node.addEventListener('focus', () => showWeaknessTooltip(segment.group, segment.color));
+      node.addEventListener('click', () => showWeaknessTooltip(segment.group, segment.color, true));
+      node.addEventListener('pointerup', event => {
+        if (event.pointerType === 'touch') showWeaknessTooltip(segment.group, segment.color, true);
+      });
+      node.addEventListener('mouseleave', hideWeaknessTooltip);
+      node.addEventListener('blur', hideWeaknessTooltip);
+    }
+
+    function renderWeaknessChart() {
+      const chart = doc.getElementById('wrongAnswerWeaknessChart');
+      const legend = doc.getElementById('wrongAnswerWeaknessLegend');
+      if (!chart || !legend) return;
+      STUDENTS.forEach(student => {
+        const tab = doc.querySelector(`[data-weakness-student="${student.id}"]`);
+        if (!tab) return;
+        const selected = runtime.activeWeaknessStudent === student.id;
+        tab.classList.toggle('is-active', selected);
+        tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+      });
+      setText('wrongAnswerWeaknessUpdated', `更新于 ${shortTimestamp(runtime.weaknessView.sourceUpdatedAt)}`);
+      chart.replaceChildren();
+      legend.replaceChildren();
+      hideWeaknessTooltip(true);
+
+      const student = runtime.weaknessView.students[runtime.activeWeaknessStudent];
+      const segments = weaknessDonutSegments(student.groups);
+      if (!segments.length) {
+        const empty = doc.createElement('div');
+        empty.className = 'wrong-answer-weakness-empty';
+        empty.textContent = `暂时还没有${studentName(runtime.activeWeaknessStudent)}的薄弱项分析`;
+        chart.append(empty);
+        return;
+      }
+
+      const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 160 160');
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', `${studentName(runtime.activeWeaknessStudent)}共有 ${student.itemCount} 个薄弱项`);
+      const track = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      track.setAttribute('class', 'wrong-answer-weakness-donut__track');
+      track.setAttribute('cx', '80');
+      track.setAttribute('cy', '80');
+      track.setAttribute('r', '55');
+      track.setAttribute('pathLength', '100');
+      svg.append(track);
+      segments.forEach(segment => {
+        const circle = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('class', 'wrong-answer-weakness-donut__segment');
+        circle.setAttribute('cx', '80');
+        circle.setAttribute('cy', '80');
+        circle.setAttribute('r', '55');
+        circle.setAttribute('pathLength', '100');
+        circle.setAttribute('stroke', segment.color);
+        circle.setAttribute('stroke-dasharray', `${Math.max(0.001, segment.percent - 0.8)} ${100 - Math.max(0.001, segment.percent - 0.8)}`);
+        circle.setAttribute('stroke-dashoffset', String(-segment.offset));
+        circle.setAttribute('transform', 'rotate(-90 80 80)');
+        circle.setAttribute('tabindex', '0');
+        circle.setAttribute('role', 'button');
+        circle.setAttribute('aria-label', `${segment.group.title}，${segment.group.itemCount} 个薄弱项`);
+        bindWeaknessGroupTarget(circle, segment);
+        svg.append(circle);
+      });
+      svg.addEventListener('mousemove', event => {
+        const bounds = svg.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+        const x = (event.clientX - bounds.left) * 160 / bounds.width - 80;
+        const y = (event.clientY - bounds.top) * 160 / bounds.height - 80;
+        const radius = Math.hypot(x, y);
+        if (radius < 40 || radius > 72) {
+          hideWeaknessTooltip();
+          return;
+        }
+        const percent = ((Math.atan2(y, x) * 180 / Math.PI + 450) % 360) / 3.6;
+        const segment = segments.find(item => percent >= item.offset && percent < item.offset + item.percent)
+          || segments[segments.length - 1];
+        showWeaknessTooltip(segment.group, segment.color);
+      });
+      svg.addEventListener('mouseleave', hideWeaknessTooltip);
+      const center = doc.createElement('div');
+      center.className = 'wrong-answer-weakness-donut__center';
+      const count = doc.createElement('strong');
+      count.textContent = String(student.itemCount);
+      const label = doc.createElement('span');
+      label.textContent = '个薄弱项';
+      center.append(count, label);
+      chart.append(svg, center);
+
+      segments.forEach(segment => {
+        const button = doc.createElement('button');
+        button.type = 'button';
+        button.className = 'wrong-answer-weakness-legend__item';
+        const dot = doc.createElement('span');
+        dot.className = 'wrong-answer-weakness-legend__dot';
+        dot.style.background = segment.color;
+        const title = doc.createElement('span');
+        title.textContent = segment.group.title;
+        const amount = doc.createElement('strong');
+        amount.textContent = String(segment.group.itemCount);
+        button.append(dot, title, amount);
+        bindWeaknessGroupTarget(button, segment);
+        legend.append(button);
+      });
+    }
+
     function selectedWrongQuestionIds() {
       return [...doc.querySelectorAll('#wrongAnswerQuestionSections input[type="checkbox"]:checked')]
         .map(input => text(input.value));
@@ -460,13 +677,15 @@
       return value;
     }
 
-    function applyLoadedData(catalogValue, gradingValues) {
+    function applyLoadedData(catalogValue, gradingValues, weaknessValue) {
       runtime.catalog = normalizeCatalog(catalogValue);
       STUDENTS.forEach(student => {
         runtime.grading[student.id] = normalizeGradingStore(gradingValues[student.id], student.id);
       });
+      runtime.weaknessView = normalizeWeaknessView(weaknessValue);
       renderHome();
       renderDirectory();
+      renderWeaknessChart();
     }
 
     async function loadTopicTitles() {
@@ -489,9 +708,10 @@
         readValue(CATALOG_KEY, preferRemote),
         readValue(gradingKey('sister'), preferRemote),
         readValue(gradingKey('brother'), preferRemote),
+        readValue(WEAKNESS_VIEW_KEY, preferRemote),
         loadTopicTitles()
-      ]).then(([catalog, sister, brother]) => {
-        applyLoadedData(catalog, { sister, brother });
+      ]).then(([catalog, sister, brother, weakness]) => {
+        applyLoadedData(catalog, { sister, brother }, weakness);
         return runtime.catalog;
       }).finally(() => { runtime.loadPromise = null; });
       return runtime.loadPromise;
@@ -600,6 +820,15 @@
     root.markWrongAnswerPaperAllCorrect = () => saveCurrent(true);
     root.refreshWrongAnswerOrganizerHome = () => loadAll(true);
 
+    doc.querySelectorAll('[data-weakness-student]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const selected = studentId(tab.dataset.weaknessStudent);
+        if (!selected || selected === runtime.activeWeaknessStudent) return;
+        runtime.activeWeaknessStudent = selected;
+        renderWeaknessChart();
+      });
+    });
+
     const observer = typeof root.MutationObserver === 'function'
       ? new root.MutationObserver(() => {
         if (isTeacherMode() && doc.body.classList.contains('is-teacher')) loadAll(true);
@@ -612,6 +841,7 @@
   return {
     CATALOG_KEY,
     GRADING_KEY_PREFIX,
+    WEAKNESS_VIEW_KEY,
     VERSION,
     normalizeCatalog,
     normalizeGradingStore,
@@ -621,6 +851,8 @@
     sortedPapers,
     latestPaper,
     paperProgressLabel,
+    normalizeWeaknessView,
+    weaknessDonutSegments,
     install
   };
 });
