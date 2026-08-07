@@ -74,6 +74,25 @@ test('catalog merge preserves other assessments and refuses silent map replaceme
   assert.throws(() => mergeAssessmentCatalog(conflict, map), /map_hash 不同/);
 });
 
+test('republishing an older map preserves the latest paper pointer and is idempotent', () => {
+  const oldMap = sanitizeQuestionMap(fixture);
+  const newerMap = structuredClone(oldMap);
+  newerMap.assessment_id = 'daily-2026-08-07-brother-next-02';
+  newerMap.assessment_date = '2026-08-07';
+  newerMap.map_hash = 'sha256:newer-map';
+  newerMap.papers[0].paper_id = 'paper-daily-2026-08-07-brother-next-02-brother';
+  const current = {
+    schema_version: 1,
+    latest_paper_id: newerMap.papers[0].paper_id,
+    updated_at: '2026-08-07T00:00:00.000Z',
+    assessments: [oldMap, newerMap]
+  };
+  const merged = mergeAssessmentCatalog(current, oldMap, new Date('2026-08-08T00:00:00.000Z'));
+  assert.equal(merged.changed, false);
+  assert.equal(merged.catalog.latest_paper_id, newerMap.papers[0].paper_id);
+  assert.equal(merged.catalog.updated_at, current.updated_at);
+});
+
 test('dry-run never writes and apply performs double-read plus post-write verification', async () => {
   const map = sanitizeQuestionMap(fixture);
   let calls = 0;

@@ -16,6 +16,7 @@ const {
   upsertAttempt,
   calculateKpStats,
   buildWeakSummary,
+  buildWeaknessEvidence,
   normalizeRules,
   inlineQuestionCorrect,
   shellQuestionCorrect
@@ -112,6 +113,51 @@ assert.equal(q2.correct, true);
 assert.equal(q2.firstTryCorrect, false);
 assert.equal(q2.viewedAnswer, true);
 
+// Exact weakness metadata produces auditable pass/fail/practice evidence.
+let targeted = createAttempt({
+  challengeId: 'grammar-targeted', challengeTitle: '薄弱项复测', challengeDate: '2026-07-08',
+  lessonKey: 'sentence-parts', kpIds: ['sentence-parts'], totalQuestions: 4
+}, { student: 'brother', attemptId: 'targeted-a1', now: '2026-07-08T08:00:00.000Z' });
+targeted = updateAttemptProgress(targeted, {
+  totalQuestions: 4,
+  questions: [
+    {
+      questionId: 'pass-1', kpIds: ['sentence-parts'],
+      weaknessIds: ['brother.sentence-parts.time-adjunct'],
+      primaryWeaknessId: 'brother.sentence-parts.time-adjunct',
+      diagnosticTargets: ['time-adjunct'], contentHash: 'sha256:pass-1',
+      answered: true, correct: true, firstTryCorrect: true, viewedAnswer: false
+    },
+    {
+      questionId: 'fail-1', kpIds: ['sentence-parts'],
+      weaknessIds: ['brother.sentence-parts.time-adjunct'],
+      primaryWeaknessId: 'brother.sentence-parts.time-adjunct',
+      diagnosticTargets: ['time-adjunct'], contentHash: 'sha256:fail-1',
+      answered: true, correct: true, firstTryCorrect: false, viewedAnswer: true
+    },
+    {
+      questionId: 'practice-1', kpIds: ['sentence-parts'],
+      weaknessIds: ['brother.sentence-parts.time-adjunct'],
+      primaryWeaknessId: 'brother.sentence-parts.time-adjunct',
+      diagnosticTargets: ['time-adjunct'], contentHash: 'sha256:practice-1',
+      answered: true, correct: true, firstTryCorrect: true, viewedAnswer: true
+    },
+    {
+      questionId: 'untagged', kpIds: ['sentence-parts'],
+      answered: true, correct: true, firstTryCorrect: true, viewedAnswer: false
+    }
+  ]
+}, '2026-07-08T08:03:00.000Z');
+targeted = finalizeAttempt(targeted, STATUS.COMPLETED, '2026-07-08T08:04:00.000Z');
+const targetedEvidence = buildWeaknessEvidence(upsertAttempt(normalizeHistory(null, 'brother'), targeted).history);
+assert.equal(targetedEvidence.length, 3);
+assert.deepEqual(targetedEvidence.map(item => item.outcome), ['pass', 'fail', 'practice']);
+assert.equal(targetedEvidence[0].validForMastery, true);
+assert.equal(targetedEvidence[0].weaknessId, 'brother.sentence-parts.time-adjunct');
+assert.equal(targetedEvidence[1].validForMastery, false);
+assert.equal(targetedEvidence[2].validForMastery, false);
+assert.equal(targetedEvidence[0].evidenceId, 'grammar:brother:targeted-a1:pass-1');
+
 // Interrupted attempts can resume with the same attempt ID after a refresh.
 const inProgress = createAttempt({
   challengeId: 'grammar-refresh', challengeTitle: '刷新测试', challengeDate: '2026-07-02',
@@ -207,10 +253,13 @@ assert.match(moduleSource, /STATUS\.EXITED/);
 assert.match(moduleSource, /STATUS\.INTERRUPTED/);
 assert.match(moduleSource, /attemptId/);
 assert.match(moduleSource, /questionKpIds/);
+assert.match(moduleSource, /questionWeaknessMetadata/);
+assert.match(moduleSource, /buildWeaknessEvidence/);
 assert.match(moduleSource, /root\.loadGrammarChallengeWeakSummary/);
 assert.match(moduleSource, /root\.setGrammarChallengeWeakRules/);
 assert.match(catalogSource, /lessonKey:/);
 assert.match(catalogSource, /kpIds:/);
+assert.match(catalogSource, /questionPrimaryWeaknessIds/);
 assert.match(mainSource, /studentActivityControls\.js'[\s\S]*grammarChallengeRecords\.js'/);
 assert.match(serviceWorkerSource, /\.\/js\/grammarChallengeRecords\.js/);
 

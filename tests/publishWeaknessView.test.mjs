@@ -10,15 +10,45 @@ import {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const statePath = path.resolve(
-  root,
-  '..',
-  'xxz-material-hub-weakness-chart-20260807',
-  'english',
-  'state',
-  '学生薄弱知识点.json'
-);
-const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+const evidence = (paperId, questionIds) => questionIds.map(questionId => ({ paper_id: paperId, question_id: questionId }));
+const state = {
+  schema_version: 2,
+  updated_at: '2026-08-07T08:00:00.000Z',
+  students: {
+    sister: { items: [] },
+    brother: {
+      items: [
+        {
+          weakness_id: 'brother.sentence-parts.time-adjunct',
+          student_id: 'brother',
+          kp_id: 'sentence-parts',
+          title: '识别时间信息属于补充信息',
+          status: 'active',
+          last_seen_at: '2026-08-06',
+          evidence: evidence('paper-1', ['q1', 'q2'])
+        },
+        {
+          weakness_id: 'brother.sentence-parts.subject-boundary-no-object-discrimination',
+          student_id: 'brother',
+          kp_id: 'sentence-parts',
+          title: '识别完整主语，并判断句子是否需要宾语',
+          status: 'active',
+          last_seen_at: '2026-08-06',
+          evidence: evidence('paper-1', ['q3'])
+        },
+        {
+          weakness_id: 'brother.sentence-parts.copular-predicate',
+          student_id: 'brother',
+          kp_id: 'sentence-parts',
+          title: '理解 be 动词与表语共同构成状态谓语',
+          status: 'active',
+          last_seen_at: '2026-08-06',
+          evidence: evidence('paper-1', ['q4'])
+        }
+      ]
+    }
+  }
+};
 const topics = JSON.parse(fs.readFileSync(path.join(root, 'grammar-library', 'data', 'topics.json'), 'utf8'));
 const now = new Date('2026-08-07T09:00:00.000Z');
 

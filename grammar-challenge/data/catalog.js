@@ -1,6 +1,8 @@
 (function registerGrammarChallengeCatalog() {
   // 新增练习时：数据型练习使用 dataPath；复用随堂练习 UI 的独立页面使用 pagePath。
-  // lessonKey / kpIds 是长期语法挑战记录与周测、月测汇总的正式映射。
+  // lessonKey / kpIds 是长期语法挑战记录映射。若题目用于恢复正式薄弱项，还要逐题提供
+  // questionWeaknessIds、questionPrimaryWeaknessIds、questionDiagnosticTargets 和 questionContentHashes；
+  // 缺少这些精确字段的旧题只参与普通练习统计，不作为 mastered 判定证据。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
       id: 'grammar-2026-08-06-time-prepositions-review',
