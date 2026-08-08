@@ -154,6 +154,8 @@ try {
   );
   assert.ok(cacheState.urls.some(url => /grammar-challenge\/index\.html$/.test(url)));
   assert.ok(cacheState.urls.some(url => /grammar-challenge\/practices\/2026-08-06\.html$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /grammar-challenge\/data\/page-practices\/2026-07-31\.js$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /grammar-challenge\/data\/page-practices\/2026-08-01\.js$/.test(url)));
   assert.ok(cacheState.urls.some(url => /studentActivityControls\.js$/.test(url)));
 
   const route = JSON.parse(fs.readFileSync(path.join(root, 'data', 'daily-learning-route.json'), 'utf8'));
@@ -177,11 +179,11 @@ try {
   await context.setOffline(true);
   await page.goto(`${baseUrl}/?cold=v72`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.getDailyLearningRoute?.()?.grammarChallenge));
-  await page.waitForFunction(() => typeof window.openStudentGrammarChallenge === 'function');
   await page.waitForFunction(() => (
-    window.openStudentGrammarChallenge?.__dailyRouteAssignmentOriginal?.name
-      === 'openGrammarWithAdjustedAttempts'
-  ));
+    window.openStudentGrammarChallenge?.__dailyRouteAssignmentWrapped === true
+      && window.openStudentGrammarChallenge.__dailyRouteAssignmentOriginal?.name === 'openGrammarWithAdjustedAttempts'
+      && window.openStudentGrammarChallengeBase?.name === 'openStudentGrammarChallenge'
+  ), null, { timeout: 10000 });
   const grammarEntryLayers = await page.evaluate(() => ({
     assignment: window.openStudentGrammarChallenge.__dailyRouteAssignmentWrapped === true,
     attemptGate: window.openStudentGrammarChallenge.__dailyRouteAssignmentOriginal?.name === 'openGrammarWithAdjustedAttempts',

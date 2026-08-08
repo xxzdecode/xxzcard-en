@@ -8,8 +8,6 @@ import { fileURLToPath } from 'node:url';
 const { chromium } = createRequire(import.meta.url)('playwright');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
-const resultDir = path.join(root, '.codex-backups', 'grammar-challenge-records-qa');
-fs.mkdirSync(resultDir, { recursive: true });
 
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -34,12 +32,48 @@ const server = http.createServer((request, response) => {
   response.end(fs.readFileSync(filePath));
 });
 
+async function launchBrowser() {
+  try {
+    return await chromium.launch();
+  } catch (error) {
+    if (!/Executable doesn't exist|spawn EPERM/.test(String(error?.message || error))) throw error;
+    return chromium.launch({ channel: 'msedge' });
+  }
+}
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const settleWithin = (promise, ms = 5000) => Promise.race([
+  Promise.resolve(promise).catch(() => undefined),
+  delay(ms)
+]);
+let browser = null;
+let context = null;
+let page = null;
+let routedRequests = 0;
+let persistedWrites = 0;
+let stage = 'starting local server';
+const testStartedAt = Date.now();
+const elapsed = () => `${Date.now() - testStartedAt}ms`;
+function setStage(value) {
+  stage = value;
+  console.log(`grammar records viewport [${elapsed()}]: ${value}`);
+}
+const watchdog = setTimeout(() => {
+  console.error(`grammar records viewport timed out after ${elapsed()} during: ${stage}; routed=${routedRequests}; writes=${persistedWrites}`);
+  server.closeAllConnections?.();
+  context?.close().catch(() => {});
+  browser?.close().catch(() => {});
+  setTimeout(() => process.exit(1), 2000);
+}, 90000);
+
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
-const context = await browser.newContext({
-  viewport: { width: 1194, height: 834 },
-  screen: { width: 1194, height: 834 },
+setStage('launching browser');
+browser = await launchBrowser();
+setStage('creating browser context');
+context = await browser.newContext({
+  viewport: { width: 1180, height: 820 },
+  screen: { width: 1180, height: 820 },
   serviceWorkers: 'block'
 });
 
@@ -81,7 +115,9 @@ await context.addInitScript(() => {
   localStorage.setItem('wc_user', 'sister');
 });
 
-const page = await context.newPage();
+page = await context.newPage();
+page.setDefaultTimeout(10000);
+page.setDefaultNavigationTimeout(15000);
 const errors = [];
 page.on('pageerror', error => {
   if (!/^offline$/i.test(error.message)) errors.push(error.message);
@@ -96,8 +132,10 @@ page.on('console', message => {
 });
 
 await page.route('**/rest/v1/kv_store*', async route => {
+  routedRequests += 1;
   const request = route.request();
   if (request.method() === 'POST') {
+    persistedWrites += 1;
     const payload = request.postDataJSON();
     if (failNextHistoryWrite && String(payload.key || '').startsWith('grammar_challenge_history_v2_')) {
       failNextHistoryWrite = false;
@@ -127,8 +165,25 @@ await page.route('**/rest/v1/kv_store*', async route => {
 });
 
 async function waitForApp() {
-  await page.waitForFunction(() => Boolean(window.GrammarChallengeRecords && window.loadFeatureGroup));
-  await page.waitForFunction(() => document.getElementById('studentSummaryName')?.textContent === (localStorage.getItem('wc_user') === 'brother' ? '弟弟' : '姐姐'));
+  try {
+    await page.waitForFunction(
+      () => Boolean(window.GrammarChallengeRecords && window.loadFeatureGroup),
+      undefined,
+      { timeout: 10000 }
+    );
+    await page.waitForFunction(
+      () => document.getElementById('studentSummaryName')?.textContent === (localStorage.getItem('wc_user') === 'brother' ? '弟弟' : '姐姐'),
+      undefined,
+      { timeout: 10000 }
+    );
+  } catch (error) {
+    throw new Error(`app did not become ready: ${JSON.stringify(errors)}`, { cause: error });
+  }
+}
+
+function todayKey() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 async function openChallenge(challengeId) {
@@ -151,10 +206,6 @@ async function openChallenge(challengeId) {
 }
 
 async function answerInlineChallengeCorrectly(frame, count = Infinity) {
-  await frame.evaluate(() => {
-    const raw = window.setTimeout.bind(window);
-    window.setTimeout = (callback, delay, ...args) => raw(callback, Math.min(Number(delay) || 0, 20), ...args);
-  });
   let answered = 0;
   while (answered < count) {
     const state = await frame.evaluate(() => window.__LESSON_PREP_QA__?.state?.() || null);
@@ -164,11 +215,20 @@ async function answerInlineChallengeCorrectly(frame, count = Infinity) {
       if (!qa?.solveCurrent) throw new Error('formal QA helper is missing');
       qa.solveCurrent();
     });
-    await frame.waitForTimeout(5);
     answered += 1;
+    console.log(`grammar records viewport [${elapsed()}]: solved question ${answered}`);
     if (answered >= count) break;
+    await frame.waitForFunction(previousIndex => {
+      const qa = window.__LESSON_PREP_QA__;
+      const next = document.getElementById('nextButton');
+      const current = qa?.state?.();
+      return current?.complete || (current?.index === previousIndex && next && !next.disabled);
+    }, state.index);
     await frame.locator('#nextButton').click();
-    await frame.waitForTimeout(35);
+    await frame.waitForFunction(previousIndex => {
+      const current = window.__LESSON_PREP_QA__?.state?.();
+      return current?.complete || Number(current?.index) > Number(previousIndex);
+    }, state.index);
   }
   return answered;
 }
@@ -179,10 +239,14 @@ async function closeChallenge() {
 }
 
 try {
+  setStage('navigating');
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  setStage('waiting for app');
   await waitForApp();
+  setStage('app ready');
 
   let frame = await openChallenge('grammar-2026-07-31-parts-of-speech-review');
+  setStage('completing sister challenge');
   await answerInlineChallengeCorrectly(frame);
   await frame.waitForFunction(() => document.getElementById('completionDialog')?.dataset.complete === 'true');
   await waitFor(() => attempts('sister').find(item => item.status === 'completed'), 'completed sister attempt was not saved');
@@ -197,28 +261,40 @@ try {
   assert.ok(completed.questions.every(item => item.kpIds.length >= 1));
   assert.deepEqual(completed.wrongQuestionIds, []);
   assert.deepEqual(completed.reviewKpIds, []);
+  const rewardRecord = await waitFor(() => {
+    const record = store.get('student_reward_v1_sister');
+    return record?.daily?.[todayKey()]?.claims?.grammarChallenge?.status === 'pending' ? record : null;
+  }, 'completed grammar reward was not saved');
+  assert.equal(rewardRecord.daily[todayKey()].claims.grammarChallenge.amount, 5);
 
-  const layout = await frame.evaluate(() => ({
-    horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-    verticalOverflow: document.documentElement.scrollHeight > document.documentElement.clientHeight + 1,
-    width: innerWidth,
-    height: innerHeight
-  }));
+  setStage('reading completed layout');
+  const layout = await page.evaluate(() => {
+    const iframe = document.getElementById('grammarChallengeFrame');
+    const doc = iframe?.contentDocument;
+    const win = iframe?.contentWindow;
+    if (!doc || !win) return null;
+    return {
+      horizontalOverflow: doc.documentElement.scrollWidth > doc.documentElement.clientWidth + 1,
+      verticalOverflow: doc.documentElement.scrollHeight > doc.documentElement.clientHeight + 1,
+      width: win.innerWidth,
+      height: win.innerHeight
+    };
+  });
+  assert.ok(layout);
   assert.equal(layout.horizontalOverflow, false);
   assert.equal(layout.verticalOverflow, false);
   assert.ok(layout.width > layout.height);
-  await page.screenshot({ path: path.join(resultDir, 'completed-sister-1194x834.png'), fullPage: true });
-
-  await frame.evaluate(() => {
-    const dialog = document.getElementById('completionDialog');
-    dialog.dataset.complete = 'true';
-    dialog.dispatchEvent(new Event('change', { bubbles: true }));
-  });
   await page.waitForTimeout(100);
   assert.equal(attempts('sister').length, 1);
+  setStage('closing completed challenge');
   await closeChallenge();
   assert.equal(attempts('sister').length, 1);
+  await page.waitForFunction(() => document.querySelector('[data-reward-source="grammarChallenge"]')?.dataset.rewardState === 'pending');
+  await page.locator('.student-reward-chest[data-reward-source="grammarChallenge"]').click();
+  await waitFor(() => store.get('student_reward_v1_sister')?.daily?.[todayKey()]?.claims?.grammarChallenge?.status === 'claimed', 'grammar reward chest claim was not saved');
+  await page.waitForFunction(() => document.querySelector('[data-reward-source="grammarChallenge"]')?.dataset.rewardState === 'claimed');
 
+  setStage('checking sister exit record');
   frame = await openChallenge('grammar-2026-07-31-parts-of-speech-review');
   await answerInlineChallengeCorrectly(frame, 1);
   await waitFor(() => attempts('sister').length === 2, 'second sister attempt did not start');
@@ -230,6 +306,7 @@ try {
   await waitFor(() => store.get('grammar_challenge_weak_summary_v2_sister'), 'sister weak summary missing');
   assert.equal(store.get('grammar_challenge_weak_summary_v2_sister').completedAttemptCount, 1);
 
+  setStage('checking interrupted attempt recovery');
   expectOfflineConsole = true;
   failNextHistoryWrite = true;
   frame = await openChallenge('grammar-2026-07-31-parts-of-speech-review');
@@ -247,6 +324,7 @@ try {
   await closeChallenge();
   expectOfflineConsole = false;
 
+  setStage('checking student isolation');
   await page.evaluate(() => window.switchUser('brother'));
   await page.waitForFunction(() => document.getElementById('studentSummaryName')?.textContent === '弟弟');
   frame = await openChallenge('grammar-2026-07-31-parts-of-speech-review');
@@ -258,6 +336,7 @@ try {
   assert.equal(history('sister').student, 'sister');
   assert.equal(history('brother').student, 'brother');
 
+  setStage('checking legacy challenge');
   frame = await openChallenge('grammar-2026-07-16-pronouns-be');
   assert.equal(await frame.locator('#errorScreen').isHidden(), true);
   assert.equal(await frame.locator('#challengeScreen').isVisible(), true);
@@ -268,9 +347,12 @@ try {
   assert.deepEqual(oldAttempt.kpIds, ['subject-pronouns-be', 'be-positive-negative', 'be-questions-answers']);
 
   assert.deepEqual(errors, []);
-  console.log(`grammar challenge records viewport tests passed: ${resultDir}`);
+  setStage('passed');
+  console.log('grammar challenge records viewport tests passed');
 } finally {
-  await context.close();
-  await browser.close();
-  await new Promise(resolve => server.close(resolve));
+  clearTimeout(watchdog);
+  server.closeAllConnections?.();
+  await settleWithin(context?.close(), 5000);
+  await settleWithin(browser?.close(), 5000);
+  await settleWithin(new Promise(resolve => server.close(resolve)), 5000);
 }

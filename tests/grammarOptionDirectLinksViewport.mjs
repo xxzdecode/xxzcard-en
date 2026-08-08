@@ -48,12 +48,21 @@ function expectedForSelection(config, questionId, selectedIndex) {
   return values.includes(question.options[selectedIndex]);
 }
 
+async function launchBrowser() {
+  try {
+    return await chromium.launch();
+  } catch (error) {
+    if (!/Executable doesn't exist|spawn EPERM/.test(String(error?.message || error))) throw error;
+    return chromium.launch({ channel: 'msedge' });
+  }
+}
+
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
+const browser = await launchBrowser();
 const context = await browser.newContext({
-  viewport: { width: 1194, height: 834 },
-  screen: { width: 1194, height: 834 },
+  viewport: { width: 1180, height: 820 },
+  screen: { width: 1180, height: 820 },
   serviceWorkers: 'block'
 });
 
@@ -230,5 +239,6 @@ try {
 } finally {
   await context.close();
   await browser.close();
+  server.closeAllConnections?.();
   await new Promise(resolve => server.close(resolve));
 }

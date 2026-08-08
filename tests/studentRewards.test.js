@@ -206,6 +206,8 @@ assert.doesNotMatch(source, /characterData\s*:\s*true/, 'reward observers must n
 assert.match(source, /vocabularyAdventureBody/);
 assert.match(source, /attributeFilter:\s*\['data-complete'\]/);
 assert.match(source, /challengeRewardAmount\(user, rawScore, SOURCE_MAX\.grammarChallenge\)/);
+assert.match(source, /grammarChallenge:\s*'grammarChallengeHomeStatus'/);
+assert.match(source, /recordSource\(user, 'grammarChallenge', rewardAmount, 'set', \{ render: false \}\)/);
 assert.match(dailyLearningRouteSource, /StudentRewards\.challengeRewardAmount\(user, result\.score, 5\)/);
 
 console.log('student reward tests passed');

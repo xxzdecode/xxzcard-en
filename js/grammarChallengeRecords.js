@@ -1184,6 +1184,12 @@
       function checkComplete() {
         if (completedHandled || !documentComplete(doc)) return;
         completedHandled = true;
+        // Completion is terminal for this frame. Stop the completion
+        // observer before persisting the final record so modal mutations cannot
+        // keep scheduling redundant captures and writes after the result exists.
+        observer?.disconnect();
+        root.clearTimeout?.(timer);
+        timer = null;
         captureCurrent();
         ensureAllQuestions();
         finalizeActive(STATUS.COMPLETED, completionScore(doc));
@@ -1215,11 +1221,15 @@
           checkComplete();
         })
         : null;
-      if (observer) observer.observe(doc.documentElement, {
-        subtree: true,
-        childList: true,
+      const completionState = doc.querySelector('[data-complete]');
+      const resultScreen = doc.getElementById('resultScreen');
+      if (observer && completionState) observer.observe(completionState, {
         attributes: true,
-        attributeFilter: ['hidden', 'open', 'data-complete', 'class', 'aria-pressed', 'disabled']
+        attributeFilter: ['data-complete', 'open']
+      });
+      if (observer && resultScreen) observer.observe(resultScreen, {
+        attributes: true,
+        attributeFilter: ['hidden']
       });
       scheduleCapture();
       checkComplete();
