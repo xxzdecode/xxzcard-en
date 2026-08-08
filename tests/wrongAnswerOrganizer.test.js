@@ -67,6 +67,30 @@ assert.equal(catalog.papers[0].totalQuestions, 5);
 assert.deepEqual(catalog.papers[0].sections[0].items.map(item => item.questionId), ['Q01', 'Q02']);
 assert.equal(api.latestPaper(catalog).title, '句子骨架与基础语序');
 
+const homeworkCatalog = api.normalizeCatalog({
+  schema_version: 1,
+  assessments: [{
+    assessment_id: 'homework-test-ex06-section-1-to-3',
+    assessment_type: 'homework',
+    assessment_date: '2026-08-13',
+    display_name: '暑假作业任务单｜8月13日｜练习六',
+    map_revision: '1',
+    map_hash: `sha256:${'a'.repeat(64)}`,
+    papers: [{
+      paper_id: 'paper-homework-test-ex06-section-1-to-3-sister',
+      student_id: 'sister',
+      sections: [{
+        section_id: 'ex06-section-1',
+        display_label: '一、词性转换',
+        items: [{ question_id: 'homework-test.ex06.s1.q1', display_label: '第一大题第1小问', kp_ids: ['word-family-basics'] }]
+      }]
+    }]
+  }]
+});
+assert.equal(homeworkCatalog.papers.length, 1);
+assert.equal(homeworkCatalog.papers[0].assessmentType, 'homework');
+assert.equal(homeworkCatalog.papers[0].title, '暑假作业任务单｜8月13日｜练习六');
+
 const daily = catalog.papers[0];
 const record = api.createGradingRecord(
   daily,
@@ -232,6 +256,7 @@ assert.doesNotMatch(organizerSource, /root\.loadHome\s*=|window\.loadHome\s*=/);
 assert.match(serviceWorker, /styles-wrong-answer-organizer\.css/);
 assert.match(serviceWorker, /js\/wrongAnswerOrganizer\.js/);
 assert.match(organizerSource, /assessment_weakness_view_v1/);
+assert.match(organizerSource, /homework:\s*'暑假作业'/);
 assert.doesNotMatch(organizerSource, /日测范围与生成状态|active_assessment_id|next_topic_key/);
 assert.match(organizerSource, /root\.showStorageError\(error\)/);
 
