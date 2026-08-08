@@ -867,6 +867,7 @@
             || !!(doc.getElementById('resultScreen') && !doc.getElementById('resultScreen').hidden);
           if (!done) return;
           handled = true;
+          observer?.disconnect();
           runtime.completedGrammarToken = token;
           incrementUsage(currentStudent(), 'grammarChallenge').then(refreshStudentAttemptIndicators);
         };

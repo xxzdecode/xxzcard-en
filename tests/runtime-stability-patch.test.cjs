@@ -46,6 +46,8 @@ test('reward-state ranking prevents pending and claimed cards from regressing to
 
 test('home loading indicator is time-bounded and never serializes refresh promises', () => {
   const source = fs.readFileSync(path.join(__dirname, '../js/runtimeHomeStability.js'), 'utf8');
+  assert.match(source, /grammarChallenge:\s*'grammarChallengeHomeStatus'/);
+  assert.match(source, /card\.dataset\.rewardState !== value\.state/);
   assert.match(source, /safetyTimer[\s\S]*3500/);
   assert.match(source, /return result;/);
   assert.doesNotMatch(source, /let active\s*=/);

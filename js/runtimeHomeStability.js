@@ -8,6 +8,7 @@
   const STATUS_IDS = Object.freeze({
     adventure: 'vocabularyAdventureHomeStatus',
     vocabularyChallenge: 'vocabularyAdventureChallengeHomeSub',
+    grammarChallenge: 'grammarChallengeHomeStatus',
     classroomPractice: 'studentClassroomPracticeStatus'
   });
   const snapshots = new Map();
@@ -85,20 +86,23 @@
   function restore(card, source, value) {
     restoring = true;
     try {
-      card.dataset.rewardState = value.state;
-      card.dataset.completed = value.completed ? 'true' : 'false';
+      const completed = value.completed ? 'true' : 'false';
+      if (card.dataset.rewardState !== value.state) card.dataset.rewardState = value.state;
+      if (card.dataset.completed !== completed) card.dataset.completed = completed;
       const stamp = card.querySelector('.student-home-card__stamp');
-      if (stamp) stamp.hidden = value.stampHidden;
+      if (stamp && stamp.hidden !== value.stampHidden) stamp.hidden = value.stampHidden;
       const chest = card.querySelector('.student-reward-chest');
       const image = chest?.querySelector('img');
       if (chest) {
-        chest.dataset.state = value.chestState;
-        chest.disabled = value.chestDisabled;
-        if (value.chestLabel) chest.setAttribute('aria-label', value.chestLabel);
+        if (chest.dataset.state !== value.chestState) chest.dataset.state = value.chestState;
+        if (chest.disabled !== value.chestDisabled) chest.disabled = value.chestDisabled;
+        if (value.chestLabel && chest.getAttribute('aria-label') !== value.chestLabel) {
+          chest.setAttribute('aria-label', value.chestLabel);
+        }
       }
-      if (image && value.imageSrc) image.setAttribute('src', value.imageSrc);
+      if (image && value.imageSrc && image.getAttribute('src') !== value.imageSrc) image.setAttribute('src', value.imageSrc);
       const status = statusNode(source);
-      if (status && value.statusText) status.textContent = value.statusText;
+      if (status && value.statusText && text(status.textContent) !== value.statusText) status.textContent = value.statusText;
     } finally {
       restoring = false;
     }

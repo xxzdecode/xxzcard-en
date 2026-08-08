@@ -546,8 +546,9 @@
       const day = normalizeDay(record.daily[dateKey()]);
       const completionStatusIds = {
         adventure: 'vocabularyAdventureHomeStatus',
-        challenge: 'vocabularyAdventureChallengeHomeSub',
-        classroom: 'studentClassroomPracticeStatus',
+        vocabularyChallenge: 'vocabularyAdventureChallengeHomeSub',
+        grammarChallenge: 'grammarChallengeHomeStatus',
+        classroomPractice: 'studentClassroomPracticeStatus',
       };
       Object.keys(SOURCE_MAX).forEach(source => {
         const card = document.querySelector(`.student-home-card[data-reward-source="${source}"]`);
@@ -713,14 +714,17 @@
       renderEnhancedReward(record);
     }
 
-    async function recordSource(user, source, amount, mode) {
+    async function recordSource(user, source, amount, mode, options) {
+      const settings = options && typeof options === 'object' ? options : {};
       const student = user === 'brother' ? 'brother' : 'sister';
       const current = await loadReward(student);
       const result = markSourceClaim(current, { date: dateKey(), source, amount, mode: mode === 'max' ? 'max' : 'set' });
       if (result.changed && !await saveReward(student, result.record)) {
         return { ok: false, record: current, delta: 0, projectDelta: 0 };
       }
-      if (currentUserValue() === student && !root.isTeacher?.()) renderEnhancedReward(result.record);
+      if (settings.render !== false && currentUserValue() === student && !root.isTeacher?.()) {
+        renderEnhancedReward(result.record);
+      }
       return { ok: true, ...result };
     }
 
@@ -1022,7 +1026,10 @@
           const rewardAmount = Number.isFinite(rawScore)
             ? challengeRewardAmount(user, rawScore, SOURCE_MAX.grammarChallenge)
             : SOURCE_MAX.grammarChallenge;
-          await recordSource(user, 'grammarChallenge', rewardAmount, 'set');
+          // Persist the reward now, but let the normal home refresh render it
+          // after the iframe closes. Mutating the hidden home reward tree from
+          // this cross-document completion callback can lock iframe teardown.
+          await recordSource(user, 'grammarChallenge', rewardAmount, 'set', { render: false });
         };
         const dialogState = documentRef.querySelector('[data-complete]');
         const resultScreen = documentRef.getElementById('resultScreen');
