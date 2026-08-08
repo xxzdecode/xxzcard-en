@@ -3,6 +3,8 @@
   const KEY = 'daily_learning_route_override_v1';
   const PREFIX = 'manual-courseware::';
   const ASSIGNMENT_PREFIX = 'daily_learning_route_assignment_v1_';
+  const OVERRIDE_CACHE_KEY = 'daily_learning_route_override_cache_v1';
+  const ASSIGNMENT_CACHE_PREFIX = 'daily_learning_route_assignment_cache_v1_';
   const READ_TIMEOUT_MS = 1800;
   const VERIFY_TIMEOUT_MS = 2200;
   const baseFetch = typeof root.fetch === 'function' ? root.fetch.bind(root) : null;
@@ -25,6 +27,58 @@
       ? { ...value.dates }
       : {}
   });
+
+  function readCachedOverride() {
+    try {
+      return normalize(JSON.parse(root.localStorage?.getItem(OVERRIDE_CACHE_KEY) || 'null'));
+    } catch (_) {
+      return normalize(null);
+    }
+  }
+
+  function writeCachedOverride(value) {
+    try {
+      const serialized = JSON.stringify(normalize(value));
+      const changed = root.localStorage?.getItem(OVERRIDE_CACHE_KEY) !== serialized;
+      root.localStorage?.setItem(OVERRIDE_CACHE_KEY, serialized);
+      return changed;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function assignmentCacheKey(user) {
+    return ASSIGNMENT_CACHE_PREFIX + (user === 'brother' ? 'brother' : 'sister');
+  }
+
+  function readCachedAssignment(user) {
+    try {
+      return normalizeAssignments(JSON.parse(root.localStorage?.getItem(assignmentCacheKey(user)) || 'null'));
+    } catch (_) {
+      return normalizeAssignments(null);
+    }
+  }
+
+  function writeCachedAssignment(user, value) {
+    try { root.localStorage?.setItem(assignmentCacheKey(user), JSON.stringify(normalizeAssignments(value))); } catch (_) {}
+  }
+
+  function warmPracticeAssets(value, date = today()) {
+    if (!baseFetch || typeof root.location === 'undefined') return;
+    const source = value && value.dates && value.dates[date];
+    if (!source || typeof source !== 'object') return;
+    const paths = new Set();
+    ['grammarChallenge', 'classroomPractice'].forEach(slot => {
+      const path = String(source[slot] && source[slot].path || '').trim();
+      if (path) paths.add(path);
+    });
+    paths.forEach(path => {
+      let url;
+      try { url = new URL(path, root.location.href); } catch (_) { return; }
+      if (url.origin !== root.location.origin) return;
+      baseFetch(url.href, { cache: 'no-cache', credentials: 'same-origin' }).catch(() => null);
+    });
+  }
 
   const snapshot = value => {
     if (!value || typeof value !== 'object') return null;
@@ -168,6 +222,25 @@
     return rows && rows.length ? rows[0].value : null;
   }
 
+  let overrideSyncPromise = null;
+  function refreshOverrideInBackground() {
+    if (overrideSyncPromise) return overrideSyncPromise;
+    overrideSyncPromise = readDirect()
+      .then(value => {
+        if (writeCachedOverride(value)) {
+          root.dispatchEvent?.(new CustomEvent('daily-route-override-updated'));
+        }
+        warmPracticeAssets(normalize(value));
+        return value;
+      })
+      .catch(error => {
+        console.warn('daily route override background sync unavailable', error);
+        return null;
+      })
+      .finally(() => { overrideSyncPromise = null; });
+    return overrideSyncPromise;
+  }
+
   root.fetch = async function (input, init) {
     const response = await baseFetch(input, init);
     let path = '';
@@ -175,7 +248,8 @@
     if (!response.ok || !path.endsWith('/data/daily-learning-route.json')) return response;
     try {
       const automatic = await response.clone().json();
-      const merged = mergeRoute(automatic, await readDirect());
+      const merged = mergeRoute(automatic, readCachedOverride());
+      refreshOverrideInBackground();
       return new Response(JSON.stringify(merged), {
         status: response.status,
         headers: { 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }
@@ -319,6 +393,8 @@
     const date = today();
     const key = assignmentKey(user);
     const assignment = normalizeAssignments(await withTimeout(root.sbGet(key), READ_TIMEOUT_MS, 'assignment read'));
+    writeCachedAssignment(user, assignment);
+    warmPracticeAssets(assignment, date);
     const day = assignment.dates[date] && typeof assignment.dates[date] === 'object'
       ? { ...assignment.dates[date] }
       : {};
@@ -333,7 +409,16 @@
     day.updatedAt = new Date().toISOString();
     assignment.dates[date] = day;
     await withTimeout(root.sbSet(key, assignment), VERIFY_TIMEOUT_MS, 'assignment save');
+    writeCachedAssignment(user, assignment);
+    warmPracticeAssets(assignment, date);
     return { assignment, date, user };
+  }
+
+  function syncPinnedSlotInBackground(slot) {
+    return ensurePinnedSlot(slot).catch(error => {
+      console.warn('daily route assignment background sync unavailable', error);
+      return null;
+    });
   }
 
   function installRouteAssignmentWrappers() {
@@ -365,12 +450,15 @@
       const original = root[name];
       if (typeof original !== 'function' || original.__dailyRouteAssignmentWrapped) return;
       const wrapped = async function assignmentAwareStudentEntry() {
+        const user = currentStudent();
+        const date = today();
+        const cachedAssignment = readCachedAssignment(user);
+        activeAssignmentContext = { assignment: cachedAssignment, date, user };
+        syncPinnedSlotInBackground(slot);
         try {
-          const context = await ensurePinnedSlot(slot);
-          activeAssignmentContext = context;
-          return await original.apply(this, arguments);
+          return await wrapped.__dailyRouteAssignmentOriginal.apply(this, arguments);
         } catch (error) {
-          console.warn('daily route assignment unavailable', error);
+          console.warn('daily route entry unavailable', error);
           const notice = document.getElementById('studentHomeNotice');
           if (notice) {
             notice.textContent = failureMessage;
@@ -384,6 +472,10 @@
         }
       };
       wrapped.__dailyRouteAssignmentWrapped = true;
+      // Keep the inner entry replaceable. Student attempt controls and this
+      // assignment layer load independently, so either can arrive first on a
+      // cold start without one wrapper silently displacing the other.
+      wrapped.__dailyRouteAssignmentOriginal = original;
       root[name] = wrapped;
     };
 
@@ -452,6 +544,8 @@
       const store = normalize(typeof root.sbGet === 'function'
         ? await withTimeout(root.sbGet(KEY), READ_TIMEOUT_MS, 'override panel read')
         : await readDirect());
+      writeCachedOverride(store);
+      warmPracticeAssets(store);
       const day = store.dates[today()] || {};
       const grammar = document.getElementById('teacherGrammarOverride');
       const classroom = document.getElementById('teacherClassroomOverride');
@@ -514,6 +608,8 @@
         delete store.dates[today()];
       }
       await withTimeout(root.sbSet(KEY, store), VERIFY_TIMEOUT_MS, 'override save');
+      writeCachedOverride(store);
+      warmPracticeAssets(store);
       status(grammar || classroom ? '今日手动安排已保存。' : '已恢复自动安排。');
     } catch (error) {
       status('保存失败，请重试。');

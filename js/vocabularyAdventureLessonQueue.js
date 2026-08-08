@@ -208,7 +208,8 @@
 
     async function saveCurrentVocabularyAdventureStateWithLessonQueue(stateValue, ...saveArgs) {
       const user = currentStudent();
-      if (!user || !screenActive('screenVocabularyAdventureChallenge')) {
+      const saveContext = saveArgs[0] && typeof saveArgs[0] === 'object' ? saveArgs[0] : {};
+      if (!user || saveContext.mode !== 'challenge') {
         return originalSave.call(root, stateValue, ...saveArgs);
       }
       let actual = actualStates.get(user);

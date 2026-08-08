@@ -9,6 +9,7 @@
   const ROUTE_MAX_AGE_MS = 60 * 1000;
   const VISIBILITY_REFRESH_AGE_MS = 30 * 1000;
   const GRAMMAR_DAILY_KEY_PREFIX = 'grammar_challenge_daily_v1_';
+  const DAILY_ROUTE_CACHE_KEY = 'daily_learning_route_cache_v1';
 
   const state = {
     status: 'idle',
@@ -24,6 +25,7 @@
     frameObservers: [],
     frameLoadHandlerInstalled: false,
     activeGrammarChallengeId: '',
+    activeGrammarStudent: '',
     refreshingReason: ''
   };
 
@@ -198,6 +200,33 @@
     };
   }
 
+  function readCachedRoute() {
+    try {
+      const raw = root.localStorage?.getItem(DAILY_ROUTE_CACHE_KEY);
+      const envelope = raw ? JSON.parse(raw) : null;
+      return envelope && envelope.route ? validateRoute(envelope.route) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function writeCachedRoute(route) {
+    try {
+      root.localStorage?.setItem(DAILY_ROUTE_CACHE_KEY, JSON.stringify({
+        version: 1,
+        cachedAt: new Date().toISOString(),
+        route: validateRoute(route)
+      }));
+    } catch (_) {}
+  }
+
+  const initialCachedRoute = readCachedRoute();
+  if (initialCachedRoute) {
+    state.status = 'ready';
+    state.route = initialCachedRoute;
+    state.fetchedAt = 0;
+  }
+
   function routeRequestUrl() {
     const separator = ROUTE_URL.includes('?') ? '&' : '?';
     return `${ROUTE_URL}${separator}fresh=${Date.now()}`;
@@ -236,12 +265,12 @@
     if (!force && routeIsFresh()) return state.route;
     if (state.promise) return state.promise;
 
-    state.status = 'loading';
+    const fallbackRoute = state.route;
+    state.status = fallbackRoute ? 'ready' : 'loading';
     state.error = null;
     state.refreshingReason = settings.reason || 'startup';
-    state.route = null;
-    state.fetchedAt = 0;
-    renderLoading(state.refreshingReason);
+    if (fallbackRoute) renderReady();
+    else renderLoading(state.refreshingReason);
 
     state.promise = fetchFreshRoute()
       .then(route => {
@@ -249,19 +278,21 @@
         state.status = 'ready';
         state.error = null;
         state.fetchedAt = Date.now();
+        writeCachedRoute(route);
         renderReady();
         root.dispatchEvent?.(new CustomEvent('daily-learning-route-ready', { detail: route }));
         refreshGrammarHomeRecord().catch(() => {});
         return route;
       })
       .catch(error => {
-        state.route = null;
-        state.status = 'error';
+        state.route = fallbackRoute || null;
+        state.status = fallbackRoute ? 'ready' : 'error';
         state.error = error;
         state.fetchedAt = 0;
-        renderError();
+        if (fallbackRoute) renderReady();
+        else renderError();
         console.warn('Unable to load current daily learning route', error && (error.message || error));
-        return null;
+        return fallbackRoute || null;
       })
       .finally(() => {
         state.promise = null;
@@ -271,10 +302,16 @@
   }
 
   async function ensureRouteForAction() {
-    return loadDailyLearningRoute({
-      force: !routeIsFresh(),
-      reason: 'action'
-    });
+    if (state.route) {
+      refreshDailyRouteInBackground('action');
+      return state.route;
+    }
+    return loadDailyLearningRoute({ force: true, reason: 'action' });
+  }
+
+  function refreshDailyRouteInBackground(reason) {
+    loadDailyLearningRoute({ force: true, reason: reason || 'background' }).catch(() => null);
+    return state.route;
   }
 
   function showHomeNotice(message) {
@@ -335,32 +372,58 @@
 
   async function loadGrammarRecord(user) {
     const student = user === 'brother' ? 'brother' : 'sister';
-    const records = await fetchKvValue(grammarRecordKey(student), 2600);
-    state.grammarRecords = records && typeof records === 'object' ? { ...records } : {};
-    state.grammarRecordStudent = student;
-    const record = state.grammarRecords[todayKey()];
+    const key = grammarRecordKey(student);
+    const cached = typeof root.getMirrorValue === 'function' ? root.getMirrorValue(key) : null;
+    const remote = await fetchKvValue(key, 2600);
+    const records = remote && typeof remote === 'object'
+      ? { ...remote }
+      : cached && typeof cached === 'object' ? { ...cached } : {};
+    if (currentStudent() === student) {
+      state.grammarRecords = records;
+      state.grammarRecordStudent = student;
+    }
+    const record = records[todayKey()];
+    return record && typeof record === 'object' ? record : null;
+  }
+
+  function cachedGrammarRecord(user) {
+    const student = user === 'brother' ? 'brother' : 'sister';
+    const key = grammarRecordKey(student);
+    const values = typeof root.getMirrorValue === 'function'
+      ? root.getMirrorValue(key)
+      : null;
+    const record = values && values[todayKey()];
     return record && typeof record === 'object' ? record : null;
   }
 
   async function saveGrammarRecord(user, record) {
     const student = user === 'brother' ? 'brother' : 'sister';
     const key = grammarRecordKey(student);
-    const next = state.grammarRecords && typeof state.grammarRecords === 'object'
+    const cached = typeof root.getMirrorValue === 'function' ? root.getMirrorValue(key) : null;
+    const next = state.grammarRecordStudent === student
+      && state.grammarRecords && typeof state.grammarRecords === 'object'
       ? { ...state.grammarRecords }
-      : {};
+      : cached && typeof cached === 'object' ? { ...cached } : {};
     next[todayKey()] = record;
+    root.updateMirrorValue?.(key, next);
+    if (currentStudent() === student) {
+      state.grammarRecords = next;
+      state.grammarRecordStudent = student;
+      state.grammarRecord = record;
+      renderReady();
+    }
     await writeKvValue(key, next, 3800);
-    state.grammarRecords = next;
-    state.grammarRecordStudent = student;
-    state.grammarRecord = record;
-    renderReady();
     return record;
   }
 
   async function refreshGrammarHomeRecord() {
     if (isTeacherMode() || !state.route) return null;
+    const student = currentStudent();
     try {
-      state.grammarRecord = await loadGrammarRecord(currentStudent());
+      const record = await loadGrammarRecord(student);
+      if (currentStudent() !== student) return null;
+      state.grammarRecord = record;
+      state.grammarRecordStudent = student;
       renderReady();
       return state.grammarRecord;
     } catch (_) {
@@ -407,8 +470,10 @@
 
   async function markGrammarCompleted(doc) {
     if (!state.route || !state.activeGrammarChallengeId) return;
-    const user = currentStudent();
-    const existing = state.grammarRecord || await loadGrammarRecord(user).catch(() => null);
+    const user = state.activeGrammarStudent || currentStudent();
+    const existing = state.grammarRecordStudent === user
+      ? state.grammarRecord
+      : await loadGrammarRecord(user).catch(() => null);
     if (existing && existing.status === 'completed') return;
     const result = extractGrammarResult(doc);
     const now = new Date().toISOString();
@@ -484,15 +549,15 @@
     }
 
     const user = currentStudent();
-    let record;
-    try {
-      record = await loadGrammarRecord(user);
-      state.grammarRecord = record;
+    let record = cachedGrammarRecord(user);
+    state.grammarRecord = record;
+    state.grammarRecordStudent = user;
+    renderReady();
+    loadGrammarRecord(user).then(fresh => {
+      if (currentStudent() !== user || state.grammarRecordStudent !== user) return;
+      state.grammarRecord = fresh;
       renderReady();
-    } catch (_) {
-      showHomeNotice('暂时无法确认今天的挑战记录，请检查网络后再试。');
-      return;
-    }
+    }).catch(() => null);
 
     if (record && record.status === 'completed') {
       const scoreText = Number.isFinite(Number(record.score)) ? `，成绩 ${Number(record.score)} 分` : '';
@@ -506,8 +571,7 @@
 
     if (!record) {
       const now = new Date().toISOString();
-      try {
-        record = await saveGrammarRecord(user, {
+      record = {
           challengeId,
           routeUpdatedAt: route.updatedAt || '',
           reviewLessonKey: route.grammarChallenge.reviewLessonKey || route.grammarChallenge.lessonKey || '',
@@ -520,11 +584,12 @@
           totalCount: null,
           answersShown: false,
           rewarded: false
-        });
-      } catch (_) {
-        showHomeNotice('暂时无法保存今天的挑战记录，请检查网络后再试。');
-        return;
-      }
+      };
+      state.grammarRecord = record;
+      state.grammarRecordStudent = user;
+      saveGrammarRecord(user, record).catch(error => {
+        console.warn('Grammar start record will retry after entry', error && (error.message || error));
+      });
     }
 
     try {
@@ -532,6 +597,7 @@
       installGrammarFrameWatcher();
       if (typeof root.openGrammarChallenge !== 'function') throw new Error('grammar challenge player unavailable');
       state.activeGrammarChallengeId = challengeId;
+      state.activeGrammarStudent = user;
       root.openGrammarChallenge(challengeId);
     } catch (error) {
       console.warn(error);
@@ -630,6 +696,9 @@
       if (Date.now() - state.fetchedAt < VISIBILITY_REFRESH_AGE_MS) return;
       loadDailyLearningRoute({ force: true, reason: 'visibility' });
     });
+    root.addEventListener?.('daily-route-override-updated', () => {
+      refreshDailyRouteInBackground('override-updated');
+    });
   }
 
   function startDailyLearningRoute() {
@@ -639,6 +708,11 @@
     installHomeHook();
     installVisibilityRefresh();
     if (isTeacherMode()) return Promise.resolve(null);
+    if (state.route) {
+      renderReady();
+      refreshDailyRouteInBackground('startup');
+      return Promise.resolve(state.route);
+    }
     return loadDailyLearningRoute({ force: true, reason: 'startup' });
   }
 
@@ -651,6 +725,7 @@
   root.loadDailyLearningRoute = loadDailyLearningRoute;
   root.getDailyLearningRoute = () => state.route;
   root.getDailyLearningRouteState = () => ({ ...state, promise: undefined, frameObservers: undefined });
+  root.openStudentGrammarChallengeBase = openStudentGrammarChallenge;
   root.openStudentGrammarChallenge = openStudentGrammarChallenge;
   root.openStudentClassroomPractice = openStudentClassroomPractice;
   root.installDailyGrammarFrameWatcher = installGrammarFrameWatcher;
