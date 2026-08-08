@@ -17,7 +17,7 @@
     { id: 'sister', name: '姐姐', emoji: '👧' },
     { id: 'brother', name: '弟弟', emoji: '👦' }
   ]);
-  const TYPE_LABELS = Object.freeze({ daily: '日测', weekly: '周测', monthly: '月测' });
+  const TYPE_LABELS = Object.freeze({ daily: '日测', weekly: '周测', monthly: '月测', homework: '暑假作业' });
 
   function isObject(value) {
     return Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -44,7 +44,7 @@
   }
 
   function assessmentType(value) {
-    return ['daily', 'weekly', 'monthly'].includes(value) ? value : 'daily';
+    return ['daily', 'weekly', 'monthly', 'homework'].includes(value) ? value : 'daily';
   }
 
   function isoDate(value) {
