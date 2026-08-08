@@ -18,6 +18,9 @@ const {
   buildWeakSummary,
   buildWeaknessEvidence,
   normalizeRules,
+  sha256Hex,
+  questionContentHash,
+  automaticWeaknessMetadata,
   inlineQuestionCorrect,
   shellQuestionCorrect
 } = records;
@@ -33,6 +36,23 @@ assert.deepEqual(normalizeRules({ weakThreshold: 75 }), {
   recentWrongQuestionLimit: 5
 });
 assert.equal(DEFAULT_RULES.weakThreshold, 80);
+assert.equal(sha256Hex('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+const automaticMetadata = automaticWeaknessMetadata({
+  category: 'time_in',
+  categoryLabel: '月份｜in December',
+  source: 'It is cold ___ December.',
+  prompt: '选择正确答案。',
+  answer: 'in'
+}, ['time-prepositions-in-on-at'], 'brother', { challengeTitle: '时间介词快速挑战' });
+assert.equal(automaticMetadata.primaryWeaknessId, 'brother.time-prepositions-in-on-at.grammar-time-in');
+assert.equal(automaticMetadata.weaknessOrigin, 'automatic_grammar_challenge');
+assert.equal(automaticMetadata.weaknessTitle, '语法挑战：时间介词快速挑战－月份');
+assert.match(automaticMetadata.contentHash, /^sha256:[a-f0-9]{64}$/);
+assert.equal(automaticMetadata.contentHash, questionContentHash({
+  category: 'time_in', categoryLabel: '月份｜in December', source: 'It is cold ___ December.',
+  prompt: '选择正确答案。', answer: 'in'
+}));
+assert.equal(automaticWeaknessMetadata({ category: 'mixed', prompt: 'x', answer: 'y' }, ['one', 'two'], 'brother', {}), null);
 
 function makeCompleted({
   student = 'sister',

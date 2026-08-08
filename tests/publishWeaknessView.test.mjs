@@ -25,7 +25,10 @@ const state = {
           title: '识别时间信息属于补充信息',
           status: 'active',
           last_seen_at: '2026-08-06',
-          evidence: evidence('paper-1', ['q1', 'q2'])
+          evidence: [
+            ...evidence('paper-1', ['q1']),
+            { source_type: 'grammar_challenge', attempt_id: 'attempt-1', question_id: 'q2' }
+          ]
         },
         {
           weakness_id: 'brother.sentence-parts.subject-boundary-no-object-discrimination',

@@ -113,6 +113,10 @@
       primaryWeaknessId: explicitPrimary || (weaknessIds.length === 1 ? weaknessIds[0] : ''),
       diagnosticTargets: uniqueStrings(source.diagnosticTargets || source.diagnostic_targets),
       contentHash: String(source.contentHash || source.content_hash || '').trim(),
+      weaknessOrigin: String(source.weaknessOrigin || source.weakness_origin || '').trim(),
+      weaknessKpId: String(source.weaknessKpId || source.weakness_kp_id || '').trim(),
+      weaknessSkillKey: String(source.weaknessSkillKey || source.weakness_skill_key || '').trim(),
+      weaknessTitle: String(source.weaknessTitle || source.weakness_title || '').trim(),
       answered: source.answered === true || hasCorrect || hasFirst,
       correct: hasCorrect ? source.correct : false,
       firstTryCorrect: hasFirst ? source.firstTryCorrect : false,
@@ -227,6 +231,10 @@
       primaryWeaknessId: next.primaryWeaknessId || existing.primaryWeaknessId,
       diagnosticTargets: uniqueStrings([...(existing.diagnosticTargets || []), ...(next.diagnosticTargets || [])]),
       contentHash: next.contentHash || existing.contentHash,
+      weaknessOrigin: next.weaknessOrigin || existing.weaknessOrigin,
+      weaknessKpId: next.weaknessKpId || existing.weaknessKpId,
+      weaknessSkillKey: next.weaknessSkillKey || existing.weaknessSkillKey,
+      weaknessTitle: next.weaknessTitle || existing.weaknessTitle,
       answered: existing.answered || next.answered,
       correct: nextIsNewer ? next.correct : existing.correct,
       firstTryCorrect: existing.answered ? existing.firstTryCorrect : next.firstTryCorrect,
@@ -422,6 +430,10 @@
         weaknessIds: [...question.weaknessIds],
         diagnosticTargets: [...question.diagnosticTargets],
         contentHash: question.contentHash,
+        weaknessOrigin: question.weaknessOrigin,
+        weaknessKpId: question.weaknessKpId,
+        weaknessSkillKey: question.weaknessSkillKey,
+        weaknessTitle: question.weaknessTitle,
         firstTryCorrect: question.firstTryCorrect,
         viewedAnswer: question.viewedAnswer,
         outcome,
@@ -564,6 +576,102 @@
       .replace(/[\p{P}\p{S}]+/gu, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  function canonicalJson(value) {
+    if (Array.isArray(value)) return value.map(canonicalJson);
+    if (!isPlainObject(value)) return value;
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalJson(value[key])]));
+  }
+
+  function sha256Hex(value) {
+    const input = String(value == null ? '' : value);
+    const bytes = typeof TextEncoder === 'function'
+      ? new TextEncoder().encode(input)
+      : Uint8Array.from(unescape(encodeURIComponent(input)), character => character.charCodeAt(0));
+    const bitLength = bytes.length * 8;
+    const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
+    const padded = new Uint8Array(paddedLength);
+    padded.set(bytes);
+    padded[bytes.length] = 0x80;
+    const lengthView = new DataView(padded.buffer);
+    lengthView.setUint32(paddedLength - 8, Math.floor(bitLength / 0x100000000), false);
+    lengthView.setUint32(paddedLength - 4, bitLength >>> 0, false);
+
+    const constants = [
+      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ];
+    const state = [
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+      0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ];
+    const words = new Uint32Array(64);
+    const rotateRight = (word, amount) => (word >>> amount) | (word << (32 - amount));
+    for (let offset = 0; offset < padded.length; offset += 64) {
+      for (let index = 0; index < 16; index += 1) words[index] = lengthView.getUint32(offset + index * 4, false);
+      for (let index = 16; index < 64; index += 1) {
+        const s0 = rotateRight(words[index - 15], 7) ^ rotateRight(words[index - 15], 18) ^ (words[index - 15] >>> 3);
+        const s1 = rotateRight(words[index - 2], 17) ^ rotateRight(words[index - 2], 19) ^ (words[index - 2] >>> 10);
+        words[index] = (words[index - 16] + s0 + words[index - 7] + s1) >>> 0;
+      }
+      let [a, b, c, d, e, f, g, h] = state;
+      for (let index = 0; index < 64; index += 1) {
+        const sum1 = (rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25)) >>> 0;
+        const choice = ((e & f) ^ (~e & g)) >>> 0;
+        const temporary1 = (h + sum1 + choice + constants[index] + words[index]) >>> 0;
+        const sum0 = (rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22)) >>> 0;
+        const majority = ((a & b) ^ (a & c) ^ (b & c)) >>> 0;
+        const temporary2 = (sum0 + majority) >>> 0;
+        h = g; g = f; f = e; e = (d + temporary1) >>> 0;
+        d = c; c = b; b = a; a = (temporary1 + temporary2) >>> 0;
+      }
+      state[0] = (state[0] + a) >>> 0; state[1] = (state[1] + b) >>> 0;
+      state[2] = (state[2] + c) >>> 0; state[3] = (state[3] + d) >>> 0;
+      state[4] = (state[4] + e) >>> 0; state[5] = (state[5] + f) >>> 0;
+      state[6] = (state[6] + g) >>> 0; state[7] = (state[7] + h) >>> 0;
+    }
+    return state.map(word => word.toString(16).padStart(8, '0')).join('');
+  }
+
+  function questionContentHash(questionValue) {
+    const question = isPlainObject(questionValue) ? questionValue : {};
+    const prompt = [question.source, question.prompt || question.question || question.title]
+      .map(value => String(value || '').trim()).filter(Boolean).join('\n');
+    const answer = question.answerDisplay ?? question.answer ?? question.correctAnswer
+      ?? question.correct_answer ?? question.answerMap ?? question.answer_map ?? '';
+    if (!prompt || answer === '' || answer == null) return '';
+    return `sha256:${sha256Hex(JSON.stringify(canonicalJson({ prompt, answer })))}`;
+  }
+
+  function automaticWeaknessMetadata(questionValue, kpIdsValue, studentValue, metaValue) {
+    const question = isPlainObject(questionValue) ? questionValue : {};
+    const kpIds = uniqueStrings(kpIdsValue);
+    const student = studentKey(studentValue);
+    const category = String(question.category || question.skillKey || question.skill_key || '').trim();
+    const skillSlug = category.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (kpIds.length !== 1 || !skillSlug) return null;
+    const kpId = kpIds[0];
+    const challengeTitle = String(metaValue && metaValue.challengeTitle || '').trim() || kpId;
+    const categoryTitle = String(question.categoryLabel || question.category_label || category).split(/[｜|]/, 1)[0].trim();
+    const skillKey = `grammar-${skillSlug}`;
+    const weaknessId = `${student}.${kpId}.${skillKey}`;
+    return {
+      weaknessIds: [weaknessId],
+      primaryWeaknessId: weaknessId,
+      diagnosticTargets: [category],
+      contentHash: questionContentHash(question),
+      weaknessOrigin: 'automatic_grammar_challenge',
+      weaknessKpId: kpId,
+      weaknessSkillKey: skillKey,
+      weaknessTitle: `语法挑战：${challengeTitle}－${categoryTitle || category}`
+    };
   }
 
   function equalStringArrays(first, second, ignoreOrder) {
@@ -893,7 +1001,7 @@
       return mappedIds.length ? mappedIds : uniqueStrings(runtime.activeMeta && runtime.activeMeta.kpIds);
     }
 
-    function questionWeaknessMetadata(question, questionId) {
+    function questionWeaknessMetadata(question, questionId, kpIds) {
       const mappedWeaknessIds = runtime.activeMeta && runtime.activeMeta.questionWeaknessIds
         ? runtime.activeMeta.questionWeaknessIds[questionId]
         : null;
@@ -916,11 +1024,26 @@
         ? runtime.activeMeta.questionContentHashes[questionId]
         : '';
       const contentHash = String(question && (question.contentHash || question.content_hash) || mappedHash || '').trim();
+      const primaryWeaknessId = explicitPrimary || (weaknessIds.length === 1 ? weaknessIds[0] : '');
+      if (!primaryWeaknessId && weaknessIds.length === 0) {
+        const automatic = automaticWeaknessMetadata(
+          question,
+          kpIds,
+          runtime.activeAttempt && runtime.activeAttempt.student,
+          runtime.activeMeta
+        );
+        if (automatic && automatic.contentHash) return automatic;
+      }
+      const primaryParts = primaryWeaknessId.split('.');
       return {
         weaknessIds,
-        primaryWeaknessId: explicitPrimary || (weaknessIds.length === 1 ? weaknessIds[0] : ''),
+        primaryWeaknessId,
         diagnosticTargets,
-        contentHash
+        contentHash,
+        weaknessOrigin: primaryWeaknessId ? 'explicit' : '',
+        weaknessKpId: kpIds.length === 1 ? kpIds[0] : '',
+        weaknessSkillKey: primaryParts.length >= 3 ? primaryParts.slice(2).join('.') : '',
+        weaknessTitle: String(question && (question.weaknessTitle || question.weakness_title) || '').trim()
       };
     }
 
@@ -1123,14 +1246,15 @@
           ? inlineQuestionCorrect(question, response)
           : shellQuestionCorrect(question, response);
         if (!firstResponses.has(id)) firstResponses.set(id, correct);
-        const weaknessMetadata = questionWeaknessMetadata(question, id);
+        const kpIds = questionKpIds(question, id);
+        const weaknessMetadata = questionWeaknessMetadata(question, id, kpIds);
         updateActive({
           totalQuestions: model.order.length,
           currentQuestionId: id,
           currentQuestionIndex: index,
           questions: [{
             questionId: id,
-            kpIds: questionKpIds(question, id),
+            kpIds,
             ...weaknessMetadata,
             answered: true,
             correct,
@@ -1163,10 +1287,11 @@
             };
           }
           const question = model.byId.get(id) || model.questions[index] || {};
+          const kpIds = questionKpIds(question, id);
           return {
             questionId: id,
-            kpIds: questionKpIds(question, id),
-            ...questionWeaknessMetadata(question, id),
+            kpIds,
+            ...questionWeaknessMetadata(question, id, kpIds),
             answered: false,
             correct: false,
             firstTryCorrect: false,
@@ -1376,6 +1501,9 @@
     normalizeRules,
     calculateKpStats,
     buildWeakSummary,
+    sha256Hex,
+    questionContentHash,
+    automaticWeaknessMetadata,
     inlineQuestionCorrect,
     shellQuestionCorrect,
     install
