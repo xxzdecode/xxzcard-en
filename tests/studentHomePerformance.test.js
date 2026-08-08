@@ -90,8 +90,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v70/);
-assert.match(serviceWorker, /xxzcard-runtime-v70/);
+assert.match(serviceWorker, /xxzcard-app-shell-v71/);
+assert.match(serviceWorker, /xxzcard-runtime-v71/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -125,7 +125,8 @@ assert.match(main, /id === requestId/);
 assert.match(main, /while \(rerunRequested\)/);
 assert.match(dailyRoute, /ROUTE_TIMEOUT_MS = 2800/);
 assert.match(dailyRoute, /cache: 'no-store'/);
-assert.doesNotMatch(dailyRoute, /localStorage/);
+assert.match(dailyRoute, /DAILY_ROUTE_CACHE_KEY/);
+assert.match(dailyRoute, /readCachedRoute/);
 assert.doesNotMatch(dailyRoute, /setInterval/);
 assert.match(wordCardPerformance, /sbGetRemote\('main'\)/);
 assert.match(wordCardPerformance, /renderTeacherWordCardsFast\(\)/);
@@ -148,18 +149,21 @@ assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.match(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
 assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
 assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)/);
-assert.match(serviceWorker, /Promise\.allSettled/);
+assert.match(serviceWorker, /installAppShellAtomically/);
+assert.match(serviceWorker, /response\.arrayBuffer\(\)/);
+assert.match(serviceWorker, /Math\.min\(6, urls\.length\)/);
+assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.doesNotMatch(serviceWorker, /cache\.addAll/);
 assert.doesNotMatch(serviceWorker, /assets\/vocabulary-review\//);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
-assert.doesNotMatch(serviceWorker, /courseware\//);
+assert.match(serviceWorker, /grammar-challenge\/practices\/courseware-daily\.html/);
 assert.match(serviceWorker, /staleWhileRevalidate/);
 assert.match(serviceWorker, /cachedNavigation/);
 assert.match(serviceWorker, /refreshStaticAsset/);
 assert.doesNotMatch(serviceWorker, /navigationNetworkFirst|staticNetworkFirst/);
 assert.doesNotMatch(serviceWorker, /apiNetworkFirst|isSupabaseApi|\.supabase\.co/);
 assert.match(serviceWorker, /cacheFirst/);
-assert.match(serviceWorker, /const cached = await caches\.match\(request\)/);
+assert.match(serviceWorker, /const cached = await matchCurrentGeneration\(request\)/);
 assert.match(serviceWorker, /requestUrl\.pathname !== appRoot\.pathname/);
 
 for (const [name, maxBytes] of [

@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const challengeSource = fs.readFileSync(path.join(root, 'js', 'vocabularyAdventureChallenge.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.equal(
-  (challengeSource.match(/saveCurrentVocabularyAdventureState\([^;]+\{ queue: true \}\)/g) || []).length,
+  (challengeSource.match(/saveCurrentVocabularyAdventureState\([^;]+\{ mode: 'challenge', queue: true \}\)/g) || []).length,
   4,
   'challenge start, answer, retry, and exit must all use local-first queued saves'
 );

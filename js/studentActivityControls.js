@@ -224,6 +224,7 @@
       rawCloseAdventure: null,
       rawOpenWordChallenge: null,
       rawCloseWordChallenge: null,
+      rawOpenStudentGrammarChallenge: null,
       rawMarkCoursewareCompleted: null,
       wordChallengeVirtualActive: false,
       adventurePlayerActive: false,
@@ -716,6 +717,7 @@
         const wrappedSave = async function activityAwareSaveVocabularyAdventureState(nextState, ...saveArgs) {
           const user = currentStudent();
           const today = dateKey();
+          const saveContext = saveArgs[0] && typeof saveArgs[0] === 'object' ? saveArgs[0] : {};
           let prepared = nextState && typeof nextState === 'object'
             ? JSON.parse(JSON.stringify(nextState))
             : nextState;
@@ -724,7 +726,7 @@
             ? JSON.parse(JSON.stringify(cachedCurrent))
             : await runtime.rawLoadAdventureState(user).catch(() => null);
 
-          if (runtime.wordChallengeVirtualActive && prepared && prepared.challengeDaily) {
+          if (saveContext.mode === 'challenge' && prepared && prepared.challengeDaily) {
             let virtual = runtime.wordChallengeVirtualization.get(user);
             if (!virtual) {
               const allowed = await getAttemptTotal(user, 'vocabularyChallenge', PROJECTS.vocabularyChallenge.baseAttempts);
@@ -739,7 +741,7 @@
           }
 
           const adventureTransitioned = !!(
-            runtime.adventurePlayerActive
+            saveContext.mode === 'adventure'
             && prepared
             && prepared.session
             && prepared.session.date === today
@@ -884,22 +886,35 @@
     async function openGrammarWithAdjustedAttempts() {
       if (isTeacherMode()) return;
       showStudentNotice('');
-      const route = typeof root.loadDailyLearningRoute === 'function'
-        ? await root.loadDailyLearningRoute({ force: false, reason: 'action' })
-        : root.getDailyLearningRoute?.();
+      let route = root.getDailyLearningRoute?.();
+      if (!route && typeof root.loadDailyLearningRoute === 'function') {
+        route = await root.loadDailyLearningRoute({ force: false, reason: 'action' });
+      } else {
+        root.loadDailyLearningRoute?.({ force: true, reason: 'background-action' }).catch?.(() => null);
+      }
       if (!route || !route.grammarChallenge) {
         showStudentNotice('今日语法挑战暂时无法读取，请检查网络后再点一次。');
         return;
       }
-      await root.loadFeatureGroup?.('grammarChallenge');
       const user = currentStudent();
-      const records = typeof root.sbGet === 'function'
-        ? await root.sbGet(`grammar_challenge_daily_v1_${user}`)
+      const records = typeof root.getMirrorValue === 'function'
+        ? root.getMirrorValue(`grammar_challenge_daily_v1_${user}`)
         : null;
       const record = isPlainObject(records) ? records[dateKey()] : null;
       const inferred = record && record.status === 'completed' ? 1 : 0;
-      const usage = await getAttemptUsage(user, 'grammarChallenge', inferred);
-      const total = await getAttemptTotal(user, 'grammarChallenge', PROJECTS.grammarChallenge.baseAttempts);
+      const localControl = normalizeControlRecord(
+        typeof root.getMirrorValue === 'function' ? root.getMirrorValue(controlKey(user)) : null
+      );
+      const usage = Math.max(
+        projectAttemptUsage(localControl, dateKey(), 'grammarChallenge'),
+        inferred
+      );
+      const total = projectAttemptTotal(
+        localControl,
+        dateKey(),
+        'grammarChallenge',
+        PROJECTS.grammarChallenge.baseAttempts
+      );
       if (usage >= total) {
         showStudentNotice('今天的语法挑战次数已经用完。');
         return;
@@ -908,11 +923,30 @@
       runtime.completedGrammarToken = '';
       root.installDailyGrammarFrameWatcher?.();
       installGrammarCompletionWatcher();
+      const baseEntry = runtime.rawOpenStudentGrammarChallenge
+        || root.openStudentGrammarChallengeBase;
+      if (typeof baseEntry === 'function') {
+        const result = await baseEntry.apply(this, arguments);
+        Promise.allSettled([
+          loadControl(user),
+          typeof root.sbGet === 'function'
+            ? root.sbGet(`grammar_challenge_daily_v1_${user}`)
+            : Promise.resolve(null)
+        ]).then(() => refreshStudentAttemptIndicators());
+        return result;
+      }
+      await root.loadFeatureGroup?.('grammarChallenge');
       if (typeof root.openGrammarChallenge !== 'function') {
         showStudentNotice('语法挑战加载失败，请检查网络后重试。');
         return;
       }
       root.openGrammarChallenge(route.grammarChallenge.id);
+      Promise.allSettled([
+        loadControl(user),
+        typeof root.sbGet === 'function'
+          ? root.sbGet(`grammar_challenge_daily_v1_${user}`)
+          : Promise.resolve(null)
+      ]).then(() => refreshStudentAttemptIndicators());
     }
 
     async function installCoursewareCompletionHook() {
@@ -1088,8 +1122,20 @@
     }
 
     function reassertStudentEntrypoints() {
-      root.openStudentGrammarChallenge = openGrammarWithAdjustedAttempts;
-      root.openStudentClassroomPractice = openClassroomWithAdjustedAttempts;
+      const baseGrammarEntry = root.openStudentGrammarChallengeBase;
+      if (typeof baseGrammarEntry === 'function') {
+        runtime.rawOpenStudentGrammarChallenge = baseGrammarEntry;
+      }
+      if (root.openStudentGrammarChallenge?.__dailyRouteAssignmentWrapped) {
+        root.openStudentGrammarChallenge.__dailyRouteAssignmentOriginal = openGrammarWithAdjustedAttempts;
+      } else {
+        root.openStudentGrammarChallenge = openGrammarWithAdjustedAttempts;
+      }
+      if (root.openStudentClassroomPractice?.__dailyRouteAssignmentWrapped) {
+        root.openStudentClassroomPractice.__dailyRouteAssignmentOriginal = openClassroomWithAdjustedAttempts;
+      } else {
+        root.openStudentClassroomPractice = openClassroomWithAdjustedAttempts;
+      }
       installStudentEntryHandlers();
     }
 

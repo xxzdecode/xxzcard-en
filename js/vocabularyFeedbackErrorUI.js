@@ -332,8 +332,12 @@
   function extractSavedResult(nextState, context) {
     const source = nextState && typeof nextState === 'object' ? nextState : {};
     const settings = context && typeof context === 'object' ? context : {};
+    const requestedMode = settings.mode === 'challenge'
+      ? 'challenge'
+      : settings.mode === 'adventure' ? 'adventure' : '';
     const challenge = source.challengeSession;
-    if (challenge && Array.isArray(challenge.items) && Number(challenge.cursor) > 0) {
+    if (requestedMode !== 'adventure'
+        && challenge && Array.isArray(challenge.items) && Number(challenge.cursor) > 0) {
       const item = challenge.items[Number(challenge.cursor) - 1];
       if (item && item.status === 'answered') {
         const question = clone(item.question) || {};
@@ -352,6 +356,7 @@
       }
     }
 
+    if (requestedMode === 'challenge') return null;
     const session = source.session;
     if (!session || !Array.isArray(session.plan) || Number(session.cursor) <= 0) return null;
     const item = session.plan[Number(session.cursor) - 1];

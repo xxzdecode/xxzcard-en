@@ -223,6 +223,9 @@
     }
     const reopening = current.status === 'claimed' || current.status === 'completed';
     const now = String(settings.at || new Date().toISOString());
+    const settlementTransactionId = String(
+      settings.transactionId || (reopening ? '' : current.transactionId) || ''
+    );
     const claim = {
       ...current,
       status: amount > 0 ? 'pending' : 'completed',
@@ -230,7 +233,7 @@
       mode: settings.mode === 'max' ? 'max' : 'set',
       completedAt: current.completedAt || now,
       claimedAt: reopening ? '' : current.claimedAt,
-      transactionId: reopening ? '' : current.transactionId
+      transactionId: settlementTransactionId
     };
     const changed = JSON.stringify(claim) !== JSON.stringify(current);
     if (changed) {
@@ -624,23 +627,51 @@
         button.dataset.claiming = 'true';
         button.disabled = true;
       }
-      const current = await loadReward(student);
-      const result = claimSourceReward(current, { date: dateKey(), source });
-      if (!result.changed) {
+      try {
+        let current = await loadReward(student);
+        let result = claimSourceReward(current, { date: dateKey(), source });
+
+        if (!result.changed && result.code === 'NOT_CLAIMABLE' && source === 'vocabularyChallenge') {
+          if (typeof root.settleVocabularyChallengeReward !== 'function'
+              && typeof root.loadFeatureScript === 'function') {
+            await root.loadFeatureScript('js/studentVocabularyRewardSettlement.js').catch(() => null);
+          }
+          const repaired = typeof root.settleVocabularyChallengeReward === 'function'
+            ? await root.settleVocabularyChallengeReward({ user: student, silent: true })
+            : { ok: false, code: 'SETTLEMENT_DEPENDENCIES_UNAVAILABLE' };
+          if (repaired && repaired.ok !== false) {
+            current = await loadReward(student);
+            result = claimSourceReward(current, { date: dateKey(), source });
+          }
+          if (!result.changed) {
+            renderEnhancedReward(result.record);
+            showHomeNotice(repaired && repaired.ok === false
+              ? '奖励对账暂未完成，请检查网络后重试'
+              : '奖励记录正在同步，请稍后再点一次');
+            return;
+          }
+        }
+
+        if (!result.changed) {
+          renderEnhancedReward(result.record);
+          showHomeNotice(result.code === 'NOT_CLAIMABLE' ? '当前没有可领取的奖励' : '奖励状态已更新');
+          return;
+        }
+        animateClaim(button);
+        if (!await saveReward(student, result.record)) {
+          renderEnhancedReward(current);
+          showHomeNotice('领取未完成，请检查网络后重试');
+          return;
+        }
         renderEnhancedReward(result.record);
+        showHomeNotice(`已领取 ${result.claim.amount} 金币`);
+      } catch (error) {
+        console.warn('Unable to claim home reward', error);
+        showHomeNotice('领取暂时失败，请检查网络后重试');
+        if (button) button.disabled = false;
+      } finally {
         if (button) delete button.dataset.claiming;
-        return;
       }
-      animateClaim(button);
-      if (!await saveReward(student, result.record)) {
-        renderEnhancedReward(current);
-        showHomeNotice('领取未完成，请检查网络后重试');
-        if (button) delete button.dataset.claiming;
-        return;
-      }
-      renderEnhancedReward(result.record);
-      showHomeNotice(`已领取 ${result.claim.amount} 金币`);
-      if (button) delete button.dataset.claiming;
     }
 
     function installChestHandlers() {
