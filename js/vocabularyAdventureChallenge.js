@@ -82,7 +82,39 @@
     };
     const marker = normalizeChallengeRewardSettlement(source.rewardSettlement, today);
     if (marker) normalized.rewardSettlement = marker;
+    const completions = (Array.isArray(source.completions) ? source.completions : [])
+      .filter(item => plainObject(item) && item.date === today && item.transactionId)
+      .map(item => ({
+        version: 1,
+        user: item.user === 'brother' ? 'brother' : item.user === 'sister' ? 'sister' : '',
+        date: today,
+        attemptIndex: Math.max(0, count(item.attemptIndex)),
+        correctCount: Math.min(CHALLENGE_LIMIT, count(item.correctCount)),
+        score: Math.max(0, Math.min(100, count(item.score))),
+        completedAt: typeof item.completedAt === 'string' ? item.completedAt : '',
+        transactionId: String(item.transactionId),
+        legacy: item.legacy === true
+      }));
+    if (completions.length) normalized.completions = completions.slice(-4);
     return normalized;
+  }
+
+  function createChallengeCompletion(session, userKey) {
+    const user = userKey === 'brother' ? 'brother' : userKey === 'sister' ? 'sister' : '';
+    const attemptIndex = Math.max(0, count(session && session.attemptIndex));
+    const correctCount = Math.min(CHALLENGE_LIMIT, count(session && session.correctCount));
+    const date = String(session && session.date || '');
+    return {
+      version: 1,
+      user,
+      date,
+      attemptIndex,
+      correctCount,
+      score: correctCount * 10,
+      completedAt: String(session && session.completedAt || ''),
+      transactionId: `vocabularyChallenge:${user || 'student'}:${date}:${attemptIndex ? `attempt-${attemptIndex}` : 'completion'}`,
+      legacy: false
+    };
   }
 
   function createCompletedChallengeRewardMarker(dailyValue, session, completedAt, userKey) {
@@ -377,6 +409,13 @@
         nextItem.answeredAt,
         input.userKey
       );
+      const completion = createChallengeCompletion(nextSession, input.userKey);
+      const completions = new Map(
+        (Array.isArray(next.challengeDaily.completions) ? next.challengeDaily.completions : [])
+          .map(item => [item.transactionId, item])
+      );
+      completions.set(completion.transactionId, completion);
+      next.challengeDaily.completions = [...completions.values()].slice(-4);
     }
 
     return {
@@ -837,7 +876,7 @@
           challengeSession: built.session
         }, today);
         runtime.preparedMeta = { kind: 'initial' };
-        if (!await saveCurrentVocabularyAdventureState(runtime.prepared, { queue: true })) {
+        if (!await saveCurrentVocabularyAdventureState(runtime.prepared, { mode: 'challenge', queue: true })) {
           renderStorageRetry('挑战计划保存失败，尚未进入答题。', 'retryVocabularyAdventureChallengeSave');
           return;
         }
@@ -875,7 +914,7 @@
         runtime.prepared = prepared.state;
         runtime.preparedMeta = prepared;
         runtime.saving = true;
-        const saved = await saveCurrentVocabularyAdventureState(runtime.prepared, { queue: true });
+        const saved = await saveCurrentVocabularyAdventureState(runtime.prepared, { mode: 'challenge', queue: true });
         runtime.saving = false;
         if (!saved) {
           setFeedback(
@@ -911,7 +950,7 @@
     async function retryVocabularyAdventureChallengeSave() {
       if (!runtime.prepared || runtime.saving) return;
       runtime.saving = true;
-      const saved = await saveCurrentVocabularyAdventureState(runtime.prepared, { queue: true });
+      const saved = await saveCurrentVocabularyAdventureState(runtime.prepared, { mode: 'challenge', queue: true });
       runtime.saving = false;
       if (!saved) {
         setFeedback(
@@ -997,7 +1036,7 @@
             today: session.date,
             exitedAt: new Date().toISOString()
           });
-          if (!await saveCurrentVocabularyAdventureState(prepared, { queue: true })) {
+          if (!await saveCurrentVocabularyAdventureState(prepared, { mode: 'challenge', queue: true })) {
             setFeedback('退出状态保存失败，请重试。', 'failed', '', '');
             return;
           }
@@ -1038,6 +1077,7 @@
     DAILY_LIMIT,
     CHALLENGE_TYPES,
     normalizeChallengeDaily,
+    createChallengeCompletion,
     normalizeChallengeRewardSettlement,
     createCompletedChallengeRewardMarker,
     normalizeChallengeSession,

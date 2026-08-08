@@ -32,6 +32,17 @@ const document = {
 };
 const listeners = new Map();
 const adventureLoadOptions = [];
+let grammarBaseCalls = 0;
+const assignmentGrammarEntry = async function assignmentGrammarEntry() {
+  return assignmentGrammarEntry.__dailyRouteAssignmentOriginal.apply(this, arguments);
+};
+assignmentGrammarEntry.__dailyRouteAssignmentWrapped = true;
+assignmentGrammarEntry.__dailyRouteAssignmentOriginal = async () => 'uncomposed-grammar';
+const assignmentClassroomEntry = async function assignmentClassroomEntry() {
+  return assignmentClassroomEntry.__dailyRouteAssignmentOriginal.apply(this, arguments);
+};
+assignmentClassroomEntry.__dailyRouteAssignmentWrapped = true;
+assignmentClassroomEntry.__dailyRouteAssignmentOriginal = async () => 'uncomposed-classroom';
 const context = vm.createContext({
   console,
   document,
@@ -42,6 +53,17 @@ const context = vm.createContext({
   isTeacher: () => false,
   loadHome: async () => 'home-loaded',
   loadFeatureGroup: async group => group,
+  getDailyLearningRoute: () => ({
+    grammarChallenge: { id: 'grammar-smoke' },
+    classroomPractice: { id: 'classroom-smoke' }
+  }),
+  getMirrorValue: () => null,
+  openStudentGrammarChallengeBase: async () => {
+    grammarBaseCalls += 1;
+    return 'grammar-opened';
+  },
+  openStudentGrammarChallenge: assignmentGrammarEntry,
+  openStudentClassroomPractice: assignmentClassroomEntry,
   loadVocabularyAdventureState: async (_user, options) => {
     adventureLoadOptions.push(options || null);
     return { version: 1, words: {}, session: null };
@@ -72,12 +94,19 @@ assert.equal(typeof context.getStudentActivityAttemptTotal, 'function');
 assert.equal(typeof context.openStudentGrammarChallenge, 'function');
 assert.equal(typeof context.openStudentClassroomPractice, 'function');
 assert.ok(elements.has('studentActivityControlStyles'));
+assert.equal(context.openStudentGrammarChallenge, assignmentGrammarEntry);
+assert.equal(context.openStudentClassroomPractice, assignmentClassroomEntry);
+assert.equal(assignmentGrammarEntry.__dailyRouteAssignmentOriginal.name, 'openGrammarWithAdjustedAttempts');
+assert.equal(assignmentClassroomEntry.__dailyRouteAssignmentOriginal.name, 'openClassroomWithAdjustedAttempts');
 
 Promise.all([
   context.loadHome(),
-  context.loadVocabularyAdventureState('sister', { requireRemote: true })
-]).then(([result]) => {
+  context.loadVocabularyAdventureState('sister', { requireRemote: true }),
+  context.openStudentGrammarChallenge()
+]).then(([result, , grammarResult]) => {
   assert.equal(result, 'home-loaded');
+  assert.equal(grammarResult, 'grammar-opened');
+  assert.equal(grammarBaseCalls, 1);
   assert.equal(adventureLoadOptions.some(options => options && options.requireRemote === true), true);
   console.log('student activity controls browser smoke test passed');
 }).catch(error => {

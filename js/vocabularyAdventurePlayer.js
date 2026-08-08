@@ -775,7 +775,7 @@
       runtime.saving = true;
       setFeedback('正在保存本词结果…', '', '', '');
       const preparedState = runtime.preparedState;
-      const saved = await saveCurrentVocabularyAdventureState(preparedState);
+      const saved = await saveCurrentVocabularyAdventureState(preparedState, { mode: 'adventure' });
       runtime.saving = false;
       if (!saved) {
         setFeedback('保存失败，请重新保存；进度尚未前进。', 'failed', '重新保存', 'retryVocabularyAdventureResultSave');
@@ -840,7 +840,7 @@
       if (!runtime.initialSavePending || !runtime.state || runtime.saving) return;
       runtime.saving = true;
       setFeedback('正在重新保存今日计划…', '', '', '');
-      const saved = await saveCurrentVocabularyAdventureState(runtime.state);
+      const saved = await saveCurrentVocabularyAdventureState(runtime.state, { mode: 'adventure' });
       runtime.saving = false;
       if (!saved) {
         setFeedback('今日计划仍未保存，不能开始答题。', 'failed', '重新保存', 'retryVocabularyAdventureInitialSave');

@@ -11,6 +11,7 @@
   const SOURCE = 'vocabularyChallenge';
   const MAX_REWARD = 10;
   const MARKER_VERSION = 2;
+  const COMPLETION_VERSION = 1;
   const MARKER_STATUSES = new Set(['pending', 'settled', 'blocked']);
 
   function plainObject(value) {
@@ -72,16 +73,87 @@
     return normalizeMarker(daily.rewardSettlement);
   }
 
-  function completedChallengeFacts(value) {
+  function completionTransactionId(user, date, attemptIndex, suffix) {
+    const student = normalizeUser(user) || 'student';
+    const attempt = Math.max(0, Math.round(Number(attemptIndex) || 0));
+    return `vocabularyChallenge:${student}:${date}:${attempt ? `attempt-${attempt}` : String(suffix || 'legacy-perfect')}`;
+  }
+
+  function normalizeCompletion(value, user, fallbackDate) {
+    if (!plainObject(value)) return null;
+    const date = localDate(value.date) ? value.date : fallbackDate;
+    if (!localDate(date)) return null;
+    const score = clampInteger(value.score, 0, 100);
+    const correctCount = clampInteger(
+      value.correctCount == null ? score / 10 : value.correctCount,
+      0,
+      MAX_REWARD
+    );
+    const attemptIndex = Math.max(0, Math.round(Number(value.attemptIndex) || 0));
+    const student = normalizeUser(value.user) || normalizeUser(user);
+    return {
+      version: COMPLETION_VERSION,
+      user: student,
+      date,
+      attemptIndex,
+      correctCount,
+      score: Math.max(score, correctCount * 10),
+      completedAt: typeof value.completedAt === 'string' ? value.completedAt : '',
+      transactionId: String(value.transactionId || completionTransactionId(
+        student,
+        date,
+        attemptIndex,
+        value.legacy === true ? 'legacy-perfect' : 'completion'
+      )),
+      legacy: value.legacy === true
+    };
+  }
+
+  function completedChallengeFacts(value, user) {
     const state = plainObject(value) ? value : {};
     const session = plainObject(state.challengeSession) ? state.challengeSession : null;
     if (!session || session.status !== 'completed' || !localDate(session.date)) return null;
-    return {
+    return normalizeCompletion({
       date: session.date,
-      status: 'completed',
+      user,
+      attemptIndex: session.attemptIndex,
       correctCount: clampInteger(session.correctCount, 0, MAX_REWARD),
+      score: clampInteger(session.correctCount, 0, MAX_REWARD) * 10,
       completedAt: typeof session.completedAt === 'string' ? session.completedAt : ''
-    };
+    }, user, session.date);
+  }
+
+  function completionFacts(value, user) {
+    const state = plainObject(value) ? value : {};
+    const daily = plainObject(state.challengeDaily) ? state.challengeDaily : {};
+    const date = localDate(daily.date) ? daily.date : '';
+    const values = Array.isArray(daily.completions) ? daily.completions : [];
+    const facts = values
+      .map(item => normalizeCompletion(item, user, date))
+      .filter(Boolean);
+    const current = completedChallengeFacts(state, user);
+    if (current) facts.push(current);
+    if (!facts.length && date && clampInteger(daily.attempts, 0, 2) > 0
+        && clampInteger(daily.bestScore, 0, 100) === 100) {
+      facts.push(normalizeCompletion({
+        user,
+        date,
+        attemptIndex: 0,
+        correctCount: MAX_REWARD,
+        score: 100,
+        transactionId: completionTransactionId(user, date, 0, 'legacy-perfect'),
+        legacy: true
+      }, user, date));
+    }
+    const unique = new Map();
+    facts.forEach(fact => {
+      const existing = unique.get(fact.transactionId);
+      if (!existing || fact.score > existing.score) unique.set(fact.transactionId, fact);
+    });
+    return [...unique.values()].sort((left, right) => (
+      left.attemptIndex - right.attemptIndex
+      || String(left.completedAt).localeCompare(String(right.completedAt))
+    ));
   }
 
   function prepareAdventureStateForVocabularyChallengeSave(nextValue, previousValue, options) {
@@ -89,7 +161,14 @@
     const next = clone(plainObject(nextValue) ? nextValue : {});
     const previousMarker = markerFromState(previousValue);
     const nextMarker = markerFromState(next);
-    const challenge = completedChallengeFacts(next);
+    const user = normalizeUser(settings.user);
+    const challenge = completedChallengeFacts(next, user);
+    const previousCompletions = completionFacts(previousValue, user).filter(item => !item.legacy);
+    const nextCompletions = completionFacts(next, user).filter(item => !item.legacy);
+    const completions = new Map();
+    [...previousCompletions, ...nextCompletions, ...(challenge ? [challenge] : [])].forEach(item => {
+      completions.set(item.transactionId, item);
+    });
     let marker = nextMarker || previousMarker;
 
     if (challenge) {
@@ -123,6 +202,10 @@
     if (marker) {
       next.challengeDaily = plainObject(next.challengeDaily) ? next.challengeDaily : {};
       next.challengeDaily.rewardSettlement = marker;
+    }
+    if (completions.size) {
+      next.challengeDaily = plainObject(next.challengeDaily) ? next.challengeDaily : {};
+      next.challengeDaily.completions = [...completions.values()].slice(-4);
     }
     return next;
   }
@@ -160,10 +243,14 @@
 
   function challengeTarget(value, user, rewardApi) {
     const marker = markerFromState(value);
-    const completed = completedChallengeFacts(value);
-    const completedTarget = completed
-      ? challengeRewardTarget(user, completed.correctCount, rewardApi)
-      : 0;
+    const completions = completionFacts(value, user);
+    const completed = completions.reduce((best, item) => {
+      if (!best) return item;
+      const itemTarget = challengeRewardTarget(user, item.correctCount, rewardApi);
+      const bestTarget = challengeRewardTarget(user, best.correctCount, rewardApi);
+      return itemTarget > bestTarget || (itemTarget === bestTarget && item.score > best.score) ? item : best;
+    }, null);
+    const completedTarget = completed ? challengeRewardTarget(user, completed.correctCount, rewardApi) : 0;
     if (marker) {
       return {
         date: marker.date,
@@ -171,11 +258,12 @@
           ? Math.max(marker.target, completedTarget)
           : marker.target,
         marker,
-        completed
+        completed,
+        completions
       };
     }
-    if (completed) return { date: completed.date, target: completedTarget, marker: null, completed };
-    return { date: '', target: 0, marker: null, completed: null };
+    if (completed) return { date: completed.date, target: completedTarget, marker: null, completed, completions };
+    return { date: '', target: 0, marker: null, completed: null, completions: [] };
   }
 
   function auditVocabularyChallengeReward(options) {
@@ -200,14 +288,15 @@
       ? rewardRecord.transactions.filter(transaction => transaction && transaction.date === date && transaction.source === SOURCE)
       : [];
     const completed = targetInfo.completed;
-    const perfectRepairEligible = !!(user && completed && completed.status === 'completed'
+    const perfectRepairEligible = !!(user && completed
       && targetInfo.target === MAX_REWARD
       && claimStatus !== 'claimed'
       && claimAmount < MAX_REWARD
       && !hasOverride);
     const repairToken = user && date
-      ? [user, date, completed && completed.status || '', completed && completed.correctCount || 0,
-        targetInfo.target, currentSource, hasOverride ? `override:${overrideValue}` : 'no-override'].join('|')
+      ? [user, date, completed && completed.transactionId || '', completed && completed.correctCount || 0,
+        targetInfo.target, currentSource, claimStatus, claimAmount,
+        hasOverride ? `override:${overrideValue}` : 'no-override'].join('|')
       : '';
 
     return {
@@ -217,8 +306,10 @@
       target: targetInfo.target,
       formalTargetAvailable: !!(targetInfo.marker || completed),
       challengeCompleted: !!completed,
-      challengeStatus: completed && completed.status || '',
+      challengeStatus: completed ? 'completed' : '',
       correctCount: completed && completed.correctCount || 0,
+      completionTransactionId: completed && completed.transactionId || '',
+      completions: clone(targetInfo.completions),
       dailyAttempts: clampInteger(daily.attempts, 0, 2),
       dailyBestScore: clampInteger(daily.bestScore, 0, 100),
       historyMismatch: !completed && clampInteger(daily.bestScore, 0, 100) > 0
@@ -307,7 +398,12 @@
     }
 
     const applied = rewardApi.markSourceClaim(rewardRecord, {
-      date: audit.date, source: SOURCE, amount: audit.target, mode: 'max', at
+      date: audit.date,
+      source: SOURCE,
+      amount: audit.target,
+      mode: 'max',
+      at,
+      transactionId: audit.completionTransactionId
     });
     if (applied.changed) {
       try {
@@ -346,7 +442,7 @@
 
   function shouldSettleVocabularyChallengeReward(value) {
     const marker = markerFromState(value);
-    return !!(marker && marker.status === 'pending') || !!completedChallengeFacts(value);
+    return !!(marker && marker.status === 'pending') || completionFacts(value, '').length > 0;
   }
 
   async function diagnoseVocabularyChallengeReward(options) {
@@ -463,11 +559,14 @@
     SOURCE,
     MAX_REWARD,
     MARKER_VERSION,
+    COMPLETION_VERSION,
     rewardKey,
     adventureKey,
     normalizeMarker,
     challengeRewardTarget,
     markerFromState,
+    completionTransactionId,
+    completionFacts,
     completedChallengeFacts,
     prepareAdventureStateForVocabularyChallengeSave,
     auditVocabularyChallengeReward,

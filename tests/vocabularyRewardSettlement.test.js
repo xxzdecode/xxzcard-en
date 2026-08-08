@@ -225,6 +225,38 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     assert.equal(storage.rows.get(settlement.rewardKey('sister')).transactions.length, 0);
   }
 
+  // Reward claim persistence can succeed while the adventure marker write
+  // fails. A retry repairs only the marker and never duplicates the claim.
+  {
+    const adventureKey = settlement.adventureKey('sister');
+    const rewardKey = settlement.rewardKey('sister');
+    const prepared = settlement.prepareAdventureStateForVocabularyChallengeSave(
+      challengeState(10),
+      null,
+      { user: 'sister' }
+    );
+    const storage = createStorage({
+      [adventureKey]: prepared,
+      [rewardKey]: rewardRecord('sister', 0)
+    }, { [adventureKey]: 1 });
+    const partial = await settlement.settleVocabularyChallengeReward({
+      user: 'sister', adventureState: prepared, rewardApi,
+      getValue: storage.getValue, setValue: storage.setValue
+    });
+    assert.equal(partial.ok, true);
+    assert.equal(partial.markerSaved, false);
+    assert.equal(storage.rows.get(rewardKey).daily[DATE].claims[SOURCE].amount, 10);
+
+    const repaired = await settlement.settleVocabularyChallengeReward({
+      user: 'sister', adventureState: await storage.getValue(adventureKey), rewardApi,
+      getValue: storage.getValue, setValue: storage.setValue
+    });
+    assert.equal(repaired.ok, true);
+    assert.equal(repaired.changed, false);
+    assert.equal(repaired.markerSaved, true);
+    assert.equal(storage.rows.get(adventureKey).challengeDaily.rewardSettlement.status, 'settled');
+  }
+
   // 7/10 then 10/10 updates the one pending claim to the best score.
   {
     const storage = createStorage({
@@ -338,7 +370,8 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     assert.equal(storage.rows.get(rewardKey).transactions.length, transactionCount);
   }
 
-  // Best score alone is not enough for repair when the current session is abandoned.
+  // A historical perfect best score is conclusive completion evidence: an
+  // abandoned attempt cannot reach 10/10 because the tenth answer completes it.
   {
     const abandoned = challengeState(0, 'abandoned');
     abandoned.challengeDaily.bestScore = 100;
@@ -349,14 +382,13 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     const diagnosis = await settlement.diagnoseVocabularyChallengeReward({
       user: 'sister', rewardApi, getValue: storage.getValue
     });
-    assert.equal(diagnosis.audit.historyMismatch, true);
-    assert.equal(diagnosis.audit.perfectRepairEligible, false);
+    assert.equal(diagnosis.audit.perfectRepairEligible, true);
     const repair = await settlement.repairPerfectVocabularyChallengeReward({
       user: 'sister', repairToken: diagnosis.audit.repairToken, rewardApi,
       getValue: storage.getValue, setValue: storage.setValue
     });
-    assert.equal(repair.ok, false);
-    assert.equal(storage.calls.length, 0);
+    assert.equal(repair.ok, true);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].amount, 10);
   }
 
   // A pending completed reward survives a newly active session that overwrites challengeSession.
@@ -367,6 +399,18 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     const preserved = settlement.prepareAdventureStateForVocabularyChallengeSave(active, completed);
     assert.equal(preserved.challengeDaily.rewardSettlement.status, 'pending');
     assert.equal(preserved.challengeDaily.rewardSettlement.target, 10);
+    assert.equal(preserved.challengeDaily.completions.length, 1);
+
+    const storage = createStorage({
+      [settlement.adventureKey('sister')]: preserved,
+      [settlement.rewardKey('sister')]: rewardRecord('sister', 0)
+    });
+    const settled = await settlement.settleVocabularyChallengeReward({
+      user: 'sister', adventureState: preserved, rewardApi,
+      getValue: storage.getValue, setValue: storage.setValue
+    });
+    assert.equal(settled.ok, true);
+    assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].amount, 10);
   }
 
   const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'studentVocabularyRewardSettlement.js'), 'utf8');

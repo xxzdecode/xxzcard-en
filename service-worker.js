@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v70';
-const RUNTIME_CACHE = 'xxzcard-runtime-v70';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v71';
+const RUNTIME_CACHE = 'xxzcard-runtime-v71';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -40,6 +40,35 @@ const APP_SHELL = [
   './js/vocabularyLessonGroups.js',
   './data/vocabularyLessonAssets.js',
   './js/dailyLearningRoute.js',
+  './js/dailyLearningRouteOverride.js',
+  './data/daily-learning-route.json',
+  './grammar-challenge/data/catalog.js',
+  './js/grammarChallenges.js',
+  './grammar-challenge/index.html',
+  './grammar-challenge/css/challenge.css',
+  './grammar-challenge/css/page-practice.css',
+  './grammar-challenge/js/challenge-shell.js',
+  './grammar-challenge/js/page-practice-core.js',
+  './grammar-challenge/js/page-practice-shell.js',
+  './grammar-challenge/practices/2026-08-06.html',
+  './grammar-challenge/practices/2026-08-04.html',
+  './grammar-challenge/practices/2026-08-03.html',
+  './grammar-challenge/practices/2026-08-02.html',
+  './grammar-challenge/practices/2026-08-01.html',
+  './grammar-challenge/practices/2026-07-31.html',
+  './grammar-challenge/practices/2026-07-30.html',
+  './grammar-challenge/practices/2026-07-27.html',
+  './grammar-challenge/practices/2026-07-26.html',
+  './grammar-challenge/practices/2026-07-25.html',
+  './grammar-challenge/practices/2026-07-24-frequency-review.html',
+  './grammar-challenge/practices/2026-07-24.html',
+  './grammar-challenge/practices/2026-07-23.html',
+  './grammar-challenge/practices/2026-07-22-corrected.html',
+  './grammar-challenge/practices/2026-07-17-articles.html',
+  './grammar-challenge/practices/2026-07-17.html',
+  './grammar-challenge/data/2026-07-16.js',
+  './grammar-challenge/data/2026-07-15.js',
+  './grammar-challenge/practices/courseware-daily.html',
   './js/dictionary.js',
   './js/batch.js',
   './js/import.js',
@@ -83,17 +112,47 @@ const APP_SHELL = [
   './assets/student-home/card6/ui/bottom-nav/mini-games-icon.png'
 ];
 
-async function cacheIndividually(cacheName, urls) {
-  const cache = await caches.open(cacheName);
-  await Promise.allSettled(urls.map(async url => {
-    const response = await fetch(url, { cache: 'no-cache' });
-    if (response.ok) await cache.put(url, response);
-  }));
+async function installAppShellAtomically(urls) {
+  await caches.delete(APP_SHELL_CACHE);
+  await caches.delete(RUNTIME_CACHE);
+  const resources = new Array(urls.length);
+  let cursor = 0;
+  async function fetchNext() {
+    while (cursor < urls.length) {
+      const index = cursor++;
+      const url = urls[index];
+      const response = await fetch(url, { cache: 'no-cache' });
+      if (!response || !response.ok) throw new Error(`app-shell HTTP ${response && response.status}: ${url}`);
+      const body = await response.arrayBuffer();
+      resources[index] = {
+        url,
+        body,
+        init: {
+          status: response.status,
+          statusText: response.statusText,
+          headers: [...response.headers.entries()]
+        }
+      };
+    }
+  }
+  await Promise.all(Array.from(
+    { length: Math.min(6, urls.length) },
+    () => fetchNext()
+  ));
+  const cache = await caches.open(APP_SHELL_CACHE);
+  for (const resource of resources) {
+    await cache.put(resource.url, new Response(resource.body, resource.init));
+  }
+  const verification = await Promise.all(urls.map(url => cache.match(url)));
+  if (verification.some(response => !response)) {
+    await caches.delete(APP_SHELL_CACHE);
+    throw new Error('app-shell verification failed');
+  }
 }
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    cacheIndividually(APP_SHELL_CACHE, APP_SHELL)
+    installAppShellAtomically(APP_SHELL)
       .then(() => self.skipWaiting())
   );
 });
@@ -110,7 +169,7 @@ self.addEventListener('activate', event => {
 });
 
 async function cacheFirst(request) {
-  const cached = await caches.match(request);
+  const cached = await matchCurrentGeneration(request);
   if (cached) return cached;
   const response = await fetch(request);
   if (response && response.ok) {
@@ -118,6 +177,14 @@ async function cacheFirst(request) {
     await cache.put(request, response.clone());
   }
   return response;
+}
+
+async function matchCurrentGeneration(request) {
+  const runtime = await caches.open(RUNTIME_CACHE);
+  const runtimeMatch = await runtime.match(request, { ignoreSearch: true });
+  if (runtimeMatch) return runtimeMatch;
+  const shell = await caches.open(APP_SHELL_CACHE);
+  return shell.match(request, { ignoreSearch: true });
 }
 
 async function refreshStaticAsset(request) {
@@ -128,8 +195,7 @@ async function refreshStaticAsset(request) {
 }
 
 async function cachedNavigation(request) {
-  const runtime = await caches.open(RUNTIME_CACHE);
-  const direct = await runtime.match(request);
+  const direct = await matchCurrentGeneration(request);
   if (direct) return direct;
   const appRoot = new URL('./', self.location.href);
   const indexUrl = new URL('./index.html', self.location.href);
@@ -155,15 +221,17 @@ function staleWhileRevalidate(request, cachedPromise, event, fallback) {
   });
 }
 
-// The current lesson route must never fall back to an older cached course.
-// It is tiny, so a short network-only request is cheaper and safer than
-// rendering stale content. On failure the UI keeps both cards in retry mode.
+// Prefer the fresh route, but keep the route bundled with this exact app-shell
+// generation as a bounded fallback. The page also refreshes its last valid
+// route in the background, so entry never depends on this request finishing.
 async function dailyRouteNetworkOnly(request) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 3000);
   try {
     const response = await fetch(request, { cache: 'no-store', signal: controller.signal });
     if (response && response.ok) return response;
+    const cached = await matchCurrentGeneration(request);
+    if (cached) return cached;
     return new Response(JSON.stringify({ error: 'route_unavailable' }), {
       status: response ? response.status : 503,
       headers: {
@@ -172,6 +240,8 @@ async function dailyRouteNetworkOnly(request) {
       }
     });
   } catch (error) {
+    const cached = await matchCurrentGeneration(request);
+    if (cached) return cached;
     return new Response(JSON.stringify({ error: 'route_unavailable' }), {
       status: 503,
       headers: {
@@ -212,7 +282,7 @@ self.addEventListener('fetch', event => {
   if (isCodeAsset) {
     event.respondWith(staleWhileRevalidate(
       event.request,
-      caches.match(event.request),
+      matchCurrentGeneration(event.request),
       event,
       () => new Response('', { status: 503 })
     ));

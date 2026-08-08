@@ -177,13 +177,17 @@
     if (current.__vteWrapped || current.__vteCoordinatorWrapped) return true;
 
     const wrapped = async function coordinatedVocabularySave(nextState, ...args) {
-      const isChallenge = !!(
-        nextState && nextState.challengeSession && Number(nextState.challengeSession.cursor) > 0
-      );
+      const saveContext = args[0] && typeof args[0] === 'object' ? args[0] : {};
+      const mode = saveContext.mode === 'challenge'
+        ? 'challenge'
+        : saveContext.mode === 'adventure' ? 'adventure' : '';
+      if (!mode) return current.call(this, nextState, ...args);
+      const isChallenge = mode === 'challenge';
       const body = root.document.getElementById(
         isChallenge ? 'vocabularyAdventureChallengeBody' : 'vocabularyAdventureBody'
       );
       const detail = feedbackApi.extractSavedResult(nextState, {
+        mode,
         snapshot: body ? body.innerHTML : '',
         selectedAnswer: selectedAnswerForMode(isChallenge),
         gradeContext: clone(root.__vocabularyFeedbackGradeContext),

@@ -161,7 +161,7 @@ console.log('vocabulary adventure lesson queue tests passed');
   screens.screenVocabularyAdventureChallenge = true;
   decorated.challengeDaily = { date: '2026-08-02', attempts: 1, bestScore: 100 };
   decorated.challengeSession = completedSession(['word-1', 'old']);
-  assert.equal(await fakeRoot.saveCurrentVocabularyAdventureState(decorated), true);
+  assert.equal(await fakeRoot.saveCurrentVocabularyAdventureState(decorated, { mode: 'challenge' }), true);
   assert.equal(savedAdventure.words['word-1'], undefined, 'browser bridge must not persist queue priority decoration');
   assert.equal(savedAdventure.words.old.lastResult, 'H', 'browser bridge must preserve original adventure review state');
   assert.equal(savedProgress.challengeQueue['book:g01'].consumedWordKeys.length, 1);
