@@ -79,9 +79,13 @@ function evidenceCount(value, weaknessId) {
   const refs = new Set();
   value.forEach((item, index) => {
     if (!isObject(item)) fail('INVALID_WEAKNESS_STATE', `${weaknessId}.evidence[${index}] 必须是对象`);
-    const paperId = requiredText(item.paper_id, `${weaknessId}.evidence[${index}].paper_id`);
+    const paperId = text(item.paper_id);
+    const attemptId = text(item.attempt_id);
+    if ((!paperId && !attemptId) || (paperId && attemptId)) {
+      fail('INVALID_WEAKNESS_STATE', `${weaknessId}.evidence[${index}] 必须且只能包含 paper_id 或 attempt_id`);
+    }
     const questionId = requiredText(item.question_id, `${weaknessId}.evidence[${index}].question_id`);
-    refs.add(`${paperId}\u0000${questionId}`);
+    refs.add(`${paperId ? 'paper' : 'attempt'}\u0000${paperId || attemptId}\u0000${questionId}`);
   });
   return refs.size;
 }
