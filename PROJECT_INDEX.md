@@ -68,7 +68,7 @@
 - `scripts/create-wordbook.mjs`：从已完成内容的真实导入 TXT 自动校验、查重并通过事务 RPC 新建单词本；使用说明见 `docs/create-wordbook-automation.md`。
 - `scripts/sync-category-wordbook.mjs`：按正式分类骨架审计引用式分类单词本；先 dry-run 生成绑定 Git 包与 Supabase 基线的 `planHash`，再通过事务 RPC 建立快照并原子写入。
 - `scripts/publish-vocabulary-review-images.py`：生词巩固图片批量发布命令；`prepare` 统一处理全部 pending 批次，推送成功后再用 `finalize` 一次性回写完成状态。
-- `scripts/publish-assessment-map.mjs`：把 Material Hub 的 daily / weekly / monthly `question-map.json` 校验、合并并发布到 `assessment_catalog_v1`；默认 dry-run，`--apply` 前后二次读取并做写后验收，不上传题目正文或答案。
+- `scripts/publish-assessment-map.mjs`：把 Material Hub 的 daily / weekly / monthly 与暑假作业 homework `question-map.json` 校验、合并并发布到 `assessment_catalog_v1`；默认 dry-run，`--apply` 前后二次读取并做写后验收，不上传题目正文或答案。
 - `scripts/publish-weakness-view.mjs`：把 Material Hub 的正式薄弱项状态转换为不含原题、答案、老师说明和分析观察的展示快照，并原子发布到 `assessment_weakness_view_v1`；默认 dry-run，`--apply` 写后回读验收。
 
 ## 4. 数据流相关文件
@@ -85,7 +85,7 @@
 - `js/batch.js`：修改单词本、编辑单词、推送可见学生、清空学生记录。
 - `js/tasks.js`：读写每日任务、挑战次数、混合词库设置。
 - `js/home.js`：根据 appData、用户记录和任务状态渲染首页。
-- `assessment_catalog_v1`：由出卷流程后续上传的试卷元数据目录；可直接收录 daily / weekly / monthly 的 `question-map.json` 对象。网站只读取稳定 `assessment_id`、`paper_id`、`question_id`、`kp_ids`、题号显示标签、`map_revision` 和 `map_hash`，不保存题目正文。
+- `assessment_catalog_v1`：由出卷流程后续上传的试卷元数据目录；可直接收录 daily / weekly / monthly / homework 的 `question-map.json` 对象。网站只读取稳定 `assessment_id`、`paper_id`、`question_id`、`kp_ids`、题号显示标签、`map_revision` 和 `map_hash`，不保存题目正文。
 - `assessment_grading_v1_sister` / `assessment_grading_v1_brother`：按学生保存每张卷子的批改结果；记录 `wrong_question_ids`、对应 `kp_ids`、`map_revision` 和 `map_hash`，用于后续错题汇集与知识点统计，并阻止重生成后的映射静默错位。
 - `js/dictionary.js`：对卡片字段做标准化和展示层解析。
 

@@ -55,6 +55,29 @@ test('daily rules reject short papers and oversized sections', () => {
   assert.throws(() => sanitizeQuestionMap(oversized), /超过日测每大题 5 小题上限/);
 });
 
+test('homework maps support full exercise sections without daily limits', () => {
+  const homework = structuredClone(fixture);
+  homework.assessment_id = 'homework-test-ex02-section-1-to-3';
+  homework.assessment_type = 'homework';
+  homework.display_name = '暑假作业任务单｜8月10日｜练习二';
+  homework.map_hash = `sha256:${'a'.repeat(64)}`;
+  homework.papers[0].paper_id = 'paper-homework-test-ex02-section-1-to-3-brother';
+  homework.papers[0].sections[0].items.push(
+    { ...homework.papers[0].sections[0].items[0], question_id: 'homework-extra-1' },
+    { ...homework.papers[0].sections[0].items[0], question_id: 'homework-extra-2' }
+  );
+  const map = sanitizeQuestionMap(homework);
+  assert.equal(map.assessment_type, 'homework');
+  assert.equal(map.papers[0].sections[0].items.length, 6);
+  assert.equal(map.papers[0].sections.flatMap(section => section.items).length, 12);
+});
+
+test('unknown assessment types remain rejected', () => {
+  const unknown = structuredClone(fixture);
+  unknown.assessment_type = 'practice';
+  assert.throws(() => sanitizeQuestionMap(unknown), /daily \/ weekly \/ monthly \/ homework/);
+});
+
 test('catalog merge preserves other assessments and refuses silent map replacement', () => {
   const map = sanitizeQuestionMap(fixture);
   const previous = {

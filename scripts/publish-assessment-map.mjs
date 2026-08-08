@@ -8,7 +8,7 @@ const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.dirname(path.dirname(SCRIPT_PATH));
 const CATALOG_KEY = 'assessment_catalog_v1';
 const STUDENTS = new Set(['sister', 'brother']);
-const ASSESSMENT_TYPES = new Set(['daily', 'weekly', 'monthly']);
+const ASSESSMENT_TYPES = new Set(['daily', 'weekly', 'monthly', 'homework']);
 
 export class PublishAssessmentError extends Error {
   constructor(code, message, details) {
@@ -69,7 +69,7 @@ export function sanitizeQuestionMap(input) {
   const displayName = requiredText(input.display_name, 'display_name');
   const mapRevision = requiredText(input.map_revision, 'map_revision');
   const mapHash = requiredText(input.map_hash, 'map_hash');
-  if (!ASSESSMENT_TYPES.has(assessmentType)) fail('INVALID_QUESTION_MAP', 'assessment_type 必须是 daily / weekly / monthly');
+  if (!ASSESSMENT_TYPES.has(assessmentType)) fail('INVALID_QUESTION_MAP', 'assessment_type 必须是 daily / weekly / monthly / homework');
   if (!/^20\d{2}-\d{2}-\d{2}$/.test(assessmentDate)) fail('INVALID_QUESTION_MAP', 'assessment_date 必须是 YYYY-MM-DD');
   if (!/^sha256:[0-9a-f]{64}$/i.test(mapHash)) fail('INVALID_QUESTION_MAP', 'map_hash 必须是完整 sha256');
   if (!Array.isArray(input.papers) || !input.papers.length) fail('INVALID_QUESTION_MAP', 'papers 必须是非空数组');
