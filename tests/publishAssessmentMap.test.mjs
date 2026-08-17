@@ -72,10 +72,32 @@ test('homework maps support full exercise sections without daily limits', () => 
   assert.equal(map.papers[0].sections.flatMap(section => section.items).length, 12);
 });
 
+test('pro maps publish each named student paper without daily limits', () => {
+  const pro = structuredClone(fixture);
+  pro.assessment_id = 'pro-2026-08-18-crystal-gavin-weaknesses';
+  pro.assessment_type = 'pro';
+  pro.display_name = '26/08/18_Crystal_Gavin薄弱项专项卷';
+  pro.map_hash = `sha256:${'b'.repeat(64)}`;
+  pro.papers[0].paper_id = 'paper-pro-2026-08-18-crystal-gavin-weaknesses-brother';
+  pro.papers[0].display_name = '26/08/18_Gavin薄弱项专项卷';
+  pro.papers.push(structuredClone(pro.papers[0]));
+  pro.papers[1].paper_id = 'paper-pro-2026-08-18-crystal-gavin-weaknesses-sister';
+  pro.papers[1].student_id = 'sister';
+  pro.papers[1].display_name = '26/08/18_Crystal薄弱项专项卷';
+  pro.papers[1].sections[0].items.push(
+    { ...pro.papers[1].sections[0].items[0], question_id: 'pro-extra-1' },
+    { ...pro.papers[1].sections[0].items[0], question_id: 'pro-extra-2' }
+  );
+  const map = sanitizeQuestionMap(pro);
+  assert.equal(map.assessment_type, 'pro');
+  assert.deepEqual(map.papers.map(paper => paper.student_id), ['brother', 'sister']);
+  assert.equal(map.papers[1].sections[0].items.length, 6);
+});
+
 test('unknown assessment types remain rejected', () => {
   const unknown = structuredClone(fixture);
   unknown.assessment_type = 'practice';
-  assert.throws(() => sanitizeQuestionMap(unknown), /daily \/ weekly \/ monthly \/ homework/);
+  assert.throws(() => sanitizeQuestionMap(unknown), /daily \/ weekly \/ monthly \/ pro \/ homework/);
 });
 
 test('catalog merge preserves other assessments and refuses silent map replacement', () => {

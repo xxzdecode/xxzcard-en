@@ -136,8 +136,8 @@ assert.match(overrideSource, /warmPracticeAssets/);
 assert.match(overrideSource, /wrapped\.__dailyRouteAssignmentOriginal\.apply\(this, arguments\)/);
 
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
-assert.match(serviceWorker, /xxzcard-app-shell-v73/);
-assert.match(serviceWorker, /xxzcard-runtime-v73/);
+assert.match(serviceWorker, /xxzcard-app-shell-v74/);
+assert.match(serviceWorker, /xxzcard-runtime-v74/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.match(serviceWorker, /match\(request, \{ ignoreSearch: true \}\)/);
