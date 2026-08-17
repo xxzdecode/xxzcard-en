@@ -47,7 +47,12 @@ assert.match(seed, /existingProgressKept/);
 
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.match(index, />知识点库</);
-assert.match(index, /grammar-library\/index\.html|js\/grammarLibrary\.js/);
+assert.match(index, /id="grammarLibraryFrame"/);
+const lazyFeatures = fs.readFileSync(path.join(root, 'js/lazyFeatures.js'), 'utf8');
+assert.match(lazyFeatures, /grammarLibrary:\s*\['js\/grammarLibrary\.js'\]/);
+assert.match(lazyFeatures, /\['openGrammarLibrary',\s*'grammarLibrary'\]/);
+const grammarLibrary = fs.readFileSync(path.join(root, 'js/grammarLibrary.js'), 'utf8');
+assert.match(grammarLibrary, /grammar-library\/index\.html/);
 
 console.log(`grammar library tests passed (${topics.length} topics, ${coverage.length} source mappings)`);
 

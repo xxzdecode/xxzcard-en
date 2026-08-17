@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v72';
-const RUNTIME_CACHE = 'xxzcard-runtime-v72';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v73';
+const RUNTIME_CACHE = 'xxzcard-runtime-v73';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL = [
   './index.html',
@@ -52,6 +52,11 @@ const APP_SHELL = [
   './grammar-challenge/js/page-practice-shell.js',
   './grammar-challenge/data/page-practices/2026-07-31.js',
   './grammar-challenge/data/page-practices/2026-08-01.js',
+  './grammar-challenge/practices/2026-08-22.html',
+  './grammar-challenge/practices/2026-08-21.html',
+  './grammar-challenge/practices/2026-08-20.html',
+  './grammar-challenge/practices/2026-08-19.html',
+  './grammar-challenge/practices/2026-08-18.html',
   './grammar-challenge/practices/2026-08-06.html',
   './grammar-challenge/practices/2026-08-04.html',
   './grammar-challenge/practices/2026-08-03.html',

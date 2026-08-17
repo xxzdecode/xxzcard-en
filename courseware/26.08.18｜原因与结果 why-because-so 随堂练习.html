@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>2026-08-18｜原因与结果 why / because / so 随堂练习</title>
+  <style>
+    :root {
+      --page-bg: #fff4f7;
+      --panel: #fffdfc;
+      --title: #d97892;
+      --mint: #a8d8c8;
+      --mint-deep: #397c69;
+      --mint-soft: #dff3ea;
+      --knowledge: #fff0c9;
+      --line: #efdde4;
+      --text: #625b63;
+      --muted: #81747c;
+      --correct: #d7f3dc;
+      --wrong: #ffd9d9;
+      --feedback-height: 52px;
+      --tap: 46px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: var(--page-bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    button { font: inherit; min-height: var(--tap); cursor: pointer; }
+    button:focus-visible { outline: 3px solid #f3b6c7; outline-offset: 2px; }
+    .practice-app {
+      width: 100vw; height: 100dvh; overflow: hidden;
+      display: grid; grid-template-rows: auto minmax(0, 1fr) var(--feedback-height); gap: 10px;
+      padding: max(9px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right))
+        max(9px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+    }
+    .practice-header {
+      display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+      align-items: center; gap: 10px; min-width: 0; padding: 9px 12px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(220, 170, 180, .14);
+    }
+    h1 { margin: 0; color: var(--title); font-size: clamp(21px, 2.4vw, 31px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .knowledge-strip { min-width: 0; display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow: hidden; }
+    .knowledge-chip { padding: 5px 9px; border-radius: 999px; background: var(--knowledge); font-size: clamp(12px, 1.25vw, 15px); font-weight: 700; white-space: nowrap; }
+    .header-actions { display: flex; gap: 7px; align-items: center; }
+    .progress { padding: 8px 12px; border-radius: 999px; background: var(--mint-soft); color: var(--mint-deep); font-weight: 900; white-space: nowrap; }
+    .action { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--mint); color: #fff; font-weight: 800; }
+    .action.secondary { color: var(--mint-deep); background: var(--mint-soft); }
+    .practice-stage {
+      min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center;
+      padding: clamp(12px, 2vw, 24px); background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+    }
+    .question-card { width: min(920px, 100%); max-height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 12px; }
+    .category { margin: 0; color: var(--muted); font-weight: 800; }
+    .prompt { margin: 0; font-size: clamp(21px, 3vw, 35px); line-height: 1.35; overflow-wrap: anywhere; white-space: pre-line; }
+    .prompt-context { display: grid; gap: 7px; min-height: 0; }
+    .source-line, .answer-zone, .rule-line {
+      border-radius: 14px; padding: 8px 12px; overflow-wrap: anywhere;
+    }
+    .source-line { background: #fff8ef; font-size: clamp(16px, 1.8vw, 21px); font-weight: 800; }
+    .answer-zone { min-height: 48px; background: var(--mint-soft); color: var(--mint-deep); font-size: clamp(17px, 2vw, 23px); font-weight: 900; }
+    .rule-line { background: var(--knowledge); color: var(--muted); font-size: clamp(13px, 1.35vw, 16px); font-weight: 700; }
+    .options { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .options.order-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .options.classify-options { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .option {
+      min-width: 0; border: 2px solid var(--line); border-radius: 16px; padding: 10px 14px;
+      background: #fff8fb; color: var(--text); font-weight: 800; font-size: clamp(16px, 2vw, 22px); overflow-wrap: anywhere;
+    }
+    .option[aria-pressed="true"] { border-color: #e88fa3; background: #fff0f5; }
+    .option.correct-option { border-color: #6bb985; background: var(--correct); }
+    .option.wrong-option { border-color: #e28a8a; background: var(--wrong); }
+    .option.order-picked { opacity: .48; }
+    .classify-zone { display: grid; gap: 7px; }
+    .classify-targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 7px; }
+    .classify-target {
+      min-width: 0; min-height: 54px; border: 2px dashed #83baa9; border-radius: 13px;
+      padding: 6px 9px; background: #f7fffb; color: var(--mint-deep); font-weight: 900;
+    }
+    .classify-target span { display: block; margin-top: 3px; color: var(--text); font-size: .82em; font-weight: 750; overflow-wrap: anywhere; }
+    .question-actions { display: flex; justify-content: center; gap: 9px; }
+    .feedback {
+      height: var(--feedback-height); min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .feedback.correct { background: var(--correct); }
+    .feedback.wrong { background: var(--wrong); }
+    .completion {
+      border: 0; border-radius: 22px; padding: 24px; color: var(--text); background: var(--panel);
+      box-shadow: 0 20px 60px rgba(80, 55, 70, .25); text-align: center;
+    }
+    .completion::backdrop { background: rgba(80, 55, 70, .25); }
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --feedback-height: 40px; --tap: 38px; }
+      .practice-app { gap: 6px; padding: 6px; }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+    @media (orientation: portrait) and (max-width: 767px) {
+      html, body {
+        height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto;
+      }
+      .practice-app {
+        width: 100%; height: auto; min-height: 100dvh; overflow: visible;
+        grid-template-rows: auto auto auto; gap: 10px;
+        padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+          max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      }
+      .practice-header { grid-template-columns: minmax(0, 1fr); align-items: stretch; padding: 12px; border-radius: 17px; }
+      h1 { font-size: 24px; white-space: normal; overflow: visible; }
+      .knowledge-strip { max-height: none; overflow: visible; gap: 6px; }
+      .knowledge-chip { padding: 5px 8px; font-size: 13px; white-space: normal; }
+      .header-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+      .progress, .action { min-height: 46px; padding: 8px 12px; font-size: 14px; }
+      .progress { display: grid; place-items: center; }
+      .practice-stage { display: block; overflow: visible; padding: 12px; border-radius: 17px; }
+      .question-card { width: 100%; max-height: none; gap: 10px; }
+      .category { font-size: 13px; }
+      .prompt-context { gap: 7px; }
+      .prompt { font-size: 22px; line-height: 1.3; }
+      .source-line, .answer-zone, .rule-line { padding: 8px 10px; font-size: 15px; line-height: 1.3; }
+      .options, .options.order-options, .options.classify-options, .classify-targets { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+      .option { min-height: 46px; padding: 9px 12px; border-radius: 13px; font-size: 16px; line-height: 1.25; }
+      .question-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+      .feedback {
+        height: auto; min-height: var(--feedback-height); padding: 10px 12px; border-radius: 14px;
+        font-size: 14px; line-height: 1.35; white-space: normal; overflow: visible;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="practice-header">
+      <h1 id="pageTitle"></h1>
+      <div class="knowledge-strip" id="knowledgeStrip" aria-label="知识摘要"></div>
+      <div class="header-actions">
+        <span class="progress" id="progressText" aria-live="polite"></span>
+        <button class="action" id="newRoundButton" type="button">重新开始</button>
+      </div>
+    </header>
+    <main class="practice-stage">
+      <section class="question-card" aria-live="polite">
+        <p class="category" id="categoryText"></p>
+        <div class="prompt-context">
+          <div class="source-line" id="sourceLine" hidden></div>
+          <h2 class="prompt" id="promptText"></h2>
+          <div class="rule-line" id="ruleLine" hidden></div>
+        </div>
+        <div class="options" id="options"></div>
+        <div class="answer-zone" id="answerZone" hidden></div>
+        <div class="question-actions">
+          <button class="action" id="checkButton" type="button">检查答案</button>
+          <button class="action secondary" id="showAnswerButton" type="button">显示答案</button>
+          <button class="action secondary" id="nextButton" type="button" disabled>下一题</button>
+        </div>
+      </section>
+    </main>
+    <footer class="feedback" id="feedback" aria-live="polite">△ 请选择答案。</footer>
+  </div>
+  <dialog class="completion" id="completionDialog" data-complete="false">
+    <h2 id="completionTitle">本轮完成</h2>
+    <p id="completionText"></p>
+    <button class="action" id="restartButton" type="button">重新开始</button>
+    <button class="action secondary" id="continueButton" type="button" hidden>完成</button>
+  </dialog>
+  <script id="practice-data" type="application/json">{"version":1,"title":"2026-08-18｜原因与结果 why / because / so 随堂练习","completionTitle":"2026-08-18 原因与结果练习完成","completion":"先找原因和结果：Why 问原因，Because 回答或引出原因，so 引出结果；基础阶段同一个因果句不要 because 和 so 一起用。","restartLabel":"重新练习","continueLabel":"返回课程","knowledge":["Why 问原因；because 后是原因","so 后是结果；because / so 不重复"],"round":{"size":20,"shuffle":false,"quotas":{"why_because":5,"because_reason":5,"so_result":5,"no_double":3,"application":2}},"scope":{"mode":"declared","allowedWords":[]},"questions":[{"id":"CP01","category":"why_because","categoryLabel":"Why 问原因","type":"single","prompt":"哪一个问题在问原因？","options":["Why is Lily happy?","Where is Lily?","Who is Lily?","When is the lesson?"],"answer":"Why is Lily happy?","answerDisplay":"Why is Lily happy?","correctFeedback":"正确。Why 用来问原因。","wrongFeedback":"找出带 Why、意思是“为什么”的问题。","explanation":"Why ...? 用来询问原因。"},{"id":"CP02","category":"why_because","categoryLabel":"Because 回答原因","type":"single","source":"Why is Lily happy?","prompt":"选择最合适的回答。","options":["Because she gets a new book.","She is in the room.","Lily is my friend.","It is Monday."],"answer":"Because she gets a new book.","answerDisplay":"Because she gets a new book.","correctFeedback":"正确。Because 后面说明她开心的原因。","wrongFeedback":"回答 Why，要给出“为什么”。","explanation":"Why ...? 常用 Because ... 回答。"},{"id":"CP03","category":"why_because","categoryLabel":"找原因","type":"single","source":"Sam wears a coat because it is cold.","prompt":"哪一部分是原因？","options":["it is cold","Sam wears a coat","Sam","a coat"],"answer":"it is cold","answerDisplay":"it is cold","correctFeedback":"正确。because 后面说明原因。","wrongFeedback":"先找到 because，再看它后面的内容。","explanation":"because 后面是原因。"},{"id":"CP04","category":"why_because","categoryLabel":"找结果","type":"single","source":"It is cold, so Sam wears a coat.","prompt":"哪一部分是结果？","options":["Sam wears a coat","It is cold","cold","Sam"],"answer":"Sam wears a coat","answerDisplay":"Sam wears a coat","correctFeedback":"正确。so 后面是发生的结果。","wrongFeedback":"先找到 so，再看它后面的内容。","explanation":"so 后面是结果。"},{"id":"CP05","category":"because_reason","categoryLabel":"because 引出原因","type":"single","source":"We stay inside ___ it is raining.","prompt":"选择正确的连接词。","options":["because","so","why","where"],"answer":"because","answerDisplay":"We stay inside because it is raining.","correctFeedback":"正确。it is raining 是原因。","wrongFeedback":"后半句在解释为什么待在室内。","explanation":"because 引出原因。"},{"id":"CP06","category":"because_reason","categoryLabel":"because 引出原因","type":"single","source":"Mia is tired ___ she runs for a long time.","prompt":"选择正确的连接词。","options":["because","so","why","who"],"answer":"because","answerDisplay":"Mia is tired because she runs for a long time.","correctFeedback":"正确。跑了很久是疲倦的原因。","wrongFeedback":"后半句回答“为什么累”。","explanation":"要引出原因时用 because。"},{"id":"CP07","category":"so_result","categoryLabel":"so 引出结果","type":"single","source":"It is raining, ___ we stay inside.","prompt":"选择正确的连接词。","options":["so","because","why","when"],"answer":"so","answerDisplay":"It is raining, so we stay inside.","correctFeedback":"正确。待在室内是下雨带来的结果。","wrongFeedback":"后半句说明下雨以后发生了什么。","explanation":"so 引出结果。"},{"id":"CP08","category":"so_result","categoryLabel":"so 引出结果","type":"single","source":"Tom is hungry, ___ he eats a sandwich.","prompt":"选择正确的连接词。","options":["so","because","why","where"],"answer":"so","answerDisplay":"Tom is hungry, so he eats a sandwich.","correctFeedback":"正确。吃三明治是饥饿带来的结果。","wrongFeedback":"后半句是接下来发生的结果。","explanation":"原因在前、结果在后时可以用 so。"},{"id":"CP09","category":"because_reason","categoryLabel":"选择 because 句","type":"single","prompt":"哪一句用 because 正确说明了原因？","options":["Ben smiles because he wins the game.","Ben smiles so he wins the game.","Because Ben smiles, so he wins the game.","Why Ben smiles because he wins the game."],"answer":"Ben smiles because he wins the game.","answerDisplay":"Ben smiles because he wins the game.","correctFeedback":"正确。赢得比赛解释了 Ben 为什么笑。","wrongFeedback":"找出“结果 + because + 原因”的基础句。","explanation":"because 后面放原因。"},{"id":"CP10","category":"so_result","categoryLabel":"选择 so 句","type":"single","prompt":"哪一句用 so 正确说明了结果？","options":["The bus is late, so Amy walks to school.","Amy walks to school because the bus is late, so.","Why the bus is late, so Amy walks to school.","Because the bus is late, so Amy walks to school."],"answer":"The bus is late, so Amy walks to school.","answerDisplay":"The bus is late, so Amy walks to school.","correctFeedback":"正确。步行上学是公交车晚点带来的结果。","wrongFeedback":"找出“原因 + so + 结果”的基础句。","explanation":"so 后面放结果。"},{"id":"CP11","category":"application","categoryLabel":"原因与结果分类","type":"classify","prompt":"先点击短语，再放入 Reason（原因）或 Result（结果）。","options":["it is raining","we stay inside","Tom is hungry","he eats a sandwich"],"targets":["Reason 原因","Result 结果"],"answerMap":{"it is raining":"Reason 原因","we stay inside":"Result 结果","Tom is hungry":"Reason 原因","he eats a sandwich":"Result 结果"},"correctFeedback":"正确。先分清原因和结果，连接词就更容易选。","wrongFeedback":"想一想哪件事先解释另一件事。","explanation":"原因解释为什么，结果说明后来发生什么。"},{"id":"CP12","category":"because_reason","categoryLabel":"because 句子排序","type":"order","prompt":"按正确顺序组成句子。","options":["because","We","it","stay","raining.","inside","is"],"answer":[1,3,5,0,2,6,4],"answerDisplay":"We stay inside because it is raining.","correctFeedback":"正确。先说结果，再用 because 说明原因。","wrongFeedback":"句子从 We 开始，because 后面接 it is raining。","explanation":"结果 + because + 原因。"},{"id":"CP13","category":"so_result","categoryLabel":"so 句子排序","type":"order","prompt":"按正确顺序组成句子。","options":["so","Tom","a sandwich.","is hungry,","he","eats"],"answer":[1,3,0,4,5,2],"answerDisplay":"Tom is hungry, so he eats a sandwich.","correctFeedback":"正确。先说原因，再用 so 引出结果。","wrongFeedback":"句子从 Tom 开始，so 后面接 he eats a sandwich。","explanation":"原因 + so + 结果。"},{"id":"CP14","category":"because_reason","categoryLabel":"同一意思｜because","type":"single","source":"The dog runs to the bowl. It is hungry.","prompt":"选择正确的 because 句。","options":["The dog runs to the bowl because it is hungry.","The dog is hungry because it runs to the bowl.","Because the dog is hungry, so it runs to the bowl.","The dog because hungry runs to the bowl."],"answer":"The dog runs to the bowl because it is hungry.","answerDisplay":"The dog runs to the bowl because it is hungry.","correctFeedback":"正确。饥饿解释了狗为什么跑向碗。","wrongFeedback":"先问：狗为什么跑向碗？","explanation":"because 后面说明原因 it is hungry。"},{"id":"CP15","category":"so_result","categoryLabel":"同一意思｜so","type":"single","source":"The dog is hungry. It runs to the bowl.","prompt":"选择正确的 so 句。","options":["The dog is hungry, so it runs to the bowl.","The dog runs to the bowl, so it is hungry.","Because the dog is hungry, so it runs to the bowl.","The dog so hungry runs to the bowl."],"answer":"The dog is hungry, so it runs to the bowl.","answerDisplay":"The dog is hungry, so it runs to the bowl.","correctFeedback":"正确。跑向碗是饥饿带来的结果。","wrongFeedback":"先说原因，再用 so 引出结果。","explanation":"so 后面说明结果 it runs to the bowl。"},{"id":"CP16","category":"no_double","categoryLabel":"because / so 不重复","type":"single","prompt":"哪一句在基础阶段需要改正？","options":["Because it is raining, so we stay inside.","We stay inside because it is raining.","It is raining, so we stay inside.","Why do we stay inside? Because it is raining."],"answer":"Because it is raining, so we stay inside.","answerDisplay":"Because it is raining, so we stay inside.","correctFeedback":"正确。这一句同时用了 because 和 so。","wrongFeedback":"找出同一个因果句中重复出现两个连接词的句子。","explanation":"基础阶段 because 和 so 选一个，不同时使用。"},{"id":"CP17","category":"no_double","categoryLabel":"删掉重复连接词","type":"single","source":"Because Jack is tired, so he goes to bed.","prompt":"选择最合适的改法。","options":["Jack goes to bed because he is tired.","Because Jack is tired because he goes to bed.","Jack is tired so because he goes to bed.","Why Jack is tired so he goes to bed."],"answer":"Jack goes to bed because he is tired.","answerDisplay":"Jack goes to bed because he is tired.","correctFeedback":"正确。保留 because，一次说明清楚原因。","wrongFeedback":"删掉重复的 so，并保持原因和结果方向正确。","explanation":"同一基础因果句只用一个连接词。"},{"id":"CP18","category":"why_because","categoryLabel":"完整问答","type":"single","source":"Why does Ben carry an umbrella?","prompt":"选择最合适的回答。","options":["Because it is raining.","So it is raining.","Ben is under the umbrella.","Where is the umbrella?"],"answer":"Because it is raining.","answerDisplay":"Because it is raining.","correctFeedback":"正确。这个回答直接给出原因。","wrongFeedback":"Why 问原因，回答要解释为什么。","explanation":"Why ...? Because ... 是基础原因问答。"},{"id":"CP19","category":"application","categoryLabel":"简单语境应用","type":"single","source":"Nina opens the window. The room is hot.","prompt":"哪一句正确表达原来的原因和结果？","options":["Nina opens the window because the room is hot.","The room is hot because Nina opens the window.","Because the room is hot, so Nina opens the window.","Why the room is hot so Nina opens the window."],"answer":"Nina opens the window because the room is hot.","answerDisplay":"Nina opens the window because the room is hot.","correctFeedback":"正确。房间热是开窗的原因。","wrongFeedback":"先问：Nina 为什么开窗？","explanation":"because 后面说明原因 the room is hot。"},{"id":"CP20","category":"no_double","categoryLabel":"三步判断法","type":"single","prompt":"选择最完整的基础判断方法。","options":["先找原因和结果，再按方向选 because 或 so，最后检查是否重复使用。","看到两个句子就同时加 because 和 so。","只看哪个单词更长。","所有 Why 问句都用 so 回答。"],"answer":"先找原因和结果，再按方向选 because 或 so，最后检查是否重复使用。","answerDisplay":"先找原因和结果，再按方向选 because 或 so，最后检查是否重复使用。","correctFeedback":"正确。先判断意思，再选连接词。","wrongFeedback":"不能只看中文或同时加两个连接词。","explanation":"原因在 because 后，结果在 so 后；基础阶段不重复使用。"}]}</script>
+  <script>
+    (() => {
+      "use strict";
+      const config = JSON.parse(document.getElementById("practice-data").textContent);
+      const byId = (id) => document.getElementById(id);
+      const challengeMode = ["challenge-locked", "challenge-adjustable"].includes(config.interactionMode);
+      const lockOnSelect = config.interactionMode === "challenge-locked";
+      const ui = {
+        title: byId("pageTitle"), knowledge: byId("knowledgeStrip"), progress: byId("progressText"),
+        category: byId("categoryText"), prompt: byId("promptText"), source: byId("sourceLine"),
+        answerZone: byId("answerZone"), rule: byId("ruleLine"), options: byId("options"),
+        check: byId("checkButton"), show: byId("showAnswerButton"), next: byId("nextButton"),
+        feedback: byId("feedback"), dialog: byId("completionDialog"), completion: byId("completionText"),
+        completionTitle: byId("completionTitle"), continueButton: byId("continueButton")
+      };
+      const state = {
+        round: [], index: 0, selected: [], assignments: {}, activeOption: null, locked: false, judging: false,
+        solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: []
+      };
+
+      function shuffle(values) {
+        const copy = [...values];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+      function buildRound() {
+        if (config.round.shuffle === false) return config.questions.slice(0, config.round.size);
+        if (Array.isArray(config.round.groups)) {
+          return config.round.groups.flatMap((group) => {
+            const ids = new Set(group.ids || []);
+            let items = config.questions.filter((q) => ids.has(q.id));
+            if (group.shuffle !== false) items = shuffle(items);
+            return items;
+          }).slice(0, config.round.size);
+        }
+        const picked = [];
+        for (const [category, count] of Object.entries(config.round.quotas)) {
+          picked.push(...shuffle(config.questions.filter((q) => q.category === category)).slice(0, count));
+        }
+        return shuffle(picked);
+      }
+      function answerIndices(question) {
+        const answers = Array.isArray(question.answer) ? question.answer : [question.answer];
+        const used = new Set();
+        return answers.map((value) => {
+          if (typeof value === "number") return value;
+          const index = question.options.findIndex((option, optionIndex) => option === value && !used.has(optionIndex));
+          used.add(index); return index;
+        });
+      }
+      function answerValues(question) {
+        return answerIndices(question).map((index) => question.options[index]);
+      }
+      function expectedAssignments(question) {
+        return question.answerMap || {};
+      }
+      function selectedValues(question) {
+        return state.selected.map((index) => question.options[index]);
+      }
+      function isCorrect(question) {
+        if (question.type === "classify") {
+          const expected = expectedAssignments(question);
+          return question.options.every((option) => state.assignments[option] === expected[option]);
+        }
+        const selected = selectedValues(question);
+        const answers = answerValues(question);
+        if (question.type === "order") {
+          const indices = answerIndices(question);
+          return state.selected.length === indices.length && state.selected.every((value, index) => value === indices[index]);
+        }
+        if (question.type === "multi") return selected.length === answers.length && selected.every((value) => answers.includes(value));
+        return selected.length === 1 && selected[0] === answers[0];
+      }
+      function completeAnswer(question) {
+        if (question.type === "classify") {
+          return Object.entries(expectedAssignments(question)).map(([option, target]) => `${option} → ${target}`).join("；");
+        }
+        return question.answerDisplay || answerValues(question).join(question.type === "order" ? " " : "、");
+      }
+      function hasResponse(question) {
+        if (question.type === "classify") return question.options.every((option) => state.assignments[option]);
+        return state.selected.length > 0;
+      }
+      function feedback(type, message) {
+        ui.feedback.className = `feedback ${type || ""}`.trim();
+        ui.feedback.textContent = `${type === "correct" ? "✓" : type === "wrong" ? "×" : "△"} ${message}`;
+      }
+      function updateAnswerZone(question) {
+        if (question.type === "order") {
+          ui.answerZone.textContent = state.selected.length ? selectedValues(question).join(" ") : "按顺序点击词块，句子会在这里组成。";
+          return;
+        }
+        if (question.type !== "classify") return;
+        const zone = document.createElement("div");
+        zone.className = "classify-zone";
+        const hint = document.createElement("div");
+        hint.textContent = state.activeOption === null ? "先点词卡，再点目标区。" : `已选：${question.options[state.activeOption]}，请选择目标区。`;
+        const targets = document.createElement("div");
+        targets.className = "classify-targets";
+        for (const target of question.targets) {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "classify-target"; button.dataset.target = target;
+          const assigned = question.options.filter((option) => state.assignments[option] === target);
+          button.textContent = target;
+          const values = document.createElement("span");
+          values.textContent = assigned.length ? assigned.join(" · ") : "点击放入";
+          button.append(values);
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.activeOption === null) return;
+            const option = question.options[state.activeOption];
+            state.assignments[option] = target;
+            state.activeOption = null;
+            updateAnswerZone(question);
+            renderOptionStates(question);
+            feedback("", hasResponse(question) ? "分类完成，可以检查答案。" : "继续选择词卡并放入目标区。");
+          });
+          targets.append(button);
+        }
+        zone.append(hint, targets);
+        ui.answerZone.replaceChildren(zone);
+      }
+      function renderOptionStates(question) {
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          const index = Number(item.dataset.optionIndex);
+          const picked = state.selected.includes(index) || state.activeOption === index;
+          item.setAttribute("aria-pressed", String(picked));
+          item.classList.toggle("order-picked", question.type === "order" && picked);
+          item.disabled = challengeMode && state.locked;
+        });
+      }
+      function renderQuestion() {
+        const q = state.round[state.index];
+        state.selected = []; state.assignments = {}; state.activeOption = null; state.locked = false; state.judging = false;
+        ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
+        ui.category.textContent = q.categoryLabel || q.category;
+        ui.prompt.textContent = q.prompt;
+        ui.source.hidden = !q.source; ui.source.textContent = q.source || "";
+        ui.rule.hidden = !q.rule; ui.rule.textContent = q.rule || "";
+        ui.answerZone.hidden = !["order", "classify"].includes(q.type); updateAnswerZone(q);
+        ui.options.classList.toggle("order-options", q.type === "order");
+        ui.options.classList.toggle("classify-options", q.type === "classify");
+        ui.options.replaceChildren(...q.options.map((option, index) => {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "option"; button.dataset.optionIndex = String(index);
+          button.setAttribute("aria-pressed", "false"); button.textContent = option;
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.locked) return;
+            if (q.type === "classify") {
+              state.activeOption = index;
+            } else if (q.type === "multi") {
+              state.selected = state.selected.includes(index) ? state.selected.filter((item) => item !== index) : [...state.selected, index];
+            } else if (q.type === "order") {
+              if (state.selected.includes(index)) state.selected = state.selected.filter((item) => item !== index);
+              else state.selected.push(index);
+            } else state.selected = [index];
+            if (lockOnSelect) state.locked = true;
+            renderOptionStates(q);
+            updateAnswerZone(q);
+            if (challengeMode) {
+              ui.next.disabled = false;
+              feedback("", lockOnSelect ? "答案已锁定，点击“下一题”判分。" : "答案已选择；点击“下一题”前仍可调整。");
+            } else if (q.type === "classify") {
+              feedback("", `已选择 ${option}，请点击目标区。`);
+            } else feedback("", "已选择，点击“检查答案”。");
+          });
+          return button;
+        }));
+        ui.next.disabled = true; ui.next.hidden = false;
+        ui.check.hidden = challengeMode; ui.show.hidden = challengeMode;
+        ui.check.disabled = false; ui.show.disabled = false;
+        feedback("", q.type === "multi" ? "请选择全部正确答案。" : q.type === "order" ? "请按正确语序点击全部词块。" : q.type === "classify" ? "先点词卡，再点目标区。" : "请选择答案。");
+      }
+      function startRound() {
+        state.round = buildRound(); state.index = 0; state.selected = [];
+        state.solved = Array(state.round.length).fill(false); state.revealed = Array(state.round.length).fill(false);
+        state.attempts = Array(state.round.length).fill(0); state.firstTry = Array(state.round.length).fill(false);
+        state.wrongEver = Array(state.round.length).fill(false);
+        ui.dialog.dataset.complete = "false";
+        if (ui.dialog.open) ui.dialog.close();
+        renderQuestion();
+      }
+      function checkAnswer() {
+        if (!hasResponse(state.round[state.index])) return feedback("wrong", "请先完成作答。");
+        if (state.solved[state.index]) return;
+        const q = state.round[state.index];
+        state.attempts[state.index] += 1;
+        if (isCorrect(q)) {
+          state.solved[state.index] = true;
+          state.firstTry[state.index] = state.attempts[state.index] === 1 && !state.revealed[state.index];
+          ui.options.querySelectorAll(".option").forEach((item) => {
+            if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          });
+          feedback("correct", `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim());
+          ui.check.disabled = true; ui.show.disabled = true; ui.next.disabled = false;
+        } else {
+          state.wrongEver[state.index] = true;
+          state.selected.forEach((index) => ui.options.querySelector(`[data-option-index="${index}"]`)?.classList.add("wrong-option"));
+          feedback("wrong", q.wrongFeedback || "再看助动词、主语和动词原形。你可以继续修改。");
+          state.selected = [];
+          ui.options.querySelectorAll(".option").forEach((item) => { item.setAttribute("aria-pressed", "false"); item.classList.remove("order-picked"); });
+          updateAnswerZone(q);
+        }
+      }
+      function showAnswer() {
+        const q = state.round[state.index];
+        state.revealed[state.index] = true; state.solved[state.index] = true;
+        feedback("correct", `答案：${completeAnswer(q)}。${q.explanation || ""}`);
+        if (q.type === "classify") {
+          state.assignments = { ...expectedAssignments(q) };
+          ui.answerZone.hidden = false; updateAnswerZone(q); renderOptionStates(q);
+        } else {
+          ui.answerZone.hidden = false; ui.answerZone.textContent = completeAnswer(q);
+        }
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+        });
+        ui.check.disabled = true; ui.show.disabled = true;
+        ui.next.disabled = false;
+      }
+      function nextQuestion() {
+        if (state.index + 1 < state.round.length) { state.index += 1; renderQuestion(); return; }
+        showCompletion();
+      }
+      function showCompletion() {
+        const first = state.firstTry.filter(Boolean).length;
+        const final = state.solved.filter(Boolean).length;
+        const wrongIds = state.round.filter((_, index) => state.wrongEver[index]).map((question) => question.id);
+        ui.completionTitle.textContent = config.completionTitle || (challengeMode ? "挑战完成" : "本轮完成");
+        ui.completion.textContent = challengeMode
+          ? `${config.completion || "本轮完成。"} 正确 ${first} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`
+          : `${config.completion || "本轮完成。"} 首次正确 ${first} / ${state.round.length}，最终正确 ${final} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`;
+        ui.dialog.dataset.complete = "true";
+        if (typeof ui.dialog.showModal === "function") ui.dialog.showModal(); else ui.dialog.setAttribute("open", "");
+      }
+      function submitChallenge() {
+        const q = state.round[state.index];
+        if (state.judging || !hasResponse(q)) return;
+        state.judging = true; state.solved[state.index] = true; state.attempts[state.index] = 1;
+        const correct = isCorrect(q);
+        state.firstTry[state.index] = correct;
+        state.wrongEver[state.index] = !correct;
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          else if (state.selected.includes(Number(item.dataset.optionIndex))) item.classList.add("wrong-option");
+        });
+        const message = correct
+          ? `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim()
+          : `${q.wrongFeedback || "这次没有选对。"} 正确答案：${completeAnswer(q)}。${q.explanation || ""}`.trim();
+        feedback(correct ? "correct" : "wrong", message);
+        ui.next.disabled = true;
+        setTimeout(() => {
+          if (state.index + 1 < state.round.length) {
+            state.index += 1; renderQuestion();
+          } else showCompletion();
+        }, Number(config.feedbackDelayMs || 1000));
+      }
+
+      ui.title.textContent = config.title;
+      ui.knowledge.replaceChildren(...config.knowledge.map((text) => {
+        const chip = document.createElement("span"); chip.className = "knowledge-chip"; chip.textContent = text; return chip;
+      }));
+      byId("newRoundButton").hidden = challengeMode;
+      byId("newRoundButton").addEventListener("click", startRound);
+      byId("restartButton").addEventListener("click", startRound);
+      byId("restartButton").textContent = config.restartLabel || (challengeMode ? "重新挑战" : "重新练习");
+      if (config.continueLabel) {
+        ui.continueButton.hidden = false; ui.continueButton.textContent = config.continueLabel;
+        ui.continueButton.addEventListener("click", () => {
+          if (config.continueHref) location.href = config.continueHref;
+          else if (ui.dialog.open) ui.dialog.close();
+        });
+      }
+      ui.check.addEventListener("click", checkAnswer);
+      ui.show.addEventListener("click", showAnswer);
+      ui.next.addEventListener("click", challengeMode ? submitChallenge : nextQuestion);
+      window.__LESSON_PREP_QA__ = {
+        state: () => ({
+          mode: challengeMode ? config.interactionMode : "practice", index: state.index, total: state.round.length,
+          complete: ui.dialog.dataset.complete === "true", id: state.round[state.index]?.id,
+          order: state.round.map((question) => question.id), selected: [...state.selected], locked: state.locked
+        }),
+        selectWrong: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = Object.fromEntries(q.options.map((option) => {
+              const expected = expectedAssignments(q)[option];
+              return [option, q.targets.find((target) => target !== expected) || q.targets[0]];
+            }));
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          const correct = new Set(answerIndices(q));
+          const wrongIndex = q.options.findIndex((_, index) => !correct.has(index));
+          state.selected = wrongIndex >= 0 ? [wrongIndex] : [];
+          if (challengeMode) { state.locked = lockOnSelect; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        solveCurrent: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = { ...expectedAssignments(q) };
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          state.selected = answerIndices(q).filter((index) => index >= 0);
+          if (challengeMode) { state.locked = lockOnSelect; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        restart: startRound
+      };
+      startRound();
+    })();
+  </script>
+</body>
+</html>
