@@ -252,6 +252,9 @@
   }
 
   function renderCategorySelection() {
+    if (typeof setVocabularyLessonSelectionRoute === 'function') {
+      setVocabularyLessonSelectionRoute('categories');
+    }
     installVocabularyLessonShell();
     ensureCategoryStyles();
     const list = document.getElementById('vocabularyLessonBookList');
@@ -323,6 +326,9 @@
 
   function renderBookSelectionWithCategoryEntry() {
     if (!originalRenderVocabularyLessonBookSelection) return;
+    if (typeof setVocabularyLessonSelectionRoute === 'function') {
+      setVocabularyLessonSelectionRoute('books');
+    }
     originalRenderVocabularyLessonBookSelection();
     const topbarTitle = document.querySelector('#screenVocabularyReviewList .topbar-title');
     const title = document.getElementById('vocabularyLessonSelectionTitle');
@@ -344,6 +350,9 @@
 
   function openVocabularyLessonCategorySelection() {
     if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
+    if (typeof setVocabularyLessonSelectionRoute === 'function') {
+      setVocabularyLessonSelectionRoute('categories');
+    }
     renderCategorySelection();
     installSelectionBackButton(closeVocabularyLessonCategorySelection);
     showScreen('screenVocabularyReviewList');
@@ -351,6 +360,9 @@
 
   function closeVocabularyLessonCategorySelection() {
     if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
+    if (typeof setVocabularyLessonSelectionRoute === 'function') {
+      setVocabularyLessonSelectionRoute('books');
+    }
     renderBookSelectionWithCategoryEntry();
     installSelectionBackButton(closeVocabularyReviewList);
     showScreen('screenVocabularyReviewList');
@@ -409,7 +421,11 @@
     window.getVocabularyLessonAvailableCategoryGroups = availableCategoryGroups;
     loadVocabularyLessonCategories().then(() => {
       if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
-        renderVocabularyLessonBookSelection();
+        if (typeof refreshVocabularyLessonSelectionRoute === 'function') {
+          refreshVocabularyLessonSelectionRoute();
+        } else {
+          renderVocabularyLessonBookSelection();
+        }
       }
     });
     return true;

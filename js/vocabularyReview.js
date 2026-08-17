@@ -12,6 +12,7 @@ let vocabularyLessonShellReady = false;
 
 const vocabularyLessonState = {
   mode: 'selection',
+  selectionRoute: 'books',
   batch: null,
   books: [],
   words: [],
@@ -26,6 +27,48 @@ const vocabularyLessonState = {
   revealed: false,
   reviewScrollTop: 0
 };
+
+const VOCABULARY_LESSON_SELECTION_ROUTES = Object.freeze({
+  BOOKS: 'books',
+  CATEGORIES: 'categories',
+  CATEGORY_GROUPS: 'category-groups'
+});
+
+function setVocabularyLessonSelectionRoute(route) {
+  const values = Object.values(VOCABULARY_LESSON_SELECTION_ROUTES);
+  vocabularyLessonState.selectionRoute = values.includes(route)
+    ? route
+    : VOCABULARY_LESSON_SELECTION_ROUTES.BOOKS;
+  return vocabularyLessonState.selectionRoute;
+}
+
+function getVocabularyLessonSelectionRoute() {
+  return setVocabularyLessonSelectionRoute(vocabularyLessonState.selectionRoute);
+}
+
+function renderCurrentVocabularyLessonSelectionRoute() {
+  const route = getVocabularyLessonSelectionRoute();
+  if (
+    route === VOCABULARY_LESSON_SELECTION_ROUTES.CATEGORY_GROUPS
+    && typeof window.renderVocabularyLessonCategoryGroups === 'function'
+  ) {
+    return window.renderVocabularyLessonCategoryGroups();
+  }
+  if (
+    route === VOCABULARY_LESSON_SELECTION_ROUTES.CATEGORIES
+    && typeof window.renderVocabularyLessonCategorySelection === 'function'
+  ) {
+    return window.renderVocabularyLessonCategorySelection();
+  }
+  return renderVocabularyLessonBookSelection();
+}
+
+function refreshVocabularyLessonSelectionRoute() {
+  const screen = document.getElementById('screenVocabularyReviewList');
+  if (!screen || !screen.classList.contains('active')) return false;
+  renderCurrentVocabularyLessonSelectionRoute();
+  return true;
+}
 
 function isVocabularyLessonVirtualBatch(batch) {
   return Boolean(batch && (
@@ -301,6 +344,7 @@ function renderVocabularyLessonSharedAdmin() {
 async function openVocabularyReviewList() {
   if (!canUseVocabularyReview()) return;
   clearVocabularyLessonTransientState();
+  setVocabularyLessonSelectionRoute(VOCABULARY_LESSON_SELECTION_ROUTES.BOOKS);
   installVocabularyLessonShell();
   document.body.classList.remove('vocabulary-review-open');
   await Promise.all([
@@ -314,6 +358,7 @@ async function openVocabularyReviewList() {
 function closeVocabularyReviewList() {
   if (!canUseVocabularyReview()) return;
   clearVocabularyLessonTransientState();
+  setVocabularyLessonSelectionRoute(VOCABULARY_LESSON_SELECTION_ROUTES.BOOKS);
   document.body.classList.remove('vocabulary-review-open');
   showScreen('screenHome');
   loadHome();
@@ -719,8 +764,7 @@ async function restoreVocabularyReviewWord(word) {
 
 function refreshVocabularyReviewSharedStateFromAppData() {
   applyVocabularyReviewState(appData);
-  const list = document.getElementById('screenVocabularyReviewList');
-  if (list && list.classList.contains('active')) renderVocabularyLessonBookSelection();
+  refreshVocabularyLessonSelectionRoute();
 }
 
 function isVocabularyReviewPlayerActive() {

@@ -11,6 +11,9 @@ const lazyFeatures = fs.readFileSync(path.join(root, 'js/lazyFeatures.js'), 'utf
 const reviewData = fs.readFileSync(path.join(root, 'js/vocabularyReviewData.js'), 'utf8');
 const lowPressure = fs.readFileSync(path.join(root, 'js/vocabularyLessonLowPressureGroups.js'), 'utf8');
 const repository = fs.readFileSync(path.join(root, 'js/repository.js'), 'utf8');
+const task016 = fs.readFileSync(path.join(root, 'js/vocabularyLesson016.js'), 'utf8');
+const groupStyles = fs.readFileSync(path.join(root, 'styles-vocabulary-lesson-groups.css'), 'utf8');
+const review = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
 
 assert.equal(registry.schemaVersion, 1);
 assert.ok(Array.isArray(registry.groups) && registry.groups.length >= 2);
@@ -65,6 +68,15 @@ assert.match(script, /同一个词可以出现在多个类别中/);
 assert.match(script, /renderVocabularyLessonBookSelection = renderBookSelectionWithCategoryEntry/);
 assert.match(script, /id = 'vocabularyLessonCategoryEntry'/);
 assert.match(script, /次级入口/);
+assert.match(review, /selectionRoute:\s*'books'/);
+assert.match(review, /renderCurrentVocabularyLessonSelectionRoute/);
+assert.match(review, /refreshVocabularyLessonSelectionRoute/);
+assert.doesNotMatch(review, /list && list\.classList\.contains\('active'\)\) renderVocabularyLessonBookSelection\(\)/);
+assert.match(lowPressure, /renderVocabularyLessonCategoryGroups = renderCategoryGroups/);
+assert.match(task016, /vocabulary-lesson-book-title/);
+assert.match(groupStyles, /\.vocabulary-lesson-book-title::before/);
+assert.match(groupStyles, /background:\s*#fff1a0/);
+assert.match(groupStyles, /color:\s*#2a7197/);
 
 const taskIndex = lazyFeatures.indexOf("'js/vocabularyLesson016.js'");
 const categoryIndex = lazyFeatures.indexOf("'js/vocabularyLessonCategories.js'");

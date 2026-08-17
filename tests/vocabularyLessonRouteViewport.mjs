@@ -159,8 +159,21 @@ try {
 
   await ipad.page.locator('#vocabularyLessonCategoryEntry').click();
   await ipad.page.waitForFunction(() => document.getElementById('vocabularyLessonSelectionTitle')?.textContent === '选择词汇类别');
+  await ipad.page.evaluate(() => refreshVocabularyReviewSharedStateFromAppData());
+  assert.equal(
+    await ipad.page.locator('#vocabularyLessonSelectionTitle').textContent(),
+    '选择词汇类别',
+    'background main-data refresh must preserve the category route'
+  );
   await ipad.page.getByRole('button', { name: /交通工具/ }).click();
   await ipad.page.waitForSelector('.vocabulary-lesson-category-group-picker');
+  await ipad.page.evaluate(() => refreshVocabularyReviewSharedStateFromAppData());
+  await ipad.page.waitForSelector('.vocabulary-lesson-category-group-picker');
+  assert.equal(
+    await ipad.page.evaluate(() => vocabularyLessonState.selectionRoute),
+    'category-groups',
+    'background main-data refresh must preserve the category-group route'
+  );
   assert.deepEqual(await ipad.page.evaluate(() => ({
     virtualInAppData: appData.batches.some(batch => String(batch.id).startsWith('vocabulary-category:')),
     batchId: vocabularyLessonState.batch?.id || '',

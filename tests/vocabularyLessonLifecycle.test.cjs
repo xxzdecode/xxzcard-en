@@ -202,6 +202,60 @@ test('home navigation and user switching clear category-only runtime state', () 
   });
 });
 
+test('background refresh redraws the active selection route instead of returning to books', () => {
+  const screen = element('screenVocabularyReviewList');
+  screen.classList.add('active');
+  const routeContext = vm.createContext({
+    console,
+    currentUser: 'sister',
+    currentBatchId: null,
+    document: {
+      body: { classList: classList() },
+      head: { appendChild() {} },
+      createElement: element,
+      getElementById(id) {
+        return id === screen.id ? screen : element(id);
+      },
+      querySelector() { return null; },
+      querySelectorAll() { return []; },
+      addEventListener() {}
+    },
+    window: null,
+    navigator: {},
+    Set,
+    Map,
+    Promise,
+    sessionStorage: { getItem() { return null; }, setItem() {} },
+    localStorage: { getItem() { return null; }, setItem() {} },
+    getCardWord(card) { return card.word; },
+    getCardMeaning(card) { return card.meaning; },
+    isTeacher() { return false; },
+    appData: { batches: [] }
+  });
+  routeContext.window = routeContext;
+  routeContext.globalThis = routeContext;
+  vm.runInContext(read('js/vocabularyReview.js'), routeContext, { filename: 'vocabularyReview.js' });
+
+  let bookRenders = 0;
+  let categoryRenders = 0;
+  let categoryGroupRenders = 0;
+  routeContext.renderVocabularyLessonBookSelection = () => { bookRenders += 1; };
+  routeContext.renderVocabularyLessonCategorySelection = () => { categoryRenders += 1; };
+  routeContext.renderVocabularyLessonCategoryGroups = () => { categoryGroupRenders += 1; };
+
+  routeContext.setVocabularyLessonSelectionRoute('categories');
+  routeContext.refreshVocabularyReviewSharedStateFromAppData();
+  assert.deepEqual([bookRenders, categoryRenders, categoryGroupRenders], [0, 1, 0]);
+
+  routeContext.setVocabularyLessonSelectionRoute('category-groups');
+  routeContext.refreshVocabularyReviewSharedStateFromAppData();
+  assert.deepEqual([bookRenders, categoryRenders, categoryGroupRenders], [0, 1, 1]);
+
+  routeContext.setVocabularyLessonSelectionRoute('books');
+  routeContext.refreshVocabularyReviewSharedStateFromAppData();
+  assert.deepEqual([bookRenders, categoryRenders, categoryGroupRenders], [1, 1, 1]);
+});
+
 test('main storage cloning strips transient category data while generic KV cloning stays unchanged', () => {
   const repository = read('js/repository.js');
   const start = repository.indexOf('function isVocabularyLessonTransientBatchRecord');
