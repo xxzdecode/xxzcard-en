@@ -320,7 +320,7 @@
       return `
         <button class="vocabulary-lesson-book-button${stateClass}" type="button" onclick="selectVocabularyLessonGroup(decodeURIComponent('${encodeURIComponent(String(batch.id))}'), 0)">
           <span aria-hidden="true">${isCurrent ? '🌞' : '📚'}</span>
-          <span class="vocabulary-lesson-book-name">${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}<small>${wordCount}词</small></span>
+          <span class="vocabulary-lesson-book-name"><span class="vocabulary-lesson-book-title">${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}</span><small>${wordCount}词</small></span>
           ${statusBadge}
           ${group ? completionLabel(group.id) : ''}
           <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>
