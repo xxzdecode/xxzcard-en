@@ -91,6 +91,30 @@ assert.equal(homeworkCatalog.papers.length, 1);
 assert.equal(homeworkCatalog.papers[0].assessmentType, 'homework');
 assert.equal(homeworkCatalog.papers[0].title, '暑假作业任务单｜8月13日｜练习六');
 
+const proCatalog = api.normalizeCatalog({
+  schema_version: 1,
+  assessments: [{
+    assessment_id: 'pro-2026-08-18-crystal-gavin-weaknesses',
+    assessment_type: 'pro',
+    assessment_date: '2026-08-18',
+    display_name: '26/08/18_Crystal_Gavin薄弱项专项卷',
+    map_revision: 'final-1',
+    map_hash: `sha256:${'b'.repeat(64)}`,
+    papers: [{
+      paper_id: 'paper-pro-2026-08-18-crystal-gavin-weaknesses-sister',
+      student_id: 'sister',
+      display_name: '26/08/18_Crystal薄弱项专项卷',
+      sections: [{
+        section_id: 's1', display_label: '一、找句子骨架',
+        items: [{ question_id: 'pro.s1.q1', display_label: '一-1', kp_ids: ['sentence-parts'] }]
+      }]
+    }]
+  }]
+});
+assert.equal(proCatalog.papers.length, 1);
+assert.equal(proCatalog.papers[0].assessmentType, 'pro');
+assert.equal(proCatalog.papers[0].title, '26/08/18_Crystal薄弱项专项卷');
+
 const daily = catalog.papers[0];
 const record = api.createGradingRecord(
   daily,
@@ -257,6 +281,7 @@ assert.match(serviceWorker, /styles-wrong-answer-organizer\.css/);
 assert.match(serviceWorker, /js\/wrongAnswerOrganizer\.js/);
 assert.match(organizerSource, /assessment_weakness_view_v1/);
 assert.match(organizerSource, /homework:\s*'暑假作业'/);
+assert.match(organizerSource, /pro:\s*'薄弱专项'/);
 assert.doesNotMatch(organizerSource, /日测范围与生成状态|active_assessment_id|next_topic_key/);
 assert.match(organizerSource, /root\.showStorageError\(error\)/);
 
