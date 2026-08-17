@@ -216,6 +216,38 @@
 
 仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
 
+### 数词 1—20 引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `numbers-basic / 数词 1—20`；
+- 正式导入包：`data/imports/book-numbers-basic.reference.json`；
+- 单词本稳定 ID：`book-numbers-basic`；
+- 共 20 词：`one / two / three / four / five / six / seven / eight / nine / ten / eleven / twelve / thirteen / fourteen / fifteen / sixteen / seventeen / eighteen / nineteen / twenty`；
+- 首次审计：直接复用 2 词，新建 18 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_numbers_basic_reference_import_2026_08_18_0212`；
+- 正式单词本只持久化 20 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 20 词；
+- 写后重复 dry-run：`already_applied`，直接复用 20 词，新建 0，冲突 0。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
+### 整十数与序数词引用式单词本
+
+已完成正式分类、总库审计、Git 导入包、Supabase 原子写入、学生共享和幂等验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `numbers-extended / 整十数与序数词`；
+- 正式导入包：`data/imports/book-numbers-extended.reference.json`；
+- 单词本稳定 ID：`book-numbers-extended`；
+- 共 20 词：`thirty / forty / fifty / sixty / seventy / eighty / ninety / hundred / first / second / third / fourth / fifth / sixth / seventh / eighth / ninth / tenth / eleventh / twelfth`；
+- 首次审计：直接复用 1 词，新建 19 词，冲突 0，缺失引用 0；
+- 正式写入前快照：Supabase `kv_store.pre_numbers_extended_reference_import_2026_08_18_0214`；
+- 正式单词本只持久化 20 个 `cardRefs`，没有持久化完整 `cards`；
+- 已共享给 `sister` 与 `brother`，两名学生均可见 20 词；
+- 写后重复 dry-run：`already_applied`，直接复用 20 词，新建 0，冲突 0。
+
+仍需核对：在真实老师端和学生端刷新后确认列表与卡片展示。
+
 ### 单词卡加载性能修复
 
 本轮已完成：
@@ -237,16 +269,16 @@
 1. 在真实老师端核对“人物”和 `Miss` 覆盖；
 2. 在真实老师端和学生端核对“气象与季节”“衣服”“学习用品”“身体部位”“职业”“动物”“食品与三餐”“饮料与水果”“蔬菜”列表与卡片展示；
 3. 完成引用式单词编辑保存、图片保护和目标设备速度回归；
-4. 继续整理数字、基础动作和其他小学基础分类。
+4. 继续整理基础动作和其他小学基础分类。
 
 ## 2. 系统总库迁移状态
 
 已完成：
 
 - Supabase 数据结构版本：2；
-- 系统总库唯一词条：665；
-- 单词本：29；
-- 单词本引用：760；
+- 系统总库唯一词条：815；
+- 单词本：39；
+- 单词本引用：947；
 - 缺失引用：0；
 - 单词本内持久化完整卡片：0；
 - `go` 的两张历史卡已保留式合并；
@@ -262,6 +294,8 @@
 - 食品与三餐导入前快照：`pre_meals_food_reference_import_2026_07_31_2130`；
 - 饮料与水果导入前快照：`pre_drinks_fruit_reference_import_2026_07_31_2130`；
 - 蔬菜导入前快照：`pre_vegetables_reference_import_2026_07_31_2130`；
+- 数词 1—20 导入前快照：`pre_numbers_basic_reference_import_2026_08_18_0212`；
+- 整十数与序数词导入前快照：`pre_numbers_extended_reference_import_2026_08_18_0214`；
 - Git 存档分支：`archive/pre-master-library-2026-07-30`。
 
 迁移记录见 `reports/master-vocabulary-migration-2026-07-30.md`。
@@ -281,8 +315,10 @@
 11. 整理“食品与三餐”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
 12. 整理“饮料与水果”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
 13. 整理“蔬菜”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
-14. 按小学阶段逐步整理数字、基础动作和其他分类。
-15. 主要分类完成后，旧单词本先归档隐藏，稳定后再决定永久删除。
+14. 整理“数词 1—20”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+15. 整理“整十数与序数词”引用式单词本。✅ 数据、导入和共享完成，待网页显示核对
+16. 按小学阶段逐步整理基础动作和其他分类。
+17. 主要分类完成后，旧单词本先归档隐藏，稳定后再决定永久删除。
 
 ### 音标训练增强
 
@@ -315,7 +351,8 @@
 - 蔬菜 ✅（数据、导入和共享完成，待网页核对）
 - 学习用品 ✅（数据、导入和共享完成，待网页核对）
 - 职业 ✅（数据、导入和共享完成，待网页核对）
-- 数字
+- 数词 1—20 ✅（数据、导入和共享完成，待网页核对）
+- 整十数与序数词 ✅（数据、导入和共享完成，待网页核对）
 - 基础动作
 
 后续可增加或调整：

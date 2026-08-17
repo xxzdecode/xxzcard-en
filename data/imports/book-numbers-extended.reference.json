@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "wordbook": {
+    "id": "book-numbers-extended",
+    "name": "整十数与序数词",
+    "bookType": "reference",
+    "bookPurpose": "common",
+    "description": "小学基础整十数与序数词",
+    "cardRefs": [
+      { "wordKey": "thirty" }, { "wordKey": "forty" }, { "wordKey": "fifty" },
+      { "wordKey": "sixty" }, { "wordKey": "seventy" }, { "wordKey": "eighty" },
+      { "wordKey": "ninety" }, { "wordKey": "hundred" }, { "wordKey": "first" },
+      { "wordKey": "second" }, { "wordKey": "third" }, { "wordKey": "fourth" },
+      { "wordKey": "fifth" }, { "wordKey": "sixth" }, { "wordKey": "seventh" },
+      { "wordKey": "eighth" }, { "wordKey": "ninth" }, { "wordKey": "tenth" },
+      { "wordKey": "eleventh" }, { "wordKey": "twelfth" }
+    ]
+  },
+  "masterPatch": {
+    "create": [
+      {
+        "word": "thirty", "meaning": "三十", "pos": "num.", "phonetic": "/ˈθɜːti/", "emoji": "3️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "thirty students", "example": "There are thirty students in the class. / 班里有三十名学生。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "thirty 由 three 变化而来，写作 thir-，结尾是 -ty。"
+      },
+      {
+        "word": "forty", "meaning": "四十", "pos": "num.", "phonetic": "/ˈfɔːti/", "emoji": "4️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "forty pages", "example": "The book has forty pages. / 这本书有四十页。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "forty 的正确拼写没有字母 u，不写 fourty。"
+      },
+      {
+        "word": "fifty", "meaning": "五十", "pos": "num.", "phonetic": "/ˈfɪfti/", "emoji": "5️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "fifty yuan", "example": "The bag is fifty yuan. / 这个书包五十元。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "fifty 写作 fif- 加 -ty，不写 fivety。"
+      },
+      {
+        "word": "sixty", "meaning": "六十", "pos": "num.", "phonetic": "/ˈsɪksti/", "emoji": "6️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "sixty minutes", "example": "An hour has sixty minutes. / 一小时有六十分钟。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "sixty 由 six 加 -ty 构成，x 发 /ks/。"
+      },
+      {
+        "word": "seventy", "meaning": "七十", "pos": "num.", "phonetic": "/ˈsevənti/", "emoji": "7️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "seventy points", "example": "Our team has seventy points. / 我们队有七十分。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "seventy 由 seven 加 -ty 构成。"
+      },
+      {
+        "word": "eighty", "meaning": "八十", "pos": "num.", "phonetic": "/ˈeɪti/", "emoji": "8️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "eighty books", "example": "The shelf has eighty books. / 书架上有八十本书。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "eighty 由 eight 变化而来，去掉末尾的 t 再加 -ty。"
+      },
+      {
+        "word": "ninety", "meaning": "九十", "pos": "num.", "phonetic": "/ˈnaɪnti/", "emoji": "9️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "ninety days", "example": "The course lasts ninety days. / 这门课程持续九十天。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "ninety 由 nine 变化而来，去掉末尾的 e 再加 -ty。"
+      },
+      {
+        "word": "hundred", "meaning": "一百；百", "pos": "num.", "phonetic": "/ˈhʌndrəd/", "emoji": "💯",
+        "morphology": [], "collocations": [{ "phrase": "one hundred", "example": "There are one hundred stickers. / 这里有一百张贴纸。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "表示准确数量时常说 one hundred，hundred 后不加 -s。"
+      },
+      {
+        "word": "second", "meaning": "第二", "pos": "num.", "phonetic": "/ˈsekənd/", "emoji": "2️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the second floor", "example": "Our classroom is on the second floor. / 我们的教室在二楼。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "second 是 two 的序数词，表示“第二”。"
+      },
+      {
+        "word": "third", "meaning": "第三", "pos": "num.", "phonetic": "/θɜːd/", "emoji": "3️⃣",
+        "morphology": [], "collocations": [{ "phrase": "third place", "example": "She came in third place. / 她获得了第三名。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "third 是 three 的序数词，开头的 th 发 /θ/。"
+      },
+      {
+        "word": "fourth", "meaning": "第四", "pos": "num.", "phonetic": "/fɔːθ/", "emoji": "4️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the fourth lesson", "example": "The fourth lesson is about animals. / 第四课是关于动物的。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "fourth 由 four 加 -th 构成。"
+      },
+      {
+        "word": "fifth", "meaning": "第五", "pos": "num.", "phonetic": "/fɪfθ/", "emoji": "5️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the fifth grade", "example": "He is in the fifth grade. / 他上五年级。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "fifth 写作 fif- 加 -th，不保留 five 末尾的 ve。"
+      },
+      {
+        "word": "sixth", "meaning": "第六", "pos": "num.", "phonetic": "/sɪksθ/", "emoji": "6️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the sixth question", "example": "Please answer the sixth question. / 请回答第六题。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "sixth 由 six 加 -th 构成，注意连续读 /ksθ/。"
+      },
+      {
+        "word": "seventh", "meaning": "第七", "pos": "num.", "phonetic": "/ˈsevənθ/", "emoji": "7️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the seventh day", "example": "Sunday is the seventh day here. / 在这里星期日是第七天。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "seventh 由 seven 加 -th 构成。"
+      },
+      {
+        "word": "eighth", "meaning": "第八", "pos": "num.", "phonetic": "/eɪtθ/", "emoji": "8️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the eighth page", "example": "Open your book to the eighth page. / 把书翻到第八页。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "eighth 保留 eight 的 t，再加 -h，结尾读 /tθ/。"
+      },
+      {
+        "word": "ninth", "meaning": "第九", "pos": "num.", "phonetic": "/naɪnθ/", "emoji": "9️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the ninth month", "example": "September is the ninth month. / 九月是一年中的第九个月。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "ninth 由 nine 去掉 e 再加 -th。"
+      },
+      {
+        "word": "tenth", "meaning": "第十", "pos": "num.", "phonetic": "/tenθ/", "emoji": "🔟",
+        "morphology": [], "collocations": [{ "phrase": "the tenth birthday", "example": "Today is his tenth birthday. / 今天是他的十岁生日。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "tenth 由 ten 加 -th 构成。"
+      },
+      {
+        "word": "eleventh", "meaning": "第十一", "pos": "num.", "phonetic": "/ɪˈlevənθ/", "emoji": "1️⃣1️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the eleventh floor", "example": "She lives on the eleventh floor. / 她住在十一楼。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "eleventh 由 eleven 加 -th 构成。"
+      },
+      {
+        "word": "twelfth", "meaning": "第十二", "pos": "num.", "phonetic": "/twelfθ/", "emoji": "1️⃣2️⃣",
+        "morphology": [], "collocations": [{ "phrase": "the twelfth month", "example": "December is the twelfth month. / 十二月是一年中的第十二个月。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "twelfth 写作 twelf- 加 -th，不保留 twelve 末尾的 ve。"
+      }
+    ],
+    "setIfEmpty": [],
+    "appendUnique": []
+  }
+}

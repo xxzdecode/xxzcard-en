@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 2,
+  "wordbook": {
+    "id": "book-numbers-basic",
+    "name": "数词 1—20",
+    "bookType": "reference",
+    "bookPurpose": "common",
+    "description": "小学基础数词 1—20",
+    "cardRefs": [
+      { "wordKey": "one" },
+      { "wordKey": "two" },
+      { "wordKey": "three" },
+      { "wordKey": "four" },
+      { "wordKey": "five" },
+      { "wordKey": "six" },
+      { "wordKey": "seven" },
+      { "wordKey": "eight" },
+      { "wordKey": "nine" },
+      { "wordKey": "ten" },
+      { "wordKey": "eleven" },
+      { "wordKey": "twelve" },
+      { "wordKey": "thirteen" },
+      { "wordKey": "fourteen" },
+      { "wordKey": "fifteen" },
+      { "wordKey": "sixteen" },
+      { "wordKey": "seventeen" },
+      { "wordKey": "eighteen" },
+      { "wordKey": "nineteen" },
+      { "wordKey": "twenty" }
+    ]
+  },
+  "masterPatch": {
+    "create": [
+      {
+        "word": "one", "meaning": "一；一个", "pos": "num.", "phonetic": "/wʌn/", "emoji": "1️⃣",
+        "morphology": [], "collocations": [{ "phrase": "one apple", "example": "I have one apple. / 我有一个苹果。" }, { "phrase": "one day", "example": "We can finish it in one day. / 我们可以一天完成它。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "one 的拼写以 o 开头，但发音以 /w/ 开头。"
+      },
+      {
+        "word": "two", "meaning": "二；两个", "pos": "num.", "phonetic": "/tuː/", "emoji": "2️⃣",
+        "morphology": [], "collocations": [{ "phrase": "two books", "example": "There are two books on the desk. / 桌上有两本书。" }, { "phrase": "two children", "example": "Two children are playing. / 两个孩子正在玩。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "two 中的 w 不发音。"
+      },
+      {
+        "word": "three", "meaning": "三；三个", "pos": "num.", "phonetic": "/θriː/", "emoji": "3️⃣",
+        "morphology": [], "collocations": [{ "phrase": "three cats", "example": "I can see three cats. / 我能看见三只猫。" }, { "phrase": "three times", "example": "Read the word three times. / 把这个单词读三遍。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "three 开头的 th 发 /θ/，舌尖轻触上齿。"
+      },
+      {
+        "word": "five", "meaning": "五；五个", "pos": "num.", "phonetic": "/faɪv/", "emoji": "5️⃣",
+        "morphology": [], "collocations": [{ "phrase": "five fingers", "example": "A hand has five fingers. / 一只手有五根手指。" }, { "phrase": "five minutes", "example": "Please wait for five minutes. / 请等五分钟。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "five 结尾是 -ve，i 发 /aɪ/。"
+      },
+      {
+        "word": "six", "meaning": "六；六个", "pos": "num.", "phonetic": "/sɪks/", "emoji": "6️⃣",
+        "morphology": [], "collocations": [{ "phrase": "six pencils", "example": "She has six pencils. / 她有六支铅笔。" }, { "phrase": "six o'clock", "example": "I get up at six o'clock. / 我六点起床。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "six 结尾的 x 发 /ks/。"
+      },
+      {
+        "word": "seven", "meaning": "七；七个", "pos": "num.", "phonetic": "/ˈsevən/", "emoji": "7️⃣",
+        "morphology": [], "collocations": [{ "phrase": "seven days", "example": "There are seven days in a week. / 一周有七天。" }, { "phrase": "seven students", "example": "Seven students are in the room. / 房间里有七名学生。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "seven 有两个音节，重音在第一个音节。"
+      },
+      {
+        "word": "eight", "meaning": "八；八个", "pos": "num.", "phonetic": "/eɪt/", "emoji": "8️⃣",
+        "morphology": [], "collocations": [{ "phrase": "eight legs", "example": "A spider has eight legs. / 蜘蛛有八条腿。" }, { "phrase": "eight o'clock", "example": "School starts at eight o'clock. / 学校八点开始上课。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "eight 中的 gh 不发音。"
+      },
+      {
+        "word": "ten", "meaning": "十；十个", "pos": "num.", "phonetic": "/ten/", "emoji": "🔟",
+        "morphology": [], "collocations": [{ "phrase": "ten toes", "example": "I have ten toes. / 我有十个脚趾。" }, { "phrase": "ten years old", "example": "My brother is ten years old. / 我弟弟十岁。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "ten 只有一个音节，e 发 /e/。"
+      },
+      {
+        "word": "eleven", "meaning": "十一；十一个", "pos": "num.", "phonetic": "/ɪˈlevən/", "emoji": "1️⃣1️⃣",
+        "morphology": [], "collocations": [{ "phrase": "eleven players", "example": "A football team has eleven players. / 一支足球队有十一名球员。" }, { "phrase": "eleven o'clock", "example": "It is eleven o'clock. / 现在十一点。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "eleven 有三个音节，重音在第二个音节。"
+      },
+      {
+        "word": "twelve", "meaning": "十二；十二个", "pos": "num.", "phonetic": "/twelv/", "emoji": "1️⃣2️⃣",
+        "morphology": [], "collocations": [{ "phrase": "twelve months", "example": "There are twelve months in a year. / 一年有十二个月。" }, { "phrase": "twelve eggs", "example": "There are twelve eggs in the box. / 盒子里有十二个鸡蛋。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "twelve 以 tw- 开头，以 -ve 结尾。"
+      },
+      {
+        "word": "thirteen", "meaning": "十三；十三个", "pos": "num.", "phonetic": "/ˌθɜːˈtiːn/", "emoji": "1️⃣3️⃣",
+        "morphology": [], "collocations": [{ "phrase": "thirteen books", "example": "The shelf has thirteen books. / 书架上有十三本书。" }, { "phrase": "thirteen years old", "example": "She is thirteen years old. / 她十三岁。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "thirteen 的重音在 -teen，开头的 th 发 /θ/。"
+      },
+      {
+        "word": "fourteen", "meaning": "十四；十四个", "pos": "num.", "phonetic": "/ˌfɔːˈtiːn/", "emoji": "1️⃣4️⃣",
+        "morphology": [], "collocations": [{ "phrase": "fourteen days", "example": "Two weeks are fourteen days. / 两周是十四天。" }, { "phrase": "fourteen chairs", "example": "There are fourteen chairs. / 这里有十四把椅子。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "fourteen 由 four 和 -teen 构成，重音在 -teen。"
+      },
+      {
+        "word": "fifteen", "meaning": "十五；十五个", "pos": "num.", "phonetic": "/ˌfɪfˈtiːn/", "emoji": "1️⃣5️⃣",
+        "morphology": [], "collocations": [{ "phrase": "fifteen minutes", "example": "The walk takes fifteen minutes. / 走路需要十五分钟。" }, { "phrase": "fifteen students", "example": "There are fifteen students in the class. / 班里有十五名学生。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "fifteen 写作 fif-，不是 five-，重音在 -teen。"
+      },
+      {
+        "word": "sixteen", "meaning": "十六；十六个", "pos": "num.", "phonetic": "/ˌsɪksˈtiːn/", "emoji": "1️⃣6️⃣",
+        "morphology": [], "collocations": [{ "phrase": "sixteen crayons", "example": "The box has sixteen crayons. / 盒子里有十六支蜡笔。" }, { "phrase": "sixteen years old", "example": "He is sixteen years old. / 他十六岁。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "sixteen 由 six 和 -teen 构成，x 仍发 /ks/。"
+      },
+      {
+        "word": "seventeen", "meaning": "十七；十七个", "pos": "num.", "phonetic": "/ˌsevənˈtiːn/", "emoji": "1️⃣7️⃣",
+        "morphology": [], "collocations": [{ "phrase": "seventeen flowers", "example": "There are seventeen flowers. / 这里有十七朵花。" }, { "phrase": "seventeen points", "example": "Our team has seventeen points. / 我们队有十七分。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "seventeen 保留 seven 的完整拼写，重音在 -teen。"
+      },
+      {
+        "word": "eighteen", "meaning": "十八；十八个", "pos": "num.", "phonetic": "/ˌeɪˈtiːn/", "emoji": "1️⃣8️⃣",
+        "morphology": [], "collocations": [{ "phrase": "eighteen cards", "example": "I have eighteen cards. / 我有十八张卡片。" }, { "phrase": "eighteen years old", "example": "She is eighteen years old. / 她十八岁。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "eighteen 写作 eigh- 加 -teen，其中 gh 不发音。"
+      },
+      {
+        "word": "nineteen", "meaning": "十九；十九个", "pos": "num.", "phonetic": "/ˌnaɪnˈtiːn/", "emoji": "1️⃣9️⃣",
+        "morphology": [], "collocations": [{ "phrase": "nineteen pages", "example": "The story has nineteen pages. / 这个故事有十九页。" }, { "phrase": "nineteen students", "example": "Nineteen students finished the task. / 十九名学生完成了任务。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "nineteen 保留 nine 结尾的 e，再加 -teen。"
+      },
+      {
+        "word": "twenty", "meaning": "二十；二十个", "pos": "num.", "phonetic": "/ˈtwenti/", "emoji": "2️⃣0️⃣",
+        "morphology": [], "collocations": [{ "phrase": "twenty yuan", "example": "The book is twenty yuan. / 这本书二十元。" }, { "phrase": "twenty students", "example": "There are twenty students in the room. / 房间里有二十名学生。" }],
+        "irregularForms": [], "synonyms": [], "wordFamily": [], "tip": "twenty 以 -ty 结尾，重音在第一个音节。"
+      }
+    ],
+    "setIfEmpty": [],
+    "appendUnique": []
+  }
+}
