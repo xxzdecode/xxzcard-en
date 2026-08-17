@@ -57,6 +57,7 @@
 - `js/courseware.js`：独立随堂练习清单、老师端目录渲染和 iframe 播放器开关逻辑；文件名保留用于兼容。
 - `js/courseware-data.js`：由练习上传脚本维护的随堂练习目录数据；文件名和旧全局变量别名保留用于兼容。
 - `js/grammarLibrary.js`：老师端知识点库 iframe 的打开和返回逻辑。
+- `js/grammarChallengeRecords.js`：按学生保存语法挑战逐题历史；单一知识点且带题目分类的普通挑战会自动生成稳定候选标签与内容哈希，供 `$test-wrong` 在两道不同题首次答错后建立正式薄弱项。
 - `js/wrongAnswerOrganizer.js`：老师端错题目录、最新练习入口、题号勾选、批改记录保存和脱敏薄弱项快照展示；通过 `js/lazyFeatures.js` 按需加载。
 - `styles-wrong-answer-organizer.css`：错题整理首页卡片、双栏目录和登记页样式；正式验收视口为 iPad Air 11 英寸横屏 `1180 × 820`。
 - `grammar-library/`：英语语法知识点库独立页面、结构化教学顺序、来源覆盖矩阵和进度交互。

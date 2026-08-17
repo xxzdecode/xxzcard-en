@@ -140,11 +140,11 @@ try {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v72');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v73');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v72');
+    const shell = await caches.open('xxzcard-app-shell-v73');
     const urls = (await shell.keys()).map(request => new URL(request.url).pathname);
     return { keys, urls };
   });
@@ -194,7 +194,7 @@ try {
   await openOfflineGrammar(page, 'brother', { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v72', 'xxzcard-runtime-v72']);
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v73', 'xxzcard-runtime-v73']);
   console.log('student runtime v71-to-v72 cold-start viewport tests passed');
 } finally {
   await context.setOffline(false).catch(() => {});
