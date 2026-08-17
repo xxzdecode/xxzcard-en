@@ -74,6 +74,7 @@ assert.match(review, /refreshVocabularyLessonSelectionRoute/);
 assert.doesNotMatch(review, /list && list\.classList\.contains\('active'\)\) renderVocabularyLessonBookSelection\(\)/);
 assert.match(lowPressure, /renderVocabularyLessonCategoryGroups = renderCategoryGroups/);
 assert.match(task016, /vocabulary-lesson-book-title/);
+assert.match(task016, /vocabulary-lesson-book-name"><span class="vocabulary-lesson-book-title">/);
 assert.match(groupStyles, /\.vocabulary-lesson-book-title::before/);
 assert.match(groupStyles, /background:\s*#fff1a0/);
 assert.match(groupStyles, /color:\s*#2a7197/);
