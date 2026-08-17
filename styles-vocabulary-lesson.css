@@ -85,6 +85,11 @@ body.vocabulary-review-open {
   line-height: 1.6;
 }
 
+.vocabulary-lesson-selection-topbar .back-btn {
+  width: 44px;
+  height: 44px;
+}
+
 .vocabulary-lesson-book-list {
   display: grid;
   gap: 10px;

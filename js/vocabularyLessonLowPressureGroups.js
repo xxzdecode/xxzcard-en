@@ -264,6 +264,9 @@
 
       async function renderCategoryGroups() {
         if (!activeCategory) return;
+        if (typeof root.setVocabularyLessonSelectionRoute === 'function') {
+          root.setVocabularyLessonSelectionRoute('category-groups');
+        }
         const state = lessonState();
         const progress = await loadProgress(true);
         const config = state.groupConfig || groupConfigForCategory(activeCategory);
@@ -348,6 +351,9 @@
         }
         const copy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
         if (copy) copy.hidden = false;
+        if (typeof root.setVocabularyLessonSelectionRoute === 'function') {
+          root.setVocabularyLessonSelectionRoute('categories');
+        }
         baseRenderSelection();
         installCategoryBackButton(root.closeVocabularyLessonCategorySelection || root.closeVocabularyReviewList);
         decorateCategoryProgress();
@@ -430,6 +436,7 @@
       root.selectVocabularyLessonCategory = openCategory;
       root.openVocabularyLessonCategoryGroup = openCategoryGroup;
       root.closeVocabularyLessonCategoryGroups = closeCategoryGroups;
+      root.renderVocabularyLessonCategoryGroups = renderCategoryGroups;
       root.jumpVocabularyLessonRoundWord = jumpRoundWord;
       root.decorateVocabularyLessonCategoryProgress = decorateCategoryProgress;
       root.resetVocabularyLessonCategoryRuntime = resetCategoryRuntime;

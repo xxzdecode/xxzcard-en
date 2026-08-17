@@ -330,7 +330,7 @@
       <section class="vocabulary-lesson-book-group${stateClass}">
         <header>
           <span aria-hidden="true">${isCurrent ? '🌞' : '📚'}</span>
-          <strong>${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}<small>${wordCount}词</small></strong>
+          <strong><span class="vocabulary-lesson-book-title">${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}</span><small>${wordCount}词</small></strong>
           ${statusBadge}
         </header>
         <div class="vocabulary-lesson-group-list">
@@ -351,6 +351,7 @@
     const list = document.getElementById('vocabularyLessonBookList');
     const empty = document.getElementById('vocabularyLessonBookEmpty');
     if (!list) return;
+    list.className = 'vocabulary-lesson-book-list';
 
     const visibleBooks = getVocabularyLessonVisibleBatches(appData, currentUser);
     const newestFirst = visibleBooks.slice().sort(compareVocabularyLessonBatchesNewestFirst);
@@ -671,7 +672,13 @@
 
     ensureTask016Shell();
     if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
-      loadRelevantCloudProgress().then(renderVocabularyLessonBookSelection);
+      loadRelevantCloudProgress().then(() => {
+        if (typeof refreshVocabularyLessonSelectionRoute === 'function') {
+          refreshVocabularyLessonSelectionRoute();
+        } else {
+          renderVocabularyLessonBookSelection();
+        }
+      });
     }
     if (document.getElementById('screenVocabularyReviewPlayer')?.classList.contains('active')) {
       renderVocabularyLesson();

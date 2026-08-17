@@ -57,6 +57,27 @@
   font-size: 15px;
 }
 
+.vocabulary-lesson-book-title {
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+  width: fit-content;
+}
+
+.vocabulary-lesson-book-title::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  right: -6px;
+  bottom: -1px;
+  left: -4px;
+  height: 0.68em;
+  border-bottom: 2px solid #f0cf55;
+  border-radius: 4px 7px 5px 3px;
+  background: #fff1a0;
+  transform: rotate(-0.5deg);
+}
+
 .vocabulary-lesson-group-list {
   display: grid;
 }
@@ -85,8 +106,23 @@
 }
 
 .vocabulary-lesson-group-list > button > span:first-child {
+  position: relative;
+  padding-left: 10px;
+  color: #2a7197;
   font-size: 14px;
   font-weight: 700;
+}
+
+.vocabulary-lesson-group-list > button > span:first-child::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 1.05em;
+  border-radius: 3px;
+  background: #68a9ca;
+  transform: translateY(-50%);
 }
 
 .vocabulary-lesson-group-list > button > small {
