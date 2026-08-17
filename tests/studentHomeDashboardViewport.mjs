@@ -416,10 +416,10 @@ try {
     document.getElementById('teacherLatestPracticeSummary')?.dataset.state === 'ready'
       && document.getElementById('teacherKnowledgeSummary')?.dataset.state === 'ready'
   ), null, { timeout: 8000 });
-  assert.equal(await teacher.page.locator('#teacherLatestPracticeDate').textContent(), '2026年8月6日');
+  assert.equal(await teacher.page.locator('#teacherLatestPracticeDate').textContent(), '2026年8月22日');
   assert.equal(
     await teacher.page.locator('#teacherLatestPracticeTitle').textContent(),
-    '地点介词“上与下”随堂练习'
+    '比较级 -er、more 与 than 随堂练习'
   );
   assert.equal(
     await teacher.page.locator('#teacherKnowledgeProgressCount').textContent(),

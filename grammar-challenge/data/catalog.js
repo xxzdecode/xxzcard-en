@@ -5,6 +5,186 @@
   // 缺少这些精确字段的旧题只参与普通练习统计，不作为 mastered 判定证据。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-22-adjectives-linking-verbs-review',
+      date: '2026-08-22',
+      title: '形容词与系动词复习挑战',
+      lessonKey: 'adjectives-linking-verbs',
+      kpIds: ['adjectives-linking-verbs', 'sentence-parts'],
+      questionKpIds: {
+        GC01: ['adjectives-linking-verbs'],
+        GC02: ['adjectives-linking-verbs'],
+        GC03: ['sentence-parts'],
+        GC04: ['sentence-parts'],
+        GC05: ['adjectives-linking-verbs'],
+        GC06: ['adjectives-linking-verbs'],
+        GC07: ['adjectives-linking-verbs'],
+        GC08: ['adjectives-linking-verbs'],
+        GC09: ['adjectives-linking-verbs'],
+        GC10: ['adjectives-linking-verbs']
+      },
+      questionWeaknessIds: {
+        GC03: ['brother.sentence-parts.copular-predicate'],
+        GC04: ['brother.sentence-parts.copular-predicate']
+      },
+      questionPrimaryWeaknessIds: {
+        GC03: 'brother.sentence-parts.copular-predicate',
+        GC04: 'brother.sentence-parts.copular-predicate'
+      },
+      questionDiagnosticTargets: {
+        GC03: ['copular-predicate', 'be-plus-adjective-state-predicate'],
+        GC04: ['copular-predicate', 'plural-subject-be-adjective-predicate']
+      },
+      questionContentHashes: {
+        GC03: 'sha256:e3112ae424b26db225926df8b217b1a62ac9120758b2e84c6599ce0615bb64d9',
+        GC04: 'sha256:54d41f0d80055bc82ef0419562773a5f88dbfbcf32f343ae9920341727123ae9'
+      },
+      pagePath: './practices/2026-08-22.html'
+    },
+    {
+      id: 'grammar-2026-08-21-pronoun-system-review',
+      date: '2026-08-21',
+      title: '人称代词系统复习挑战',
+      lessonKey: 'pronoun-system',
+      kpIds: ['pronoun-system', 'subject-pronouns-be'],
+      questionKpIds: {
+        GC01: ['subject-pronouns-be'],
+        GC02: ['subject-pronouns-be'],
+        GC03: ['pronoun-system'],
+        GC04: ['pronoun-system'],
+        GC05: ['pronoun-system'],
+        GC06: ['pronoun-system'],
+        GC07: ['pronoun-system'],
+        GC08: ['pronoun-system'],
+        GC09: ['pronoun-system'],
+        GC10: ['pronoun-system']
+      },
+      questionWeaknessIds: {
+        GC01: ['brother.subject-pronouns-be.subject-to-pronoun-person-mapping'],
+        GC02: ['brother.subject-pronouns-be.subject-to-pronoun-person-mapping']
+      },
+      questionPrimaryWeaknessIds: {
+        GC01: 'brother.subject-pronouns-be.subject-to-pronoun-person-mapping',
+        GC02: 'brother.subject-pronouns-be.subject-to-pronoun-person-mapping'
+      },
+      questionDiagnosticTargets: {
+        GC01: ['plural-noun-subject-to-they', 'subject-pronoun-selection'],
+        GC02: ['compound-subject-with-i-to-we', 'subject-pronoun-selection']
+      },
+      questionContentHashes: {
+        GC01: 'sha256:54858e65bd2c9a35fa728e006d4937ebef36273177810452974d7f28b36b70af',
+        GC02: 'sha256:fd47a2e5e4c6dbf2ef5ac7f6c6d923188bf223144e6ef4d9b2732b2963346d48'
+      },
+      pagePath: './practices/2026-08-21.html'
+    },
+    {
+      id: 'grammar-2026-08-20-although-review',
+      date: '2026-08-20',
+      title: 'although 让步转折复习挑战',
+      lessonKey: 'although',
+      kpIds: ['although', 'subject-pronouns-be', 'third-person-singular'],
+      questionKpIds: {
+        GC01: ['although'],
+        GC02: ['although'],
+        GC03: ['although'],
+        GC04: ['although'],
+        GC05: ['although'],
+        GC06: ['although'],
+        GC07: ['although'],
+        GC08: ['although'],
+        GC09: ['subject-pronouns-be'],
+        GC10: ['third-person-singular']
+      },
+      questionWeaknessIds: {
+        GC09: ['brother.subject-pronouns-be.subject-to-pronoun-person-mapping'],
+        GC10: ['brother.third-person-singular.identify-third-person-singular-subject']
+      },
+      questionPrimaryWeaknessIds: {
+        GC09: 'brother.subject-pronouns-be.subject-to-pronoun-person-mapping',
+        GC10: 'brother.third-person-singular.identify-third-person-singular-subject'
+      },
+      questionDiagnosticTargets: {
+        GC09: ['first-person-plural-we', 'subject-to-pronoun-mapping'],
+        GC10: ['identify-third-person-singular', 'noun-phrase-to-she']
+      },
+      questionContentHashes: {
+        GC09: 'sha256:1dd5275f2eebb3e233d0a1aad1eaafd91c220de618517050479aeaf54dd26deb',
+        GC10: 'sha256:3b546d9f2e334609d0b20af7d7a8bf980ebd502d51b03a53b8d5b4bf3d8010af'
+      },
+      pagePath: './practices/2026-08-20.html'
+    },
+    {
+      id: 'grammar-2026-08-19-why-because-so-review',
+      date: '2026-08-19',
+      title: 'why / because / so 复习挑战',
+      lessonKey: 'why-because-so',
+      kpIds: ['why-because-so', 'sentence-parts', 'sentence-be-action-aux'],
+      questionKpIds: {
+        GC01: ['why-because-so'],
+        GC02: ['why-because-so'],
+        GC03: ['why-because-so'],
+        GC04: ['why-because-so'],
+        GC05: ['why-because-so'],
+        GC06: ['why-because-so'],
+        GC07: ['why-because-so'],
+        GC08: ['why-because-so'],
+        GC09: ['sentence-parts'],
+        GC10: ['sentence-be-action-aux']
+      },
+      questionWeaknessIds: {
+        GC09: ['brother.sentence-parts.time-adjunct'],
+        GC10: ['brother.sentence-be-action-aux.modal-can-predicate']
+      },
+      questionPrimaryWeaknessIds: {
+        GC09: 'brother.sentence-parts.time-adjunct',
+        GC10: 'brother.sentence-be-action-aux.modal-can-predicate'
+      },
+      questionDiagnosticTargets: {
+        GC09: ['identify-time-adjunct', 'separate-core-from-time-information'],
+        GC10: ['modal-can-predicate', 'can-plus-base-verb']
+      },
+      questionContentHashes: {
+        GC09: 'sha256:2181b2891237df26e71c992dcd7b4e3426e370866cbf0b0b762f85011f0492eb',
+        GC10: 'sha256:39546873c903eddc1689a402274e85ace5e2580c9f2137d169ad7c5d8d6c75cc'
+      },
+      pagePath: './practices/2026-08-19.html'
+    },
+    {
+      id: 'grammar-2026-08-18-place-prepositions-review',
+      date: '2026-08-18',
+      title: '地点介词上与下复习挑战',
+      lessonKey: 'place-prepositions-on-over-above-under-below',
+      kpIds: ['place-prepositions-on-over-above-under-below', 'subject-pronouns-be', 'sentence-parts'],
+      questionKpIds: {
+        GC01: ['place-prepositions-on-over-above-under-below'],
+        GC02: ['place-prepositions-on-over-above-under-below'],
+        GC03: ['place-prepositions-on-over-above-under-below'],
+        GC04: ['place-prepositions-on-over-above-under-below'],
+        GC05: ['place-prepositions-on-over-above-under-below'],
+        GC06: ['place-prepositions-on-over-above-under-below'],
+        GC07: ['place-prepositions-on-over-above-under-below'],
+        GC08: ['place-prepositions-on-over-above-under-below'],
+        GC09: ['subject-pronouns-be'],
+        GC10: ['sentence-parts']
+      },
+      questionWeaknessIds: {
+        GC09: ['brother.subject-pronouns-be.subject-to-pronoun-person-mapping'],
+        GC10: ['brother.sentence-parts.subject-boundary-no-object-discrimination']
+      },
+      questionPrimaryWeaknessIds: {
+        GC09: 'brother.subject-pronouns-be.subject-to-pronoun-person-mapping',
+        GC10: 'brother.sentence-parts.subject-boundary-no-object-discrimination'
+      },
+      questionDiagnosticTargets: {
+        GC09: ['plural-noun-subject-to-they', 'subject-pronoun-person-mapping'],
+        GC10: ['complete-subject-boundary', 'intransitive-no-object', 'place-adjunct-not-object']
+      },
+      questionContentHashes: {
+        GC09: 'sha256:693cac4eda4888edbaab0c61d76e451576cd7a0da1523b92337f663743265cc8',
+        GC10: 'sha256:1c5177ee9eebc1b139e54aa77a0838eba045469b38a83a53d83b64c4b23a2741'
+      },
+      pagePath: './practices/2026-08-18.html'
+    },
+    {
       id: 'grammar-2026-08-06-time-prepositions-review',
       date: '2026-08-06',
       title: '时间介词快速挑战',
