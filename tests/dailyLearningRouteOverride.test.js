@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const api = require(path.join(root, 'js/dailyLearningRouteOverride.js'));
 
@@ -87,4 +88,79 @@ assert.match(overrideRuntime, /grammar_challenge_active_v2_/);
 assert.match(overrideRuntime, /classroom_practice_daily_v1_/);
 assert.doesNotMatch(overrideRuntime, /patchGrammarLoader/);
 
-console.log('daily learning route override tests passed');
+async function testFreshOverrideWinsOverStaleDeviceCache() {
+  const now = new Date();
+  const testDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const storage = new Map();
+  storage.set('daily_learning_route_override_cache_v1', JSON.stringify({
+    schemaVersion: 1,
+    dates: {
+      [testDate]: {
+        grammarChallenge: { practiceId: 'grammar-old', title: '旧语法随堂练习', path: 'courseware/old-grammar.html' },
+        classroomPractice: { practiceId: 'classroom-old', title: '旧随堂练习', path: 'courseware/old-classroom.html' }
+      }
+    }
+  }));
+  const freshOverride = {
+    schemaVersion: 1,
+    dates: {
+      [testDate]: {
+        grammarChallenge: { practiceId: 'grammar-new', title: '新语法随堂练习', path: 'courseware/new-grammar.html' },
+        classroomPractice: { practiceId: 'classroom-new', title: '新随堂练习', path: 'courseware/new-classroom.html' }
+      }
+    }
+  };
+  const baseFetch = async input => {
+    const url = String(input);
+    if (url.includes('/rest/v1/kv_store')) {
+      return new Response(JSON.stringify([{ value: freshOverride }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    return new Response(JSON.stringify(automatic), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  };
+  const context = {
+    AbortController,
+    CustomEvent: class CustomEvent { constructor(type) { this.type = type; } },
+    Response,
+    URL,
+    console,
+    document: {
+      addEventListener() {},
+      getElementById() { return null; }
+    },
+    dispatchEvent() {},
+    fetch: baseFetch,
+    location: { href: 'https://example.test/index.html' },
+    localStorage: {
+      getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+      setItem(key, value) { storage.set(key, String(value)); }
+    },
+    SB_HEADERS: {},
+    SB_URL: 'https://example.supabase.test',
+    setTimeout() { return 1; },
+    clearTimeout() {}
+  };
+  context.globalThis = context;
+  vm.runInNewContext(overrideRuntime, context, { filename: 'dailyLearningRouteOverride.js' });
+
+  const response = await context.fetch('data/daily-learning-route.json');
+  const route = await response.json();
+  assert.equal(route.grammarChallenge.id, 'manual-courseware::grammar-new');
+  assert.equal(route.classroomPractice.id, 'classroom-new');
+  assert.equal(
+    JSON.parse(storage.get('daily_learning_route_override_cache_v1')).dates[testDate].grammarChallenge.practiceId,
+    'grammar-new'
+  );
+}
+
+testFreshOverrideWinsOverStaleDeviceCache()
+  .then(() => console.log('daily learning route override tests passed'))
+  .catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });

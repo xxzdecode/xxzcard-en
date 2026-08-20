@@ -223,19 +223,20 @@
   }
 
   let overrideSyncPromise = null;
-  function refreshOverrideInBackground() {
+  function refreshOverride() {
     if (overrideSyncPromise) return overrideSyncPromise;
     overrideSyncPromise = readDirect()
       .then(value => {
-        if (writeCachedOverride(value)) {
+        const normalized = normalize(value);
+        if (writeCachedOverride(normalized)) {
           root.dispatchEvent?.(new CustomEvent('daily-route-override-updated'));
         }
-        warmPracticeAssets(normalize(value));
-        return value;
+        warmPracticeAssets(normalized);
+        return { fresh: true, value: normalized };
       })
       .catch(error => {
-        console.warn('daily route override background sync unavailable', error);
-        return null;
+        console.warn('daily route override sync unavailable', error);
+        return { fresh: false, value: null };
       })
       .finally(() => { overrideSyncPromise = null; });
     return overrideSyncPromise;
@@ -248,8 +249,9 @@
     if (!response.ok || !path.endsWith('/data/daily-learning-route.json')) return response;
     try {
       const automatic = await response.clone().json();
-      const merged = mergeRoute(automatic, readCachedOverride());
-      refreshOverrideInBackground();
+      const cached = readCachedOverride();
+      const refreshed = await refreshOverride();
+      const merged = mergeRoute(automatic, refreshed.fresh ? refreshed.value : cached);
       return new Response(JSON.stringify(merged), {
         status: response.status,
         headers: { 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }
