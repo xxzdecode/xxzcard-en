@@ -28,7 +28,9 @@ const FEATURE_GROUPS = {
     'js/questionTypes.js',
     'js/taskEngine.js',
     'js/merge.js',
-    'js/wordDedupe.js'
+    'js/wordDedupe.js',
+    'js/wordCardPerformance.js',
+    'js/wordCardStudySafety.js'
   ],
   vocabularyReview: [
     'js/vocabularyReviewData.js',
@@ -421,7 +423,8 @@ function installLazyFeatureHandler(name, group) {
         if (group === 'adventurePlayer') {
           setVocabularyAdventureEntryState('error', error);
         } else {
-          alert('功能加载失败，请检查网络后重试。');
+          const detail = error && error.message ? error.message : '未知错误';
+          alert(`功能加载失败：${detail}\n请检查网络后重试。`);
         }
         return null;
       } finally {

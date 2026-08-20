@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v80';
-const RUNTIME_CACHE = 'xxzcard-runtime-v80';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v81';
+const RUNTIME_CACHE = 'xxzcard-runtime-v81';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL_FETCH_CONCURRENCY = 3;
 const APP_SHELL = [
@@ -214,12 +214,7 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (isCodeAsset) {
-    event.respondWith(staleWhileRevalidate(
-      event.request,
-      matchCurrentGeneration(event.request),
-      event,
-      () => new Response('', { status: 503 })
-    ));
+    event.respondWith(cacheFirst(event.request).catch(() => new Response('', { status: 503 })));
     return;
   }
   if (url.origin === self.location.origin) {

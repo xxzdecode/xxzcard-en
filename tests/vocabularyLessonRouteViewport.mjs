@@ -138,6 +138,33 @@ async function assertLayout(page, viewport) {
   assert.equal(layout.titleVisible, true);
 }
 
+async function clickVocabularyLessonListBack(page) {
+  const button = page.locator('#screenVocabularyReviewList .back-btn');
+  try {
+    await button.click({ timeout: 5000 });
+  } catch (error) {
+    const state = await page.evaluate(() => {
+      const screen = document.getElementById('screenVocabularyReviewList');
+      const backButton = screen?.querySelector('.back-btn');
+      const style = backButton ? getComputedStyle(backButton) : null;
+      const rect = backButton?.getBoundingClientRect();
+      const center = rect ? [rect.left + rect.width / 2, rect.top + rect.height / 2] : null;
+      return {
+        screenClassName: screen?.className || '',
+        buttonHidden: backButton?.hidden ?? null,
+        display: style?.display || '',
+        visibility: style?.visibility || '',
+        pointerEvents: style?.pointerEvents || '',
+        rect: rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null,
+        centerStack: center ? document.elementsFromPoint(...center).map(node => `${node.tagName.toLowerCase()}#${node.id}.${node.className}`) : [],
+        selectionRoute: typeof vocabularyLessonState === 'object' ? vocabularyLessonState.selectionRoute : '',
+        bodyClassName: document.body.className
+      };
+    });
+    throw new Error(`new-word guide list back button was not clickable: ${JSON.stringify(state)}`, { cause: error });
+  }
+}
+
 try {
   const ipad = await openApp({ width: 1180, height: 820 });
   await openGuide(ipad.page);
@@ -159,7 +186,7 @@ try {
     'task 016 should load once through the lazy feature group'
   );
 
-  await ipad.page.locator('#screenVocabularyReviewList .back-btn').click();
+  await clickVocabularyLessonListBack(ipad.page);
   await ipad.page.waitForSelector('#screenHome.active');
   await openGuide(ipad.page);
 

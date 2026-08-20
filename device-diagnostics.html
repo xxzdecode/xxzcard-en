@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>单词卡设备诊断</title>
+  <style>
+    :root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:#eef7fb;color:#243747}
+    main{max-width:760px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+    section{background:#fff;border-radius:18px;padding:18px;box-shadow:0 8px 26px rgba(48,85,108,.12)}
+    h1{margin:0 0 8px;font-size:24px}p{line-height:1.55;color:#567080}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+    button,a{min-height:46px;border:0;border-radius:12px;padding:11px 16px;font:inherit;font-weight:800;text-decoration:none}
+    button{background:#3e87b4;color:#fff}a{display:inline-flex;align-items:center;background:#e6f2f8;color:#2d6e96}
+    pre{min-height:260px;max-height:58vh;overflow:auto;white-space:pre-wrap;word-break:break-word;margin:0;padding:14px;border-radius:12px;background:#17232d;color:#eaf6ff;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+    .status{font-weight:800;color:#2d6e96}.note{font-size:13px}
+  </style>
+</head>
+<body>
+<main>
+  <section>
+    <h1>设备诊断</h1>
+    <p>只检查网站版本、缓存和公开资源连通性，不读取账号、单词、答题记录或其他私人数据。</p>
+    <div class="actions">
+      <button id="run" type="button">重新检查</button>
+      <button id="copy" type="button">复制诊断结果</button>
+      <a href="./">返回网站</a>
+    </div>
+    <p class="status" id="status" role="status">准备检查……</p>
+    <pre id="report" aria-label="诊断结果"></pre>
+    <p class="note">请把完整结果复制给 Codex；报告不包含本地存储内容。</p>
+  </section>
+</main>
+<script>
+(() => {
+  'use strict';
+  const report = document.getElementById('report');
+  const status = document.getElementById('status');
+  const runButton = document.getElementById('run');
+  const copyButton = document.getElementById('copy');
+  const criticalResources = [
+    'service-worker.js',
+    'data/daily-learning-route.json',
+    'js/main.js',
+    'js/lazyFeatures.js',
+    'js/vocabularyReviewData.js',
+    'js/vocabularyReview.js',
+    'js/vocabularyLesson016.js',
+    'js/vocabularyLessonCategories.js',
+    'assets/student-home/home-v4/scenes/home-background.webp',
+    'assets/student-home/home-v4/scenes/new-word-guide.webp'
+  ];
+
+  function elapsed(started) { return Math.round(performance.now() - started); }
+  function errorText(error) { return String(error && (error.name || error.message) || error || 'unknown'); }
+
+  async function fetchResource(path) {
+    const started = performance.now();
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = setTimeout(() => controller && controller.abort(), 12000);
+    try {
+      const response = await fetch(`${path}?diag=${Date.now()}`, {
+        cache: 'no-store',
+        credentials: 'same-origin',
+        signal: controller ? controller.signal : undefined
+      });
+      const body = await response.arrayBuffer();
+      return { path, ok: response.ok, status: response.status, ms: elapsed(started), bytes: body.byteLength };
+    } catch (error) {
+      return { path, ok: false, status: 0, ms: elapsed(started), error: errorText(error) };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function resourceChecks() {
+    const results = [];
+    let cursor = 0;
+    async function worker() {
+      while (cursor < criticalResources.length) {
+        const path = criticalResources[cursor++];
+        status.textContent = `正在检查 ${path}…`;
+        results.push(await fetchResource(path));
+      }
+    }
+    await Promise.all([worker(), worker()]);
+    return results.sort((a, b) => criticalResources.indexOf(a.path) - criticalResources.indexOf(b.path));
+  }
+
+  async function serviceWorkerState() {
+    if (!('serviceWorker' in navigator)) return { supported: false };
+    const registration = await navigator.serviceWorker.getRegistration('./').catch(() => null);
+    if (registration) await registration.update().catch(() => {});
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    const refreshed = await navigator.serviceWorker.getRegistration('./').catch(() => registration);
+    return {
+      supported: true,
+      controlled: Boolean(navigator.serviceWorker.controller),
+      active: refreshed && refreshed.active ? refreshed.active.scriptURL.split('/').pop() : '',
+      installing: Boolean(refreshed && refreshed.installing),
+      waiting: Boolean(refreshed && refreshed.waiting)
+    };
+  }
+
+  async function cacheState() {
+    if (!('caches' in window)) return [];
+    const names = await caches.keys();
+    return Promise.all(names.map(async name => {
+      const cache = await caches.open(name);
+      const keys = await cache.keys();
+      return { name, entries: keys.length };
+    }));
+  }
+
+  async function cloudProbe() {
+    const started = performance.now();
+    try {
+      const configResponse = await fetch(`js/config.js?diag=${Date.now()}`, { cache: 'no-store' });
+      const config = await configResponse.text();
+      const url = /const SB_URL = '([^']+)'/.exec(config)?.[1];
+      const key = /const SB_KEY = '([^']+)'/.exec(config)?.[1];
+      if (!url || !key) return { ok: false, ms: elapsed(started), error: 'config-unavailable' };
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = setTimeout(() => controller && controller.abort(), 12000);
+      try {
+        const response = await fetch(`${url}/rest/v1/kv_store?select=key&limit=1`, {
+          headers: { apikey: key, Authorization: `Bearer ${key}` },
+          signal: controller ? controller.signal : undefined
+        });
+        return { ok: response.ok, status: response.status, ms: elapsed(started) };
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (error) {
+      return { ok: false, status: 0, ms: elapsed(started), error: errorText(error) };
+    }
+  }
+
+  async function run() {
+    runButton.disabled = true;
+    copyButton.disabled = true;
+    status.textContent = '正在检查网站版本与缓存……';
+    const started = performance.now();
+    const result = {
+      generatedAt: new Date().toISOString(),
+      page: location.href.split('?')[0],
+      device: {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        online: navigator.onLine,
+        viewport: `${innerWidth}x${innerHeight}`,
+        pixelRatio: devicePixelRatio
+      }
+    };
+    result.serviceWorker = await serviceWorkerState().catch(error => ({ error: errorText(error) }));
+    result.caches = await cacheState().catch(error => [{ error: errorText(error) }]);
+    result.resources = await resourceChecks();
+    status.textContent = '正在检查云端读取……';
+    result.cloud = await cloudProbe();
+    result.totalMs = elapsed(started);
+    report.textContent = JSON.stringify(result, null, 2);
+    const failed = result.resources.filter(item => !item.ok).length + (result.cloud.ok ? 0 : 1);
+    status.textContent = failed ? `检查完成：发现 ${failed} 项失败` : '检查完成：公开资源读取正常';
+    runButton.disabled = false;
+    copyButton.disabled = false;
+  }
+
+  runButton.addEventListener('click', run);
+  copyButton.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(report.textContent);
+      status.textContent = '诊断结果已复制';
+    } catch (_) {
+      const range = document.createRange();
+      range.selectNodeContents(report);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      status.textContent = '已选中诊断结果，请使用“复制”';
+    }
+  });
+  run();
+})();
+</script>
+</body>
+</html>

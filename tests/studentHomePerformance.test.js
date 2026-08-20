@@ -17,6 +17,7 @@ const wordCardPerformance = fs.readFileSync(path.join(root, 'js', 'wordCardPerfo
 const wordCardStudySafety = fs.readFileSync(path.join(root, 'js', 'wordCardStudySafety.js'), 'utf8');
 const runtimeHomeStability = fs.readFileSync(path.join(root, 'js', 'runtimeHomeStability.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
+const diagnostics = fs.readFileSync(path.join(root, 'device-diagnostics.html'), 'utf8');
 const appShellBody = serviceWorker.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1];
 const appShellEntries = [...appShellBody.matchAll(/'([^']+)'/g)].map(match => match[1]);
 
@@ -92,8 +93,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v80/);
-assert.match(serviceWorker, /xxzcard-runtime-v80/);
+assert.match(serviceWorker, /xxzcard-app-shell-v81/);
+assert.match(serviceWorker, /xxzcard-runtime-v81/);
 assert.ok(appShellEntries.length <= 50, `Apple-safe install shell grew to ${appShellEntries.length} resources`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
@@ -101,9 +102,8 @@ assert.ok(
   'daily route helper should start before optional startup enhancements'
 );
 assert.match(main, /__dailyLearningRoutePrefetchPromise = fetch/);
-assert.match(main, /loadFeatureGroup\('teacherTools'\)/);
-assert.match(main, /loadFeatureScript\('js\/wordCardPerformance\.js'\)/);
-assert.match(main, /loadFeatureScript\('js\/wordCardStudySafety\.js'\)/);
+assert.doesNotMatch(main, /teacherToolsWarmup|loadFeatureGroup\('teacherTools'\)/);
+assert.match(lazy, /teacherTools:[\s\S]*?'js\/wordCardPerformance\.js'[\s\S]*?'js\/wordCardStudySafety\.js'/);
 assert.match(main, /loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewards\.js'\)/);
 assert.match(main, /loadFeatureScript\('js\/studentRewardLayoutGuard\.js'\)/);
@@ -151,8 +151,9 @@ assert.match(serviceWorker, /daily-learning-route\.json/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.match(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
 assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
-assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)/);
-assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)[\s\S]*?3000/);
+assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js', \{ updateViaCache: 'none' \}\)/);
+assert.match(main, /registration\.update\(\)/);
+assert.doesNotMatch(main, /window\.setTimeout\(\(\) => \{\s*navigator\.serviceWorker\.register/);
 assert.doesNotMatch(main, /addEventListener\('load'[\s\S]*?serviceWorker\.register/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.doesNotMatch(serviceWorker, /response\.arrayBuffer\(\)/);
@@ -168,11 +169,17 @@ assert.match(serviceWorker, /grammar-challenge\/practices\/courseware-daily\.htm
 assert.match(serviceWorker, /staleWhileRevalidate/);
 assert.match(serviceWorker, /cachedNavigation/);
 assert.match(serviceWorker, /refreshStaticAsset/);
+assert.match(serviceWorker, /if \(isCodeAsset\) \{\s*event\.respondWith\(cacheFirst\(event\.request\)/s);
 assert.doesNotMatch(serviceWorker, /navigationNetworkFirst|staticNetworkFirst/);
 assert.doesNotMatch(serviceWorker, /apiNetworkFirst|isSupabaseApi|\.supabase\.co/);
 assert.match(serviceWorker, /cacheFirst/);
 assert.match(serviceWorker, /const cached = await matchCurrentGeneration\(request\)/);
 assert.match(serviceWorker, /requestUrl\.pathname !== appRoot\.pathname/);
+assert.match(diagnostics, /不读取账号、单词、答题记录或其他私人数据/);
+assert.match(diagnostics, /navigator\.serviceWorker\.getRegistration/);
+assert.match(diagnostics, /vocabularyLesson016\.js/);
+assert.match(diagnostics, /cloudProbe/);
+assert.doesNotMatch(diagnostics, /localStorage|document\.cookie/);
 
 for (const [name, maxBytes] of [
   ['home-background.webp', 180000],

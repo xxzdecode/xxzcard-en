@@ -5,12 +5,12 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const { chromium } = createRequire(import.meta.url)('playwright');
+const { chromium, webkit } = createRequire(import.meta.url)('playwright');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const currentWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const oldWorker = `
-const CACHE = 'xxzcard-app-shell-v79';
+const CACHE = 'xxzcard-app-shell-v80';
 self.addEventListener('install', event => event.waitUntil(
   caches.open(CACHE).then(cache => cache.add('./index.html')).then(() => self.skipWaiting())
 ));
@@ -18,6 +18,7 @@ self.addEventListener('activate', event => event.waitUntil(self.clients.claim())
 self.addEventListener('fetch', () => {});
 `;
 let serveCurrentWorker = false;
+let originAvailable = true;
 const currentRequests = [];
 const expectedShellPaths = [...currentWorker.matchAll(/'\.\/([^']+)'/g)].map(match => `/${match[1]}`);
 
@@ -34,6 +35,10 @@ const mime = new Map([
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1');
   const pathname = decodeURIComponent(url.pathname);
+  if (!originAvailable) {
+    request.socket.destroy();
+    return;
+  }
   if (serveCurrentWorker) currentRequests.push(pathname);
   if (pathname === '/service-worker.js') {
     response.setHeader('Content-Type', 'text/javascript; charset=utf-8');
@@ -58,6 +63,7 @@ const server = http.createServer((request, response) => {
 });
 
 async function launchBrowser() {
+  if (process.env.PW_BROWSER === 'webkit') return webkit.launch();
   try {
     return await chromium.launch();
   } catch (error) {
@@ -82,7 +88,7 @@ async function waitForActiveVersion(page, cacheName) {
           && !registration.installing
           && !registration.waiting
           && keys.includes(expected)
-          && (!/v80$/.test(expected) || !keys.some(key => /v79$/.test(key)))
+          && (!/v81$/.test(expected) || !keys.some(key => /v80$/.test(key)))
       };
     }, cacheName);
     if (latest.ready) return;
@@ -134,24 +140,24 @@ const page = await context.newPage();
 try {
   await page.goto(`${baseUrl}/sw-harness.html`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => navigator.serviceWorker.register('./service-worker.js'));
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v79');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v80');
 
   serveCurrentWorker = true;
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v80');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v81');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v80');
+    const shell = await caches.open('xxzcard-app-shell-v81');
     const urls = (await shell.keys()).map(request => decodeURIComponent(new URL(request.url).pathname));
     return { keys, urls };
   });
   assert.ok(
-    !cacheState.keys.some(key => /v79$/.test(key)),
-    `v79 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
+    !cacheState.keys.some(key => /v80$/.test(key)),
+    `v80 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
   );
   assert.ok(cacheState.urls.some(url => /index\.html$/.test(url)));
   assert.ok(cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
@@ -180,8 +186,9 @@ try {
     localStorage.setItem('daily_learning_route_cache_v1', JSON.stringify({ version: 1, route: value }));
   }, route);
 
-  await context.setOffline(true);
-  await page.goto(`${baseUrl}/?cold=v80`, { waitUntil: 'domcontentloaded' });
+  originAvailable = false;
+  await context.route('https://**/*', route => route.abort());
+  await page.goto(`${baseUrl}/?cold=v81`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.getDailyLearningRoute?.()?.grammarChallenge));
   await page.waitForFunction(() => (
     window.openStudentGrammarChallenge?.__dailyRouteAssignmentWrapped === true
@@ -198,10 +205,10 @@ try {
   await openOfflineGrammar(page, 'brother', { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v80', 'xxzcard-runtime-v80']);
-  console.log('student runtime v79-to-v80 cold-start viewport tests passed');
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v81', 'xxzcard-runtime-v81']);
+  console.log(`student runtime v80-to-v81 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
 } finally {
-  await context.setOffline(false).catch(() => {});
+  originAvailable = true;
   await context.close();
   await browser.close();
   await new Promise(resolve => server.close(resolve));

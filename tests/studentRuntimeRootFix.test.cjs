@@ -136,8 +136,8 @@ assert.match(overrideSource, /warmPracticeAssets/);
 assert.match(overrideSource, /wrapped\.__dailyRouteAssignmentOriginal\.apply\(this, arguments\)/);
 
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
-assert.match(serviceWorker, /xxzcard-app-shell-v80/);
-assert.match(serviceWorker, /xxzcard-runtime-v80/);
+assert.match(serviceWorker, /xxzcard-app-shell-v81/);
+assert.match(serviceWorker, /xxzcard-runtime-v81/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.match(serviceWorker, /match\(request, \{ ignoreSearch: true \}\)/);
@@ -146,6 +146,7 @@ assert.match(serviceWorker, /cache\.put\(url, response\)/);
 assert.match(serviceWorker, /APP_SHELL_FETCH_CONCURRENCY = 3/);
 assert.match(serviceWorker, /Math\.min\(APP_SHELL_FETCH_CONCURRENCY, urls\.length\)/);
 assert.match(serviceWorker, /async function cachedNavigation\(request\)[\s\S]*?matchCurrentGeneration\(request\)/);
+assert.match(serviceWorker, /if \(isCodeAsset\) \{\s*event\.respondWith\(cacheFirst\(event\.request\)/s);
 assert.match(serviceWorker, /'\.\/js\/grammarChallenges\.js'/);
 assert.match(serviceWorker, /'\.\/grammar-challenge\/data\/catalog\.js'/);
 assert.doesNotMatch(serviceWorker, /'\.\/grammar-challenge\/data\/page-practices\/2026-07-31\.js'/);

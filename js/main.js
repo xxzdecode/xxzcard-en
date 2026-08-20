@@ -327,7 +327,6 @@
 // ══════════════════════════════════════
 (async () => {
   let dailyRouteStartup = Promise.resolve(null);
-  let teacherToolsWarmup = Promise.resolve(null);
   let studentActivityStartup = Promise.resolve(null);
   let startupEnhancements = Promise.resolve(null);
 
@@ -393,19 +392,6 @@
           return null;
         });
 
-      // Warm the word-card scripts while the main Supabase data is loading.
-      // Viewing stays cache-first, while the final helper restores remote-fresh
-      // records for study modes that can write known/unknown progress.
-      if (typeof loadFeatureGroup === 'function') {
-        teacherToolsWarmup = loadFeatureGroup('teacherTools')
-          .then(() => loadFeatureScript('js/wordCardPerformance.js'))
-          .then(() => loadFeatureScript('js/wordCardStudySafety.js'))
-          .catch(error => {
-            console.warn('word-card warmup unavailable', error && (error.message || error));
-            return null;
-          });
-      }
-
       // Only storage and master-card normalization are required before the
       // first home render. Load them together; reward/history enhancements
       // must never hold a cached home screen behind slow optional requests.
@@ -443,13 +429,12 @@
     });
   }
   dailyRouteStartup.catch(() => {});
-  teacherToolsWarmup.catch(() => {});
   studentActivityStartup.catch(() => {});
   startupEnhancements.catch(() => {});
 })();
 
 if ('serviceWorker' in navigator) {
-  window.setTimeout(() => {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
-  }, 3000);
+  navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
+    .then(registration => registration.update().catch(() => {}))
+    .catch(() => {});
 }
