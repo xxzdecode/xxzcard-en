@@ -124,10 +124,10 @@ function createContext(overrides = {}) {
   assert.match(lazy, /loadIndependentFeatureScript\('js\/teacherDashboardSummaries\.js'\)/);
   assert.match(home, /window\.refreshTeacherDashboardSummaries\?\.\(\)/);
   assert.match(main, /root\.refreshTeacherDashboardSummaries\?\.\(\)/);
-  assert.match(serviceWorker, /'\.\/js\/teacherDashboardSummaries\.js'/);
+  assert.doesNotMatch(serviceWorker, /'\.\/js\/teacherDashboardSummaries\.js'/);
   assert.match(serviceWorker, /'\.\/js\/courseware-data\.js'/);
-  assert.match(serviceWorker, /'\.\/grammar-library\/data\/topics\.json'/);
-  assert.match(serviceWorker, /'\.\/grammar-library\/data\/initial-progress\.json'/);
+  assert.doesNotMatch(serviceWorker, /'\.\/grammar-library\/data\/topics\.json'/);
+  assert.doesNotMatch(serviceWorker, /'\.\/grammar-library\/data\/initial-progress\.json'/);
 
   console.log('teacher dashboard summary tests passed');
 })().catch(error => {

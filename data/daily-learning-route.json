@@ -1,17 +1,22 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-30T22:39:00+08:00",
+  "updatedAt": "2026-08-20T21:35:00+08:00",
   "grammarChallenge": {
-    "id": "grammar-2026-07-31-parts-of-speech-review",
-    "title": "词性地图快速挑战",
-    "displayTitle": "词性地图",
-    "reviewLessonKey": "parts-of-speech-map"
+    "id": "manual-courseware::courseware-2026-08-04",
+    "title": "26.08.04｜时间介词 in / on / at 语法挑战",
+    "displayTitle": "时间介词 in / on / at",
+    "reviewLessonKey": "manual-courseware:courseware-2026-08-04",
+    "source": "courseware-practice",
+    "sourcePracticeId": "courseware-2026-08-04",
+    "sourcePath": "courseware/26.08.04｜时间介词 in-on-at 随堂练习.html"
   },
   "classroomPractice": {
-    "id": "courseware-2026-07-31-adjective-basics-suffixes",
-    "title": "形容词与词尾线索随堂练习",
-    "displayTitle": "形容词与词尾线索",
-    "lessonTitle": "词语穿上什么样的衣服？",
-    "lessonKey": "adjective-basics-suffixes"
+    "id": "courseware-2026-08-06",
+    "title": "26.08.06｜地点介词“上与下”随堂练习",
+    "displayTitle": "地点介词“上与下”",
+    "lessonTitle": "26.08.06｜地点介词“上与下”随堂练习",
+    "lessonKey": "manual-courseware:courseware-2026-08-06",
+    "source": "courseware-practice",
+    "path": "courseware/26.08.06｜地点介词“上与下”随堂练习.html"
   }
 }

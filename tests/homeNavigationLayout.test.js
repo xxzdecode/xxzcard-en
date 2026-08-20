@@ -60,7 +60,7 @@ const appShellVersion = serviceWorker.match(/const APP_SHELL_CACHE = 'xxzcard-ap
 const runtimeVersion = serviceWorker.match(/const RUNTIME_CACHE = 'xxzcard-runtime-v(\d+)';/);
 assert.ok(appShellVersion, 'service worker must declare an app-shell cache version');
 assert.equal(runtimeVersion?.[1], appShellVersion[1], 'app-shell and runtime cache versions must stay aligned');
-assert.match(serviceWorker, /brother-avatar\.png/);
+assert.doesNotMatch(serviceWorker, /assets\/student-home\//);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
 assert.match(serviceWorker, /'\.\/styles-student-home-dashboard\.css'/);
 assert.doesNotMatch(serviceWorker, /styles-vocabulary-lesson-016/);

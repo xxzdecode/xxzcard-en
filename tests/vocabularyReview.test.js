@@ -156,7 +156,7 @@ assert.doesNotMatch(placeholder, /<text|watermark/i);
 assert.match(serviceWorker, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v\d+'/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.doesNotMatch(serviceWorker, /styles-vocabulary-lesson-016/);
-assert.doesNotMatch(serviceWorker, /vocabularyLesson016/);
+assert.match(serviceWorker, /vocabularyLesson016/);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 
 console.log('unified vocabulary lesson tests passed');

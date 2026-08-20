@@ -1,12 +1,11 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v78';
-const RUNTIME_CACHE = 'xxzcard-runtime-v78';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v79';
+const RUNTIME_CACHE = 'xxzcard-runtime-v79';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
-const APP_SHELL_FETCH_CONCURRENCY = 2;
+const APP_SHELL_FETCH_CONCURRENCY = 3;
 const APP_SHELL = [
   './index.html',
   './styles.css',
   './styles-vocabulary-adventure.css',
-  './styles-vocabulary-adventure-v2.css',
   './styles-home-nav.css',
   './styles-student-home-dashboard.css',
   './styles-wrong-answer-organizer.css',
@@ -22,134 +21,61 @@ const APP_SHELL = [
   './js/auth.js',
   './js/home.js',
   './js/lazyFeatures.js',
-  './js/teacherDashboardSummaries.js',
   './js/courseware-data.js',
-  './js/wrongAnswerOrganizer.js',
+  './js/courseware.js',
   './js/main.js',
   './js/storageResilience.js',
-  './js/vocabularyQuestionTypesRepeatBootstrap.js',
-  './js/vocabularyAdventureCore.js',
-  './js/vocabularyAdventure.js',
-  './js/vocabularyAdventureReview.js',
-  './js/vocabularyAdventurePlayer.js',
-  './js/vocabularyAdventureChallenge.js',
-  './js/vocabularyAdventureVisualV2.js',
-  './js/vocabularyPracticeUI.js',
-  './js/vocabularyFeedbackErrorUI.js',
-  './js/vocabularyFeedbackSaveCoordinator.js',
-  './js/vocabularyAdventureLessonQueue.js',
-  './js/vocabularyLessonGroups.js',
-  './data/vocabularyLessonAssets.js',
+  './js/vocabularyReviewData.js',
+  './js/vocabularyReview.js',
+  './js/vocabularyLesson016.js',
+  './js/vocabularyLessonCategories.js',
   './js/dailyLearningRoute.js',
   './js/dailyLearningRouteOverride.js',
   './data/daily-learning-route.json',
-  './grammar-challenge/data/catalog.js',
-  './js/grammarChallenges.js',
-  './grammar-challenge/index.html',
   './grammar-challenge/css/challenge.css',
   './grammar-challenge/css/page-practice.css',
   './grammar-challenge/js/challenge-shell.js',
   './grammar-challenge/js/page-practice-core.js',
   './grammar-challenge/js/page-practice-shell.js',
-  './grammar-challenge/data/page-practices/2026-07-31.js',
-  './grammar-challenge/data/page-practices/2026-08-01.js',
-  './grammar-challenge/practices/2026-08-22.html',
-  './grammar-challenge/practices/2026-08-21.html',
-  './grammar-challenge/practices/2026-08-20.html',
-  './grammar-challenge/practices/2026-08-19.html',
-  './grammar-challenge/practices/2026-08-18.html',
-  './grammar-challenge/practices/2026-08-06.html',
-  './grammar-challenge/practices/2026-08-04.html',
-  './grammar-challenge/practices/2026-08-03.html',
-  './grammar-challenge/practices/2026-08-02.html',
-  './grammar-challenge/practices/2026-08-01.html',
-  './grammar-challenge/practices/2026-07-31.html',
-  './grammar-challenge/practices/2026-07-30.html',
-  './grammar-challenge/practices/2026-07-27.html',
-  './grammar-challenge/practices/2026-07-26.html',
-  './grammar-challenge/practices/2026-07-25.html',
-  './grammar-challenge/practices/2026-07-24-frequency-review.html',
-  './grammar-challenge/practices/2026-07-24.html',
-  './grammar-challenge/practices/2026-07-23.html',
-  './grammar-challenge/practices/2026-07-22-corrected.html',
-  './grammar-challenge/practices/2026-07-17-articles.html',
-  './grammar-challenge/practices/2026-07-17.html',
-  './grammar-challenge/data/2026-07-16.js',
-  './grammar-challenge/data/2026-07-15.js',
   './grammar-challenge/practices/courseware-daily.html',
+  './courseware/26.08.04｜时间介词 in-on-at 随堂练习.html',
+  './courseware/26.08.06｜地点介词“上与下”随堂练习.html',
   './js/dictionary.js',
-  './js/batch.js',
-  './js/import.js',
-  './js/tasks.js',
-  './js/review.js',
-  './js/study.js',
-  './js/quiz.js',
-  './js/questionTypes.js',
-  './js/taskEngine.js',
-  './js/merge.js',
-  './js/wordDedupe.js',
   './js/wordCardPerformance.js',
   './js/wordCardStudySafety.js',
   './js/studentRewards.js',
   './js/studentActivityControls.js',
   './js/studentActivityControlsCompactUI.js',
+  './js/grammarChallenges.js',
   './js/grammarChallengeRecords.js',
+  './grammar-challenge/data/catalog.js',
+  './js/wrongAnswerOrganizer.js',
   './js/studentRewardLayoutGuard.js',
   './js/studentRewardReconcile.js',
-  './js/studentVocabularyRewardSettlement.js',
-  './grammar-library/data/topics.json',
-  './grammar-library/data/initial-progress.json',
-  './assets/student-home/home-v4/scenes/home-background.webp',
-  './assets/student-home/home-v4/scenes/vocabulary-adventure.webp',
-  './assets/student-home/home-v4/scenes/word-challenge.webp',
-  './assets/student-home/home-v4/scenes/grammar-challenge.webp',
-  './assets/student-home/home-v4/scenes/classroom-practice.webp',
-  './assets/student-home/home-v4/scenes/new-word-guide.webp',
-  './assets/student-home/home-v4/ui/section-plaque.png',
-  './assets/student-home/home-v4/ui/student-tag.png',
-  './assets/student-home/home-v4/ui/coin-total.png',
-  './assets/student-home/home-v4/ui/coin-challenge.png',
-  './assets/student-home/home-v4/ui/cleared-stamp.png',
-  './assets/student-home/home-v4/ui/chest-idle.png',
-  './assets/student-home/home-v4/ui/chest-opening.png',
-  './assets/student-home/home-v4/ui/chest-claimed.png',
-  './assets/student-home/card6/ui/profile/sister-avatar.png',
-  './assets/student-home/card6/ui/profile/brother-avatar.png',
-  './assets/student-home/card6/ui/bottom-nav/word-card-icon.png',
-  './assets/student-home/card6/ui/bottom-nav/phonetics-icon.png',
-  './assets/student-home/card6/ui/bottom-nav/mini-games-icon.png'
+  './js/studentVocabularyRewardSettlement.js'
 ];
 
 async function installAppShellAtomically(urls) {
   await caches.delete(APP_SHELL_CACHE);
   await caches.delete(RUNTIME_CACHE);
-  const resources = new Array(urls.length);
+  const cache = await caches.open(APP_SHELL_CACHE);
   let cursor = 0;
   async function fetchNext() {
     while (cursor < urls.length) {
-      const index = cursor++;
-      const url = urls[index];
+      const url = urls[cursor++];
       const response = await fetch(url, { cache: 'no-cache' });
       if (!response || !response.ok) throw new Error(`app-shell HTTP ${response && response.status}: ${url}`);
-      const body = await response.arrayBuffer();
-      resources[index] = {
-        url,
-        body,
-        init: {
-          status: response.status,
-          statusText: response.statusText,
-          headers: [...response.headers.entries()]
-        }
-      };
+      await cache.put(url, response);
     }
   }
-  await Promise.all(Array.from(
-    { length: Math.min(APP_SHELL_FETCH_CONCURRENCY, urls.length) },
-    () => fetchNext()
-  ));
-  const cache = await caches.open(APP_SHELL_CACHE);
-  for (const resource of resources) {
-    await cache.put(resource.url, new Response(resource.body, resource.init));
+  try {
+    await Promise.all(Array.from(
+      { length: Math.min(APP_SHELL_FETCH_CONCURRENCY, urls.length) },
+      () => fetchNext()
+    ));
+  } catch (error) {
+    await caches.delete(APP_SHELL_CACHE);
+    throw error;
   }
   const verification = await Promise.all(urls.map(url => cache.match(url)));
   if (verification.some(response => !response)) {

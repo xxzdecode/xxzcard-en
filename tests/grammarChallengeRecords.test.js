@@ -263,7 +263,7 @@ assert.match(catalogSource, /questionPrimaryWeaknessIds/);
 for (const date of ['2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21', '2026-08-22']) {
   assert.match(catalogSource, new RegExp(`grammar-${date}-`));
   assert.match(catalogSource, new RegExp(`practices/${date}\\.html`));
-  assert.match(serviceWorkerSource, new RegExp(`practices/${date}\\.html`));
+  assert.doesNotMatch(serviceWorkerSource, new RegExp(`practices/${date}\\.html`));
 }
 assert.match(mainSource, /studentActivityControls\.js'[\s\S]*grammarChallengeRecords\.js'/);
 assert.match(serviceWorkerSource, /\.\/js\/grammarChallengeRecords\.js/);

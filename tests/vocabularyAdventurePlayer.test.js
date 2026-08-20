@@ -282,7 +282,7 @@ for (const expected of ['apple', '苹果', 'an apple', 'apples', 'fruit', 'apple
   assert.match(screeningSource, /const VOCABULARY_SCREENING_ENABLED = false/);
   assert.doesNotMatch(playerSource, /Math\.random/);
   assert.match(serviceWorkerSource, /styles-vocabulary-adventure/);
-  assert.match(serviceWorkerSource, /\.\/js\/vocabularyAdventurePlayer\.js/);
+  assert.doesNotMatch(serviceWorkerSource, /\.\/js\/vocabularyAdventurePlayer\.js/);
 
   console.log('vocabulary adventure player tests passed');
 })().catch(error => {

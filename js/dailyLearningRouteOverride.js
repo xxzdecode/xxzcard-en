@@ -6,7 +6,7 @@
   const OVERRIDE_CACHE_KEY = 'daily_learning_route_override_cache_v1';
   const ASSIGNMENT_CACHE_PREFIX = 'daily_learning_route_assignment_cache_v1_';
   const READ_TIMEOUT_MS = 1800;
-  const OVERRIDE_SYNC_TIMEOUT_MS = 8000;
+  const OVERRIDE_SYNC_TIMEOUT_MS = 45000;
   const VERIFY_TIMEOUT_MS = 2200;
   const baseFetch = typeof root.fetch === 'function' ? root.fetch.bind(root) : null;
 
@@ -139,6 +139,11 @@
     if (!route || typeof route !== 'object') return route;
     const day = normalize(store).dates[date];
     if (!day || typeof day !== 'object') return route;
+    const routeUpdatedAt = Date.parse(String(route.updatedAt || ''));
+    const overrideUpdatedAt = Date.parse(String(day.updatedAt || ''));
+    if (Number.isFinite(routeUpdatedAt) && Number.isFinite(overrideUpdatedAt) && overrideUpdatedAt < routeUpdatedAt) {
+      return route;
+    }
     const grammar = manualGrammarRoute(day.grammarChallenge);
     const classroom = manualClassroomRoute(day.classroomPractice);
     if (!grammar && !classroom) return route;

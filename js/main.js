@@ -449,9 +449,7 @@
 })();
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    window.setTimeout(() => {
-      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
-    }, 1500);
-  }, { once: true });
+  window.setTimeout(() => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  }, 3000);
 }

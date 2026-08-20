@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const currentWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const oldWorker = `
-const CACHE = 'xxzcard-app-shell-v77';
+const CACHE = 'xxzcard-app-shell-v78';
 self.addEventListener('install', event => event.waitUntil(
   caches.open(CACHE).then(cache => cache.add('./index.html')).then(() => self.skipWaiting())
 ));
@@ -33,19 +33,20 @@ const mime = new Map([
 
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1');
-  if (serveCurrentWorker) currentRequests.push(url.pathname);
-  if (url.pathname === '/service-worker.js') {
+  const pathname = decodeURIComponent(url.pathname);
+  if (serveCurrentWorker) currentRequests.push(pathname);
+  if (pathname === '/service-worker.js') {
     response.setHeader('Content-Type', 'text/javascript; charset=utf-8');
     response.setHeader('Cache-Control', 'no-store');
     response.end(serveCurrentWorker ? currentWorker : oldWorker);
     return;
   }
-  if (url.pathname === '/sw-harness.html') {
+  if (pathname === '/sw-harness.html') {
     response.setHeader('Content-Type', 'text/html; charset=utf-8');
     response.end('<!doctype html><meta charset="utf-8"><title>SW harness</title>');
     return;
   }
-  const relative = url.pathname === '/' ? 'index.html' : path.normalize(url.pathname).replace(/^[/\\]+/, '');
+  const relative = pathname === '/' ? 'index.html' : path.normalize(pathname).replace(/^[/\\]+/, '');
   const filePath = path.join(root, relative);
   if (!filePath.startsWith(root) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     response.writeHead(404).end('Not found');
@@ -81,7 +82,7 @@ async function waitForActiveVersion(page, cacheName) {
           && !registration.installing
           && !registration.waiting
           && keys.includes(expected)
-          && (!/v78$/.test(expected) || !keys.some(key => /v77$/.test(key)))
+          && (!/v79$/.test(expected) || !keys.some(key => /v78$/.test(key)))
       };
     }, cacheName);
     if (latest.ready) return;
@@ -99,15 +100,15 @@ async function openOfflineGrammar(page, student, viewport) {
   }, student);
   await page.waitForFunction(user => localStorage.getItem('wc_user') === user, student);
   const frameNavigation = page.waitForEvent('framenavigated', {
-    predicate: candidate => candidate !== page.mainFrame() && /grammar-challenge\/index\.html/.test(candidate.url()),
+    predicate: candidate => candidate !== page.mainFrame() && /grammar-challenge\/(?:index|practices\/courseware-daily)\.html/.test(candidate.url()),
     timeout: 10000
-  });
+  }).catch(() => null);
   await page.evaluate(() => window.openStudentGrammarChallenge());
   await page.waitForFunction(() => document.getElementById('screenGrammarChallengePlayer')?.classList.contains('active'));
-  const frame = await frameNavigation.catch(() => (
-    page.frames().find(candidate => /grammar-challenge\/index\.html/.test(candidate.url()))
+  const frame = await frameNavigation || page.frames().find(candidate => (
+    /grammar-challenge\/(?:index|practices\/courseware-daily)\.html/.test(candidate.url())
   ));
-  assert.ok(frame, `${student} grammar frame opened`);
+  assert.ok(frame, `${student} grammar frame opened: ${page.frames().map(candidate => candidate.url()).join(', ')}`);
   await frame.waitForFunction(() => Boolean(window.__LESSON_PREP_QA__?.state?.()), null, { timeout: 10000 });
   const layout = await frame.evaluate(() => ({
     width: innerWidth,
@@ -133,35 +134,32 @@ const page = await context.newPage();
 try {
   await page.goto(`${baseUrl}/sw-harness.html`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => navigator.serviceWorker.register('./service-worker.js'));
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v77');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v78');
 
   serveCurrentWorker = true;
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v78');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v79');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v78');
-    const urls = (await shell.keys()).map(request => new URL(request.url).pathname);
+    const shell = await caches.open('xxzcard-app-shell-v79');
+    const urls = (await shell.keys()).map(request => decodeURIComponent(new URL(request.url).pathname));
     return { keys, urls };
   });
   assert.ok(
-    !cacheState.keys.some(key => /v77$/.test(key)),
-    `v77 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
+    !cacheState.keys.some(key => /v78$/.test(key)),
+    `v78 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
   );
-  assert.ok(cacheState.urls.some(url => /grammar-challenge\/index\.html$/.test(url)));
-  for (const date of ['2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21', '2026-08-22']) {
-    assert.ok(
-      cacheState.urls.some(url => url.endsWith(`/grammar-challenge/practices/${date}.html`)),
-      `${date} grammar challenge is in the v78 app shell`
-    );
-  }
-  assert.ok(cacheState.urls.some(url => /grammar-challenge\/practices\/2026-08-06\.html$/.test(url)));
-  assert.ok(cacheState.urls.some(url => /grammar-challenge\/data\/page-practices\/2026-07-31\.js$/.test(url)));
-  assert.ok(cacheState.urls.some(url => /grammar-challenge\/data\/page-practices\/2026-08-01\.js$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /index\.html$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /grammar-challenge\/practices\/courseware-daily\.html$/.test(url)));
+  assert.ok(cacheState.urls.some(url => url.endsWith('/courseware/26.08.04｜时间介词 in-on-at 随堂练习.html')));
+  assert.ok(cacheState.urls.some(url => url.endsWith('/courseware/26.08.06｜地点介词“上与下”随堂练习.html')));
+  assert.ok(!cacheState.urls.some(url => /grammar-challenge\/practices\/2026-08-22\.html$/.test(url)));
+  assert.ok(!cacheState.urls.some(url => /assets\/student-home\//.test(url)));
   assert.ok(cacheState.urls.some(url => /studentActivityControls\.js$/.test(url)));
 
   const route = JSON.parse(fs.readFileSync(path.join(root, 'data', 'daily-learning-route.json'), 'utf8'));
@@ -183,7 +181,7 @@ try {
   }, route);
 
   await context.setOffline(true);
-  await page.goto(`${baseUrl}/?cold=v78`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/?cold=v79`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.getDailyLearningRoute?.()?.grammarChallenge));
   await page.waitForFunction(() => (
     window.openStudentGrammarChallenge?.__dailyRouteAssignmentWrapped === true
@@ -200,8 +198,8 @@ try {
   await openOfflineGrammar(page, 'brother', { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v78', 'xxzcard-runtime-v78']);
-  console.log('student runtime v77-to-v78 cold-start viewport tests passed');
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v79', 'xxzcard-runtime-v79']);
+  console.log('student runtime v78-to-v79 cold-start viewport tests passed');
 } finally {
   await context.setOffline(false).catch(() => {});
   await context.close();

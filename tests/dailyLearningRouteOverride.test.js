@@ -18,7 +18,7 @@ const practice = {
 assert.equal(api.KEY, 'daily_learning_route_override_v1');
 assert.equal(api.PREFIX, 'manual-courseware::');
 assert.equal(api.ASSIGNMENT_PREFIX, 'daily_learning_route_assignment_v1_');
-assert.equal(api.OVERRIDE_SYNC_TIMEOUT_MS, 8000);
+assert.equal(api.OVERRIDE_SYNC_TIMEOUT_MS, 45000);
 assert.equal(api.assignmentKey('sister'), 'daily_learning_route_assignment_v1_sister');
 assert.equal(api.assignmentKey('brother'), 'daily_learning_route_assignment_v1_brother');
 assert.equal(api.mergeRoute(automatic, { dates: {} }, '2026-08-01'), automatic);
@@ -40,6 +40,20 @@ assert.equal(
   api.mergeRoute(automatic, { dates: { '2026-08-02': { grammarChallenge: practice } } }, '2026-08-01'),
   automatic
 );
+
+const newerStaticRoute = { ...automatic, updatedAt: '2026-08-20T13:35:00.000Z' };
+assert.equal(api.mergeRoute(newerStaticRoute, {
+  dates: {
+    '2026-08-01': {
+      grammarChallenge: practice,
+      updatedAt: '2026-08-20T12:00:00.000Z'
+    }
+  }
+}, '2026-08-01'), newerStaticRoute, 'a newer deployed route must supersede stale device override cache');
+
+const deployedRoute = JSON.parse(fs.readFileSync(path.join(root, 'data/daily-learning-route.json'), 'utf8'));
+assert.equal(deployedRoute.grammarChallenge.id, 'manual-courseware::courseware-2026-08-04');
+assert.equal(deployedRoute.classroomPractice.id, 'courseware-2026-08-06');
 
 const pinned = api.mergePinnedRoute(automatic, {
   dates: {

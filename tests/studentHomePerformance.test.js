@@ -17,6 +17,8 @@ const wordCardPerformance = fs.readFileSync(path.join(root, 'js', 'wordCardPerfo
 const wordCardStudySafety = fs.readFileSync(path.join(root, 'js', 'wordCardStudySafety.js'), 'utf8');
 const runtimeHomeStability = fs.readFileSync(path.join(root, 'js', 'runtimeHomeStability.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
+const appShellBody = serviceWorker.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1];
+const appShellEntries = [...appShellBody.matchAll(/'([^']+)'/g)].map(match => match[1]);
 
 assert.match(html, /<link rel="stylesheet" href="styles-home-nav\.css"/);
 assert.match(html, /<link rel="stylesheet" href="styles-student-home-dashboard\.css"/);
@@ -90,8 +92,9 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v78/);
-assert.match(serviceWorker, /xxzcard-runtime-v78/);
+assert.match(serviceWorker, /xxzcard-app-shell-v79/);
+assert.match(serviceWorker, /xxzcard-runtime-v79/);
+assert.ok(appShellEntries.length <= 50, `Apple-safe install shell grew to ${appShellEntries.length} resources`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -139,24 +142,27 @@ assert.match(serviceWorker, /js\/dailyLearningRoute\.js/);
 assert.match(serviceWorker, /js\/wordCardPerformance\.js/);
 assert.match(serviceWorker, /js\/wordCardStudySafety\.js/);
 assert.match(serviceWorker, /js\/dictionary\.js/);
-assert.match(serviceWorker, /js\/vocabularyAdventurePlayer\.js/);
-assert.match(serviceWorker, /js\/vocabularyAdventureChallenge\.js/);
-assert.match(serviceWorker, /js\/vocabularyQuestionTypesRepeatBootstrap\.js/);
-assert.match(serviceWorker, /js\/vocabularyPracticeUI\.js/);
+assert.doesNotMatch(serviceWorker, /js\/vocabularyAdventurePlayer\.js/);
+assert.doesNotMatch(serviceWorker, /js\/vocabularyAdventureChallenge\.js/);
+assert.doesNotMatch(serviceWorker, /js\/vocabularyQuestionTypesRepeatBootstrap\.js/);
+assert.doesNotMatch(serviceWorker, /js\/vocabularyPracticeUI\.js/);
 assert.match(serviceWorker, /dailyRouteNetworkOnly/);
 assert.match(serviceWorker, /daily-learning-route\.json/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.match(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
 assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
 assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)/);
-assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)[\s\S]*?1500/);
+assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)[\s\S]*?3000/);
+assert.doesNotMatch(main, /addEventListener\('load'[\s\S]*?serviceWorker\.register/);
 assert.match(serviceWorker, /installAppShellAtomically/);
-assert.match(serviceWorker, /response\.arrayBuffer\(\)/);
-assert.match(serviceWorker, /APP_SHELL_FETCH_CONCURRENCY = 2/);
+assert.doesNotMatch(serviceWorker, /response\.arrayBuffer\(\)/);
+assert.match(serviceWorker, /cache\.put\(url, response\)/);
+assert.match(serviceWorker, /APP_SHELL_FETCH_CONCURRENCY = 3/);
 assert.match(serviceWorker, /Math\.min\(APP_SHELL_FETCH_CONCURRENCY, urls\.length\)/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.doesNotMatch(serviceWorker, /cache\.addAll/);
 assert.doesNotMatch(serviceWorker, /assets\/vocabulary-review\//);
+assert.doesNotMatch(serviceWorker, /assets\/student-home\//);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
 assert.match(serviceWorker, /grammar-challenge\/practices\/courseware-daily\.html/);
 assert.match(serviceWorker, /staleWhileRevalidate/);
