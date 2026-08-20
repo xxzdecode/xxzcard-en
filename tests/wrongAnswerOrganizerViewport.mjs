@@ -18,6 +18,19 @@ const realDailyMap = JSON.parse(fs.readFileSync(path.join(
   'fixtures',
   'daily-2026-08-06-brother-sentence-parts-01-question-map.json'
 ), 'utf8'));
+realDailyMap.map_revision = 2;
+realDailyMap.map_hash = `sha256:${'c'.repeat(64)}`;
+realDailyMap.display_name = '26/08/06_Crystal_Gavin日测1';
+realDailyMap.papers[0].display_name = '26/08/06_Gavin日测1';
+realDailyMap.papers[0].map_revision = 1;
+realDailyMap.papers[0].map_hash = 'sha256:19c6715e294085fb347ef49ac93092617ec9a7e65eda2e73eb0a338ddc04094c';
+const sisterDailyPaper = structuredClone(realDailyMap.papers[0]);
+sisterDailyPaper.paper_id = 'paper-daily-2026-08-06-brother-sentence-parts-01-sister';
+sisterDailyPaper.student_id = 'sister';
+sisterDailyPaper.student_name = 'Crystal';
+sisterDailyPaper.display_name = '26/08/06_Crystal日测1';
+sisterDailyPaper.map_hash = `sha256:${'d'.repeat(64)}`;
+realDailyMap.papers.unshift(sisterDailyPaper);
 
 const catalog = {
   schema_version: 1,
@@ -161,6 +174,10 @@ try {
   await page.waitForSelector('#screenWrongAnswerDetail.active');
   assert.equal(await page.locator('.wrong-answer-section').count(), 3);
   assert.deepEqual(await page.locator('.wrong-answer-section').evaluateAll(nodes => nodes.map(node => node.open)), [true, true, true]);
+  assert.deepEqual(
+    await page.locator('.wrong-answer-question span').allTextContents(),
+    Array.from({ length: 10 }, (_, index) => `第 ${index + 1} 题`)
+  );
   const detailText = await page.locator('#screenWrongAnswerDetail').innerText();
   assert.doesNotMatch(detailText, /\d+\s*分|%|百分比/);
   await page.locator('input[value="daily-2026-08-06-brother-sentence-parts-01.s1.q2"]').check();
@@ -217,6 +234,10 @@ try {
     await page.locator('[data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"] small').textContent(),
     '练习范围：句子骨架：主语、谓语、宾语'
   );
+  assert.equal(
+    await page.locator('[data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-sister"]').count(),
+    1
+  );
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: path.join(resultDir, 'directory-1180x820.png'), fullPage: false });
 
@@ -239,6 +260,7 @@ try {
   await phonePage.waitForFunction(() => document.body.classList.contains('is-teacher'));
   await phonePage.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
   await phonePage.waitForSelector('#screenWrongAnswerDirectory.active');
+  await phonePage.waitForSelector('.wrong-answer-weakness-donut__segment');
   assert.equal(await phonePage.locator('.wrong-answer-roadmap-card').count(), 1);
   assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   assert.deepEqual(
