@@ -80,7 +80,8 @@ assert.match(wrapper, /page-practice-shell\.js/);
 
 const auth = fs.readFileSync(path.join(root, 'js/auth.js'), 'utf8');
 assert.match(auth, /dailyLearningRouteOverride\.js/);
-assert.match(auth, /document\.write/);
+assert.doesNotMatch(auth, /document\.write\(/);
+assert.match(auth, /addEventListener\('DOMContentLoaded', appendOverride/);
 
 const grammarChallenges = fs.readFileSync(path.join(root, 'js/grammarChallenges.js'), 'utf8');
 assert.match(grammarChallenges, /openManualGrammarChallenge/);

@@ -4,22 +4,26 @@ const SB_URL = 'https://pnwxpuwsoprfehdvnlik.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBud3hwdXdzb3ByZmVoZHZubGlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTE5MjIsImV4cCI6MjA5NjgyNzkyMn0.aDdixCpy7l4NR3zK-WyOCvBmFLmZ7pbP8Pg4w8WYClg';
 const SB_HEADERS = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
 
-// Load the runtime guard before the remaining parser scripts. This keeps the
-// lazy-entry loading UI, reward-state guard and vocabulary cue fallback active
-// even when a device is upgrading from an older service-worker cache.
+// Load optional runtime guards after the core parser scripts. Each guard keeps
+// retrying until its target exists, so parser-blocking document.write calls are
+// unnecessary and especially expensive on WebKit cold starts.
 (function loadRuntimeStabilityPatch(documentRef) {
-  if (!documentRef || documentRef.querySelector('script[data-runtime-stability-patch]')) return;
+  if (!documentRef) return;
   const source = 'js/runtimeStabilityPatch.js';
-  if (documentRef.readyState === 'loading' && typeof documentRef.write === 'function') {
-    documentRef.write(`<script src="${source}" data-runtime-stability-patch><\/script>`);
+  const appendPatch = () => {
+    if (documentRef.querySelector('script[data-runtime-stability-patch]')) return;
+    const script = documentRef.createElement('script');
+    script.src = source;
+    script.async = true;
+    script.dataset.runtimeStabilityPatch = 'true';
+    script.onerror = () => console.warn('runtime stability patch unavailable');
+    documentRef.head.appendChild(script);
+  };
+  if (documentRef.readyState === 'loading') {
+    documentRef.addEventListener('DOMContentLoaded', appendPatch, { once: true });
     return;
   }
-  const script = documentRef.createElement('script');
-  script.src = source;
-  script.async = false;
-  script.dataset.runtimeStabilityPatch = 'true';
-  script.onerror = () => console.warn('runtime stability patch unavailable');
-  documentRef.head.appendChild(script);
+  appendPatch();
 })(typeof document !== 'undefined' ? document : null);
 
 // ══════════════════════════════════════

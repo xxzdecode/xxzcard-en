@@ -134,13 +134,18 @@ function resetStudentRuntimeView() {
 (function loadDailyLearningRouteOverrideScript() {
   if (typeof document === 'undefined') return;
   const source = 'js/dailyLearningRouteOverride.js';
-  if (document.querySelector('script[data-daily-route-override]')) return;
+  const appendOverride = () => {
+    if (document.querySelector('script[data-daily-route-override]')) return;
+    const script = document.createElement('script');
+    script.src = source;
+    script.async = true;
+    script.dataset.dailyRouteOverride = 'true';
+    script.onerror = () => console.warn('daily learning route override unavailable');
+    document.head.appendChild(script);
+  };
   if (document.readyState === 'loading') {
-    document.write(`<script src="${source}" data-daily-route-override><\/script>`);
+    document.addEventListener('DOMContentLoaded', appendOverride, { once: true });
     return;
   }
-  const script = document.createElement('script');
-  script.src = source;
-  script.dataset.dailyRouteOverride = 'true';
-  document.head.appendChild(script);
+  appendOverride();
 })();

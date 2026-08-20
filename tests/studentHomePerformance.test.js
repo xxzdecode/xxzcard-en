@@ -4,6 +4,8 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const config = fs.readFileSync(path.join(root, 'js', 'config.js'), 'utf8');
+const auth = fs.readFileSync(path.join(root, 'js', 'auth.js'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-student-home-dashboard.css'), 'utf8');
 const navStyles = fs.readFileSync(path.join(root, 'styles-home-nav.css'), 'utf8');
 const adventureStyles = fs.readFileSync(path.join(root, 'styles-vocabulary-adventure-v2.css'), 'utf8');
@@ -16,6 +18,7 @@ const dailyRoute = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'
 const wordCardPerformance = fs.readFileSync(path.join(root, 'js', 'wordCardPerformance.js'), 'utf8');
 const wordCardStudySafety = fs.readFileSync(path.join(root, 'js', 'wordCardStudySafety.js'), 'utf8');
 const runtimeHomeStability = fs.readFileSync(path.join(root, 'js', 'runtimeHomeStability.js'), 'utf8');
+const runtimeStabilityPatch = fs.readFileSync(path.join(root, 'js', 'runtimeStabilityPatch.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const diagnostics = fs.readFileSync(path.join(root, 'device-diagnostics.html'), 'utf8');
 const appShellBody = serviceWorker.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1];
@@ -93,8 +96,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v81/);
-assert.match(serviceWorker, /xxzcard-runtime-v81/);
+assert.match(serviceWorker, /xxzcard-app-shell-v82/);
+assert.match(serviceWorker, /xxzcard-runtime-v82/);
 assert.ok(appShellEntries.length <= 50, `Apple-safe install shell grew to ${appShellEntries.length} resources`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
@@ -102,6 +105,11 @@ assert.ok(
   'daily route helper should start before optional startup enhancements'
 );
 assert.match(main, /__dailyLearningRoutePrefetchPromise = fetch/);
+assert.doesNotMatch(config, /documentRef\.write\(|document\.write\(/);
+assert.match(config, /addEventListener\('DOMContentLoaded', appendPatch, \{ once: true \}\)/);
+assert.doesNotMatch(auth, /document\.write\(/);
+assert.match(auth, /addEventListener\('DOMContentLoaded', appendOverride, \{ once: true \}\)/);
+assert.doesNotMatch(runtimeStabilityPatch, /documentRef\.write\(|document\.write\(/);
 assert.doesNotMatch(main, /teacherToolsWarmup|loadFeatureGroup\('teacherTools'\)/);
 assert.match(lazy, /teacherTools:[\s\S]*?'js\/wordCardPerformance\.js'[\s\S]*?'js\/wordCardStudySafety\.js'/);
 assert.match(main, /loadFeatureScript\('js\/masterVocabularyLibrary\.js'\)/);
