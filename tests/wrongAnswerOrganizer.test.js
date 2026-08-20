@@ -240,9 +240,39 @@ assert.equal(realDailyCatalog.papers[0].totalQuestions, 10);
 assert.equal(realDailyCatalog.papers[0].mapRevision, '1');
 assert.equal(realDailyCatalog.papers[0].mapHash, 'sha256:19c6715e294085fb347ef49ac93092617ec9a7e65eda2e73eb0a338ddc04094c');
 assert.deepEqual(
+  realDailyCatalog.papers[0].sections.flatMap(section => section.items).map(item => api.itemDisplayLabel(realDailyCatalog.papers[0], item)),
+  Array.from({ length: 10 }, (_, index) => `第 ${index + 1} 题`)
+);
+assert.deepEqual(
   [...new Set(realDailyCatalog.papers[0].sections.flatMap(section => section.items.flatMap(item => item.kpIds)))],
   ['sentence-parts']
 );
+
+const dualDailyMap = structuredClone(realDailyMap);
+dualDailyMap.map_revision = 2;
+dualDailyMap.map_hash = `sha256:${'c'.repeat(64)}`;
+dualDailyMap.papers[0].map_revision = 1;
+dualDailyMap.papers[0].map_hash = realDailyMap.map_hash;
+const dualSisterPaper = structuredClone(dualDailyMap.papers[0]);
+dualSisterPaper.paper_id = 'paper-daily-2026-08-06-brother-sentence-parts-01-sister';
+dualSisterPaper.student_id = 'sister';
+dualSisterPaper.map_hash = `sha256:${'d'.repeat(64)}`;
+dualDailyMap.papers.unshift(dualSisterPaper);
+const dualDailyCatalog = api.normalizeCatalog(dualDailyMap);
+const preservedBrother = dualDailyCatalog.papers.find(paper => paper.studentId === 'brother');
+const oldBrotherRecord = api.createGradingRecord(
+  realDailyCatalog.papers[0],
+  [realDailyCatalog.papers[0].sections[0].items[0].questionId],
+  '2026-08-20T00:00:00.000Z'
+);
+const preservedState = api.recordForPaper({
+  schema_version: 1,
+  student_id: 'brother',
+  records: { [preservedBrother.paperId]: oldBrotherRecord }
+}, preservedBrother);
+assert.equal(preservedState.stale, false);
+assert.deepEqual(preservedState.record.wrongQuestionIds, [realDailyCatalog.papers[0].sections[0].items[0].questionId]);
+assert.equal(api.itemDisplayLabel(catalog.papers[1], catalog.papers[1].sections[0].items[0]), '第 1 小问');
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'styles-wrong-answer-organizer.css'), 'utf8');

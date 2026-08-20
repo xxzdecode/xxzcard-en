@@ -92,8 +92,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v79/);
-assert.match(serviceWorker, /xxzcard-runtime-v79/);
+assert.match(serviceWorker, /xxzcard-app-shell-v80/);
+assert.match(serviceWorker, /xxzcard-runtime-v80/);
 assert.ok(appShellEntries.length <= 50, `Apple-safe install shell grew to ${appShellEntries.length} resources`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(

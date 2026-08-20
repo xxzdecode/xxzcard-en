@@ -94,6 +94,31 @@ test('pro maps publish each named student paper without daily limits', () => {
   assert.equal(map.papers[1].sections[0].items.length, 6);
 });
 
+test('dual daily maps publish sister and brother with independent fingerprints', () => {
+  const dual = structuredClone(fixture);
+  dual.map_revision = 2;
+  dual.map_hash = `sha256:${'c'.repeat(64)}`;
+  dual.display_name = '26/08/06_Crystal_Gavin日测1';
+  dual.papers[0].map_revision = 1;
+  dual.papers[0].map_hash = fixture.map_hash;
+  const sister = structuredClone(dual.papers[0]);
+  sister.paper_id = 'paper-daily-2026-08-06-brother-sentence-parts-01-sister';
+  sister.student_id = 'sister';
+  sister.student_name = 'Crystal';
+  sister.display_name = '26/08/06_Crystal日测1';
+  sister.map_hash = `sha256:${'d'.repeat(64)}`;
+  dual.papers.unshift(sister);
+
+  const map = sanitizeQuestionMap(dual);
+  assert.deepEqual(map.papers.map(paper => paper.student_id), ['sister', 'brother']);
+  assert.equal(map.papers[1].map_revision, '1');
+  assert.equal(map.papers[1].map_hash, fixture.map_hash);
+
+  const missingFingerprint = structuredClone(dual);
+  delete missingFingerprint.papers[0].map_hash;
+  assert.throws(() => sanitizeQuestionMap(missingFingerprint), /map_revision 与 map_hash 必须同时提供/);
+});
+
 test('unknown assessment types remain rejected', () => {
   const unknown = structuredClone(fixture);
   unknown.assessment_type = 'practice';
@@ -117,6 +142,19 @@ test('catalog merge preserves other assessments and refuses silent map replaceme
   const conflict = structuredClone(merged.catalog);
   conflict.assessments[1].map_hash = 'sha256:different';
   assert.throws(() => mergeAssessmentCatalog(conflict, map), /map_hash 不同/);
+  assert.throws(
+    () => mergeAssessmentCatalog(conflict, map, new Date(), {
+      replaceExisting: true,
+      expectedExistingHash: 'sha256:not-the-current-hash'
+    }),
+    /旧 map_hash 与预期不一致/
+  );
+  const replaced = mergeAssessmentCatalog(conflict, map, new Date('2026-08-06T01:00:00.000Z'), {
+    replaceExisting: true,
+    expectedExistingHash: 'sha256:different'
+  });
+  assert.equal(replaced.changed, true);
+  assert.equal(replaced.catalog.assessments[1].map_hash, map.map_hash);
 });
 
 test('republishing an older map preserves the latest paper pointer and is idempotent', () => {

@@ -98,6 +98,8 @@
     if (!mapRevision || !mapHash || !sections.length || sections.some(section => !section)) return null;
     const allQuestionIds = sections.flatMap(section => section.items.map(item => item.questionId));
     if (new Set(allQuestionIds).size !== allQuestionIds.length) return null;
+    let ordinal = 0;
+    sections.forEach(section => section.items.forEach(item => { item.ordinal = ++ordinal; }));
     return {
       assessmentId,
       paperId,
@@ -279,6 +281,12 @@
     return record
       ? `错 ${record.wrongQuestionIds.length} / ${paper.totalQuestions} 小问`
       : `待批改 · 共 ${paper.totalQuestions} 小问`;
+  }
+
+  function itemDisplayLabel(paper, item) {
+    return paper && paper.assessmentType === 'daily' && Number(item && item.ordinal) > 0
+      ? `第 ${item.ordinal} 题`
+      : text(item && item.displayLabel);
   }
 
   function normalizeWeaknessItem(value) {
@@ -609,7 +617,7 @@
       if (message != null) setText('wrongAnswerSaveStatus', message);
     }
 
-    function createQuestionItem(item, selected) {
+    function createQuestionItem(paper, item, selected) {
       const label = doc.createElement('label');
       label.className = 'wrong-answer-question';
       const input = doc.createElement('input');
@@ -618,7 +626,7 @@
       input.checked = selected.has(item.questionId);
       input.addEventListener('change', () => updateSelectionStatus('选择已更改，尚未保存'));
       const copy = doc.createElement('span');
-      copy.textContent = item.displayLabel;
+      copy.textContent = itemDisplayLabel(paper, item);
       label.append(input, copy);
       return label;
     }
@@ -645,7 +653,7 @@
           summary.textContent = `${section.displayLabel}（${section.items.length} 小问）`;
           const grid = doc.createElement('div');
           grid.className = 'wrong-answer-question-grid';
-          section.items.forEach(item => grid.append(createQuestionItem(item, selected)));
+          section.items.forEach(item => grid.append(createQuestionItem(paper, item, selected)));
           details.append(summary, grid);
           sections.append(details);
         });
@@ -851,6 +859,7 @@
     sortedPapers,
     latestPaper,
     paperProgressLabel,
+    itemDisplayLabel,
     normalizeWeaknessView,
     weaknessDonutSegments,
     install

@@ -73,7 +73,7 @@ export function sanitizeQuestionMap(input) {
   if (!/^20\d{2}-\d{2}-\d{2}$/.test(assessmentDate)) fail('INVALID_QUESTION_MAP', 'assessment_date 必须是 YYYY-MM-DD');
   if (!/^sha256:[0-9a-f]{64}$/i.test(mapHash)) fail('INVALID_QUESTION_MAP', 'map_hash 必须是完整 sha256');
   if (!Array.isArray(input.papers) || !input.papers.length) fail('INVALID_QUESTION_MAP', 'papers 必须是非空数组');
-  if (assessmentType === 'daily' && input.papers.length !== 1) fail('INVALID_QUESTION_MAP', '日测必须只包含一张学生卷');
+  if (assessmentType === 'daily' && input.papers.length > 2) fail('INVALID_QUESTION_MAP', '日测最多包含姐姐、弟弟各一张学生卷');
 
   const paperIds = new Set();
   const papers = input.papers.map((paper, paperIndex) => {
@@ -109,13 +109,33 @@ export function sanitizeQuestionMap(input) {
       return { section_id: sectionId, display_label: displayLabel, items };
     });
     if (assessmentType === 'daily' && questionIds.size < 10) fail('INVALID_QUESTION_MAP', `${paperId} 的日测小题数少于 10`);
+    const paperMapRevision = optionalText(paper.map_revision);
+    const paperMapHash = optionalText(paper.map_hash);
+    if (Boolean(paperMapRevision) !== Boolean(paperMapHash)) {
+      fail('INVALID_QUESTION_MAP', `${paperId} 的 map_revision 与 map_hash 必须同时提供`);
+    }
+    if (paperMapHash && !/^sha256:[0-9a-f]{64}$/i.test(paperMapHash)) {
+      fail('INVALID_QUESTION_MAP', `${paperId}.map_hash 必须是完整 sha256`);
+    }
     const normalizedPaper = { paper_id: paperId, student_id: studentId, sections };
+    optionalField(normalizedPaper, 'map_revision', paperMapRevision);
+    optionalField(normalizedPaper, 'map_hash', paperMapHash);
     optionalField(normalizedPaper, 'student_name', paper.student_name);
     optionalField(normalizedPaper, 'student_file', paper.student_file);
     optionalField(normalizedPaper, 'display_name', paper.display_name);
     optionalField(normalizedPaper, 'scope_label', paper.scope_label);
     return normalizedPaper;
   });
+
+  if (assessmentType === 'daily' && papers.length === 2) {
+    const students = papers.map(paper => paper.student_id).sort();
+    if (JSON.stringify(students) !== JSON.stringify(['brother', 'sister'])) {
+      fail('INVALID_QUESTION_MAP', '双人日测必须包含 sister 与 brother 各一张卷');
+    }
+    if (papers.some(paper => !paper.map_revision || !paper.map_hash)) {
+      fail('INVALID_QUESTION_MAP', '双人日测必须为每张学生卷提供独立 map_revision / map_hash');
+    }
+  }
 
   const result = {
     schema_version: Number(input.schema_version) || 1,
@@ -137,16 +157,26 @@ function catalogValue(value) {
   return value;
 }
 
-export function mergeAssessmentCatalog(currentValue, questionMap, now = new Date()) {
+export function mergeAssessmentCatalog(currentValue, questionMap, now = new Date(), options = {}) {
   const current = catalogValue(currentValue);
   const existingIndex = current.assessments.findIndex(item => item && item.assessment_id === questionMap.assessment_id);
   if (existingIndex >= 0) {
     const existingHash = optionalText(current.assessments[existingIndex].map_hash);
     if (!existingHash || existingHash !== questionMap.map_hash) {
-      fail('MAP_CONFLICT', `assessment_id 已存在但 map_hash 不同：${questionMap.assessment_id}`, {
-        existingHash,
-        incomingHash: questionMap.map_hash
-      });
+      const expectedExistingHash = optionalText(options.expectedExistingHash);
+      if (!options.replaceExisting) {
+        fail('MAP_CONFLICT', `assessment_id 已存在但 map_hash 不同：${questionMap.assessment_id}`, {
+          existingHash,
+          incomingHash: questionMap.map_hash
+        });
+      }
+      if (!expectedExistingHash || expectedExistingHash !== existingHash) {
+        fail('MAP_REPLACE_PRECONDITION', `替换 ${questionMap.assessment_id} 时旧 map_hash 与预期不一致`, {
+          existingHash,
+          expectedExistingHash,
+          incomingHash: questionMap.map_hash
+        });
+      }
     }
   }
   const assessments = [...current.assessments];
@@ -211,9 +241,18 @@ export async function writeAssessmentCatalog(config, catalog, fetchImpl = fetch)
   if (!response.ok) fail('SUPABASE_WRITE_ERROR', `写入 ${CATALOG_KEY} 失败：HTTP ${response.status}`, body);
 }
 
-export async function publishQuestionMap({ questionMap, config, apply = false, now = new Date(), fetchImpl = fetch }) {
+export async function publishQuestionMap({
+  questionMap,
+  config,
+  apply = false,
+  replaceExisting = false,
+  expectedExistingHash = '',
+  now = new Date(),
+  fetchImpl = fetch
+}) {
   const initial = await fetchAssessmentCatalog(config, fetchImpl);
-  const planned = mergeAssessmentCatalog(initial, questionMap, now);
+  const mergeOptions = { replaceExisting, expectedExistingHash };
+  const planned = mergeAssessmentCatalog(initial, questionMap, now, mergeOptions);
   const baseResult = {
     assessment_id: questionMap.assessment_id,
     paper_ids: questionMap.papers.map(paper => paper.paper_id),
@@ -229,7 +268,7 @@ export async function publishQuestionMap({ questionMap, config, apply = false, n
   if (!sameJson(latest, initial)) {
     fail('REMOTE_CHANGED', '预演后远端目录发生变化，已停止写入，请重新执行');
   }
-  const finalPlan = mergeAssessmentCatalog(latest, questionMap, now);
+  const finalPlan = mergeAssessmentCatalog(latest, questionMap, now, mergeOptions);
   await writeAssessmentCatalog(config, finalPlan.catalog, fetchImpl);
   const verified = await fetchAssessmentCatalog(config, fetchImpl);
   if (!sameJson(verified, finalPlan.catalog)) {
@@ -239,12 +278,15 @@ export async function publishQuestionMap({ questionMap, config, apply = false, n
 }
 
 function parseArgs(argv) {
-  const options = { apply: false };
+  const options = { apply: false, replaceExisting: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--apply') options.apply = true;
+    else if (arg === '--replace-existing') options.replaceExisting = true;
     else if (arg === '--help') options.help = true;
-    else if (arg === '--file' || arg === '--result') options[arg.slice(2)] = argv[++index];
+    else if (arg === '--file' || arg === '--result' || arg === '--expected-existing-hash') {
+      options[arg.slice(2).replaceAll('-', '')] = argv[++index];
+    }
     else fail('INVALID_ARGUMENT', `未知参数：${arg}`);
   }
   return options;
@@ -274,12 +316,18 @@ async function readQuestionMap(filePath) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
-    console.log('用法：node scripts/publish-assessment-map.mjs --file <question-map.json> [--apply] [--result <result.json>]');
+    console.log('用法：node scripts/publish-assessment-map.mjs --file <question-map.json> [--apply] [--replace-existing --expected-existing-hash <sha256>] [--result <result.json>]');
     return;
   }
   const questionMap = await readQuestionMap(options.file);
   const config = await loadConfig();
-  const result = await publishQuestionMap({ questionMap, config, apply: options.apply });
+  const result = await publishQuestionMap({
+    questionMap,
+    config,
+    apply: options.apply,
+    replaceExisting: options.replaceExisting,
+    expectedExistingHash: options.expectedexistinghash
+  });
   if (options.result) await writeFile(path.resolve(options.result), `${JSON.stringify(result, null, 2)}\n`, 'utf8');
   console.log(JSON.stringify(result, null, 2));
 }
