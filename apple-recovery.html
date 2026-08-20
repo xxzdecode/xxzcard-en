@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Apple 设备自动恢复</title>
+  <style>
+    :root{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#243747;background:#eef7fb}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}
+    main{width:min(520px,100%);background:#fff;border-radius:20px;padding:24px;box-shadow:0 10px 32px rgba(48,85,108,.15)}
+    h1{margin:0 0 12px;font-size:24px}p{line-height:1.65;margin:8px 0;color:#567080}
+    a{display:inline-flex;min-height:46px;align-items:center;margin-top:12px;padding:0 16px;border-radius:12px;background:#3e87b4;color:#fff;font-weight:800;text-decoration:none}
+  </style>
+</head>
+<body>
+<main>
+  <h1>正在自动恢复网站</h1>
+  <p id="status">正在移除旧缓存和旧离线程序，请保持本页打开。</p>
+  <p>如果稍后没有自动返回，请点下面的链接。</p>
+  <a id="fallback" href="./?apple-recovered=manual">返回单词卡网站</a>
+</main>
+<script>
+(async () => {
+  const status = document.getElementById('status');
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
+    }
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names
+        .filter(name => name.startsWith('xxzcard-') || name.startsWith('vocabulary-review-'))
+        .map(name => caches.delete(name)));
+    }
+    status.textContent = '旧缓存已移除，正在重新打开网站……';
+  } catch (_) {
+    status.textContent = '自动清理未完全完成，正在尝试重新打开网站……';
+  }
+  window.setTimeout(() => {
+    location.replace(`./?apple-recovered=${Date.now()}`);
+  }, 700);
+})();
+</script>
+</body>
+</html>

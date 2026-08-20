@@ -105,7 +105,7 @@ async function openApp(viewport, user = 'sister', options = {}) {
       body: JSON.stringify(typeof value === 'undefined' ? [] : [{ value }])
     });
   });
-  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  await page.goto(baseUrl, { waitUntil: 'commit' });
   await page.waitForSelector('#vocabularyTourHomeEntry:visible');
   return { context, page, errors, state, writes };
 }

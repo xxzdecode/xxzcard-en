@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const currentWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const oldWorker = `
-const CACHE = 'xxzcard-app-shell-v81';
+const CACHE = 'xxzcard-app-shell-v82';
 self.addEventListener('install', event => event.waitUntil(
   caches.open(CACHE).then(cache => cache.add('./index.html')).then(() => self.skipWaiting())
 ));
@@ -88,7 +88,7 @@ async function waitForActiveVersion(page, cacheName) {
           && !registration.installing
           && !registration.waiting
           && keys.includes(expected)
-          && (!/v82$/.test(expected) || !keys.some(key => /v81$/.test(key)))
+          && (!/v83$/.test(expected) || !keys.some(key => /v82$/.test(key)))
       };
     }, cacheName);
     if (latest.ready) return;
@@ -99,32 +99,24 @@ async function waitForActiveVersion(page, cacheName) {
   throw new Error(`service worker ${cacheName} did not activate: ${JSON.stringify({ latest, requestCount: currentRequests.length, uniqueRequests: requested.size, missing })}`);
 }
 
-async function openOfflineGrammar(page, student, viewport) {
+async function openOfflineVocabularyGuide(page, student, viewport) {
   await page.setViewportSize(viewport);
   await page.evaluate(user => {
     if (localStorage.getItem('wc_user') !== user && typeof window.switchUser === 'function') window.switchUser(user);
   }, student);
   await page.waitForFunction(user => localStorage.getItem('wc_user') === user, student);
-  const frameNavigation = page.waitForEvent('framenavigated', {
-    predicate: candidate => candidate !== page.mainFrame() && /grammar-challenge\/(?:index|practices\/courseware-daily)\.html/.test(candidate.url()),
-    timeout: 10000
-  }).catch(() => null);
-  await page.evaluate(() => window.openStudentGrammarChallenge());
-  await page.waitForFunction(() => document.getElementById('screenGrammarChallengePlayer')?.classList.contains('active'));
-  const frame = await frameNavigation || page.frames().find(candidate => (
-    /grammar-challenge\/(?:index|practices\/courseware-daily)\.html/.test(candidate.url())
-  ));
-  assert.ok(frame, `${student} grammar frame opened: ${page.frames().map(candidate => candidate.url()).join(', ')}`);
-  await frame.waitForFunction(() => Boolean(window.__LESSON_PREP_QA__?.state?.()), null, { timeout: 10000 });
-  const layout = await frame.evaluate(() => ({
+  await page.locator('#vocabularyTourHomeEntry').click();
+  await page.waitForSelector('#screenVocabularyReviewList.active #vocabularyLessonBookList');
+  const layout = await page.evaluate(() => ({
     width: innerWidth,
     height: innerHeight,
     horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
   }));
   assert.equal(layout.width, viewport.width);
-  assert.ok(layout.height > 0 && layout.height <= viewport.height);
+  assert.equal(layout.height, viewport.height);
   assert.equal(layout.horizontalOverflow, false);
-  await page.evaluate(() => window.closeGrammarChallenge());
+  await page.locator('#screenVocabularyReviewList .back-btn').click();
+  await page.waitForSelector('#screenHome.active');
 }
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -140,33 +132,32 @@ const page = await context.newPage();
 try {
   await page.goto(`${baseUrl}/sw-harness.html`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => navigator.serviceWorker.register('./service-worker.js'));
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v81');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v82');
 
   serveCurrentWorker = true;
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v82');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v83');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v82');
+    const shell = await caches.open('xxzcard-app-shell-v83');
     const urls = (await shell.keys()).map(request => decodeURIComponent(new URL(request.url).pathname));
     return { keys, urls };
   });
   assert.ok(
-    !cacheState.keys.some(key => /v81$/.test(key)),
-    `v81 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
+    !cacheState.keys.some(key => /v82$/.test(key)),
+    `v82 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
   );
   assert.ok(cacheState.urls.some(url => /index\.html$/.test(url)));
   assert.ok(cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
-  assert.ok(cacheState.urls.some(url => /grammar-challenge\/practices\/courseware-daily\.html$/.test(url)));
-  assert.ok(cacheState.urls.some(url => url.endsWith('/courseware/26.08.04｜时间介词 in-on-at 随堂练习.html')));
-  assert.ok(cacheState.urls.some(url => url.endsWith('/courseware/26.08.06｜地点介词“上与下”随堂练习.html')));
-  assert.ok(!cacheState.urls.some(url => /grammar-challenge\/practices\/2026-08-22\.html$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /vocabularyReview\.js$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /styles-vocabulary-lesson\.css$/.test(url)));
+  assert.ok(!cacheState.urls.some(url => /grammar-challenge\//.test(url)));
   assert.ok(!cacheState.urls.some(url => /assets\/student-home\//.test(url)));
-  assert.ok(cacheState.urls.some(url => /studentActivityControls\.js$/.test(url)));
+  assert.ok(!cacheState.urls.some(url => /studentActivityControls\.js$/.test(url)));
 
   const route = JSON.parse(fs.readFileSync(path.join(root, 'data', 'daily-learning-route.json'), 'utf8'));
   await page.evaluate(value => {
@@ -188,25 +179,14 @@ try {
 
   originAvailable = false;
   await context.route('https://**/*', route => route.abort());
-  await page.goto(`${baseUrl}/?cold=v82`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/?cold=v83`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.getDailyLearningRoute?.()?.grammarChallenge));
-  await page.waitForFunction(() => (
-    window.openStudentGrammarChallenge?.__dailyRouteAssignmentWrapped === true
-      && window.openStudentGrammarChallenge.__dailyRouteAssignmentOriginal?.name === 'openGrammarWithAdjustedAttempts'
-      && window.openStudentGrammarChallengeBase?.name === 'openStudentGrammarChallenge'
-  ), null, { timeout: 10000 });
-  const grammarEntryLayers = await page.evaluate(() => ({
-    assignment: window.openStudentGrammarChallenge.__dailyRouteAssignmentWrapped === true,
-    attemptGate: window.openStudentGrammarChallenge.__dailyRouteAssignmentOriginal?.name === 'openGrammarWithAdjustedAttempts',
-    base: window.openStudentGrammarChallengeBase?.name === 'openStudentGrammarChallenge'
-  }));
-  assert.deepEqual(grammarEntryLayers, { assignment: true, attemptGate: true, base: true });
-  await openOfflineGrammar(page, 'sister', { width: 1180, height: 820 });
-  await openOfflineGrammar(page, 'brother', { width: 393, height: 852 });
+  await openOfflineVocabularyGuide(page, 'sister', { width: 1180, height: 820 });
+  await openOfflineVocabularyGuide(page, 'brother', { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v82', 'xxzcard-runtime-v82']);
-  console.log(`student runtime v81-to-v82 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v83', 'xxzcard-runtime-v83']);
+  console.log(`student runtime v82-to-v83 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
 } finally {
   originAvailable = true;
   await context.close();

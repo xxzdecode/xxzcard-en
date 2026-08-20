@@ -266,7 +266,7 @@ for (const date of ['2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21', '202
   assert.doesNotMatch(serviceWorkerSource, new RegExp(`practices/${date}\\.html`));
 }
 assert.match(mainSource, /studentActivityControls\.js'[\s\S]*grammarChallengeRecords\.js'/);
-assert.match(serviceWorkerSource, /\.\/js\/grammarChallengeRecords\.js/);
+assert.doesNotMatch(serviceWorkerSource, /\.\/js\/grammarChallengeRecords\.js/);
 
 // Existing attempt controls and teacher adjustment code must remain present.
 assert.match(controlsSource, /grammarChallenge: Object\.freeze\(\{ label: '语法挑战', baseAttempts: 1/);

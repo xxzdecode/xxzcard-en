@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v82';
-const RUNTIME_CACHE = 'xxzcard-runtime-v82';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v83';
+const RUNTIME_CACHE = 'xxzcard-runtime-v83';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL_FETCH_CONCURRENCY = 3;
 const APP_SHELL = [
@@ -8,12 +8,8 @@ const APP_SHELL = [
   './styles-vocabulary-adventure.css',
   './styles-home-nav.css',
   './styles-student-home-dashboard.css',
-  './styles-wrong-answer-organizer.css',
+  './styles-vocabulary-lesson.css',
   './js/config.js',
-  './js/runtimeStabilityPatch.js',
-  './js/runtimeFeatureLoading.js',
-  './js/runtimeHomeStability.js',
-  './js/runtimeVocabularyUx.js',
   './js/state.js',
   './js/masterVocabularyLibrary.js',
   './js/repository.js',
@@ -21,8 +17,6 @@ const APP_SHELL = [
   './js/auth.js',
   './js/home.js',
   './js/lazyFeatures.js',
-  './js/courseware-data.js',
-  './js/courseware.js',
   './js/main.js',
   './js/storageResilience.js',
   './js/vocabularyReviewData.js',
@@ -30,29 +24,7 @@ const APP_SHELL = [
   './js/vocabularyLesson016.js',
   './js/vocabularyLessonCategories.js',
   './js/dailyLearningRoute.js',
-  './js/dailyLearningRouteOverride.js',
-  './data/daily-learning-route.json',
-  './grammar-challenge/css/challenge.css',
-  './grammar-challenge/css/page-practice.css',
-  './grammar-challenge/js/challenge-shell.js',
-  './grammar-challenge/js/page-practice-core.js',
-  './grammar-challenge/js/page-practice-shell.js',
-  './grammar-challenge/practices/courseware-daily.html',
-  './courseware/26.08.04｜时间介词 in-on-at 随堂练习.html',
-  './courseware/26.08.06｜地点介词“上与下”随堂练习.html',
-  './js/dictionary.js',
-  './js/wordCardPerformance.js',
-  './js/wordCardStudySafety.js',
-  './js/studentRewards.js',
-  './js/studentActivityControls.js',
-  './js/studentActivityControlsCompactUI.js',
-  './js/grammarChallenges.js',
-  './js/grammarChallengeRecords.js',
-  './grammar-challenge/data/catalog.js',
-  './js/wrongAnswerOrganizer.js',
-  './js/studentRewardLayoutGuard.js',
-  './js/studentRewardReconcile.js',
-  './js/studentVocabularyRewardSettlement.js'
+  './data/daily-learning-route.json'
 ];
 
 async function installAppShellAtomically(urls) {

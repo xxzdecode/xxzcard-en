@@ -21,6 +21,7 @@ const runtimeHomeStability = fs.readFileSync(path.join(root, 'js', 'runtimeHomeS
 const runtimeStabilityPatch = fs.readFileSync(path.join(root, 'js', 'runtimeStabilityPatch.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const diagnostics = fs.readFileSync(path.join(root, 'device-diagnostics.html'), 'utf8');
+const appleRecovery = fs.readFileSync(path.join(root, 'apple-recovery.html'), 'utf8');
 const appShellBody = serviceWorker.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1];
 const appShellEntries = [...appShellBody.matchAll(/'([^']+)'/g)].map(match => match[1]);
 
@@ -96,9 +97,9 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v82/);
-assert.match(serviceWorker, /xxzcard-runtime-v82/);
-assert.ok(appShellEntries.length <= 50, `Apple-safe install shell grew to ${appShellEntries.length} resources`);
+assert.match(serviceWorker, /xxzcard-app-shell-v83/);
+assert.match(serviceWorker, /xxzcard-runtime-v83/);
+assert.ok(appShellEntries.length <= 22, `Apple-safe install shell grew to ${appShellEntries.length} resources`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -147,9 +148,9 @@ assert.doesNotMatch(wordCardPerformance, /Promise\.all\(batches/);
 assert.match(wordCardStudySafety, /currentUserRec = await loadUserBatch\(currentBatchId\)/);
 assert.match(wordCardStudySafety, /window\.startStudy/);
 assert.match(serviceWorker, /js\/dailyLearningRoute\.js/);
-assert.match(serviceWorker, /js\/wordCardPerformance\.js/);
-assert.match(serviceWorker, /js\/wordCardStudySafety\.js/);
-assert.match(serviceWorker, /js\/dictionary\.js/);
+assert.doesNotMatch(serviceWorker, /js\/wordCardPerformance\.js/);
+assert.doesNotMatch(serviceWorker, /js\/wordCardStudySafety\.js/);
+assert.doesNotMatch(serviceWorker, /js\/dictionary\.js/);
 assert.doesNotMatch(serviceWorker, /js\/vocabularyAdventurePlayer\.js/);
 assert.doesNotMatch(serviceWorker, /js\/vocabularyAdventureChallenge\.js/);
 assert.doesNotMatch(serviceWorker, /js\/vocabularyQuestionTypesRepeatBootstrap\.js/);
@@ -157,12 +158,12 @@ assert.doesNotMatch(serviceWorker, /js\/vocabularyPracticeUI\.js/);
 assert.match(serviceWorker, /dailyRouteNetworkOnly/);
 assert.match(serviceWorker, /daily-learning-route\.json/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
-assert.match(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
-assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
+assert.doesNotMatch(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
+assert.doesNotMatch(serviceWorker, /js\/studentRewardReconcile\.js/);
 assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js', \{ updateViaCache: 'none' \}\)/);
 assert.match(main, /registration\.update\(\)/);
-assert.doesNotMatch(main, /window\.setTimeout\(\(\) => \{\s*navigator\.serviceWorker\.register/);
-assert.doesNotMatch(main, /addEventListener\('load'[\s\S]*?serviceWorker\.register/);
+assert.match(main, /addEventListener\('load', registerServiceWorkerWhenReady, \{ once: true \}\)/);
+assert.match(main, /requestIdleCallback\(register, \{ timeout: 1500 \}\)/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.doesNotMatch(serviceWorker, /response\.arrayBuffer\(\)/);
 assert.match(serviceWorker, /cache\.put\(url, response\)/);
@@ -173,7 +174,7 @@ assert.doesNotMatch(serviceWorker, /cache\.addAll/);
 assert.doesNotMatch(serviceWorker, /assets\/vocabulary-review\//);
 assert.doesNotMatch(serviceWorker, /assets\/student-home\//);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
-assert.match(serviceWorker, /grammar-challenge\/practices\/courseware-daily\.html/);
+assert.doesNotMatch(serviceWorker, /grammar-challenge\/practices\/courseware-daily\.html/);
 assert.match(serviceWorker, /staleWhileRevalidate/);
 assert.match(serviceWorker, /cachedNavigation/);
 assert.match(serviceWorker, /refreshStaticAsset/);
@@ -188,6 +189,10 @@ assert.match(diagnostics, /navigator\.serviceWorker\.getRegistration/);
 assert.match(diagnostics, /vocabularyLesson016\.js/);
 assert.match(diagnostics, /cloudProbe/);
 assert.doesNotMatch(diagnostics, /localStorage|document\.cookie/);
+assert.match(appleRecovery, /navigator\.serviceWorker\.getRegistrations/);
+assert.match(appleRecovery, /caches\.delete/);
+assert.match(appleRecovery, /location\.replace/);
+assert.doesNotMatch(appleRecovery, /localStorage|document\.cookie/);
 
 for (const [name, maxBytes] of [
   ['home-background.webp', 180000],

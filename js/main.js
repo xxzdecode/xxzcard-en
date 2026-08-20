@@ -434,7 +434,16 @@
 })();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
-    .then(registration => registration.update().catch(() => {}))
-    .catch(() => {});
+  const registerServiceWorkerWhenReady = () => {
+    const register = () => navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
+      .then(registration => registration.update().catch(() => {}))
+      .catch(() => {});
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(register, { timeout: 1500 });
+    } else {
+      window.setTimeout(register, 0);
+    }
+  };
+  if (document.readyState === 'complete') registerServiceWorkerWhenReady();
+  else window.addEventListener('load', registerServiceWorkerWhenReady, { once: true });
 }

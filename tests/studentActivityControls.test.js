@@ -168,7 +168,7 @@ assert.equal(
 );
 assert.match(source, /root\.ensureTeacherActivityPanel = installTeacherPanel;\s*if \(isTeacherMode\(\)\) installTeacherPanel\(\);/);
 assert.match(serviceWorker, /const APP_SHELL_CACHE = 'xxzcard-app-shell-v\d+'/);
-assert.match(serviceWorker, /\.\/js\/studentActivityControls\.js/);
+assert.doesNotMatch(serviceWorker, /\.\/js\/studentActivityControls\.js/);
 assert.match(source, /id="teacherActivityCustomWrap" hidden/);
 assert.match(source, /id="teacherActivityCustomConfirm">确定/);
 assert.doesNotMatch(source, /root\.prompt|window\.prompt/);

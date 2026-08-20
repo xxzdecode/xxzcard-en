@@ -125,7 +125,7 @@ function createContext(overrides = {}) {
   assert.match(home, /window\.refreshTeacherDashboardSummaries\?\.\(\)/);
   assert.match(main, /root\.refreshTeacherDashboardSummaries\?\.\(\)/);
   assert.doesNotMatch(serviceWorker, /'\.\/js\/teacherDashboardSummaries\.js'/);
-  assert.match(serviceWorker, /'\.\/js\/courseware-data\.js'/);
+  assert.doesNotMatch(serviceWorker, /'\.\/js\/courseware-data\.js'/);
   assert.doesNotMatch(serviceWorker, /'\.\/grammar-library\/data\/topics\.json'/);
   assert.doesNotMatch(serviceWorker, /'\.\/grammar-library\/data\/initial-progress\.json'/);
 
