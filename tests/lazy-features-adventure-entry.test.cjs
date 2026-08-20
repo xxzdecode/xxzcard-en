@@ -303,8 +303,8 @@ test('adventure load failure shows an in-page retry that can recover', async () 
 });
 
 test('service worker precaches the complete adventure runtime', () => {
-  assert.match(serviceWorkerSource, /xxzcard-app-shell-v77/);
-  assert.match(serviceWorkerSource, /xxzcard-runtime-v77/);
+  assert.match(serviceWorkerSource, /xxzcard-app-shell-v78/);
+  assert.match(serviceWorkerSource, /xxzcard-runtime-v78/);
   assert.match(serviceWorkerSource, /\.\/js\/vocabularyAdventurePlayer\.js/);
   assert.match(serviceWorkerSource, /\.\/js\/vocabularyAdventureChallenge\.js/);
   assert.match(serviceWorkerSource, /\.\/js\/vocabularyPracticeUI\.js/);

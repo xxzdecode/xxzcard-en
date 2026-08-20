@@ -99,6 +99,8 @@ assert.doesNotMatch(reviewScript, /sort\(\(\)\s*=>\s*Math\.random\(\)\s*-\s*0\.5
 assert.match(reviewScript, /<strong>随机过词<\/strong>/);
 assert.match(reviewScript, /<strong>难词巩固<\/strong>/);
 assert.doesNotMatch(reviewScript, /已完成\$\{|剩余\$\{|\$\{[^}]*\}\s*\/\s*\$\{/);
+assert.match(reviewScript, /initializeVocabularyReviewSharedState\(\{ silent: true \}\)/);
+assert.match(reviewScript, /renderVocabularyLessonBookSelection\(\);\s*showScreen\('screenVocabularyReviewList'\);\s*Promise\.allSettled/);
 
 assert.match(task016Script, /CIRCLED_BATCH_LABELS\s*=\s*\['①', '②', '③', '④'\]/);
 assert.match(task016Script, /__vocabularyLessonTask016Bootstrapped/);
@@ -126,6 +128,8 @@ assert.match(task016Script, /aria-label', '本批学习进度'/);
 assert.match(task016Script, /aria-hidden="true"/);
 assert.doesNotMatch(task016Script, />\s*\d+\s*\/\s*\d+\s*</);
 assert.doesNotMatch(task016Script, /共\s*\$\{|剩余\s*\$\{|%/);
+assert.match(task016Script, /const progressRefresh = loadRelevantCloudProgress\(\);\s*const result = baseOpenList\(\);/);
+assert.doesNotMatch(task016Script, /openVocabularyReviewListTask016\(\) \{\s*await loadRelevantCloudProgress/);
 
 assert.match(styles, /grid-template-columns:\s*minmax\(0,\s*2fr\)\s+minmax\(260px,\s*1fr\)/);
 assert.match(styles, /grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);

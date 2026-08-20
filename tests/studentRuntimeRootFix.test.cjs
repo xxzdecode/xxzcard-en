@@ -136,13 +136,14 @@ assert.match(overrideSource, /warmPracticeAssets/);
 assert.match(overrideSource, /wrapped\.__dailyRouteAssignmentOriginal\.apply\(this, arguments\)/);
 
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
-assert.match(serviceWorker, /xxzcard-app-shell-v77/);
-assert.match(serviceWorker, /xxzcard-runtime-v77/);
+assert.match(serviceWorker, /xxzcard-app-shell-v78/);
+assert.match(serviceWorker, /xxzcard-runtime-v78/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.match(serviceWorker, /match\(request, \{ ignoreSearch: true \}\)/);
 assert.match(serviceWorker, /response\.arrayBuffer\(\)/);
-assert.match(serviceWorker, /Math\.min\(6, urls\.length\)/);
+assert.match(serviceWorker, /APP_SHELL_FETCH_CONCURRENCY = 2/);
+assert.match(serviceWorker, /Math\.min\(APP_SHELL_FETCH_CONCURRENCY, urls\.length\)/);
 assert.match(serviceWorker, /async function cachedNavigation\(request\)[\s\S]*?matchCurrentGeneration\(request\)/);
 assert.match(serviceWorker, /'\.\/js\/grammarChallenges\.js'/);
 assert.match(serviceWorker, /'\.\/grammar-challenge\/data\/page-practices\/2026-07-31\.js'/);

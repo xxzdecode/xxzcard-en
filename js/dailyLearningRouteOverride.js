@@ -6,6 +6,7 @@
   const OVERRIDE_CACHE_KEY = 'daily_learning_route_override_cache_v1';
   const ASSIGNMENT_CACHE_PREFIX = 'daily_learning_route_assignment_cache_v1_';
   const READ_TIMEOUT_MS = 1800;
+  const OVERRIDE_SYNC_TIMEOUT_MS = 8000;
   const VERIFY_TIMEOUT_MS = 2200;
   const baseFetch = typeof root.fetch === 'function' ? root.fetch.bind(root) : null;
 
@@ -173,6 +174,7 @@
     PREFIX,
     ASSIGNMENT_PREFIX,
     READ_TIMEOUT_MS,
+    OVERRIDE_SYNC_TIMEOUT_MS,
     VERIFY_TIMEOUT_MS,
     mergeRoute,
     mergePinnedRoute,
@@ -211,25 +213,39 @@
     }
   }
 
-  async function readDirect() {
+  async function readDirect(timeoutMs = READ_TIMEOUT_MS) {
     if (typeof SB_URL === 'undefined' || typeof SB_HEADERS === 'undefined') return null;
+    const limit = Math.max(READ_TIMEOUT_MS, Number(timeoutMs) || READ_TIMEOUT_MS);
     const response = await timedFetch(`${SB_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(KEY)}&select=value`, {
       headers: SB_HEADERS,
       cache: 'no-store'
-    }, READ_TIMEOUT_MS, 'override read');
+    }, limit, 'override read');
     if (!response.ok) throw new Error(`override HTTP ${response.status}`);
-    const rows = await withTimeout(response.json(), READ_TIMEOUT_MS, 'override json');
+    const rows = await withTimeout(response.json(), limit, 'override json');
     return rows && rows.length ? rows[0].value : null;
   }
 
   let overrideSyncPromise = null;
+  let routeRefreshTimer = 0;
+
+  function notifyOverrideUpdated() {
+    root.dispatchEvent?.(new CustomEvent('daily-route-override-updated'));
+    if (routeRefreshTimer) root.clearTimeout(routeRefreshTimer);
+    routeRefreshTimer = root.setTimeout(() => {
+      routeRefreshTimer = 0;
+      if (typeof root.loadDailyLearningRoute === 'function') {
+        root.loadDailyLearningRoute({ force: true, reason: 'override-updated' }).catch?.(() => null);
+      }
+    }, 150);
+  }
+
   function refreshOverride() {
     if (overrideSyncPromise) return overrideSyncPromise;
-    overrideSyncPromise = readDirect()
+    overrideSyncPromise = readDirect(OVERRIDE_SYNC_TIMEOUT_MS)
       .then(value => {
         const normalized = normalize(value);
         if (writeCachedOverride(normalized)) {
-          root.dispatchEvent?.(new CustomEvent('daily-route-override-updated'));
+          notifyOverrideUpdated();
         }
         warmPracticeAssets(normalized);
         return { fresh: true, value: normalized };
@@ -250,8 +266,8 @@
     try {
       const automatic = await response.clone().json();
       const cached = readCachedOverride();
-      const refreshed = await refreshOverride();
-      const merged = mergeRoute(automatic, refreshed.fresh ? refreshed.value : cached);
+      const merged = mergeRoute(automatic, cached);
+      refreshOverride();
       return new Response(JSON.stringify(merged), {
         status: response.status,
         headers: { 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }

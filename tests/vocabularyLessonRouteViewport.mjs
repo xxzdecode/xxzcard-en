@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const { chromium } = createRequire(import.meta.url)('playwright');
+const { chromium, webkit } = createRequire(import.meta.url)('playwright');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
@@ -54,9 +54,12 @@ const server = http.createServer((request, response) => {
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ executablePath: edgeExecutable });
+const useWebKit = process.env.PW_BROWSER === 'webkit';
+const browser = useWebKit
+  ? await webkit.launch()
+  : await chromium.launch({ executablePath: edgeExecutable });
 
-async function openApp(viewport, user = 'sister') {
+async function openApp(viewport, user = 'sister', options = {}) {
   const context = await browser.newContext({ viewport, screen: viewport, serviceWorkers: 'block' });
   await context.addInitScript(({ selectedUser, mirror }) => {
     localStorage.setItem('wc_user', selectedUser);
@@ -74,6 +77,9 @@ async function openApp(viewport, user = 'sister') {
     if (message.type() === 'error' && !message.text().includes('Service Worker')) errors.push(message.text());
   });
   await page.route('**/rest/v1/kv_store*', async route => {
+    if (options.kvDelayMs) {
+      await new Promise(resolve => setTimeout(resolve, options.kvDelayMs));
+    }
     const request = route.request();
     if (request.method() === 'POST') {
       const payload = request.postDataJSON();
@@ -234,7 +240,16 @@ try {
   assert.deepEqual(iphone.errors, []);
   await iphone.context.close();
 
-  console.log(`vocabulary lesson route and viewport tests passed: ${outputDir}`);
+  const slowCloud = await openApp({ width: 393, height: 852 }, 'sister', { kvDelayMs: 2500 });
+  const slowCloudStarted = Date.now();
+  await openGuide(slowCloud.page);
+  assert.ok(
+    Date.now() - slowCloudStarted < 1800,
+    'new-word guide must render from local data without waiting for slow cloud progress reads'
+  );
+  await slowCloud.context.close();
+
+  console.log(`vocabulary lesson route and viewport tests passed (${useWebKit ? 'WebKit' : 'Chromium'}): ${outputDir}`);
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

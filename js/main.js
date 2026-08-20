@@ -450,6 +450,8 @@
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    window.setTimeout(() => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    }, 1500);
   }, { once: true });
 }

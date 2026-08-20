@@ -90,8 +90,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v77/);
-assert.match(serviceWorker, /xxzcard-runtime-v77/);
+assert.match(serviceWorker, /xxzcard-app-shell-v78/);
+assert.match(serviceWorker, /xxzcard-runtime-v78/);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -149,9 +149,11 @@ assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.match(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
 assert.match(serviceWorker, /js\/studentRewardReconcile\.js/);
 assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)/);
+assert.match(main, /serviceWorker\.register\('\.\/service-worker\.js'\)[\s\S]*?1500/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.match(serviceWorker, /response\.arrayBuffer\(\)/);
-assert.match(serviceWorker, /Math\.min\(6, urls\.length\)/);
+assert.match(serviceWorker, /APP_SHELL_FETCH_CONCURRENCY = 2/);
+assert.match(serviceWorker, /Math\.min\(APP_SHELL_FETCH_CONCURRENCY, urls\.length\)/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.doesNotMatch(serviceWorker, /cache\.addAll/);
 assert.doesNotMatch(serviceWorker, /assets\/vocabulary-review\//);

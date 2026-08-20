@@ -17,6 +17,11 @@ assert.match(
   /const backgroundWriteConfig = \{[\s\S]*?timeoutMs: 5000,[\s\S]*?maxAttempts: 1,/,
   'background synchronization must use one bounded five-second attempt'
 );
+assert.match(
+  storageSource,
+  /key === 'main' && typeof cloneMainValue === 'function'[\s\S]*?cloneMainValue\(value\)/,
+  'the resilient main-data writer must preserve transient vocabulary-lesson filtering'
+);
 
 function response(status, jsonValue = null, textValue = '') {
   return {

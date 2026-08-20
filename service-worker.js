@@ -1,6 +1,7 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v77';
-const RUNTIME_CACHE = 'xxzcard-runtime-v77';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v78';
+const RUNTIME_CACHE = 'xxzcard-runtime-v78';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
+const APP_SHELL_FETCH_CONCURRENCY = 2;
 const APP_SHELL = [
   './index.html',
   './styles.css',
@@ -143,7 +144,7 @@ async function installAppShellAtomically(urls) {
     }
   }
   await Promise.all(Array.from(
-    { length: Math.min(6, urls.length) },
+    { length: Math.min(APP_SHELL_FETCH_CONCURRENCY, urls.length) },
     () => fetchNext()
   ));
   const cache = await caches.open(APP_SHELL_CACHE);

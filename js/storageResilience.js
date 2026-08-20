@@ -338,6 +338,9 @@
     const mirrorGet = typeof getMirrorValue === 'function' ? getMirrorValue : root.getMirrorValue;
     const localSet = typeof lsSet === 'function' ? lsSet : root.lsSet;
     const mirrorSet = typeof updateMirrorValue === 'function' ? updateMirrorValue : root.updateMirrorValue;
+    const cloneMainValue = typeof cloneMainForStorage === 'function'
+      ? cloneMainForStorage
+      : root.cloneMainForStorage;
     const originalShowStorageError = typeof showStorageError === 'function' ? showStorageError : root.showStorageError;
 
     function setLegacyOnline(value) {
@@ -405,11 +408,17 @@
     };
 
     async function resilientSbSet(key, value) {
-      return resilience.writeKey(writeConfig, key, value);
+      const storedValue = key === 'main' && typeof cloneMainValue === 'function'
+        ? cloneMainValue(value)
+        : value;
+      return resilience.writeKey(writeConfig, key, storedValue);
     }
 
     async function resilientSbSetBackground(key, value) {
-      return resilience.writeKey(backgroundWriteConfig, key, value);
+      const storedValue = key === 'main' && typeof cloneMainValue === 'function'
+        ? cloneMainValue(value)
+        : value;
+      return resilience.writeKey(backgroundWriteConfig, key, storedValue);
     }
 
     async function resilientSbGetRemote(key) {

@@ -18,6 +18,7 @@ const practice = {
 assert.equal(api.KEY, 'daily_learning_route_override_v1');
 assert.equal(api.PREFIX, 'manual-courseware::');
 assert.equal(api.ASSIGNMENT_PREFIX, 'daily_learning_route_assignment_v1_');
+assert.equal(api.OVERRIDE_SYNC_TIMEOUT_MS, 8000);
 assert.equal(api.assignmentKey('sister'), 'daily_learning_route_assignment_v1_sister');
 assert.equal(api.assignmentKey('brother'), 'daily_learning_route_assignment_v1_brother');
 assert.equal(api.mergeRoute(automatic, { dates: {} }, '2026-08-01'), automatic);
@@ -88,7 +89,7 @@ assert.match(overrideRuntime, /grammar_challenge_active_v2_/);
 assert.match(overrideRuntime, /classroom_practice_daily_v1_/);
 assert.doesNotMatch(overrideRuntime, /patchGrammarLoader/);
 
-async function testFreshOverrideWinsOverStaleDeviceCache() {
+async function testFreshOverrideRefreshesStaleDeviceCacheWithoutBlockingRoute() {
   const now = new Date();
   const testDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const storage = new Map();
@@ -123,6 +124,8 @@ async function testFreshOverrideWinsOverStaleDeviceCache() {
       headers: { 'Content-Type': 'application/json' }
     });
   };
+  const timers = [];
+  let routeRefreshes = 0;
   const context = {
     AbortController,
     CustomEvent: class CustomEvent { constructor(type) { this.type = type; } },
@@ -142,23 +145,34 @@ async function testFreshOverrideWinsOverStaleDeviceCache() {
     },
     SB_HEADERS: {},
     SB_URL: 'https://example.supabase.test',
-    setTimeout() { return 1; },
-    clearTimeout() {}
+    loadDailyLearningRoute() { routeRefreshes += 1; return Promise.resolve(); },
+    setTimeout(callback, delay) {
+      timers.push({ callback, delay, cleared: false });
+      return timers.length;
+    },
+    clearTimeout(id) {
+      if (timers[id - 1]) timers[id - 1].cleared = true;
+    }
   };
   context.globalThis = context;
   vm.runInNewContext(overrideRuntime, context, { filename: 'dailyLearningRouteOverride.js' });
 
   const response = await context.fetch('data/daily-learning-route.json');
   const route = await response.json();
-  assert.equal(route.grammarChallenge.id, 'manual-courseware::grammar-new');
-  assert.equal(route.classroomPractice.id, 'classroom-new');
+  assert.equal(route.grammarChallenge.id, 'manual-courseware::grammar-old');
+  assert.equal(route.classroomPractice.id, 'classroom-old');
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(
     JSON.parse(storage.get('daily_learning_route_override_cache_v1')).dates[testDate].grammarChallenge.practiceId,
     'grammar-new'
   );
+  const refreshTimer = timers.find(timer => timer.delay === 150 && !timer.cleared);
+  assert.ok(refreshTimer, 'fresh cloud override should schedule a non-blocking route redraw');
+  refreshTimer.callback();
+  assert.equal(routeRefreshes, 1);
 }
 
-testFreshOverrideWinsOverStaleDeviceCache()
+testFreshOverrideRefreshesStaleDeviceCacheWithoutBlockingRoute()
   .then(() => console.log('daily learning route override tests passed'))
   .catch(error => {
     console.error(error);

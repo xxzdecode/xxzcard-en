@@ -589,9 +589,19 @@
     renderVocabularyLessonBookSelection = renderTask016BookSelection;
 
     const baseOpenList = openVocabularyReviewList;
-    openVocabularyReviewList = async function openVocabularyReviewListTask016() {
-      await loadRelevantCloudProgress();
-      return baseOpenList();
+    openVocabularyReviewList = function openVocabularyReviewListTask016() {
+      const progressRefresh = loadRelevantCloudProgress();
+      const result = baseOpenList();
+      progressRefresh.then(() => {
+        if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
+          if (typeof refreshVocabularyLessonSelectionRoute === 'function') {
+            refreshVocabularyLessonSelectionRoute();
+          } else {
+            renderVocabularyLessonBookSelection();
+          }
+        }
+      });
+      return result;
     };
 
     selectVocabularyLessonBook = function selectVocabularyLessonBookTask016(batchId) {

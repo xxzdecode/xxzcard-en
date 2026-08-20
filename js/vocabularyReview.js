@@ -163,8 +163,10 @@ function applyVocabularyReviewState(data = appData) {
   vocabularyReviewRememberedWords = new Set(getVocabularyReviewState(data).rememberedWords);
 }
 
-async function initializeVocabularyReviewSharedState() {
+async function initializeVocabularyReviewSharedState(options) {
   if (!canUseVocabularyReview()) return false;
+  const settings = options && typeof options === 'object' ? options : {};
+  applyVocabularyReviewState(appData);
   try {
     const remote = await sbGetRemote('main');
     if (remote) {
@@ -174,7 +176,7 @@ async function initializeVocabularyReviewSharedState() {
     }
     applyVocabularyReviewState(appData);
   } catch (error) {
-    showStorageError(error);
+    if (!settings.silent) showStorageError(error);
     applyVocabularyReviewState(appData);
     return false;
   }
@@ -347,12 +349,17 @@ async function openVocabularyReviewList() {
   setVocabularyLessonSelectionRoute(VOCABULARY_LESSON_SELECTION_ROUTES.BOOKS);
   installVocabularyLessonShell();
   document.body.classList.remove('vocabulary-review-open');
-  await Promise.all([
-    initializeVocabularyReviewSharedState(),
+  const backgroundRefreshes = [
+    initializeVocabularyReviewSharedState({ silent: true }),
     loadVocabularyLessonVisualRegistry()
-  ]);
+  ];
   renderVocabularyLessonBookSelection();
   showScreen('screenVocabularyReviewList');
+  Promise.allSettled(backgroundRefreshes).then(() => {
+    if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
+      refreshVocabularyLessonSelectionRoute();
+    }
+  });
 }
 
 function closeVocabularyReviewList() {
