@@ -391,6 +391,56 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].amount, 10);
   }
 
+  // A marker from yesterday must not steal today's conclusive legacy-perfect
+  // completion. The new chest belongs to today's reward day.
+  {
+    const today = '2026-08-21';
+    const yesterday = '2026-08-20';
+    const adventureState = {
+      challengeDaily: {
+        date: today,
+        attempts: 1,
+        bestScore: 100,
+        rewardSettlement: {
+          version: 2,
+          source: SOURCE,
+          date: yesterday,
+          target: 10,
+          status: 'settled',
+          awarded: 10
+        }
+      },
+      challengeSession: {
+        date: today,
+        attemptIndex: 2,
+        status: 'active',
+        cursor: 2,
+        correctCount: 2
+      }
+    };
+    const audit = settlement.auditVocabularyChallengeReward({
+      user: 'sister',
+      adventureState,
+      rewardRecord: {
+        owner: 'sister',
+        totalCoins: 10,
+        daily: {
+          [yesterday]: {
+            coins: 10,
+            sources: { [SOURCE]: 10 },
+            claims: { [SOURCE]: { status: 'claimed', amount: 10 } }
+          }
+        }
+      },
+      rewardApi
+    });
+    assert.equal(audit.date, today);
+    assert.equal(audit.target, 10);
+    assert.equal(audit.claimAmount, 0);
+    assert.equal(audit.needsReward, true);
+    assert.equal(audit.perfectRepairEligible, true);
+  }
+
   // A pending completed reward survives a newly active session that overwrites challengeSession.
   {
     const completed = settlement.prepareAdventureStateForVocabularyChallengeSave(challengeState(10), null);

@@ -151,7 +151,7 @@
     const classroomRoute = state.route.classroomPractice;
 
     if (grammar.title) grammar.title.textContent = '语法挑战';
-    if (grammar.subtitle) grammar.subtitle.textContent = `复习：${routeLabel(grammarRoute, '上一节课')}`;
+    if (grammar.subtitle) grammar.subtitle.textContent = `${routeLabel(grammarRoute, '近期知识')} 10 题 + 历史 10 题`;
     if (grammar.status) {
       const grammarRecord = state.grammarRecordStudent === currentStudent() ? state.grammarRecord : null;
       grammar.status.textContent = grammarRecord && grammarRecord.status === 'completed'
@@ -161,7 +161,7 @@
           : '今日挑战已准备';
     }
     if (grammar.entry) {
-      grammar.entry.setAttribute('aria-label', `语法挑战，复习${routeLabel(grammarRoute, '上一节课')}，一天一次，完成可领取5金币`);
+      grammar.entry.setAttribute('aria-label', `语法挑战，${routeLabel(grammarRoute, '近期知识')}10题加历史知识10题，一天一次，完成可领取5金币`);
     }
 
     if (classroom.title) classroom.title.textContent = '随堂练习';
@@ -478,6 +478,7 @@
     const result = extractGrammarResult(doc);
     const now = new Date().toISOString();
     const record = {
+      ...(existing && typeof existing === 'object' ? existing : {}),
       challengeId: String(state.activeGrammarChallengeId),
       routeUpdatedAt: state.route.updatedAt || '',
       reviewLessonKey: state.route.grammarChallenge.reviewLessonKey || state.route.grammarChallenge.lessonKey || '',
@@ -553,11 +554,6 @@
     state.grammarRecord = record;
     state.grammarRecordStudent = user;
     renderReady();
-    loadGrammarRecord(user).then(fresh => {
-      if (currentStudent() !== user || state.grammarRecordStudent !== user) return;
-      state.grammarRecord = fresh;
-      renderReady();
-    }).catch(() => null);
 
     if (record && record.status === 'completed') {
       const scoreText = Number.isFinite(Number(record.score)) ? `，成绩 ${Number(record.score)} 分` : '';
@@ -565,13 +561,51 @@
       return;
     }
 
-    const challengeId = record && record.status === 'started' && record.challengeId
-      ? String(record.challengeId)
-      : route.grammarChallenge.id;
+    try {
+      await root.loadFeatureGroup?.('grammarChallenge');
+      let adaptiveReady = true;
+      try {
+        await root.loadFeatureGroup?.('grammarAdaptive');
+        adaptiveReady = typeof root.prepareAdaptiveGrammarChallenge === 'function';
+      } catch (error) {
+        adaptiveReady = false;
+        console.warn('Adaptive grammar bundle unavailable; using the cached challenge', error);
+      }
 
-    if (!record) {
-      const now = new Date().toISOString();
-      record = {
+      if (adaptiveReady) {
+        const prepared = await root.prepareAdaptiveGrammarChallenge({
+          user,
+          date: todayKey(),
+          record,
+          route
+        });
+        record = prepared.record;
+        if (prepared.completed || record.status === 'completed') {
+          const scoreText = Number.isFinite(Number(record.score)) ? `，成绩 ${Number(record.score)} 分` : '';
+          showHomeNotice(`今天的语法挑战已经完成${scoreText}，奖励请回首页点击宝箱领取。`);
+          return;
+        }
+        state.grammarRecord = record;
+        state.grammarRecordStudent = user;
+        installGrammarFrameWatcher();
+        if (typeof root.openGrammarChallenge !== 'function') throw new Error('grammar challenge player unavailable');
+        state.activeGrammarChallengeId = prepared.challengeId;
+        state.activeGrammarStudent = user;
+        root.openGrammarChallenge(prepared.challengeId);
+        return;
+      }
+
+      const challengeId = record && record.status === 'started' && record.challengeId
+        ? String(record.challengeId)
+        : route.grammarChallenge.id;
+      loadGrammarRecord(user).then(fresh => {
+        if (currentStudent() !== user || state.grammarRecordStudent !== user || !fresh) return;
+        state.grammarRecord = fresh;
+        renderReady();
+      }).catch(() => null);
+      if (!record) {
+        const now = new Date().toISOString();
+        record = {
           challengeId,
           routeUpdatedAt: route.updatedAt || '',
           reviewLessonKey: route.grammarChallenge.reviewLessonKey || route.grammarChallenge.lessonKey || '',
@@ -584,16 +618,13 @@
           totalCount: null,
           answersShown: false,
           rewarded: false
-      };
+        };
+        saveGrammarRecord(user, record).catch(error => {
+          console.warn('Grammar start record will retry after entry', error && (error.message || error));
+        });
+      }
       state.grammarRecord = record;
       state.grammarRecordStudent = user;
-      saveGrammarRecord(user, record).catch(error => {
-        console.warn('Grammar start record will retry after entry', error && (error.message || error));
-      });
-    }
-
-    try {
-      await root.loadFeatureGroup?.('grammarChallenge');
       installGrammarFrameWatcher();
       if (typeof root.openGrammarChallenge !== 'function') throw new Error('grammar challenge player unavailable');
       state.activeGrammarChallengeId = challengeId;
@@ -725,6 +756,9 @@
   root.loadDailyLearningRoute = loadDailyLearningRoute;
   root.getDailyLearningRoute = () => state.route;
   root.getDailyLearningRouteState = () => ({ ...state, promise: undefined, frameObservers: undefined });
+  root.loadDailyGrammarRecord = loadGrammarRecord;
+  root.saveDailyGrammarRecord = saveGrammarRecord;
+  root.getCachedDailyGrammarRecord = cachedGrammarRecord;
   root.openStudentGrammarChallengeBase = openStudentGrammarChallenge;
   root.openStudentGrammarChallenge = openStudentGrammarChallenge;
   root.openStudentClassroomPractice = openStudentClassroomPractice;

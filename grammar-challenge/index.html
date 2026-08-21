@@ -116,6 +116,41 @@
       const requestedId = params.get('practice');
       const entry = requestedId ? catalog.find(item => item.id === requestedId) : catalog[0];
 
+      if (params.get('adaptive') === '1') {
+        const adaptiveAssetVersion = 'adaptive-v2';
+        let config = null;
+        try { config = window.parent && window.parent.getAdaptiveGrammarFrameConfig?.(); } catch (_) {}
+        if (!config || config.interactionMode !== 'challenge-locked' || !Array.isArray(config.questions)) {
+          document.getElementById('loadingScreen').innerHTML = '<p>今日语法挑战题单尚未准备好，请返回后重试。</p>';
+          return;
+        }
+        window.__GRAMMAR_PAGE_PRACTICE_CONFIG__ = config;
+        const core = document.createElement('script');
+        core.src = `./js/page-practice-core.js?v=${adaptiveAssetVersion}`;
+        core.onload = () => {
+          const style = document.createElement('link');
+          style.rel = 'stylesheet';
+          style.href = `./css/page-practice.css?v=${adaptiveAssetVersion}`;
+          style.onload = () => {
+            const shell = document.createElement('script');
+            shell.src = `./js/page-practice-shell.js?v=${adaptiveAssetVersion}`;
+            shell.dataset.practicePath = './adaptive-daily';
+            shell.dataset.practiceId = 'grammar-adaptive-daily-v1';
+            shell.dataset.embedded = '1';
+            document.body.appendChild(shell);
+          };
+          style.onerror = () => {
+            document.getElementById('loadingScreen').innerHTML = '<p>语法挑战样式加载失败，请返回后重试。</p>';
+          };
+          document.head.appendChild(style);
+        };
+        core.onerror = () => {
+          document.getElementById('loadingScreen').innerHTML = '<p>语法挑战交互组件加载失败，请返回后重试。</p>';
+        };
+        document.body.appendChild(core);
+        return;
+      }
+
       if (entry && entry.pagePath) {
         const target = new URL(entry.pagePath, window.location.href);
         if (params.get('embedded') === '1') target.searchParams.set('embedded', '1');

@@ -10,6 +10,7 @@
   }
 
   function currentStudent() {
+    if (root.currentUser === 'brother' || root.currentUser === 'sister') return root.currentUser;
     try {
       return typeof currentUser !== 'undefined' && currentUser === 'brother' ? 'brother' : 'sister';
     } catch (_) {
@@ -36,14 +37,19 @@
   }
 
   async function reconcileStudentRewards(user) {
-    if (typeof root.sbGet !== 'function' || typeof root.recordStudentRewardSource !== 'function') return false;
+    const getValue = typeof root.sbGetRemote === 'function'
+      ? root.sbGetRemote.bind(root)
+      : typeof root.sbGet === 'function' ? root.sbGet.bind(root) : null;
+    if (!getValue || typeof root.recordStudentRewardSource !== 'function') return false;
     const student = user === 'brother' ? 'brother' : 'sister';
+    const requestedStudent = root.isTeacher?.() ? '' : currentStudent();
     const today = todayKey();
     try {
       const [adventure, classroom] = await Promise.all([
-        root.sbGet(`vocab_adventure_v1_${student}`),
-        root.sbGet(`classroom_practice_daily_v1_${student}`)
+        getValue(`vocab_adventure_v1_${student}`),
+        getValue(`classroom_practice_daily_v1_${student}`)
       ]);
+      if (requestedStudent && currentStudent() !== requestedStudent) return false;
       const session = adventure && adventure.session;
       const planLength = session && Array.isArray(session.plan) ? session.plan.length : 0;
       if (session && session.date === today && (session.completed === true || (planLength > 0 && Number(session.cursor) >= planLength))) {
@@ -51,6 +57,7 @@
       }
 
       const challengeOk = await reconcileVocabularyChallengeReward(student, adventure);
+      if (requestedStudent && currentStudent() !== requestedStudent) return false;
 
       const classroomToday = classroom && classroom[today];
       if (classroomToday && classroomToday.status === 'completed') {

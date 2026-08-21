@@ -62,6 +62,38 @@ assert.deepEqual(
   { current: 0, requestedDelta: -1, appliedDelta: 0, next: 0 }
 );
 
+const teacherRaisedChallenge = controls.syncTeacherAdjustedClaim({
+  sources: { vocabularyChallenge: 10 },
+  claims: {
+    vocabularyChallenge: {
+      status: 'claimed',
+      amount: 9,
+      mode: 'max',
+      completedAt: '2026-08-21T08:00:00.000Z',
+      claimedAt: '2026-08-21T08:01:00.000Z'
+    }
+  }
+}, {
+  project: 'vocabularyChallenge',
+  amount: 10,
+  at: '2026-08-21T08:02:00.000Z'
+});
+assert.equal(teacherRaisedChallenge.sources.vocabularyChallenge, 10);
+assert.equal(teacherRaisedChallenge.claims.vocabularyChallenge.status, 'claimed');
+assert.equal(teacherRaisedChallenge.claims.vocabularyChallenge.amount, 10);
+assert.equal(teacherRaisedChallenge.claims.vocabularyChallenge.claimedAt, '2026-08-21T08:02:00.000Z');
+
+const teacherClearedCompleted = controls.syncTeacherAdjustedClaim(teacherRaisedChallenge, {
+  project: 'vocabularyChallenge', amount: 0
+});
+assert.equal(teacherClearedCompleted.claims.vocabularyChallenge.status, 'completed');
+assert.equal(teacherClearedCompleted.claims.vocabularyChallenge.amount, 0);
+
+const teacherKeptIdle = controls.syncTeacherAdjustedClaim({
+  claims: { grammarChallenge: { status: 'idle', amount: 0 } }
+}, { project: 'grammarChallenge', amount: 0 });
+assert.equal(teacherKeptIdle.claims.grammarChallenge.status, 'idle');
+
 assert.deepEqual(
   controls.virtualizeWordChallengeUsage(0, 2, 3),
   {

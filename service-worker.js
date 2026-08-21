@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v83';
-const RUNTIME_CACHE = 'xxzcard-runtime-v83';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v85';
+const RUNTIME_CACHE = 'xxzcard-runtime-v85';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL_FETCH_CONCURRENCY = 3;
 const APP_SHELL = [
@@ -23,8 +23,8 @@ const APP_SHELL = [
   './js/vocabularyReview.js',
   './js/vocabularyLesson016.js',
   './js/vocabularyLessonCategories.js',
-  './js/dailyLearningRoute.js',
-  './data/daily-learning-route.json'
+  './js/dailyLearningRouteOverride.js',
+  './js/dailyLearningRoute.js'
 ];
 
 async function installAppShellAtomically(urls) {
@@ -127,9 +127,9 @@ function staleWhileRevalidate(request, cachedPromise, event, fallback) {
   });
 }
 
-// Prefer the fresh route, but keep the route bundled with this exact app-shell
-// generation as a bounded fallback. The page also refreshes its last valid
-// route in the background, so entry never depends on this request finishing.
+// Prefer the fresh static fallback. The authoritative manual selection and the
+// last merged route are stored separately, so the Apple-safe install shell does
+// not need another dated route file just to restore an offline restart.
 async function dailyRouteNetworkOnly(request) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 3000);

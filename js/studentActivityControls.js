@@ -165,6 +165,28 @@
     return { current, requestedDelta: requested, appliedDelta, next };
   }
 
+  function syncTeacherAdjustedClaim(dayValue, options) {
+    const settings = isPlainObject(options) ? options : {};
+    const project = String(settings.project || '');
+    const meta = PROJECTS[project];
+    const day = isPlainObject(dayValue) ? JSON.parse(JSON.stringify(dayValue)) : {};
+    const claims = isPlainObject(day.claims) ? { ...day.claims } : {};
+    if (!meta || project === 'breakthrough') return { ...day, claims };
+    const previous = isPlainObject(claims[project]) ? claims[project] : {};
+    const amount = Math.max(0, Math.min(meta.sourceMax, nonNegativeInteger(settings.amount)));
+    const at = String(settings.at || new Date().toISOString());
+    claims[project] = {
+      ...previous,
+      status: amount > 0 ? 'claimed' : previous.status === 'idle' || !previous.status ? 'idle' : 'completed',
+      amount,
+      mode: 'set',
+      completedAt: typeof previous.completedAt === 'string' ? previous.completedAt : '',
+      claimedAt: amount > 0 ? at : '',
+      transactionId: typeof previous.transactionId === 'string' ? previous.transactionId : ''
+    };
+    return { ...day, claims };
+  }
+
   function virtualizeWordChallengeUsage(actualLegacy, actualState, allowedTotal, baseTotal) {
     const base = Math.max(1, nonNegativeInteger(baseTotal, PROJECTS.vocabularyChallenge.baseAttempts));
     const allowed = Math.max(base, nonNegativeInteger(allowedTotal, base));
@@ -376,7 +398,10 @@
     }
 
     async function loadReward(user) {
-      return rewardRecord(typeof root.sbGet === 'function' ? await root.sbGet(rewardKey(user)) : null);
+      const getter = typeof root.sbGetRemote === 'function'
+        ? root.sbGetRemote.bind(root)
+        : typeof root.sbGet === 'function' ? root.sbGet.bind(root) : null;
+      return rewardRecord(getter ? await getter(rewardKey(user)) : null);
     }
 
     async function saveReward(user, record) {
@@ -420,11 +445,16 @@
       nextControl.daily[today] = nextControlDay;
 
       const nextReward = rewardRecord(reward);
-      const day = rewardDay(nextReward.daily[today]);
+      let day = rewardDay(nextReward.daily[today]);
       const meta = PROJECTS[project];
       const sourceValue = Math.max(0, Math.min(meta.sourceMax, calculated.next));
       day.sources = { ...day.sources, [project]: sourceValue };
       day.teacherSourceOverrides = { ...day.teacherSourceOverrides, [project]: sourceValue };
+      day = syncTeacherAdjustedClaim(day, {
+        project,
+        amount: sourceValue,
+        at: nextControlDay.updatedAt
+      });
       const regularMax = root.StudentRewards && Number(root.StudentRewards.REGULAR_DAILY_MAX) || 30;
       day.coins = Math.max(0, Math.min(
         regularMax,
@@ -1176,6 +1206,7 @@
     applyUsageMinimum,
     applyUsageIncrement,
     calculateCoinAdjustment,
+    syncTeacherAdjustedClaim,
     virtualizeWordChallengeUsage,
     resetAdventureSessionForAttempt,
     install

@@ -2,6 +2,7 @@
 // ══════════════════════════════════════
 let appData = { batches: [], pin: null };
 let currentUser = localStorage.getItem('wc_user') || 'sister';
+if (typeof globalThis !== 'undefined') globalThis.currentUser = currentUser;
 let currentBatchId = null;
 let currentUserRec = null;
 let studyDeck = [];
