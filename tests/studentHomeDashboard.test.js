@@ -21,28 +21,26 @@ assert.match(dashboard, /student-home-card--adventure[\s\S]*id="vocabularyAdvent
 assert.match(dashboard, /id="vocabularyAdventureChallengeEntry"[\s\S]*单词挑战/);
 assert.match(dashboard, /id="grammarChallengeHomeEntry"[\s\S]*语法挑战/);
 assert.match(dashboard, /id="studentClassroomPracticeEntry"[\s\S]*今天可选 1 项/);
-assert.match(dashboard, /id="vocabularyTourHomeEntry"[\s\S]*新词导览/);
+assert.doesNotMatch(dashboard, /id="vocabularyTourHomeEntry"|新词导览/);
 assert.doesNotMatch(dashboard, /今日单词|混合单词/);
 assert.doesNotMatch(html, /id="homeQuickActions"|id="todayWordBtn"|id="mixedWordBtn"/);
 
-assert.equal((dashboard.match(/class="student-home-card__main"/g) || []).length, 5, 'dashboard should expose five task entries');
+assert.equal((dashboard.match(/class="student-home-card__main"/g) || []).length, 4, 'dashboard should expose four student task entries');
 assert.equal((dashboard.match(/class="student-reward-chest"/g) || []).length, 4, 'only four reward modules should expose chests');
-const tourCard = dashboard.match(/<article class="student-home-card[^"]*student-home-card--tour"[\s\S]*?<\/article>/)?.[0] || '';
-assert.doesNotMatch(tourCard, /student-reward-chest/);
-assert.equal((dashboard.match(/student-home-card-grid/g) || []).length, 2);
+assert.equal((dashboard.match(/class="student-home-card-grid/g) || []).length, 2);
+assert.match(dashboard, /student-home-section--lesson[\s\S]*student-home-card-grid student-home-card-grid--single[\s\S]*studentClassroomPracticeEntry/);
 for (const asset of [
   'vocabulary-adventure.webp',
   'word-challenge.webp',
   'grammar-challenge.webp',
-  'classroom-practice.webp',
-  'new-word-guide.webp'
+  'classroom-practice.webp'
 ]) {
   assert.match(dashboard, new RegExp(`assets/student-home/home-v4/scenes/${asset}`));
 }
 assert.doesNotMatch(dashboard, /<svg\b/);
 assert.doesNotMatch(dashboard, /assets\/student-home\/card6\/scenes\/[^"]+\.png/);
 assert.match(dashboard, /fetchpriority="high"/);
-assert.equal((dashboard.match(/decoding="async"/g) || []).length >= 5, true);
+assert.equal((dashboard.match(/decoding="async"/g) || []).length >= 4, true);
 assert.match(dashboard, /id="studentHomeRotatePrompt"[\s\S]*请将 iPad 横过来使用[\s\S]*横屏可以完整看到今天的学习任务/);
 assert.match(styles, /\.student-home-card--adventure\s*\{[^}]*height:/s);
 assert.match(styles, /\.student-home-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/s);
@@ -51,7 +49,7 @@ assert.match(styles, /home-v4\/scenes\/home-background\.webp/);
 assert.match(styles, /\.student-home-card--word-challenge \.student-home-card__scene\s*\{[^}]*transform:\s*scale\(1\.13\)/s);
 assert.match(styles, /\.student-home-card--grammar \.student-home-card__scene\s*\{[^}]*transform:\s*scale\(1\.09\)/s);
 assert.match(styles, /\.student-home-card--classroom \.student-home-card__scene\s*\{[^}]*transform:\s*scale\(1\.13\)/s);
-assert.match(styles, /\.student-home-card--tour \.student-home-card__scene\s*\{[^}]*transform:\s*scale\(1\.28\)/s);
+assert.match(styles, /\.student-home-card-grid--single\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
 assert.match(styles, /\.student-summary-card__avatar\s*\{[^}]*width:\s*76px[^}]*height:\s*76px[^}]*border:\s*0/s);
 assert.match(styles, /\.student-reward-chest\[data-state="pending"\]/);
 assert.match(styles, /pointer-events:\s*none/);

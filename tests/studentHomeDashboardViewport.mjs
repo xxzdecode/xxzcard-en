@@ -221,8 +221,7 @@ async function assertStudentHome(page, expectedName, {
       'assets/student-home/home-v4/scenes/vocabulary-adventure.webp',
       'assets/student-home/home-v4/scenes/word-challenge.webp',
       'assets/student-home/home-v4/scenes/grammar-challenge.webp',
-      'assets/student-home/home-v4/scenes/classroom-practice.webp',
-      'assets/student-home/home-v4/scenes/new-word-guide.webp'
+      'assets/student-home/home-v4/scenes/classroom-practice.webp'
     ]
   );
   const layout = await page.evaluate(() => {
@@ -230,7 +229,7 @@ async function assertStudentHome(page, expectedName, {
     const word = document.getElementById('vocabularyAdventureChallengeEntry').getBoundingClientRect();
     const grammar = document.getElementById('grammarChallengeHomeEntry').getBoundingClientRect();
     const classroom = document.getElementById('studentClassroomPracticeEntry').getBoundingClientRect();
-    const tour = document.getElementById('vocabularyTourHomeEntry').getBoundingClientRect();
+    const lessonGrid = document.getElementById('studentClassroomPracticeEntry').closest('.student-home-card-grid');
     return {
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       verticalOverflow: document.documentElement.scrollHeight > document.documentElement.clientHeight,
@@ -244,9 +243,10 @@ async function assertStudentHome(page, expectedName, {
       innerWidth: window.innerWidth,
       innerHeight: window.innerHeight,
       challengeSameColumn: Math.abs(word.left - grammar.left) < 2,
-      lessonSameColumn: Math.abs(classroom.left - tour.left) < 2,
       challengeSameRow: Math.abs(word.top - grammar.top) < 2,
-      lessonSameRow: Math.abs(classroom.top - tour.top) < 2,
+      lessonSingleCard: lessonGrid?.children.length === 1
+        && Math.abs(document.getElementById('studentClassroomPracticeEntry').closest('.student-home-card').getBoundingClientRect().width
+          - lessonGrid.getBoundingClientRect().width) < 2,
       minTouch: Math.min(...[...document.querySelectorAll('#studentDashboard button, #studentFeatureNav button')]
         .map(button => button.getBoundingClientRect().height)),
       maxVisibleBottom: Math.max(
@@ -268,10 +268,7 @@ async function assertStudentHome(page, expectedName, {
     orientation === 'landscape' ? layout.challengeSameColumn : layout.challengeSameRow,
     true
   );
-  assert.equal(
-    orientation === 'landscape' ? layout.lessonSameColumn : layout.lessonSameRow,
-    true
-  );
+  assert.equal(layout.lessonSingleCard, true);
   assert.ok(layout.minTouch >= 44);
   assert.equal(
     layout.innerWidth > layout.innerHeight,
@@ -397,7 +394,7 @@ try {
   );
   assert.deepEqual(
     await teacher.page.locator('.teacher-home-nav .teacher-dashboard-button span').allTextContents(),
-    ['进入管理', '导入', '导出词单']
+    ['进入管理', '导入', '导出词单', '新词导览']
   );
   await teacher.page.waitForSelector('#teacherDailyRoutePanel:visible');
   await teacher.page.waitForSelector('#teacherActivityPanel:visible');

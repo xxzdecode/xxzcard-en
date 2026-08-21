@@ -109,7 +109,7 @@ body.is-teacher .current-mode { margin-top: 0; font-size: 11px; }
   font-size: 13px; line-height: 1.45;
 }
 .teacher-dashboard-primary__actions {
-  display: grid; grid-template-columns: repeat(3, minmax(96px, 1fr)); gap: 9px;
+  display: grid; grid-template-columns: repeat(4, minmax(96px, 1fr)); gap: 9px;
 }
 .teacher-dashboard-button,
 .teacher-dashboard-card__action {
@@ -273,7 +273,7 @@ body.is-teacher .current-mode { margin-top: 0; font-size: 11px; }
 }
 @media (max-width: 899px) {
   .teacher-home-nav { grid-template-columns: 1fr; }
-  .teacher-dashboard-primary__actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .teacher-dashboard-primary__actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .teacher-dashboard-grid { grid-template-columns: 1fr; }
 }
 .bottom-feature-nav__item {

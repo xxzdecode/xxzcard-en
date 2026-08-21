@@ -15,11 +15,9 @@ const studentNav = html.match(/<nav class="bottom-feature-nav student-only"[\s\S
 const teacherNav = html.match(/<nav class="teacher-home-nav teacher-dashboard-primary"[\s\S]*?<\/nav>/)?.[0] || '';
 const teacherDashboard = html.match(/<main class="teacher-dashboard teacher-only"[\s\S]*?<\/main>/)?.[0] || '';
 const activeStudentNav = studentNav.replace(/<!--[\s\S]*?-->/g, '');
-const vocabularyTourEntry = html.match(/<article class="student-home-card[^"]*student-home-card--tour"[\s\S]*?<\/article>/)?.[0] || '';
 
 assert.match(studentNav, /生词检验已停用/);
-assert.match(vocabularyTourEntry, /onclick="openVocabularyReviewList\(\)"/);
-assert.match(vocabularyTourEntry, />新词导览</);
+assert.doesNotMatch(studentNav, /openVocabularyReviewList|新词导览|vocabularyTourHomeEntry/);
 assert.deepEqual(
   Array.from(activeStudentNav.matchAll(/<span>([^<]+)<\/span>/g), match => match[1]),
   ['单词卡', '音标训练', '专项小游戏']
@@ -30,7 +28,7 @@ assert.deepEqual(
 );
 assert.deepEqual(
   Array.from(teacherNav.matchAll(/<span>([^<]+)<\/span>/g), match => match[1]),
-  ['进入管理', '导入', '导出词单']
+  ['进入管理', '导入', '导出词单', '新词导览']
 );
 assert.match(teacherNav, /<h1>单词卡管理<\/h1>/);
 assert.match(teacherDashboard, /onclick="openCoursewareList\(\)"[^>]*>进入随堂练习<\/button>/);
@@ -38,9 +36,12 @@ assert.match(teacherDashboard, /onclick="openGrammarLibrary\(\)"[^>]*>进入知�
 assert.doesNotMatch(teacherDashboard, /分类管理/);
 assert.match(reviewScript, /upgradeVocabularyLessonEntryLabels/);
 assert.doesNotMatch(activeStudentNav, /openVocabularyReviewList|生词巩固/);
-assert.doesNotMatch(teacherNav, /openVocabularyReviewList|生词巩固/);
+assert.match(teacherNav, /id="teacherVocabularyGuideEntry"[^>]*onclick="openVocabularyReviewList\(\)"/);
+assert.doesNotMatch(teacherNav, /生词巩固/);
 
 assert.match(baseStyles, /\.teacher-dashboard-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(baseStyles, /\.teacher-dashboard-primary__actions\s*\{[^}]*repeat\(4,\s*minmax\(96px,\s*1fr\)\)/s);
+assert.match(baseStyles, /@media \(max-width: 899px\)[\s\S]*?\.teacher-dashboard-primary__actions\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
 assert.match(baseStyles, /\.teacher-dashboard-primary\s*\{/);
 assert.match(
   baseStyles,
@@ -52,6 +53,7 @@ assert.match(layoutStyles, /\.bottom-feature-nav\.student-only\s*\{[^}]*margin:\
 assert.match(layoutStyles, />\s*\.bottom-feature-nav__item\s*\{[^}]*grid-column:\s*auto/s);
 assert.doesNotMatch(layoutStyles, /repeat\(6/);
 assert.match(dashboardStyles, /\.student-home-card-grid\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(dashboardStyles, /\.student-home-card-grid--single\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
 
 assert.match(html, /<link rel="stylesheet" href="styles-home-nav\.css"/);
 assert.match(html, /<link rel="stylesheet" href="styles-student-home-dashboard\.css"/);
@@ -63,7 +65,9 @@ assert.equal(runtimeVersion?.[1], appShellVersion[1], 'app-shell and runtime cac
 assert.doesNotMatch(serviceWorker, /assets\/student-home\//);
 assert.match(serviceWorker, /'\.\/styles-home-nav\.css'/);
 assert.match(serviceWorker, /'\.\/styles-student-home-dashboard\.css'/);
+assert.match(serviceWorker, /'\.\/js\/vocabularyLessonTaught\.js'/);
 assert.doesNotMatch(serviceWorker, /styles-vocabulary-lesson-016/);
 assert.doesNotMatch(serviceWorker, /VOCABULARY_LESSON_ASSETS/);
+assert.match(reviewScript, /function canUseVocabularyReview\(\) \{\s*return currentUser === 'teacher';\s*\}/);
 
 console.log('home navigation layout tests passed');

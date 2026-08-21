@@ -2,15 +2,13 @@
   const runtimeRoot = typeof globalThis !== 'undefined' ? globalThis : window;
   if (runtimeRoot.__vocabularyLessonTask016Bootstrapped) return;
   runtimeRoot.__vocabularyLessonTask016Bootstrapped = true;
-  const PROGRESS_KEY_PREFIX = 'wc_vocabulary_lesson_position_v1:';
-  const CLOUD_PROGRESS_KEY_PREFIX = 'vocab_lesson_progress_v1_';
   const CIRCLED_BATCH_LABELS = ['①', '②', '③', '④'];
   const ACCESSIBLE_BATCH_LABELS = ['第一组', '第二组', '第三组', '第四组'];
   let groupCore = typeof globalThis !== 'undefined' ? globalThis.VocabularyLessonGroups : null;
   let installed = false;
-  let cloudProgressByUser = Object.create(null);
-  let cloudProgressLoaded = new Set();
-  let cloudSaveTimers = Object.create(null);
+  let taughtState = typeof normalizeVocabularyLessonTaughtState === 'function'
+    ? normalizeVocabularyLessonTaughtState(null)
+    : { version: 1, groups: {}, migrations: {} };
 
   function playerReady() {
     return !!groupCore
@@ -25,65 +23,12 @@
     return Number.isFinite(index) ? Math.max(0, Math.min(index, length - 1)) : 0;
   }
 
-  function currentStudentUser() {
-    const user = String(typeof currentUser === 'undefined' ? '' : currentUser);
-    return user === 'sister' || user === 'brother' ? user : '';
-  }
-
-  function cloudProgressKey(user) {
-    return `${CLOUD_PROGRESS_KEY_PREFIX}${user}`;
-  }
-
-  function getProgressStorageKey(batch = vocabularyLessonState.batch) {
-    const user = encodeURIComponent(String(typeof currentUser === 'undefined' ? '' : currentUser));
-    const batchId = encodeURIComponent(String(batch && batch.id || 'none'));
-    return `${PROGRESS_KEY_PREFIX}${user}:${batchId}`;
-  }
-
   function isTransientBatch(batch) {
     if (typeof isVocabularyLessonVirtualBatch === 'function') return isVocabularyLessonVirtualBatch(batch);
     return Boolean(batch && (
       batch.vocabularyLessonTransient === true
       || String(batch.id || '').startsWith('vocabulary-category:')
     ));
-  }
-
-  function getVocabularyLessonProgressSignature() {
-    let hash = 2166136261;
-    const source = vocabularyLessonState.words.map(item => item.key).join('|');
-    for (let index = 0; index < source.length; index += 1) {
-      hash ^= source.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
-    }
-    return `${vocabularyLessonState.words.length}:${(hash >>> 0).toString(16)}`;
-  }
-
-  function defaultProgressState() {
-    return {
-      batchIndex: 0,
-      lastTeachingBatchIndex: 0,
-      batchPositions: vocabularyLessonState.batches.map(() => 0)
-    };
-  }
-
-  function readVocabularyLessonProgress() {
-    const fallback = defaultProgressState();
-    try {
-      const raw = JSON.parse(localStorage.getItem(getProgressStorageKey()) || 'null');
-      if (!raw || raw.version !== 1) return fallback;
-      const positions = vocabularyLessonState.batches.map((items, index) => {
-        return clampIndex(Array.isArray(raw.batchPositions) ? raw.batchPositions[index] : 0, items.length);
-      });
-      const lastTeachingBatchIndex = clampIndex(raw.lastTeachingBatchIndex, vocabularyLessonState.batches.length);
-      return {
-        batchIndex: clampIndex(raw.batchIndex, vocabularyLessonState.batches.length),
-        lastTeachingBatchIndex,
-        batchPositions: positions,
-        raw
-      };
-    } catch (_) {
-      return fallback;
-    }
   }
 
   function ensureProgressState() {
@@ -97,78 +42,17 @@
     );
   }
 
-  function saveVocabularyLessonProgress() {
-    if (!vocabularyLessonState.batch || isTransientBatch(vocabularyLessonState.batch) || !vocabularyLessonState.batches.length) return;
-    ensureProgressState();
-    if (vocabularyLessonState.mode === 'teaching') {
-      vocabularyLessonState.batchPositions[vocabularyLessonState.batchIndex] = clampIndex(
-        vocabularyLessonState.wordIndex,
-        (vocabularyLessonState.batches[vocabularyLessonState.batchIndex] || []).length
-      );
-      vocabularyLessonState.lastTeachingBatchIndex = vocabularyLessonState.batchIndex;
-    }
+  async function loadTaughtState(options) {
     try {
-      localStorage.setItem(getProgressStorageKey(), JSON.stringify({
-        version: 1,
-        signature: getVocabularyLessonProgressSignature(),
-        batchIndex: vocabularyLessonState.lastTeachingBatchIndex,
-        lastTeachingBatchIndex: vocabularyLessonState.lastTeachingBatchIndex,
-        batchPositions: vocabularyLessonState.batchPositions.map((value, index) => {
-          return clampIndex(value, (vocabularyLessonState.batches[index] || []).length);
-        })
-      }));
-    } catch (_) {}
-    saveCurrentCloudPosition();
-  }
-
-  function progressForUser(user) {
-    if (!cloudProgressByUser[user]) {
-      cloudProgressByUser[user] = groupCore.defaultVocabularyLessonProgress();
-    }
-    return cloudProgressByUser[user];
-  }
-
-  async function loadCloudProgress(user) {
-    if (!user || cloudProgressLoaded.has(user)) return progressForUser(user);
-    try {
-      const stored = typeof sbGet === 'function' ? await sbGet(cloudProgressKey(user)) : null;
-      cloudProgressByUser[user] = groupCore.normalizeVocabularyLessonProgress(stored);
+      if (typeof loadVocabularyLessonTaughtState !== 'function') return taughtState;
+      taughtState = await loadVocabularyLessonTaughtState(options);
     } catch (error) {
-      console.warn('Vocabulary lesson progress load failed', error);
-      cloudProgressByUser[user] = groupCore.defaultVocabularyLessonProgress();
+      console.warn('Vocabulary lesson taught state load failed', error);
+      if (!options || options.silent !== true) {
+        if (typeof showStorageError === 'function') showStorageError(error);
+      }
     }
-    cloudProgressLoaded.add(user);
-    return cloudProgressByUser[user];
-  }
-
-  async function loadRelevantCloudProgress() {
-    const student = currentStudentUser();
-    if (student) return loadCloudProgress(student);
-    if (typeof isTeacher === 'function' && isTeacher()) {
-      await Promise.all([loadCloudProgress('sister'), loadCloudProgress('brother')]);
-    }
-    return null;
-  }
-
-  async function saveCloudProgressNow(user) {
-    if (!user || typeof sbSet !== 'function') return false;
-    try {
-      await sbSet(cloudProgressKey(user), groupCore.normalizeVocabularyLessonProgress(progressForUser(user)));
-      return true;
-    } catch (error) {
-      console.warn('Vocabulary lesson progress save failed', error);
-      if (typeof showStorageError === 'function') showStorageError(error);
-      return false;
-    }
-  }
-
-  function queueCloudProgressSave(user) {
-    if (!user) return;
-    window.clearTimeout(cloudSaveTimers[user]);
-    cloudSaveTimers[user] = window.setTimeout(() => {
-      cloudSaveTimers[user] = null;
-      saveCloudProgressNow(user);
-    }, 450);
+    return taughtState;
   }
 
   function activeGroupConfig() {
@@ -176,19 +60,6 @@
     return config && Array.isArray(config.groups)
       ? config.groups[vocabularyLessonState.batchIndex] || null
       : null;
-  }
-
-  function saveCurrentCloudPosition() {
-    const user = currentStudentUser();
-    const group = activeGroupConfig();
-    if (!user || !group || !vocabularyLessonState.batch || isTransientBatch(vocabularyLessonState.batch)) return;
-    const current = progressForUser(user);
-    cloudProgressByUser[user] = groupCore.updateVocabularyLessonGroupPosition(current, {
-      groupId: group.id,
-      wordIndex: vocabularyLessonState.wordIndex,
-      updatedAt: new Date().toISOString()
-    });
-    queueCloudProgressSave(user);
   }
 
   function getStoredGroupConfig(batch, data = appData) {
@@ -205,58 +76,20 @@
   }
 
   function completionLabel(groupId) {
-    const student = currentStudentUser();
-    if (student) {
-      return groupCore.isVocabularyLessonGroupCompleted(progressForUser(student), groupId)
-        ? '<span class="vocabulary-lesson-group-completed">已完成</span>'
-        : '<span class="vocabulary-lesson-group-completed" aria-hidden="true"></span>';
-    }
-    if (typeof isTeacher === 'function' && isTeacher()) {
-      const sister = groupCore.isVocabularyLessonGroupCompleted(progressForUser('sister'), groupId);
-      const brother = groupCore.isVocabularyLessonGroupCompleted(progressForUser('brother'), groupId);
-      const labels = [sister ? '姐姐✓' : '', brother ? '弟弟✓' : ''].filter(Boolean);
-      return labels.length
-        ? `<span class="vocabulary-lesson-group-completed is-teacher">${labels.join(' · ')}</span>`
-        : '<span class="vocabulary-lesson-group-completed is-teacher" aria-hidden="true"></span>';
-    }
-    return '<span class="vocabulary-lesson-group-completed" aria-hidden="true"></span>';
+    const taught = typeof isVocabularyLessonGroupTaught === 'function'
+      && isVocabularyLessonGroupTaught(taughtState, groupId);
+    return taught
+      ? '<span class="vocabulary-lesson-group-completed is-teacher">已授课</span>'
+      : '<span class="vocabulary-lesson-group-completed is-teacher" aria-hidden="true"></span>';
   }
 
-  function firstIncompleteGroupIndex(config, user) {
+  function firstUntaughtGroupIndex(config) {
     if (!config || !config.groups.length) return 0;
-    if (!user) return 0;
-    const progress = progressForUser(user);
-    const active = config.groups
-      .map((group, index) => ({ index, entry: progress.groups[group.id] }))
-      .filter(item => item.entry && item.entry.status !== 'completed' && item.entry.updatedAt)
-      .sort((a, b) => String(b.entry.updatedAt).localeCompare(String(a.entry.updatedAt)))[0];
-    if (active) return active.index;
-    const index = config.groups.findIndex(group => !groupCore.isVocabularyLessonGroupCompleted(progress, group.id));
+    const index = config.groups.findIndex(group => (
+      typeof isVocabularyLessonGroupTaught !== 'function'
+      || !isVocabularyLessonGroupTaught(taughtState, group.id)
+    ));
     return index >= 0 ? index : 0;
-  }
-
-  async function migrateLegacyProgressForBook(batch, config, materialized) {
-    const user = currentStudentUser();
-    if (!user || !batch || !config || isTransientBatch(batch)) return;
-    const progress = progressForUser(user);
-    const migrationKey = String(batch.id);
-    if (progress.migrations[migrationKey]) return;
-    let raw = null;
-    try { raw = JSON.parse(localStorage.getItem(getProgressStorageKey(batch)) || 'null'); } catch (_) {}
-    const migrated = groupCore.migrateLegacyVocabularyLessonProgress(
-      raw,
-      materialized.map(items => items.length),
-      groupCore.LEGACY_BATCH_SIZE
-    );
-    if (migrated && config.groups[migrated.groupIndex]) {
-      cloudProgressByUser[user] = groupCore.updateVocabularyLessonGroupPosition(progress, {
-        groupId: config.groups[migrated.groupIndex].id,
-        wordIndex: migrated.wordIndex,
-        updatedAt: new Date().toISOString()
-      });
-    }
-    progressForUser(user).migrations[migrationKey] = 'legacy-v1-to-groups-v1';
-    await saveCloudProgressNow(user);
   }
 
   function ensureTask016Styles() {
@@ -422,61 +255,40 @@
     const target = Math.trunc(Number(index));
     // Legacy limit was target >= 4; groups are now dynamic.
     if (target < 0 || target >= vocabularyLessonState.batches.length || !vocabularyLessonState.batches[target]?.length) return false;
-    saveVocabularyLessonProgress();
     ensureProgressState();
     vocabularyLessonState.batchIndex = target;
     vocabularyLessonState.lastTeachingBatchIndex = target;
-    const group = vocabularyLessonState.groupConfig && vocabularyLessonState.groupConfig.groups[target];
-    const user = currentStudentUser();
-    const savedGroup = user && group ? progressForUser(user).groups[group.id] : null;
-    const savedPosition = user
-      ? savedGroup && savedGroup.wordIndex
-      : vocabularyLessonState.batchPositions[target];
-    vocabularyLessonState.wordIndex = clampIndex(
-      savedPosition,
-      vocabularyLessonState.batches[target].length
-    );
+    vocabularyLessonState.wordIndex = 0;
     vocabularyLessonState.mode = 'teaching';
     vocabularyLessonState.revealed = true;
     vocabularyLessonState.reviewScrollTop = 0;
-    saveVocabularyLessonProgress();
     renderVocabularyLesson();
     return true;
   }
 
   function openVocabularyLessonHardWordsFromNav() {
-    saveVocabularyLessonProgress();
     startVocabularyLessonHardWordReview();
   }
 
   function openVocabularyLessonRandomFromNav() {
-    saveVocabularyLessonProgress();
     startVocabularyLessonRandomReview(false);
   }
 
   async function selectVocabularyLessonGroup(batchOrId, requestedGroupIndex) {
-    saveVocabularyLessonProgress();
-    await loadRelevantCloudProgress();
+    await loadTaughtState({ fresh: false, silent: true });
     const batch = isTransientBatch(batchOrId)
       ? batchOrId
       : selectVocabularyLessonBatch(appData, currentUser, batchOrId);
     if (!batch) return false;
-    // Opening the guide is a viewing action. Derive any missing grouping in
-    // memory and defer the global `main` write until the student completes a
-    // group, where sealCurrentGroupInMain() persists the stable grouping.
+    // Opening the guide is a viewing action. Derive missing grouping in memory
+    // and persist only after the teacher explicitly marks a group as taught.
     const config = deriveGroupConfig(batch);
     currentBatchId = isTransientBatch(batch) ? null : String(batch.id);
     vocabularyLessonState.batch = batch;
     vocabularyLessonState.words = buildVocabularyLessonWords(batch, vocabularyLessonVisualRegistry);
     vocabularyLessonState.groupConfig = config;
     vocabularyLessonState.batches = groupCore.materializeVocabularyLessonGroups(vocabularyLessonState.words, config);
-    const localProgress = isTransientBatch(batch) ? defaultProgressState() : readVocabularyLessonProgress();
-    await migrateLegacyProgressForBook(batch, config, vocabularyLessonState.batches);
-
-    const user = currentStudentUser();
-    const fallback = user
-      ? firstIncompleteGroupIndex(config, user)
-      : clampIndex(localProgress.lastTeachingBatchIndex, vocabularyLessonState.batches.length);
+    const fallback = firstUntaughtGroupIndex(config);
     const hasRequestedGroup = requestedGroupIndex !== null
       && requestedGroupIndex !== undefined
       && requestedGroupIndex !== ''
@@ -484,20 +296,10 @@
     const target = hasRequestedGroup
       ? clampIndex(requestedGroupIndex, vocabularyLessonState.batches.length)
       : fallback;
-    const group = config.groups[target];
-    const groupProgress = user && group ? progressForUser(user).groups[group.id] : null;
-
-    vocabularyLessonState.batchPositions = vocabularyLessonState.batches.map((items, index) => {
-      const entry = user && config.groups[index] ? progressForUser(user).groups[config.groups[index].id] : null;
-      const position = user ? entry && entry.wordIndex : localProgress.batchPositions[index];
-      return clampIndex(position, items.length);
-    });
+    vocabularyLessonState.batchPositions = vocabularyLessonState.batches.map(() => 0);
     vocabularyLessonState.lastTeachingBatchIndex = target;
     vocabularyLessonState.batchIndex = target;
-    const selectedPosition = user
-      ? groupProgress && groupProgress.wordIndex
-      : localProgress.batchPositions[target];
-    vocabularyLessonState.wordIndex = clampIndex(selectedPosition, vocabularyLessonState.batches[target].length);
+    vocabularyLessonState.wordIndex = 0;
     vocabularyLessonState.reviewDetailIndex = 0;
     vocabularyLessonState.hardWords = readVocabularyLessonHardWords(batch);
     vocabularyLessonState.randomWords = [];
@@ -508,7 +310,6 @@
     vocabularyLessonState.mode = 'teaching';
     document.body.classList.add('vocabulary-review-open');
     showScreen('screenVocabularyReviewPlayer');
-    saveVocabularyLessonProgress();
     renderVocabularyLesson();
     return true;
   }
@@ -543,24 +344,25 @@
   }
 
   async function completeCurrentGroup() {
-    const user = currentStudentUser();
     const group = activeGroupConfig();
-    if (!user || !group || isTransientBatch(vocabularyLessonState.batch)) return true;
-    const progress = progressForUser(user);
-    if (groupCore.isVocabularyLessonGroupCompleted(progress, group.id)) return true;
+    if (!group || typeof saveVocabularyLessonTaughtGroup !== 'function') return false;
+    if (typeof isVocabularyLessonGroupTaught === 'function'
+      && isVocabularyLessonGroupTaught(taughtState, group.id)) return true;
 
     const sealed = await sealCurrentGroupInMain();
     if (!sealed) return false;
-    const completedAt = new Date().toISOString();
-    const today = groupCore.localDateKey(new Date());
-    const result = groupCore.markVocabularyLessonGroupCompleted(progress, {
-      groupId: group.id,
-      wordKeys: group.wordKeys,
-      completedAt,
-      eligibleDate: groupCore.addLocalDays(today, 1)
-    });
-    cloudProgressByUser[user] = result.progress;
-    return saveCloudProgressNow(user);
+    try {
+      taughtState = await saveVocabularyLessonTaughtGroup({
+        groupId: group.id,
+        wordKeys: group.wordKeys,
+        taughtAt: new Date().toISOString()
+      });
+      return true;
+    } catch (error) {
+      console.warn('Vocabulary lesson taught state save failed', error);
+      if (typeof showStorageError === 'function') showStorageError(error);
+      return false;
+    }
   }
 
   function installOverrides() {
@@ -580,9 +382,12 @@
       if (legacyChange) legacyChange.hidden = true;
       const next = document.querySelector('.vocabulary-lesson-next-batch');
       if (next) {
+        const group = activeGroupConfig();
+        const alreadyTaught = group && typeof isVocabularyLessonGroupTaught === 'function'
+          && isVocabularyLessonGroupTaught(taughtState, group.id);
         next.textContent = vocabularyLessonState.batchIndex < vocabularyLessonState.batches.length - 1
-          ? '完成本组并进入下一组 →'
-          : '完成本组 →';
+          ? `${alreadyTaught ? '本组已授课' : '标记本组已授课'}并进入下一组 →`
+          : `${alreadyTaught ? '本组已授课' : '标记本组已授课'} →`;
       }
     };
 
@@ -590,16 +395,11 @@
 
     const baseOpenList = openVocabularyReviewList;
     openVocabularyReviewList = function openVocabularyReviewListTask016() {
-      const progressRefresh = loadRelevantCloudProgress();
       const result = baseOpenList();
-      progressRefresh.then(() => {
-        if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
-          if (typeof refreshVocabularyLessonSelectionRoute === 'function') {
-            refreshVocabularyLessonSelectionRoute();
-          } else {
-            renderVocabularyLessonBookSelection();
-          }
-        }
+      loadTaughtState({ fresh: true, silent: true }).then(() => {
+        if (!document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) return;
+        if (typeof refreshVocabularyLessonSelectionRoute === 'function') refreshVocabularyLessonSelectionRoute();
+        else renderVocabularyLessonBookSelection();
       });
       return result;
     };
@@ -619,50 +419,17 @@
       return baseStartReview(index);
     };
 
-    const baseClosePlayer = closeVocabularyReviewPlayer;
-    closeVocabularyReviewPlayer = function closeVocabularyReviewPlayerTask016() {
-      saveVocabularyLessonProgress();
-      return baseClosePlayer();
-    };
-
-    const baseChangeWord = changeVocabularyReviewWord;
-    changeVocabularyReviewWord = function changeVocabularyReviewWordTask016(delta) {
-      const wasTeaching = vocabularyLessonState.mode === 'teaching';
-      if (wasTeaching) saveVocabularyLessonProgress();
-      const result = baseChangeWord(delta);
-      if (wasTeaching) {
-        ensureProgressState();
-        if (vocabularyLessonState.mode === 'teaching') {
-          vocabularyLessonState.batchPositions[vocabularyLessonState.batchIndex] = vocabularyLessonState.wordIndex;
-        }
-        vocabularyLessonState.lastTeachingBatchIndex = vocabularyLessonState.batchIndex;
-        saveVocabularyLessonProgress();
-      }
-      return result;
-    };
-
     continueVocabularyLessonAfterBatchReview = async function continueVocabularyLessonAfterBatchReviewTask016() {
-      saveVocabularyLessonProgress();
       const completed = await completeCurrentGroup();
       if (!completed) return;
       if (vocabularyLessonState.batchIndex < vocabularyLessonState.batches.length - 1) {
         vocabularyLessonState.batchIndex += 1;
         ensureProgressState();
         vocabularyLessonState.lastTeachingBatchIndex = vocabularyLessonState.batchIndex;
-        const nextGroup = activeGroupConfig();
-        const user = currentStudentUser();
-        const nextProgress = user && nextGroup ? progressForUser(user).groups[nextGroup.id] : null;
-        const nextPosition = user
-          ? nextProgress && nextProgress.wordIndex
-          : vocabularyLessonState.batchPositions[vocabularyLessonState.batchIndex];
-        vocabularyLessonState.wordIndex = clampIndex(
-          nextPosition,
-          vocabularyLessonState.batches[vocabularyLessonState.batchIndex].length
-        );
+        vocabularyLessonState.wordIndex = 0;
         vocabularyLessonState.reviewScrollTop = 0;
         vocabularyLessonState.mode = 'teaching';
         vocabularyLessonState.revealed = true;
-        saveVocabularyLessonProgress();
       } else {
         vocabularyLessonState.mode = 'finalMenu';
       }
@@ -677,12 +444,10 @@
     window.jumpVocabularyLessonBatch = jumpVocabularyLessonBatch;
     window.openVocabularyLessonHardWordsFromNav = openVocabularyLessonHardWordsFromNav;
     window.openVocabularyLessonRandomFromNav = openVocabularyLessonRandomFromNav;
-    window.getVocabularyLessonProgressStorageKey = getProgressStorageKey;
-    window.addEventListener('beforeunload', saveVocabularyLessonProgress);
 
     ensureTask016Shell();
     if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
-      loadRelevantCloudProgress().then(() => {
+      loadTaughtState({ fresh: true, silent: true }).then(() => {
         if (typeof refreshVocabularyLessonSelectionRoute === 'function') {
           refreshVocabularyLessonSelectionRoute();
         } else {
@@ -693,6 +458,15 @@
     if (document.getElementById('screenVocabularyReviewPlayer')?.classList.contains('active')) {
       renderVocabularyLesson();
     }
+    window.addEventListener('vocabulary-lesson-taught-updated', event => {
+      if (event && event.detail && event.detail.state) taughtState = event.detail.state;
+      if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
+        refreshVocabularyLessonSelectionRoute?.();
+      }
+      if (document.getElementById('screenVocabularyReviewPlayer')?.classList.contains('active')) {
+        renderVocabularyLesson();
+      }
+    });
     return true;
   }
 

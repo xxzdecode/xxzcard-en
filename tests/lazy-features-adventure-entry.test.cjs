@@ -216,6 +216,8 @@ test('new-word guide real lazy entry loads task 016 once and resolves to the wor
   const expected = [
     'js/vocabularyReviewData.js',
     'js/vocabularyReview.js',
+    'js/vocabularyLessonGroups.js',
+    'js/vocabularyLessonTaught.js',
     'js/vocabularyLesson016.js',
     'js/vocabularyLessonCategories.js'
   ];
@@ -303,9 +305,10 @@ test('adventure load failure shows an in-page retry that can recover', async () 
 });
 
 test('service worker keeps installation lean and leaves adventure modules on demand', () => {
-  assert.match(serviceWorkerSource, /xxzcard-app-shell-v85/);
-  assert.match(serviceWorkerSource, /xxzcard-runtime-v85/);
+  assert.match(serviceWorkerSource, /xxzcard-app-shell-v86/);
+  assert.match(serviceWorkerSource, /xxzcard-runtime-v86/);
   assert.match(serviceWorkerSource, /\.\/js\/vocabularyReview\.js/);
+  assert.match(serviceWorkerSource, /\.\/js\/vocabularyLessonTaught\.js/);
   assert.doesNotMatch(serviceWorkerSource, /\.\/js\/vocabularyAdventurePlayer\.js/);
   assert.doesNotMatch(serviceWorkerSource, /\.\/js\/vocabularyAdventureChallenge\.js/);
   assert.doesNotMatch(serviceWorkerSource, /\.\/js\/vocabularyPracticeUI\.js/);

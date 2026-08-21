@@ -569,7 +569,7 @@
 
       const user = studentUser();
       const [state, legacy] = await Promise.all([
-        loadVocabularyAdventureState(user),
+        loadVocabularyAdventureState(user, { mode: 'challenge' }),
         typeof getVocabularyAdventureLegacyChallengeUsage === 'function'
           ? getVocabularyAdventureLegacyChallengeUsage()
           : Promise.resolve({ attempts: 0, bestScore: 0 })
@@ -835,7 +835,7 @@
 
       try {
         const [loaded, legacy] = await Promise.all([
-          loadVocabularyAdventureState(runtime.user, { requireRemote: true }),
+          loadVocabularyAdventureState(runtime.user, { requireRemote: true, mode: 'challenge' }),
           typeof getVocabularyAdventureLegacyChallengeUsage === 'function'
             ? getVocabularyAdventureLegacyChallengeUsage()
             : Promise.resolve({ attempts: 0, bestScore: 0 })

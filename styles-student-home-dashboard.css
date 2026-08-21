@@ -252,6 +252,10 @@ body:not(.is-teacher) #screenHome .user-bar {
   gap: 10px;
 }
 
+.student-home-card-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .student-home-card {
   width: 100%;
   min-width: 0;
@@ -859,6 +863,10 @@ body:not(.is-teacher) #screenHome .user-bar {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: 7px;
+  }
+
+  .student-home-card-grid--single {
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .student-home-card,
