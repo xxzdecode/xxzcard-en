@@ -89,7 +89,8 @@
       nextReviewAt: isLocalDate(source.nextReviewAt) ? source.nextReviewAt : '',
       reviewCount: safeCount(source.reviewCount),
       lastTaskType: typeof source.lastTaskType === 'string' ? source.lastTaskType : '',
-      challengeFlagAt: isDateTime(source.challengeFlagAt) ? source.challengeFlagAt : ''
+      challengeFlagAt: isDateTime(source.challengeFlagAt) ? source.challengeFlagAt : '',
+      lessonChallengeAt: isDateTime(source.lessonChallengeAt) ? source.lessonChallengeAt : ''
     };
   }
 
@@ -485,7 +486,8 @@
       nextReviewAt: addLocalDays(localDateKey(date), INTERVAL_DAYS[intervalIndex]),
       reviewCount: previous.reviewCount + 1,
       lastTaskType: previous.lastTaskType,
-      challengeFlagAt: ''
+      challengeFlagAt: '',
+      lessonChallengeAt: previous.lessonChallengeAt
     };
   }
 

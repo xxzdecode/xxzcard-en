@@ -34,6 +34,14 @@
       taskAssignments: [],
       vocabularyReviewState: { version: 1, rememberedWords: [] }
     };
+    const kvStore = {
+      vocab_lesson_taught_v1: {
+        version: 1,
+        groups: {},
+        migrations: { 'per-student-completed-union-v1': { migratedAt: '2026-08-21T08:00:00+08:00' } }
+      }
+    };
+    function cloneValue(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
     function isTeacher() { return currentUser === 'teacher'; }
     function normalizeAppData() {}
     function setMainSnapshot() {}
@@ -43,7 +51,14 @@
       document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
-    async function sbGetRemote() { return JSON.parse(JSON.stringify(appData)); }
+    async function sbGetRemote(key) {
+      return key === 'main' ? cloneValue(appData) : cloneValue(kvStore[key]);
+    }
+    async function sbGet(key) { return sbGetRemote(key); }
+    async function sbSet(key, value) {
+      kvStore[key] = cloneValue(value);
+      return true;
+    }
     async function updateMainDataSafely(mutator) {
       const next = JSON.parse(JSON.stringify(appData));
       mutator(next);
@@ -60,6 +75,8 @@
   <div class="screen" id="screenVocabularyReviewPlayer"></div>
   <script src="js/vocabularyReviewData.js"></script>
   <script src="js/vocabularyReview.js"></script>
+  <script src="js/vocabularyLessonGroups.js"></script>
+  <script src="js/vocabularyLessonTaught.js"></script>
   <script src="js/vocabularyLesson016.js"></script>
   <script src="js/vocabularyLessonCategories.js"></script>
   <script>

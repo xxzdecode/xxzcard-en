@@ -8,7 +8,7 @@
     openVocabularyAdventureChallenge: ['#vocabularyAdventureChallengeEntry', '单词挑战'],
     openGrammarChallengeList: ['#grammarChallengeHomeEntry', '语法挑战'],
     openCoursewareList: ['#studentClassroomPracticeEntry', '随堂练习'],
-    openVocabularyReviewList: ['#vocabularyTourHomeEntry', '新词导览'],
+    openVocabularyReviewList: ['#teacherVocabularyGuideEntry', '新词导览'],
     openThemeQuizList: ['[onclick*="openThemeQuizList"]', '专项小游戏'],
     openWordCards: ['[onclick*="openWordCards"]', '单词卡'],
     openPhonemeTraining: ['[onclick*="openPhonemeTraining"]', '音标训练']

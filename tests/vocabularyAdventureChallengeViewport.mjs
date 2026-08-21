@@ -291,7 +291,7 @@ try {
   assert.equal(await run.page.locator('#vocabularyAdventurePreviewEntry').isVisible(), true);
   assert.equal(await run.page.locator('#vocabularyAdventureChallengeEntry').isVisible(), true);
   assert.equal(await run.page.locator('#grammarChallengeHomeEntry').isVisible(), true);
-  assert.equal(await run.page.locator('#vocabularyTourHomeEntry').isVisible(), true);
+  assert.equal(await run.page.locator('#vocabularyTourHomeEntry').count(), 0);
   assert.equal(await run.page.locator('#studentClassroomPracticeEntry').isVisible(), true);
   assert.equal(await run.page.locator('#studentFeatureNav').isVisible(), true);
   await run.page.locator('#vocabularyAdventureChallengeEntry').click();

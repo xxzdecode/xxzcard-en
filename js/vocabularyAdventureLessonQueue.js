@@ -2,16 +2,17 @@
   const lessonGroups = typeof module === 'object' && module.exports
     ? require('./vocabularyLessonGroups.js')
     : root.VocabularyLessonGroups;
-  const api = factory(lessonGroups);
+  const taught = typeof module === 'object' && module.exports
+    ? require('./vocabularyLessonTaught.js')
+    : root;
+  const api = factory(lessonGroups, taught);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) {
     root.VocabularyAdventureLessonQueue = api;
     api.installVocabularyAdventureLessonQueueBrowserPatch(root);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureLessonQueue(lessonGroups) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureLessonQueue(lessonGroups, taught) {
   'use strict';
-
-  const LESSON_PROGRESS_KEY_PREFIX = 'vocab_lesson_progress_v1_';
 
   function plainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -30,12 +31,24 @@
       nextReviewAt: typeof source.nextReviewAt === 'string' ? source.nextReviewAt : '',
       reviewCount: Math.max(0, Math.trunc(Number(source.reviewCount)) || 0),
       lastTaskType: typeof source.lastTaskType === 'string' ? source.lastTaskType : '',
-      challengeFlagAt: typeof source.challengeFlagAt === 'string' ? source.challengeFlagAt : ''
+      challengeFlagAt: typeof source.challengeFlagAt === 'string' ? source.challengeFlagAt : '',
+      lessonChallengeAt: typeof source.lessonChallengeAt === 'string' ? source.lessonChallengeAt : ''
     };
   }
 
-  function lessonProgressKey(user) {
-    return `${LESSON_PROGRESS_KEY_PREFIX}${String(user || '')}`;
+  function entriesByWord(taughtState, challengeDate) {
+    return new Map(taught.collectTaughtWordEntries(
+      taughtState,
+      challengeDate ? { challengeDate } : {}
+    ).map(entry => [lessonGroups.wordKey(entry.wordKey), entry]));
+  }
+
+  function filterTaughtCandidates(candidates, taughtState, challengeDate) {
+    const allowed = entriesByWord(taughtState, challengeDate);
+    return (Array.isArray(candidates) ? candidates : []).filter(candidate => {
+      const key = lessonGroups.wordKey(candidate && (candidate.key || candidate.word));
+      return allowed.has(key);
+    });
   }
 
   function decorateAdventureStateForLessonQueue(options) {
@@ -43,40 +56,31 @@
     const today = String(settings.today || '');
     const state = clone(settings.state) || { version: 1, words: {}, session: null };
     if (!plainObject(state.words)) state.words = {};
+    const eligible = entriesByWord(settings.taughtState, today);
     const visibleKeys = new Set(
       (Array.isArray(settings.visibleWordKeys) ? settings.visibleWordKeys : [])
         .map(lessonGroups.wordKey)
         .filter(Boolean)
     );
-    const queuedItems = lessonGroups.collectEligibleQueuedWords(settings.progress, today)
-      .filter(item => !visibleKeys.size || visibleKeys.has(lessonGroups.wordKey(item.wordKey)));
-    const queuedKeys = new Set(queuedItems.map(item => lessonGroups.wordKey(item.wordKey)));
-    const futureDate = lessonGroups.addLocalDays(today, 60) || today;
 
     visibleKeys.forEach(key => {
-      if (queuedKeys.has(key)) {
-        const previous = normalizeAdventureWordState(state.words[key]);
-        state.words[key] = {
-          ...previous,
-          lastResult: 'F',
-          intervalIndex: 0,
-          nextReviewAt: today,
-          reviewCount: Math.max(1, previous.reviewCount),
-          challengeFlagAt: ''
-        };
-        return;
-      }
-      const previous = state.words[key];
-      if (!plainObject(previous) || Math.max(0, Number(previous.reviewCount) || 0) === 0) return;
+      const taughtEntry = eligible.get(key);
+      if (!taughtEntry) return;
+      const previous = normalizeAdventureWordState(state.words[key]);
+      const challengedAfterLesson = previous.lessonChallengeAt
+        && String(previous.lessonChallengeAt) >= String(taughtEntry.taughtAt || '');
+      if (challengedAfterLesson) return;
       state.words[key] = {
-        ...normalizeAdventureWordState(previous),
-        lastResult: 'D',
+        ...previous,
+        lastResult: 'F',
         intervalIndex: 0,
-        nextReviewAt: futureDate
+        nextReviewAt: today,
+        reviewCount: Math.max(1, previous.reviewCount),
+        challengeFlagAt: ''
       };
     });
 
-    return { state, queuedItems, queuedKeys: [...queuedKeys] };
+    return { state, eligibleEntries: [...eligible.values()] };
   }
 
   function mergeChallengeStateIntoOriginal(originalValue, challengeValue) {
@@ -89,7 +93,8 @@
     if (Object.prototype.hasOwnProperty.call(challenge, 'challengeDaily')) {
       original.challengeDaily = clone(challenge.challengeDaily);
     }
-    if (plainObject(challenge.words)) {
+    const completed = challenge.challengeSession && challenge.challengeSession.status === 'completed';
+    if (completed && plainObject(challenge.words)) {
       Object.entries(challenge.words).forEach(([rawKey, value]) => {
         const key = lessonGroups.wordKey(rawKey);
         const flag = value && typeof value.challengeFlagAt === 'string' ? value.challengeFlagAt : '';
@@ -97,112 +102,64 @@
         const previous = plainObject(original.words[key]) ? original.words[key] : {};
         original.words[key] = { ...previous, challengeFlagAt: flag };
       });
+      (Array.isArray(challenge.challengeSession.items) ? challenge.challengeSession.items : []).forEach(item => {
+        const key = lessonGroups.wordKey(item && item.wordKey);
+        const answeredAt = item && typeof item.answeredAt === 'string' ? item.answeredAt : '';
+        if (!key || !answeredAt || item.status !== 'answered') return;
+        const previous = plainObject(original.words[key]) ? original.words[key] : {};
+        original.words[key] = { ...previous, lessonChallengeAt: answeredAt };
+      });
     }
     return original;
   }
 
-  function consumeCompletedChallengeQueue(progressValue, challengeSession) {
-    const progress = lessonGroups.normalizeVocabularyLessonProgress(progressValue);
-    const session = plainObject(challengeSession) ? challengeSession : null;
-    if (!session || session.status !== 'completed' || !Array.isArray(session.items) || !session.date) {
-      return { progress, changed: false, consumedItems: [] };
-    }
-
-    const availableByWord = new Map();
-    lessonGroups.collectEligibleQueuedWords(progress, session.date).forEach(item => {
-      const key = lessonGroups.wordKey(item.wordKey);
-      if (!availableByWord.has(key)) availableByWord.set(key, []);
-      availableByWord.get(key).push(item);
-    });
-
-    const consumedItems = [];
-    session.items.forEach(item => {
-      const key = lessonGroups.wordKey(item && item.wordKey);
-      const queue = availableByWord.get(key);
-      if (!queue || !queue.length) return;
-      consumedItems.push(queue.shift());
-    });
-    const result = lessonGroups.consumeQueuedWords(progress, consumedItems);
-    return { ...result, consumedItems };
-  }
-
   function installVocabularyAdventureLessonQueueBrowserPatch(target) {
     const root = target || (typeof globalThis !== 'undefined' ? globalThis : null);
-    if (!root || !lessonGroups || root.__vocabularyAdventureLessonQueueInstalled) return false;
+    if (!root || !lessonGroups || !taught || root.__vocabularyAdventureLessonQueueInstalled) return false;
     if (typeof root.loadVocabularyAdventureState !== 'function'
-      || typeof root.saveCurrentVocabularyAdventureState !== 'function') return false;
+      || typeof root.saveCurrentVocabularyAdventureState !== 'function'
+      || typeof root.collectVisibleVocabularyAdventureCandidates !== 'function') return false;
 
     root.__vocabularyAdventureLessonQueueInstalled = true;
     const originalLoad = root.loadVocabularyAdventureState;
     const originalSave = root.saveCurrentVocabularyAdventureState;
+    const originalCollect = root.collectVisibleVocabularyAdventureCandidates;
     const actualStates = new Map();
-    const progressStates = new Map();
-
-    function screenActive(id) {
-      return !!root.document?.getElementById(id)?.classList?.contains('active');
-    }
+    let taughtState = taught.normalizeVocabularyLessonTaughtState(null);
+    let candidateMode = 'adventure';
+    let candidateDate = '';
 
     function currentStudent() {
       const user = String(typeof currentUser !== 'undefined' ? currentUser : (root.currentUser || ''));
       return user === 'sister' || user === 'brother' ? user : '';
     }
 
-    function visibleWordKeys() {
-      if (typeof root.collectVisibleVocabularyAdventureCandidates !== 'function') return [];
-      return root.collectVisibleVocabularyAdventureCandidates()
+    function originalVisibleWordKeys() {
+      return originalCollect.call(root)
         .map(candidate => lessonGroups.wordKey(candidate && (candidate.key || candidate.word)))
         .filter(Boolean);
     }
 
-    async function readProgress(user) {
-      if (progressStates.has(user)) return progressStates.get(user);
-      let value = null;
-      try {
-        value = typeof root.sbGet === 'function' ? await root.sbGet(lessonProgressKey(user)) : null;
-      } catch (error) {
-        console.warn('Vocabulary lesson queue progress load failed', error);
-      }
-      const normalized = lessonGroups.normalizeVocabularyLessonProgress(value);
-      progressStates.set(user, normalized);
-      return normalized;
+    function collectVisibleVocabularyAdventureTaughtCandidates() {
+      const challengeDate = candidateMode === 'challenge' ? candidateDate : '';
+      return filterTaughtCandidates(originalCollect.apply(root, arguments), taughtState, challengeDate);
     }
 
-    async function writeProgress(user, progress) {
-      const normalized = lessonGroups.normalizeVocabularyLessonProgress(progress);
-      progressStates.set(user, normalized);
-      if (typeof root.sbSet !== 'function') return false;
-      try {
-        await root.sbSet(lessonProgressKey(user), normalized);
-        return true;
-      } catch (error) {
-        console.warn('Vocabulary lesson queue progress save failed; next load will repair it.', error);
-        return false;
-      }
-    }
-
-    async function repairCompletedQueue(user, adventureState, progress) {
-      const result = consumeCompletedChallengeQueue(progress, adventureState && adventureState.challengeSession);
-      if (!result.changed) return result.progress;
-      await writeProgress(user, result.progress);
-      return result.progress;
-    }
-
-    async function loadVocabularyAdventureStateWithLessonQueue(userValue, ...args) {
+    async function loadVocabularyAdventureStateWithLessonQueue(userValue, options) {
+      const settings = plainObject(options) ? options : {};
       const user = String(userValue || currentStudent());
-      const actual = await originalLoad.call(root, userValue, ...args);
-      if (!user || screenActive('screenVocabularyAdventure')) return actual;
+      candidateMode = settings.mode === 'challenge' ? 'challenge' : 'adventure';
+      candidateDate = lessonGroups.localDateKey(new Date());
+      const actual = await originalLoad.call(root, userValue, options);
+      taughtState = await taught.loadVocabularyLessonTaughtState({ fresh: settings.requireRemote === true });
+      if (!user) return actual;
       actualStates.set(user, clone(actual));
-      let progress = await readProgress(user);
-      progress = await repairCompletedQueue(user, actual, progress);
-      progressStates.set(user, progress);
-      const today = typeof root.VocabularyAdventureCore?.localDateKey === 'function'
-        ? root.VocabularyAdventureCore.localDateKey(new Date())
-        : lessonGroups.localDateKey(new Date());
+      if (candidateMode !== 'challenge') return actual;
       return decorateAdventureStateForLessonQueue({
         state: actual,
-        progress,
-        today,
-        visibleWordKeys: visibleWordKeys()
+        taughtState,
+        today: candidateDate,
+        visibleWordKeys: originalVisibleWordKeys()
       }).state;
     }
 
@@ -218,32 +175,25 @@
       const saved = await originalSave.call(root, merged, ...saveArgs);
       if (!saved) return false;
       actualStates.set(user, clone(merged));
-
-      const session = merged && merged.challengeSession;
-      if (session && session.status === 'completed') {
-        const progress = await readProgress(user);
-        const result = consumeCompletedChallengeQueue(progress, session);
-        if (result.changed) await writeProgress(user, result.progress);
-      }
       return true;
     }
 
     saveCurrentVocabularyAdventureStateWithLessonQueue.__vteCoordinatorWrapped =
       originalSave.__vteCoordinatorWrapped === true;
 
+    root.collectVisibleVocabularyAdventureCandidates = collectVisibleVocabularyAdventureTaughtCandidates;
     root.loadVocabularyAdventureState = loadVocabularyAdventureStateWithLessonQueue;
     root.saveCurrentVocabularyAdventureState = saveCurrentVocabularyAdventureStateWithLessonQueue;
+    try { collectVisibleVocabularyAdventureCandidates = collectVisibleVocabularyAdventureTaughtCandidates; } catch (_) {}
     try { loadVocabularyAdventureState = loadVocabularyAdventureStateWithLessonQueue; } catch (_) {}
     try { saveCurrentVocabularyAdventureState = saveCurrentVocabularyAdventureStateWithLessonQueue; } catch (_) {}
     return true;
   }
 
   return Object.freeze({
-    LESSON_PROGRESS_KEY_PREFIX,
-    lessonProgressKey,
+    filterTaughtCandidates,
     decorateAdventureStateForLessonQueue,
     mergeChallengeStateIntoOriginal,
-    consumeCompletedChallengeQueue,
     installVocabularyAdventureLessonQueueBrowserPatch
   });
 });

@@ -110,7 +110,7 @@
 
     <section class="student-home-section student-home-section--lesson" aria-labelledby="studentLessonHeading">
       <h2 id="studentLessonHeading"><span>今日新课</span></h2>
-      <div class="student-home-card-grid">
+      <div class="student-home-card-grid student-home-card-grid--single">
         <article class="student-home-card student-home-card--compact student-home-card--classroom" data-reward-source="classroomPractice">
           <button class="student-home-card__main" id="studentClassroomPracticeEntry" type="button" onclick="openStudentClassroomPractice()" aria-label="随堂练习，今天可选一项，一天一次">
             <span class="student-home-card__copy">
@@ -123,15 +123,6 @@
           </button>
           <img class="student-home-card__stamp" src="assets/student-home/home-v4/ui/cleared-stamp.png" alt="已通关" width="320" height="311" decoding="async" hidden>
           <button class="student-reward-chest" type="button" data-reward-source="classroomPractice" aria-label="随堂练习宝箱，尚未完成" disabled><img src="assets/student-home/home-v4/ui/chest-idle.png" alt="" width="320" height="300" decoding="async"></button>
-        </article>
-        <article class="student-home-card student-home-card--compact student-home-card--tour">
-          <button class="student-home-card__main" id="vocabularyTourHomeEntry" type="button" onclick="openVocabularyReviewList()" aria-label="新词导览，今天的新单词">
-            <span class="student-home-card__copy">
-              <strong>新词导览</strong>
-              <small>今天的新单词</small>
-            </span>
-            <img class="student-home-card__scene" src="assets/student-home/home-v4/scenes/new-word-guide.webp" alt="" width="1280" height="960" decoding="async" loading="lazy">
-          </button>
         </article>
       </div>
     </section>
@@ -180,6 +171,9 @@
         </button>
         <button type="button" class="teacher-dashboard-button" id="exportVocabularyCopyListsButton" onclick="exportVocabularyAdventureCopyLists()" aria-label="导出姐姐和弟弟的摸底抄写词单">
           <span>导出词单</span>
+        </button>
+        <button type="button" class="teacher-dashboard-button" id="teacherVocabularyGuideEntry" onclick="openVocabularyReviewList()">
+          <span>新词导览</span>
         </button>
       </div>
     </nav>

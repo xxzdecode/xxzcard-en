@@ -337,7 +337,7 @@
       if (!ALLOWED_USERS.has(user) || dependencies.isTeacherUser()) {
         return { action: 'unavailable', state: core.defaultVocabularyAdventureState(), session: null };
       }
-      const state = await loadVocabularyAdventureState(user);
+      const state = await loadVocabularyAdventureState(user, { mode: 'adventure' });
       const candidates = collectVisibleVocabularyAdventureCandidates();
       return core.resolveVocabularyAdventureSession({ candidates, state, today, userKey: user });
     }

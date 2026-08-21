@@ -8,13 +8,10 @@
       return originalLoadFeatureGroup(group);
     }
     return root.loadFeatureScript('js/vocabularyQuestionTypesRepeatBootstrap.js')
-      .then(() => group === 'adventureChallenge'
-        ? root.loadFeatureScript('js/vocabularyLessonGroups.js')
-        : null)
+      .then(() => root.loadFeatureScript('js/vocabularyLessonGroups.js'))
+      .then(() => root.loadFeatureScript('js/vocabularyLessonTaught.js'))
       .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup))
-      .then(result => group === 'adventureChallenge'
-        ? root.loadFeatureScript('js/vocabularyAdventureLessonQueue.js').then(() => result)
-        : result)
+      .then(result => root.loadFeatureScript('js/vocabularyAdventureLessonQueue.js').then(() => result))
       .then(async result => {
         if (group !== 'adventureChallenge') return result;
         // Answer persistence is local-first, so there is no longer a slow cloud

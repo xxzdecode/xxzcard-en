@@ -168,7 +168,7 @@ try {
     assert.ok(reviewLayout.footerTop >= reviewLayout.mainBottom - 1, JSON.stringify(reviewLayout));
     assert.ok(reviewLayout.footerBottom <= reviewLayout.viewportHeight + 1, JSON.stringify(reviewLayout));
 
-    await page.getByRole('button', { name: /完成本组并进入下一组/ }).click();
+    await page.getByRole('button', { name: /标记本组已授课并进入下一组/ }).click();
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     const nextBatchCardHeight = await page.locator('#vocabularyLessonCard').evaluate(element => element.getBoundingClientRect().height);
     assert.ok(nextBatchCardHeight >= viewport.height * 0.45, `${viewport.name}: ${nextBatchCardHeight}`);
@@ -183,11 +183,11 @@ try {
     assert.deepEqual(
       (await page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-name, #vocabularyLessonBookList .vocabulary-lesson-book-group > header strong').allTextContents())
         .map(text => text.replace(/\d+词$/, '')),
-      ['今日生词', '较早单词本']
+      ['今日生词', '较早单词本', '分类词汇按主题浏览']
     );
     await page.evaluate(() => selectVocabularyLessonBook('today'));
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
-    assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-22')));
+    assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-21')));
 
     await page.evaluate(() => {
       jumpVocabularyLessonBatch(0);

@@ -325,7 +325,8 @@ assert.deepEqual(badState, {
       nextReviewAt: '',
       reviewCount: 0,
       lastTaskType: '',
-      challengeFlagAt: ''
+      challengeFlagAt: '',
+      lessonChallengeAt: ''
     }
   },
   session: null

@@ -324,8 +324,10 @@ assert.ok(homeToggle);
 assert.match(homeToggle[0], /homeQuickActions/);
 assert.doesNotMatch(
   homeToggle[0],
-  /grammarChallengeHomeEntry|vocabularyTourHomeEntry|studentFeatureNav|homeCheckinRow/
+  /grammarChallengeHomeEntry|studentFeatureNav|homeCheckinRow/
 );
+assert.doesNotMatch(html, /id="vocabularyTourHomeEntry"/);
+assert.match(html, /id="teacherVocabularyGuideEntry"/);
 
 assert.match(tasksSource, /getSharedVocabularyChallengeUsage/);
 assert.match(html, /id="studentDashboard"/);

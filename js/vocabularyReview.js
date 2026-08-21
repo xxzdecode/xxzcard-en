@@ -112,7 +112,7 @@ function clearVocabularyLessonTransientState() {
 }
 
 function canUseVocabularyReview() {
-  return currentUser === 'teacher' || currentUser === 'sister' || currentUser === 'brother';
+  return currentUser === 'teacher';
 }
 
 function allVocabularyReviewWords(data = appData) {

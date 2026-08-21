@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v85';
-const RUNTIME_CACHE = 'xxzcard-runtime-v85';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v86';
+const RUNTIME_CACHE = 'xxzcard-runtime-v86';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL_FETCH_CONCURRENCY = 3;
 const APP_SHELL = [
@@ -21,6 +21,8 @@ const APP_SHELL = [
   './js/storageResilience.js',
   './js/vocabularyReviewData.js',
   './js/vocabularyReview.js',
+  './js/vocabularyLessonGroups.js',
+  './js/vocabularyLessonTaught.js',
   './js/vocabularyLesson016.js',
   './js/vocabularyLessonCategories.js',
   './js/dailyLearningRouteOverride.js',

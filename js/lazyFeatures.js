@@ -36,6 +36,8 @@ const FEATURE_GROUPS = {
   vocabularyReview: [
     'js/vocabularyReviewData.js',
     'js/vocabularyReview.js',
+    'js/vocabularyLessonGroups.js',
+    'js/vocabularyLessonTaught.js',
     'js/vocabularyLesson016.js',
     'js/vocabularyLessonCategories.js'
   ],

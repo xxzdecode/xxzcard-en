@@ -92,9 +92,9 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v85/);
-assert.match(serviceWorker, /xxzcard-runtime-v85/);
-assert.equal(appShellEntries.length, 22, `Apple-safe install shell must stay at 22 resources, found ${appShellEntries.length}`);
+assert.match(serviceWorker, /xxzcard-app-shell-v86/);
+assert.match(serviceWorker, /xxzcard-runtime-v86/);
+assert.equal(appShellEntries.length, 24, `Apple-safe install shell must contain exactly 24 resources, found ${appShellEntries.length}`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
