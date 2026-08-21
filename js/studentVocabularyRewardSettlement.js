@@ -244,13 +244,29 @@
   function challengeTarget(value, user, rewardApi) {
     const marker = markerFromState(value);
     const completions = completionFacts(value, user);
-    const completed = completions.reduce((best, item) => {
+    const state = plainObject(value) ? value : {};
+    const daily = plainObject(state.challengeDaily) ? state.challengeDaily : {};
+    const dailyDate = localDate(daily.date) ? daily.date : '';
+    const currentCompletions = dailyDate
+      ? completions.filter(item => item.date === dailyDate)
+      : [];
+    const candidates = currentCompletions.length ? currentCompletions : completions;
+    const completed = candidates.reduce((best, item) => {
       if (!best) return item;
       const itemTarget = challengeRewardTarget(user, item.correctCount, rewardApi);
       const bestTarget = challengeRewardTarget(user, best.correctCount, rewardApi);
       return itemTarget > bestTarget || (itemTarget === bestTarget && item.score > best.score) ? item : best;
     }, null);
     const completedTarget = completed ? challengeRewardTarget(user, completed.correctCount, rewardApi) : 0;
+    if (completed && marker && marker.date !== completed.date) {
+      return {
+        date: completed.date,
+        target: completedTarget,
+        marker,
+        completed,
+        completions
+      };
+    }
     if (marker) {
       return {
         date: marker.date,
@@ -474,7 +490,7 @@
     const browserOptions = extra => ({
       ...(plainObject(extra) ? extra : {}),
       rewardApi: root.StudentRewards,
-      getValue: key => root.sbGet(key),
+      getValue: key => typeof root.sbGetRemote === 'function' ? root.sbGetRemote(key) : root.sbGet(key),
       setValue: (key, value) => root.sbSet(key, value),
       reportError: plainObject(extra) && extra.silent === true
         ? error => console.warn('Background vocabulary reward settlement pending retry', error)

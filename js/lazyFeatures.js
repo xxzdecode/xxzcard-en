@@ -13,6 +13,7 @@ const FEATURE_GROUPS = {
   ],
   adventureVisual: ['js/vocabularyAdventureVisualV2.js'],
   grammarChallenge: ['grammar-challenge/data/catalog.js', 'js/grammarChallenges.js'],
+  grammarAdaptive: ['grammar-challenge/data/question-bank.js', 'js/grammarAdaptiveChallenge.js'],
   themeQuiz: ['js/themeQuizzes.js'],
   courseware: ['js/courseware-data.js', 'js/courseware.js'],
   grammarLibrary: ['js/grammarLibrary.js'],
@@ -484,35 +485,3 @@ if (document.readyState === 'loading') {
 } else {
   installVocabularyCopyListExportButton();
 }
-
-const warmAdventure = () => Promise.allSettled([
-  loadFeatureGroup('adventurePlayer'),
-  loadFeatureGroup('adventureChallenge')
-]).then(results => {
-  results.forEach((result, index) => {
-    if (result.status === 'rejected') {
-      const group = index === 0 ? 'adventurePlayer' : 'adventureChallenge';
-      console.warn('adventure preload skipped', group, result.reason?.message || result.reason);
-    }
-  });
-  if (results[0].status === 'fulfilled') loadAdventureVisualEnhancement();
-  return loadHome({ background: true, reason: 'adventure-preload' });
-});
-
-if (typeof requestIdleCallback === 'function') requestIdleCallback(warmAdventure, { timeout: 1800 });
-else setTimeout(warmAdventure, 900);
-
-const warmWrongAnswerOrganizer = () => loadFeatureGroup('wrongAnswerOrganizer')
-  .then(() => {
-    if (typeof isTeacher === 'function' && isTeacher()) {
-      return window.refreshWrongAnswerOrganizerHome?.();
-    }
-    return null;
-  })
-  .catch(error => {
-    console.warn('wrong answer organizer preload skipped', error && (error.message || error));
-    return null;
-  });
-
-if (typeof requestIdleCallback === 'function') requestIdleCallback(warmWrongAnswerOrganizer, { timeout: 2200 });
-else setTimeout(warmWrongAnswerOrganizer, 1200);

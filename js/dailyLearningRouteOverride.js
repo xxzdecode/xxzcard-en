@@ -2,32 +2,86 @@
   'use strict';
   const KEY = 'daily_learning_route_override_v1';
   const PREFIX = 'manual-courseware::';
-  const ASSIGNMENT_PREFIX = 'daily_learning_route_assignment_v1_';
   const OVERRIDE_CACHE_KEY = 'daily_learning_route_override_cache_v1';
-  const ASSIGNMENT_CACHE_PREFIX = 'daily_learning_route_assignment_cache_v1_';
+  const ROUTE_CACHE_KEY = 'daily_learning_route_cache_v1';
   const READ_TIMEOUT_MS = 1800;
-  const OVERRIDE_SYNC_TIMEOUT_MS = 45000;
   const VERIFY_TIMEOUT_MS = 2200;
   const baseFetch = typeof root.fetch === 'function' ? root.fetch.bind(root) : null;
 
-  const today = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const LEGACY_GRAMMAR_SELECTIONS = Object.freeze({
+    'courseware-2026-08-21-adjectives-linking-verbs': {
+      id: 'grammar-2026-08-22-adjectives-linking-verbs-review',
+      title: '形容词与系动词复习挑战',
+      lessonKey: 'adjectives-linking-verbs'
+    },
+    'courseware-2026-08-20-pronoun-system': {
+      id: 'grammar-2026-08-21-pronoun-system-review',
+      title: '人称代词系统复习挑战',
+      lessonKey: 'pronoun-system'
+    },
+    'courseware-2026-08-19-although': {
+      id: 'grammar-2026-08-20-although-review',
+      title: 'although 让步转折复习挑战',
+      lessonKey: 'although'
+    },
+    'courseware-2026-08-18-why-because-so': {
+      id: 'grammar-2026-08-19-why-because-so-review',
+      title: 'why / because / so 复习挑战',
+      lessonKey: 'why-because-so'
+    },
+    'courseware-2026-08-06': {
+      id: 'grammar-2026-08-18-place-prepositions-review',
+      title: '地点介词上与下复习挑战',
+      lessonKey: 'place-prepositions-on-over-above-under-below'
+    },
+    'courseware-2026-08-04': {
+      id: 'grammar-2026-08-06-time-prepositions-review',
+      title: '时间介词快速挑战',
+      lessonKey: 'time-prepositions-in-on-at'
+    },
+    'courseware-2026-08-03': {
+      id: 'grammar-2026-08-04-cardinal-ordinal-review',
+      title: '数字排队快速挑战',
+      lessonKey: 'cardinal-ordinal-numbers-basics'
+    },
+    'courseware-2026-08-02-word-family-basics': {
+      id: 'grammar-2026-08-03-word-family-review',
+      title: '词族侦探快速挑战',
+      lessonKey: 'word-family-basics'
+    },
+    'courseware-2026-08-01-adverb-basics-ly': {
+      id: 'grammar-2026-08-02-adverb-review',
+      title: '副词侦探快速挑战',
+      lessonKey: 'adverb-basics-ly'
+    }
+  });
+
+  function latestLegacySelection(value) {
+    const dates = value && typeof value === 'object' && value.dates && typeof value.dates === 'object'
+      ? value.dates
+      : {};
+    return Object.entries(dates)
+      .filter(([, entry]) => entry && typeof entry === 'object')
+      .sort((left, right) => {
+        const leftTime = Date.parse(String(left[1].updatedAt || ''));
+        const rightTime = Date.parse(String(right[1].updatedAt || ''));
+        if (Number.isFinite(leftTime) || Number.isFinite(rightTime)) {
+          return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+        }
+        return right[0].localeCompare(left[0]);
+      })[0]?.[1] || null;
+  }
+
+  const normalize = value => {
+    const source = value && typeof value === 'object' ? value : {};
+    const current = source.current && typeof source.current === 'object'
+      ? source.current
+      : latestLegacySelection(source);
+    return {
+      schemaVersion: 2,
+      current: current && typeof current === 'object' ? { ...current } : null
+    };
   };
-
-  const normalize = value => ({
-    schemaVersion: 1,
-    dates: value && typeof value === 'object' && value.dates && typeof value.dates === 'object'
-      ? { ...value.dates }
-      : {}
-  });
-
-  const normalizeAssignments = value => ({
-    schemaVersion: 1,
-    dates: value && typeof value === 'object' && value.dates && typeof value.dates === 'object'
-      ? { ...value.dates }
-      : {}
-  });
 
   function readCachedOverride() {
     try {
@@ -48,25 +102,20 @@
     }
   }
 
-  function assignmentCacheKey(user) {
-    return ASSIGNMENT_CACHE_PREFIX + (user === 'brother' ? 'brother' : 'sister');
-  }
-
-  function readCachedAssignment(user) {
+  function readCachedRoute() {
     try {
-      return normalizeAssignments(JSON.parse(root.localStorage?.getItem(assignmentCacheKey(user)) || 'null'));
+      const envelope = JSON.parse(root.localStorage?.getItem(ROUTE_CACHE_KEY) || 'null');
+      return envelope && envelope.route && typeof envelope.route === 'object'
+        ? envelope.route
+        : null;
     } catch (_) {
-      return normalizeAssignments(null);
+      return null;
     }
   }
 
-  function writeCachedAssignment(user, value) {
-    try { root.localStorage?.setItem(assignmentCacheKey(user), JSON.stringify(normalizeAssignments(value))); } catch (_) {}
-  }
-
-  function warmPracticeAssets(value, date = today()) {
+  function warmPracticeAssets(value) {
     if (!baseFetch || typeof root.location === 'undefined') return;
-    const source = value && value.dates && value.dates[date];
+    const source = normalize(value).current;
     if (!source || typeof source !== 'object') return;
     const paths = new Set();
     ['grammarChallenge', 'classroomPractice'].forEach(slot => {
@@ -108,8 +157,27 @@
   };
 
   function manualGrammarRoute(value) {
+    if (value && value.lessonKey && value.id) {
+      return {
+        ...routeSnapshot(value),
+        source: 'manual-grammar-selection',
+        reviewLessonKey: String(value.lessonKey),
+        lessonKey: String(value.lessonKey)
+      };
+    }
     const practice = snapshot(value);
     if (!practice) return null;
+    const mapped = LEGACY_GRAMMAR_SELECTIONS[practice.practiceId];
+    if (mapped) {
+      return {
+        ...mapped,
+        displayTitle: mapped.title.replace(/复习挑战|快速挑战/g, '').trim(),
+        reviewLessonKey: mapped.lessonKey,
+        source: 'manual-grammar-selection',
+        sourcePracticeId: practice.practiceId,
+        sourcePath: practice.path
+      };
+    }
     return {
       id: PREFIX + practice.practiceId,
       title: practice.title.replace(/随堂练习/g, '语法挑战'),
@@ -135,32 +203,18 @@
     };
   }
 
-  function mergeRoute(route, store, date = today()) {
+  function mergeRoute(route, store) {
     if (!route || typeof route !== 'object') return route;
-    const day = normalize(store).dates[date];
-    if (!day || typeof day !== 'object') return route;
-    const routeUpdatedAt = Date.parse(String(route.updatedAt || ''));
-    const overrideUpdatedAt = Date.parse(String(day.updatedAt || ''));
-    if (Number.isFinite(routeUpdatedAt) && Number.isFinite(overrideUpdatedAt) && overrideUpdatedAt < routeUpdatedAt) {
-      return route;
-    }
-    const grammar = manualGrammarRoute(day.grammarChallenge);
-    const classroom = manualClassroomRoute(day.classroomPractice);
+    const current = normalize(store).current;
+    if (!current || typeof current !== 'object') return route;
+    const grammar = manualGrammarRoute(current.grammarChallenge);
+    const classroom = manualClassroomRoute(current.classroomPractice);
     if (!grammar && !classroom) return route;
-    const next = { ...route, manualOverride: { date, updatedAt: day.updatedAt || '' } };
-    if (grammar) next.grammarChallenge = grammar;
-    if (classroom) next.classroomPractice = classroom;
-    return next;
-  }
-
-  function mergePinnedRoute(route, assignment, date = today()) {
-    if (!route || typeof route !== 'object') return route;
-    const day = normalizeAssignments(assignment).dates[date];
-    if (!day || typeof day !== 'object') return route;
-    const grammar = routeSnapshot(day.grammarChallenge);
-    const classroom = routeSnapshot(day.classroomPractice);
-    if (!grammar && !classroom) return route;
-    const next = { ...route, assignmentPinned: { date, updatedAt: day.updatedAt || '' } };
+    const next = {
+      ...route,
+      updatedAt: current.updatedAt || route.updatedAt || '',
+      manualSelection: { updatedAt: current.updatedAt || '' }
+    };
     if (grammar) next.grammarChallenge = grammar;
     if (classroom) next.classroomPractice = classroom;
     return next;
@@ -170,24 +224,16 @@
     return /\bid\s*=\s*["']practice-data["']/i.test(String(html || ''));
   }
 
-  function assignmentKey(user) {
-    return ASSIGNMENT_PREFIX + (user === 'brother' ? 'brother' : 'sister');
-  }
-
   const api = {
     KEY,
     PREFIX,
-    ASSIGNMENT_PREFIX,
     READ_TIMEOUT_MS,
-    OVERRIDE_SYNC_TIMEOUT_MS,
     VERIFY_TIMEOUT_MS,
     mergeRoute,
-    mergePinnedRoute,
     normalize,
-    normalizeAssignments,
     routeSnapshot,
     hasPracticeData,
-    assignmentKey
+    latestLegacySelection
   };
   root.DailyLearningRouteOverride = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -230,7 +276,6 @@
     return rows && rows.length ? rows[0].value : null;
   }
 
-  let overrideSyncPromise = null;
   let routeRefreshTimer = 0;
 
   function notifyOverrideUpdated() {
@@ -244,42 +289,43 @@
     }, 150);
   }
 
-  function refreshOverride() {
-    if (overrideSyncPromise) return overrideSyncPromise;
-    overrideSyncPromise = readDirect(OVERRIDE_SYNC_TIMEOUT_MS)
-      .then(value => {
-        const normalized = normalize(value);
-        if (writeCachedOverride(normalized)) {
-          notifyOverrideUpdated();
-        }
-        warmPracticeAssets(normalized);
-        return { fresh: true, value: normalized };
-      })
-      .catch(error => {
-        console.warn('daily route override sync unavailable', error);
-        return { fresh: false, value: null };
-      })
-      .finally(() => { overrideSyncPromise = null; });
-    return overrideSyncPromise;
-  }
-
   root.fetch = async function (input, init) {
-    const response = await baseFetch(input, init);
     let path = '';
     try { path = new URL(typeof input === 'string' ? input : input.url, location.href).pathname; } catch (_) {}
-    if (!response.ok || !path.endsWith('/data/daily-learning-route.json')) return response;
+    if (!path.endsWith('/data/daily-learning-route.json')) return baseFetch(input, init);
+
+    const [routeResult, freshResult] = await Promise.all([
+      Promise.resolve()
+        .then(() => baseFetch(input, init))
+        .then(response => ({ ok: true, response }))
+        .catch(error => ({ ok: false, error })),
+      readDirect().then(value => ({ ok: true, value })).catch(error => ({ ok: false, error }))
+    ]);
+    const response = routeResult.response || null;
     try {
-      const automatic = await response.clone().json();
-      const cached = readCachedOverride();
-      const merged = mergeRoute(automatic, cached);
-      refreshOverride();
+      const automatic = response && response.ok
+        ? await response.clone().json()
+        : readCachedRoute();
+      if (!automatic || typeof automatic !== 'object') {
+        if (response) return response;
+        throw routeResult.error || new Error('daily route unavailable');
+      }
+      const selected = freshResult.ok ? normalize(freshResult.value) : readCachedOverride();
+      if (freshResult.ok) {
+        writeCachedOverride(selected);
+        warmPracticeAssets(selected);
+      } else {
+        console.warn('daily route selection sync unavailable', freshResult.error);
+      }
+      const merged = mergeRoute(automatic, selected);
       return new Response(JSON.stringify(merged), {
-        status: response.status,
+        status: response && response.ok ? response.status : 200,
         headers: { 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }
       });
     } catch (error) {
       console.warn('daily route override unavailable', error);
-      return response;
+      if (response) return response;
+      throw error;
     }
   };
 
@@ -287,6 +333,11 @@
     ? root.CLASSROOM_PRACTICE_ITEMS
     : Array.isArray(root.COURSEWARE_ITEMS) ? root.COURSEWARE_ITEMS : [];
   const findItem = id => items().find(item => String(item.id) === String(id));
+  const grammarItems = () => {
+    const bankIds = new Set((root.GRAMMAR_QUESTION_BANK?.items || []).map(item => String(item.sourceChallengeId || '')));
+    return (Array.isArray(root.GRAMMAR_CHALLENGE_CATALOG) ? root.GRAMMAR_CHALLENGE_CATALOG : [])
+      .filter(item => item && item.id && item.lessonKey && bankIds.has(String(item.id)));
+  };
 
   async function loadCoursewareData() {
     if (items().length) return;
@@ -295,6 +346,17 @@
     }
     if (typeof root.loadFeatureScript !== 'function') throw new Error('courseware loader unavailable');
     await root.loadFeatureScript('js/courseware-data.js');
+  }
+
+  async function loadGrammarSelectionData() {
+    for (let attempt = 0; attempt < 60 && typeof root.loadFeatureGroup !== 'function'; attempt += 1) {
+      await new Promise(resolve => root.setTimeout(resolve, 50));
+    }
+    if (typeof root.loadFeatureGroup !== 'function') throw new Error('grammar loader unavailable');
+    await Promise.all([
+      root.loadFeatureGroup('grammarChallenge'),
+      root.loadFeatureGroup('grammarAdaptive')
+    ]);
   }
 
   const compatibilityCache = new Map();
@@ -354,158 +416,6 @@
     }
   }
 
-  function routeFromGrammarId(id, title) {
-    const challengeId = String(id || '').trim();
-    if (!challengeId) return null;
-    if (challengeId.startsWith(PREFIX)) {
-      const item = findItem(challengeId.slice(PREFIX.length));
-      return item ? manualGrammarRoute({ practiceId: item.id, title: item.title, path: item.path }) : null;
-    }
-    const catalog = Array.isArray(root.GRAMMAR_CHALLENGE_CATALOG) ? root.GRAMMAR_CHALLENGE_CATALOG : [];
-    const entry = catalog.find(item => item && String(item.id) === challengeId);
-    return routeSnapshot(entry || { id: challengeId, title: title || challengeId });
-  }
-
-  function routeFromClassroomId(id, title) {
-    const item = findItem(id);
-    return item
-      ? manualClassroomRoute({ practiceId: item.id, title: item.title, path: item.path })
-      : routeSnapshot({ id, title: title || id });
-  }
-
-  async function startedRouteFor(slot, user, date, currentRoute) {
-    if (slot === 'grammarChallenge') {
-      const active = readLocalJson(`grammar_challenge_active_v2_${user}`);
-      if (active && [ 'in_progress', 'interrupted' ].includes(active.status)
-          && String(active.startedAt || '').slice(0, 10) === date && active.challengeId) {
-        return routeFromGrammarId(active.challengeId, active.challengeTitle);
-      }
-      if (typeof root.sbGet === 'function') {
-        const daily = await withTimeout(root.sbGet(`grammar_challenge_daily_v1_${user}`), READ_TIMEOUT_MS, 'grammar daily read').catch(() => null);
-        const record = daily && daily[date];
-        if (record && record.challengeId && record.status && record.status !== 'not_started') {
-          return routeFromGrammarId(record.challengeId, record.title || record.challengeTitle);
-        }
-      }
-    }
-
-    if (slot === 'classroomPractice') {
-      let record = null;
-      if (typeof root.loadStudentClassroomPracticeRecord === 'function') {
-        record = await withTimeout(root.loadStudentClassroomPracticeRecord(user, date), READ_TIMEOUT_MS, 'classroom daily read').catch(() => null);
-      } else if (typeof root.sbGet === 'function') {
-        const daily = await withTimeout(root.sbGet(`classroom_practice_daily_v1_${user}`), READ_TIMEOUT_MS, 'classroom daily read').catch(() => null);
-        record = daily && daily[date];
-      }
-      if (record && record.practiceId && record.status && record.status !== 'not_started') {
-        return routeFromClassroomId(record.practiceId, record.title);
-      }
-    }
-
-    return routeSnapshot(currentRoute && currentRoute[slot]);
-  }
-
-  let activeAssignmentContext = null;
-
-  async function ensurePinnedSlot(slot) {
-    if (typeof root.sbGet !== 'function' || typeof root.sbSet !== 'function') {
-      throw new Error('route assignment storage unavailable');
-    }
-    await loadCoursewareData().catch(() => {});
-    const user = currentStudent();
-    const date = today();
-    const key = assignmentKey(user);
-    const assignment = normalizeAssignments(await withTimeout(root.sbGet(key), READ_TIMEOUT_MS, 'assignment read'));
-    writeCachedAssignment(user, assignment);
-    warmPracticeAssets(assignment, date);
-    const day = assignment.dates[date] && typeof assignment.dates[date] === 'object'
-      ? { ...assignment.dates[date] }
-      : {};
-    if (routeSnapshot(day[slot])) return { assignment, date, user };
-
-    const route = typeof root.loadDailyLearningRoute === 'function'
-      ? await root.loadDailyLearningRoute({ force: false, reason: 'assignment-pin' })
-      : root.getDailyLearningRoute && root.getDailyLearningRoute();
-    const selected = await startedRouteFor(slot, user, date, route);
-    if (!selected) throw new Error(`${slot} route unavailable`);
-    day[slot] = selected;
-    day.updatedAt = new Date().toISOString();
-    assignment.dates[date] = day;
-    await withTimeout(root.sbSet(key, assignment), VERIFY_TIMEOUT_MS, 'assignment save');
-    writeCachedAssignment(user, assignment);
-    warmPracticeAssets(assignment, date);
-    return { assignment, date, user };
-  }
-
-  function syncPinnedSlotInBackground(slot) {
-    return ensurePinnedSlot(slot).catch(error => {
-      console.warn('daily route assignment background sync unavailable', error);
-      return null;
-    });
-  }
-
-  function installRouteAssignmentWrappers() {
-    if (typeof root.loadDailyLearningRoute === 'function' && !root.loadDailyLearningRoute.__dailyRouteAssignmentWrapped) {
-      const original = root.loadDailyLearningRoute;
-      const wrapped = async function assignmentAwareLoadRoute() {
-        const route = await original.apply(this, arguments);
-        return activeAssignmentContext
-          ? mergePinnedRoute(route, activeAssignmentContext.assignment, activeAssignmentContext.date)
-          : route;
-      };
-      wrapped.__dailyRouteAssignmentWrapped = true;
-      root.loadDailyLearningRoute = wrapped;
-    }
-
-    if (typeof root.getDailyLearningRoute === 'function' && !root.getDailyLearningRoute.__dailyRouteAssignmentWrapped) {
-      const original = root.getDailyLearningRoute;
-      const wrapped = function assignmentAwareGetRoute() {
-        const route = original.apply(this, arguments);
-        return activeAssignmentContext
-          ? mergePinnedRoute(route, activeAssignmentContext.assignment, activeAssignmentContext.date)
-          : route;
-      };
-      wrapped.__dailyRouteAssignmentWrapped = true;
-      root.getDailyLearningRoute = wrapped;
-    }
-
-    const wrapEntry = (name, slot, failureMessage) => {
-      const original = root[name];
-      if (typeof original !== 'function' || original.__dailyRouteAssignmentWrapped) return;
-      const wrapped = async function assignmentAwareStudentEntry() {
-        const user = currentStudent();
-        const date = today();
-        const cachedAssignment = readCachedAssignment(user);
-        activeAssignmentContext = { assignment: cachedAssignment, date, user };
-        syncPinnedSlotInBackground(slot);
-        try {
-          return await wrapped.__dailyRouteAssignmentOriginal.apply(this, arguments);
-        } catch (error) {
-          console.warn('daily route entry unavailable', error);
-          const notice = document.getElementById('studentHomeNotice');
-          if (notice) {
-            notice.textContent = failureMessage;
-            notice.hidden = false;
-          } else {
-            root.alert?.(failureMessage);
-          }
-          return undefined;
-        } finally {
-          activeAssignmentContext = null;
-        }
-      };
-      wrapped.__dailyRouteAssignmentWrapped = true;
-      // Keep the inner entry replaceable. Student attempt controls and this
-      // assignment layer load independently, so either can arrive first on a
-      // cold start without one wrapper silently displacing the other.
-      wrapped.__dailyRouteAssignmentOriginal = original;
-      root[name] = wrapped;
-    };
-
-    wrapEntry('openStudentGrammarChallenge', 'grammarChallenge', '今日语法挑战暂时无法固定，请检查网络后重试。');
-    wrapEntry('openStudentClassroomPractice', 'classroomPractice', '今日随堂练习暂时无法固定，请检查网络后重试。');
-  }
-
   function openManualGrammar(id) {
     const practiceId = String(id || '').startsWith(PREFIX) ? String(id).slice(PREFIX.length) : '';
     if (!practiceId) return false;
@@ -537,12 +447,12 @@
     panel.id = 'teacherDailyRoutePanel';
     panel.className = 'teacher-dashboard-card teacher-dashboard-card--route teacher-only';
     panel.innerHTML = `
-      <h2>今日学习安排</h2><p>自动安排继续保留；这里只手动替换今天。选择“自动安排”即可恢复。</p>
+      <h2>当前学习安排</h2><p>这里只使用你手动保存的选择；不按日期自动切换。下次修改前会一直保持不变。</p>
       <div class="daily-route-grid">
-        <div class="daily-route-field"><label for="teacherGrammarOverride">今日语法挑战</label><select id="teacherGrammarOverride"><option value="">自动安排</option></select><small>仅可选择含标准题目数据的随堂练习，最多抽取 10 题。</small></div>
-        <div class="daily-route-field"><label for="teacherClassroomOverride">今日随堂练习</label><select id="teacherClassroomOverride"><option value="">自动安排</option></select><small>学生首页直接进入所选练习。</small></div>
+        <div class="daily-route-field"><label for="teacherGrammarOverride">语法挑战近期知识</label><select id="teacherGrammarOverride"></select><small>固定 20 题：所选近期知识 10 题 + 历史知识 10 题。</small></div>
+        <div class="daily-route-field"><label for="teacherClassroomOverride">随堂练习</label><select id="teacherClassroomOverride"></select><small>学生首页始终进入最后一次保存的练习。</small></div>
       </div>
-      <div class="daily-route-actions"><span id="teacherDailyRouteStatus"></span><button class="daily-route-refresh" id="teacherDailyRouteRefresh">重新读取</button><button class="daily-route-save" id="teacherDailyRouteSave">保存今日安排</button></div>`;
+      <div class="daily-route-actions"><span id="teacherDailyRouteStatus"></span><button class="daily-route-refresh" id="teacherDailyRouteRefresh">重新读取</button><button class="daily-route-save" id="teacherDailyRouteSave">保存当前安排</button></div>`;
     const grid = document.getElementById('teacherDashboardGrid');
     const anchor = document.getElementById('currentModeBadge');
     if (grid) grid.appendChild(panel);
@@ -559,42 +469,54 @@
 
   const classroomOption = item => new Option(item.title, item.id);
 
+  function grammarSelection(value) {
+    if (!value || typeof value !== 'object') return null;
+    if (value.id && value.lessonKey) return routeSnapshot(value);
+    const practiceId = String(value.practiceId || value.sourcePracticeId || '').trim();
+    return practiceId ? LEGACY_GRAMMAR_SELECTIONS[practiceId] || null : null;
+  }
+
+  function grammarSnap(id) {
+    const item = grammarItems().find(entry => String(entry.id) === String(id));
+    return item ? {
+      id: item.id,
+      title: item.title,
+      displayTitle: String(item.title || '').replace(/复习挑战|快速挑战|｜语法挑战/g, '').trim(),
+      lessonKey: item.lessonKey,
+      reviewLessonKey: item.lessonKey,
+      source: 'manual-grammar-selection'
+    } : null;
+  }
+
   async function refreshPanel() {
     addPanel();
-    status('正在读取并检查可转换练习…');
+    status('正在读取最后一次保存的安排…');
     try {
-      await loadCoursewareData();
+      await Promise.all([loadCoursewareData(), loadGrammarSelectionData()]);
       const store = normalize(typeof root.sbGet === 'function'
         ? await withTimeout(root.sbGet(KEY), READ_TIMEOUT_MS, 'override panel read')
         : await readDirect());
       writeCachedOverride(store);
       warmPracticeAssets(store);
-      const day = store.dates[today()] || {};
+      const current = store.current || {};
       const grammar = document.getElementById('teacherGrammarOverride');
       const classroom = document.getElementById('teacherClassroomOverride');
-      classroom.replaceChildren(new Option('自动安排', ''), ...items().map(classroomOption));
+      const availableGrammar = grammarItems();
+      grammar.replaceChildren(...availableGrammar.map(item => new Option(item.title, item.id)));
+      classroom.replaceChildren(...items().map(classroomOption));
 
-      const checks = await mapWithLimit(items(), 6, verifyGrammarCompatibility);
-      const grammarOptions = items().map((item, index) => {
-        const check = checks[index];
-        const suffix = check.state === 'compatible'
-          ? ''
-          : check.state === 'incompatible' ? '（缺少标准题目数据）' : '（暂时无法验证）';
-        const option = new Option(item.title + suffix, item.id);
-        option.disabled = check.state !== 'compatible';
-        return option;
-      });
-      grammar.replaceChildren(new Option('自动安排', ''), ...grammarOptions);
-      grammar.value = day.grammarChallenge && day.grammarChallenge.practiceId || '';
-      classroom.value = day.classroomPractice && day.classroomPractice.practiceId || '';
-      const incompatibleCount = checks.filter(item => item.state === 'incompatible').length;
-      const unverifiedCount = checks.filter(item => item.state === 'unverified').length;
-      const base = day.grammarChallenge || day.classroomPractice ? '今天有手动替换。' : '今天使用自动安排。';
-      const details = [
-        incompatibleCount ? `已禁用 ${incompatibleCount} 条不可转换练习。` : '',
-        unverifiedCount ? `另有 ${unverifiedCount} 条暂时无法验证，请重新读取。` : ''
-      ].filter(Boolean).join(' ');
-      status(details ? `${base} ${details}` : base);
+      const selectedGrammar = grammarSelection(current.grammarChallenge);
+      const selectedGrammarId = selectedGrammar && selectedGrammar.id;
+      grammar.value = availableGrammar.some(item => item.id === selectedGrammarId)
+        ? selectedGrammarId
+        : availableGrammar[0]?.id || '';
+      const selectedClassroomId = current.classroomPractice && current.classroomPractice.practiceId;
+      classroom.value = items().some(item => item.id === selectedClassroomId)
+        ? selectedClassroomId
+        : items()[0]?.id || '';
+      status(current.grammarChallenge && current.classroomPractice
+        ? '已读取最后一次保存的安排。'
+        : '请选择两项内容并保存。');
     } catch (_) {
       status('读取失败，请检查网络。');
     }
@@ -609,31 +531,26 @@
     if (typeof root.canWriteCloudData === 'function' && !root.canWriteCloudData()) return;
     status('正在保存…');
     try {
-      const grammarId = document.getElementById('teacherGrammarOverride').value;
-      const grammarItem = findItem(grammarId);
-      if (grammarItem) {
-        const compatibility = await verifyGrammarCompatibility(grammarItem);
-        if (compatibility.state !== 'compatible') {
-          status('该练习缺少标准题目数据，不能保存为语法挑战。');
-          return;
-        }
-      }
-      const store = normalize(await withTimeout(root.sbGet(KEY), READ_TIMEOUT_MS, 'override save read'));
-      const grammar = snap(grammarId);
+      await Promise.all([loadCoursewareData(), loadGrammarSelectionData()]);
+      const grammar = grammarSnap(document.getElementById('teacherGrammarOverride').value);
       const classroom = snap(document.getElementById('teacherClassroomOverride').value);
-      if (grammar || classroom) {
-        store.dates[today()] = {
-          grammarChallenge: grammar || undefined,
-          classroomPractice: classroom || undefined,
-          updatedAt: new Date().toISOString()
-        };
-      } else {
-        delete store.dates[today()];
+      if (!grammar || !classroom) {
+        status('请完整选择语法挑战和随堂练习。');
+        return;
       }
+      const store = {
+        schemaVersion: 2,
+        current: {
+          grammarChallenge: grammar,
+          classroomPractice: classroom,
+          updatedAt: new Date().toISOString()
+        }
+      };
       await withTimeout(root.sbSet(KEY, store), VERIFY_TIMEOUT_MS, 'override save');
       writeCachedOverride(store);
       warmPracticeAssets(store);
-      status(grammar || classroom ? '今日手动安排已保存。' : '已恢复自动安排。');
+      notifyOverrideUpdated();
+      status('当前安排已保存，学生网页会读取这次选择。');
     } catch (error) {
       status('保存失败，请重试。');
       if (typeof root.showStorageError === 'function') root.showStorageError(error);
@@ -645,8 +562,4 @@
     if (event.target && event.target.closest && event.target.closest('#uBtnTeacher')) root.setTimeout(refreshPanel, 0);
   });
   try { if (typeof root.isTeacher === 'function' && root.isTeacher()) refreshPanel(); } catch (_) {}
-
-  [0, 120, 400, 1000, 2300, 3500].forEach(delay => {
-    root.setTimeout(installRouteAssignmentWrappers, delay);
-  });
 })(typeof globalThis !== 'undefined' ? globalThis : window);

@@ -122,6 +122,8 @@ assert.match(claimFunction[0], /showHomeNotice/);
 
 const routeSource = fs.readFileSync(path.join(root, 'js/dailyLearningRoute.js'), 'utf8');
 const overrideSource = fs.readFileSync(path.join(root, 'js/dailyLearningRouteOverride.js'), 'utf8');
+const mainSource = fs.readFileSync(path.join(root, 'js/main.js'), 'utf8');
+const lazySource = fs.readFileSync(path.join(root, 'js/lazyFeatures.js'), 'utf8');
 assert.match(routeSource, /DAILY_ROUTE_CACHE_KEY/);
 assert.match(routeSource, /readCachedRoute/);
 assert.match(routeSource, /refresh.*background/i);
@@ -131,13 +133,21 @@ assert.match(routeSource, /state\.grammarRecordStudent === student/);
 assert.match(routeSource, /currentStudent\(\) !== user/);
 assert.match(routeSource, /openStudentGrammarChallengeBase/);
 assert.match(overrideSource, /readCachedOverride/);
-assert.match(overrideSource, /syncPinnedSlotInBackground/);
 assert.match(overrideSource, /warmPracticeAssets/);
-assert.match(overrideSource, /wrapped\.__dailyRouteAssignmentOriginal\.apply\(this, arguments\)/);
+assert.doesNotMatch(overrideSource, /daily_learning_route_assignment|syncPinnedSlot|ensurePinnedSlot/);
+assert.match(mainSource, /await loadFeatureScript\('js\/dailyLearningRouteOverride\.js'\)/);
+assert.ok(
+  mainSource.indexOf("await loadFeatureScript('js/dailyLearningRouteOverride.js')")
+    < mainSource.indexOf('window.__dailyLearningRoutePrefetchPromise = fetch'),
+  'manual selection authority must load before route prefetch'
+);
+assert.match(mainSource, /Promise\.allSettled\(jobs\)/);
+assert.doesNotMatch(mainSource, /await loadRewardFor|await loadClassroomFor/);
+assert.doesNotMatch(lazySource, /warmAdventure|warmWrongAnswerOrganizer|adventure-preload/);
 
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
-assert.match(serviceWorker, /xxzcard-app-shell-v83/);
-assert.match(serviceWorker, /xxzcard-runtime-v83/);
+assert.match(serviceWorker, /xxzcard-app-shell-v85/);
+assert.match(serviceWorker, /xxzcard-runtime-v85/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.match(serviceWorker, /match\(request, \{ ignoreSearch: true \}\)/);
@@ -148,6 +158,7 @@ assert.match(serviceWorker, /Math\.min\(APP_SHELL_FETCH_CONCURRENCY, urls\.lengt
 assert.match(serviceWorker, /async function cachedNavigation\(request\)[\s\S]*?matchCurrentGeneration\(request\)/);
 assert.match(serviceWorker, /if \(isCodeAsset\) \{\s*event\.respondWith\(cacheFirst\(event\.request\)/s);
 assert.doesNotMatch(serviceWorker, /'\.\/js\/grammarChallenges\.js'/);
+assert.match(serviceWorker, /'\.\/js\/dailyLearningRouteOverride\.js'/);
 assert.doesNotMatch(serviceWorker, /'\.\/grammar-challenge\/data\/catalog\.js'/);
 assert.doesNotMatch(serviceWorker, /'\.\/grammar-challenge\/data\/page-practices\/2026-07-31\.js'/);
 assert.doesNotMatch(serviceWorker, /'\.\/grammar-challenge\/data\/page-practices\/2026-08-01\.js'/);

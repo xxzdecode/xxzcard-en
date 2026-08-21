@@ -22,6 +22,7 @@ function switchUser(user) {
     resetStudentRuntimeView();
     if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
     currentUser = user;
+    globalThis.currentUser = currentUser;
     localStorage.setItem('wc_user', user);
     document.body.classList.remove('is-teacher');
     updateUserBar();
@@ -49,7 +50,7 @@ function pinInput(digit) {
           resetStudentRuntimeView();
           if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
           document.getElementById('modalPin').classList.remove('show');
-          currentUser = 'teacher'; localStorage.setItem('wc_user','teacher');
+          currentUser = 'teacher'; globalThis.currentUser = currentUser; localStorage.setItem('wc_user','teacher');
           document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); await loadHome();
         } else {
           document.getElementById('pinError').textContent = '密码错误，请重试';
@@ -67,7 +68,7 @@ function pinInput(digit) {
           resetStudentRuntimeView();
           if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
           document.getElementById('modalPin').classList.remove('show');
-          currentUser = 'teacher'; localStorage.setItem('wc_user','teacher');
+          currentUser = 'teacher'; globalThis.currentUser = currentUser; localStorage.setItem('wc_user','teacher');
           document.body.classList.add('is-teacher'); updateUserBar(); showScreen('screenHome'); await loadHome();
         } else {
           document.getElementById('pinError').textContent = '两次输入不一致，重新开始';
@@ -128,24 +129,3 @@ function resetStudentRuntimeView() {
   if (editPanel) editPanel.classList.remove('open');
   if (editBtn) editBtn.classList.remove('active');
 }
-
-// ══════════════════════════════════════
-
-(function loadDailyLearningRouteOverrideScript() {
-  if (typeof document === 'undefined') return;
-  const source = 'js/dailyLearningRouteOverride.js';
-  const appendOverride = () => {
-    if (document.querySelector('script[data-daily-route-override]')) return;
-    const script = document.createElement('script');
-    script.src = source;
-    script.async = true;
-    script.dataset.dailyRouteOverride = 'true';
-    script.onerror = () => console.warn('daily learning route override unavailable');
-    document.head.appendChild(script);
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', appendOverride, { once: true });
-    return;
-  }
-  appendOverride();
-})();

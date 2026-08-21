@@ -800,16 +800,19 @@
 
     function challengeMeta(challengeId) {
       const entry = catalogEntry(challengeId) || {};
+      const adaptive = typeof root.getAdaptiveGrammarChallengeMeta === 'function'
+        ? root.getAdaptiveGrammarChallengeMeta(challengeId)
+        : null;
       const route = typeof root.getDailyLearningRoute === 'function' ? root.getDailyLearningRoute() : null;
       const routeChallenge = route && route.grammarChallenge && route.grammarChallenge.id === challengeId
         ? route.grammarChallenge
         : null;
       return {
         challengeId: String(challengeId || entry.id || '').trim(),
-        challengeTitle: String(entry.title || routeChallenge && routeChallenge.title || '').trim(),
-        challengeContentDate: String(entry.date || '').trim(),
-        lessonKey: String(entry.lessonKey || routeChallenge && (routeChallenge.reviewLessonKey || routeChallenge.lessonKey) || '').trim(),
-        kpIds: uniqueStrings(entry.kpIds || entry.kp_ids),
+        challengeTitle: String(adaptive && adaptive.challengeTitle || entry.title || routeChallenge && routeChallenge.title || '').trim(),
+        challengeContentDate: String(adaptive && adaptive.challengeContentDate || entry.date || '').trim(),
+        lessonKey: String(adaptive && adaptive.lessonKey || entry.lessonKey || routeChallenge && (routeChallenge.reviewLessonKey || routeChallenge.lessonKey) || '').trim(),
+        kpIds: uniqueStrings(adaptive && adaptive.kpIds || entry.kpIds || entry.kp_ids),
         questionKpIds: isPlainObject(entry.questionKpIds || entry.question_kp_ids)
           ? clone(entry.questionKpIds || entry.question_kp_ids)
           : {},

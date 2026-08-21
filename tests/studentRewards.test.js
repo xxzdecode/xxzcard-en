@@ -8,8 +8,12 @@ const source = fs.readFileSync(path.join(root, 'js', 'studentRewards.js'), 'utf8
 const dailyLearningRouteSource = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'), 'utf8');
 const date = '2026-07-30';
 
-const loadRewardSource = source.match(/async function loadReward\(user\) \{[\s\S]*?\n    \}/)?.[0] || '';
-assert.match(loadRewardSource, /root\.sbGet\(rewardKey\(user\)\)/);
+const loadRewardSource = source.slice(
+  source.indexOf('async function loadReward(user, options)'),
+  source.indexOf('async function saveReward(user, record)')
+);
+assert.match(loadRewardSource, /root\.sbGetRemote\(key\)/);
+assert.match(loadRewardSource, /root\.sbGet\(key\)/);
 assert.doesNotMatch(loadRewardSource, /root\.sbSet\(|await saveReward\(/, 'opening the home screen must not write reward data');
 
 assert.deepEqual(rewards.SOURCE_MAX, {
@@ -161,6 +165,29 @@ const duplicateClaim = rewards.claimSourceReward(claimedAdventure.record, {
 assert.equal(duplicateClaim.changed, false, 'refreshes and repeated clicks must not award twice');
 assert.equal(duplicateClaim.record.totalCoins, 25);
 assert.equal(duplicateClaim.record.transactions.length, claimedAdventure.record.transactions.length);
+
+const wrongOwnerClaim = rewards.claimSourceReward({
+  ...pendingAdventure.record,
+  owner: 'sister'
+}, {
+  user: 'brother',
+  date: claimDate,
+  source: 'adventure'
+});
+assert.equal(wrongOwnerClaim.changed, false);
+assert.equal(wrongOwnerClaim.code, 'OWNER_MISMATCH');
+assert.equal(wrongOwnerClaim.record.totalCoins, 20);
+
+const legacyUserMismatch = rewards.claimSourceReward({
+  ...pendingAdventure.record,
+  user: 'sister'
+}, {
+  user: 'brother',
+  date: claimDate,
+  source: 'adventure'
+});
+assert.equal(legacyUserMismatch.changed, false);
+assert.equal(legacyUserMismatch.code, 'OWNER_MISMATCH');
 
 const firstChallengeClaim = rewards.claimSourceReward(
   rewards.markSourceClaim(null, {

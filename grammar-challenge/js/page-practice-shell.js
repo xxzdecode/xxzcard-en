@@ -18,13 +18,19 @@
   mount(config, practiceUrl);
 
   function mount(settings, sourceUrl) {
+    const adaptiveSession = settings.adaptiveSession && settings.adaptiveSession.enabled === true
+      ? settings.adaptiveSession
+      : null;
+    document.body.classList.toggle('adaptive-challenge', Boolean(adaptiveSession));
     const state = {
       round: [],
       index: 0,
       interaction: core.createInteractionState(),
       solved: [],
       firstTry: [],
-      wrongEver: []
+      wrongEver: [],
+      saving: false,
+      pendingAdaptive: null
     };
     let transitionTimer = null;
 
@@ -291,6 +297,7 @@
         return button;
       }));
       renderAnswerZone(item);
+      ui.next.textContent = '下一题';
       ui.next.disabled = true;
       feedback('', item.type === 'multi'
         ? '请选择全部正确答案。'
@@ -311,7 +318,73 @@
       else ui.dialog.setAttribute('open', '');
     }
 
-    function submit() {
+    function scheduleAdvance() {
+      window.clearTimeout(transitionTimer);
+      transitionTimer = window.setTimeout(() => {
+        if (state.index + 1 >= state.round.length) {
+          showCompletion();
+          return;
+        }
+        removePracticeData(true);
+        state.index += 1;
+        renderQuestion(false);
+      }, Number(settings.feedbackDelayMs || 1000));
+    }
+
+    async function persistAdaptiveResult() {
+      const pending = state.pendingAdaptive;
+      if (!pending) return;
+      const adaptive = Boolean(adaptiveSession);
+      if (!adaptive) {
+        state.pendingAdaptive = null;
+        scheduleAdvance();
+        return;
+      }
+      let bridge = null;
+      try { bridge = window.parent && window.parent.recordAdaptiveGrammarAnswer; } catch (_) {}
+      if (typeof bridge !== 'function') {
+        feedback('wrong', '题目记录组件尚未准备好，请点击“重试保存”。');
+        ui.next.textContent = '重试保存';
+        ui.next.disabled = false;
+        return;
+      }
+      state.saving = true;
+      ui.next.disabled = true;
+      try {
+        const result = await bridge({
+          questionId: pending.questionId,
+          correct: pending.correct,
+          answeredAt: pending.answeredAt
+        });
+        if (result && Array.isArray(result.questions) && result.questions.length === state.round.length) {
+          result.questions.forEach((question, index) => {
+            if (index > state.index) state.round[index] = question;
+          });
+          settings.questions = [...state.round];
+          settings.adaptiveSession.cursor = result.session && Number(result.session.cursor) || state.index + 1;
+          settings.adaptiveSession.results = result.session && Array.isArray(result.session.items)
+            ? result.session.items.map(item => item.firstTryCorrect)
+            : settings.adaptiveSession.results;
+        }
+        state.pendingAdaptive = null;
+        ui.next.textContent = '下一题';
+        scheduleAdvance();
+      } catch (error) {
+        console.warn('Unable to save adaptive grammar answer', error);
+        feedback('wrong', '本题尚未保存，请检查网络后点击“重试保存”。');
+        ui.next.textContent = '重试保存';
+        ui.next.disabled = false;
+      } finally {
+        state.saving = false;
+      }
+    }
+
+    async function submit() {
+      if (state.saving) return;
+      if (state.pendingAdaptive) {
+        await persistAdaptiveResult();
+        return;
+      }
       const item = question();
       if (!core.beginSubmit(item, state.interaction, solved())) return;
 
@@ -339,30 +412,31 @@
 
       // 锁定、判分和最终界面状态完成后，才允许历史监听器读取一次最终答案。
       armRecordCapture();
-
-      window.clearTimeout(transitionTimer);
-      transitionTimer = window.setTimeout(() => {
-        if (state.index + 1 >= state.round.length) {
-          showCompletion();
-          return;
-        }
-        removePracticeData(true);
-        state.index += 1;
-        renderQuestion(false);
-      }, Number(settings.feedbackDelayMs || 1000));
+      state.pendingAdaptive = {
+        questionId: item.id,
+        correct,
+        answeredAt: new Date().toISOString()
+      };
+      await persistAdaptiveResult();
     }
 
     function startRound() {
       window.clearTimeout(transitionTimer);
       removePracticeData(true);
       state.round = buildRound();
-      state.index = 0;
-      state.solved = Array(state.round.length).fill(false);
-      state.firstTry = Array(state.round.length).fill(false);
-      state.wrongEver = Array(state.round.length).fill(false);
+      settings.questions = [...state.round];
+      const cursor = adaptiveSession ? Math.max(0, Math.min(state.round.length, Number(adaptiveSession.cursor) || 0)) : 0;
+      const results = adaptiveSession && Array.isArray(adaptiveSession.results) ? adaptiveSession.results : [];
+      state.index = cursor;
+      state.solved = state.round.map((_, index) => index < cursor);
+      state.firstTry = state.round.map((_, index) => typeof results[index] === 'boolean' ? results[index] : false);
+      state.wrongEver = state.round.map((_, index) => index < cursor && results[index] === false);
+      state.saving = false;
+      state.pendingAdaptive = null;
       ui.dialog.dataset.complete = 'false';
       if (ui.dialog.open) ui.dialog.close();
-      renderQuestion(false);
+      if (cursor >= state.round.length) showCompletion();
+      else renderQuestion(false);
     }
 
     ui.title.textContent = settings.title || '语法挑战';
@@ -372,8 +446,10 @@
       chip.textContent = text;
       return chip;
     }));
-    document.getElementById('restartButton').textContent = settings.restartLabel || '重新挑战';
-    document.getElementById('restartButton').addEventListener('click', startRound);
+    const restartButton = document.getElementById('restartButton');
+    restartButton.textContent = settings.restartLabel || '重新挑战';
+    restartButton.hidden = Boolean(adaptiveSession);
+    restartButton.addEventListener('click', startRound);
     if (settings.continueLabel) {
       ui.continueButton.hidden = false;
       ui.continueButton.textContent = settings.continueLabel;

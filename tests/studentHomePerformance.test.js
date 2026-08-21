@@ -45,6 +45,10 @@ assert.match(styles, /@media \(min-width: 768px\)[\s\S]*?#screenHome\.active\s*\
 assert.match(styles, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
 assert.match(styles, /grid-template-rows:\s*37px\s+minmax\(0,\s*1fr\)\s+62px/);
 assert.match(styles, /grid-template-columns:\s*1\.55fr\s+1fr\s+1fr/);
+assert.match(styles, /\.student-home-section h2\s*\{[^}]*pointer-events:\s*none/s);
+assert.match(styles, /\.student-home-card\s*\{[^}]*pointer-events:\s*none/s);
+assert.match(styles, /\.student-home-card__main\s*\{[^}]*z-index:\s*2[^}]*pointer-events:\s*auto/s);
+assert.match(styles, /\.student-reward-chest\s*\{[^}]*pointer-events:\s*auto/s);
 assert.doesNotMatch(
   styles.match(/@media \(min-width: 768px\)[\s\S]*?@media \(min-width: 768px\) and \(orientation: portrait\)/)?.[0] || '',
   /clamp\(300px|clamp\(245px/
@@ -70,17 +74,8 @@ assert.match(lazy, /featureGroupPromises\.delete\(group\)/);
 assert.match(lazy, /teacherTools:/);
 assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
-assert.match(lazy, /requestIdleCallback/);
-assert.match(
-  lazy,
-  /Promise\.allSettled\(\[\s*loadFeatureGroup\('adventurePlayer'\),\s*loadFeatureGroup\('adventureChallenge'\)\s*\]\)/,
-  'idle warmup should preload both adventure entries concurrently'
-);
-assert.match(
-  lazy,
-  /loadHome\(\{ background: true, reason: 'adventure-preload' \}\)/,
-  'idle warmup refresh must stay silent'
-);
+assert.doesNotMatch(lazy, /warmAdventure|warmWrongAnswerOrganizer|adventure-preload/);
+assert.doesNotMatch(lazy, /requestIdleCallback|setTimeout\(warm/);
 assert.match(runtimeHomeStability, /const background = settings\.background === true/);
 assert.match(runtimeHomeStability, /const loadingTimer = background \? 0 : root\.setTimeout/);
 for (const reason of ['initial-cloud-refresh', 'cloud-reconnect', 'cloud-poll']) {
@@ -97,9 +92,9 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v83/);
-assert.match(serviceWorker, /xxzcard-runtime-v83/);
-assert.ok(appShellEntries.length <= 22, `Apple-safe install shell grew to ${appShellEntries.length} resources`);
+assert.match(serviceWorker, /xxzcard-app-shell-v85/);
+assert.match(serviceWorker, /xxzcard-runtime-v85/);
+assert.equal(appShellEntries.length, 22, `Apple-safe install shell must stay at 22 resources, found ${appShellEntries.length}`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
   main.indexOf("loadFeatureScript('js/dailyLearningRoute.js')") < main.indexOf("loadFeatureScript('js/masterVocabularyLibrary.js')"),
@@ -109,7 +104,7 @@ assert.match(main, /__dailyLearningRoutePrefetchPromise = fetch/);
 assert.doesNotMatch(config, /documentRef\.write\(|document\.write\(/);
 assert.match(config, /addEventListener\('DOMContentLoaded', appendPatch, \{ once: true \}\)/);
 assert.doesNotMatch(auth, /document\.write\(/);
-assert.match(auth, /addEventListener\('DOMContentLoaded', appendOverride, \{ once: true \}\)/);
+assert.doesNotMatch(auth, /dailyLearningRouteOverride\.js|appendOverride/);
 assert.doesNotMatch(runtimeStabilityPatch, /documentRef\.write\(|document\.write\(/);
 assert.doesNotMatch(main, /teacherToolsWarmup|loadFeatureGroup\('teacherTools'\)/);
 assert.match(lazy, /teacherTools:[\s\S]*?'js\/wordCardPerformance\.js'[\s\S]*?'js\/wordCardStudySafety\.js'/);
@@ -135,6 +130,9 @@ assert.ok(
 assert.match(main, /installHomeRefreshCoordinator/);
 assert.match(main, /id === requestId/);
 assert.match(main, /while \(rerunRequested\)/);
+assert.match(main, /renderCachedReward\(user, id\);\s*renderCachedClassroom\(user, id\);/);
+assert.match(main, /Promise\.allSettled\(jobs\)/);
+assert.doesNotMatch(main, /await loadRewardFor|await loadClassroomFor/);
 assert.match(dailyRoute, /ROUTE_TIMEOUT_MS = 2800/);
 assert.match(dailyRoute, /cache: 'no-store'/);
 assert.match(dailyRoute, /DAILY_ROUTE_CACHE_KEY/);
@@ -157,6 +155,7 @@ assert.doesNotMatch(serviceWorker, /js\/vocabularyQuestionTypesRepeatBootstrap\.
 assert.doesNotMatch(serviceWorker, /js\/vocabularyPracticeUI\.js/);
 assert.match(serviceWorker, /dailyRouteNetworkOnly/);
 assert.match(serviceWorker, /daily-learning-route\.json/);
+assert.doesNotMatch(appShellBody, /daily-learning-route\.json/);
 assert.match(serviceWorker, /js\/masterVocabularyLibrary\.js/);
 assert.doesNotMatch(serviceWorker, /js\/studentRewardLayoutGuard\.js/);
 assert.doesNotMatch(serviceWorker, /js\/studentRewardReconcile\.js/);

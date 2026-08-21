@@ -50,6 +50,23 @@
       + String(date.getDate()).padStart(2, '0');
   }
 
+  function studentKey(value) {
+    return value === 'brother' ? 'brother' : value === 'sister' ? 'sister' : '';
+  }
+
+  function rewardOwner(recordValue, fallback) {
+    const record = recordValue && typeof recordValue === 'object' ? recordValue : {};
+    return studentKey(record.owner)
+      || studentKey(record.student)
+      || studentKey(record.user)
+      || studentKey(fallback);
+  }
+
+  function shouldRenderRewardOwner(owner, current) {
+    const student = studentKey(owner);
+    return !!student && student === studentKey(current);
+  }
+
   function clampInteger(value, min, max) {
     const number = Math.round(Number(value) || 0);
     return Math.max(min, Math.min(max, number));
@@ -249,6 +266,12 @@
   function claimSourceReward(recordValue, options) {
     const settings = options && typeof options === 'object' ? options : {};
     const record = normalizeRewardRecord(recordValue);
+    const requestedOwner = studentKey(settings.user);
+    const owner = rewardOwner(record, requestedOwner);
+    if (requestedOwner && owner && requestedOwner !== owner) {
+      return { record, changed: false, delta: 0, projectDelta: 0, claim: null, code: 'OWNER_MISMATCH' };
+    }
+    if (owner) record.owner = owner;
     const date = String(settings.date || dateKey());
     const source = String(settings.source || '');
     if (!Object.prototype.hasOwnProperty.call(SOURCE_MAX, source)) {
@@ -412,28 +435,48 @@
     let studentTagsCache = null;
 
     function currentUserValue() {
-      try { return typeof currentUser !== 'undefined' ? currentUser : root.currentUser; }
-      catch (_) { return root.currentUser; }
+      const canonical = studentKey(root.currentUser);
+      if (canonical) return canonical;
+      try { return studentKey(typeof currentUser !== 'undefined' ? currentUser : ''); }
+      catch (_) { return ''; }
     }
 
     function rewardKey(user) {
       return REWARD_KEY_PREFIX + (user === 'brother' ? 'brother' : 'sister');
     }
 
-    async function loadReward(user) {
-      if (typeof root.sbGet !== 'function') return normalizeRewardRecord(null);
-      const raw = await root.sbGet(rewardKey(user));
+    async function loadReward(user, options) {
+      const student = user === 'brother' ? 'brother' : 'sister';
+      const settings = options && typeof options === 'object' ? options : {};
+      const getter = settings.requireRemote === true && typeof root.sbGetRemote === 'function'
+        ? key => root.sbGetRemote(key)
+        : typeof root.sbGet === 'function' ? key => root.sbGet(key) : null;
+      if (!getter) return { ...normalizeRewardRecord(null), owner: student };
+      const raw = await getter(rewardKey(student));
       // Normalization is a read concern. Persisting it during every home load
       // caused an unsolicited cloud write (and a retry alert) before the user
       // had performed any action. Explicit reward mutations save the normalized
       // record through saveReward/recordSource instead.
-      return normalizeRewardRecord(raw);
+      const record = normalizeRewardRecord(raw);
+      const owner = rewardOwner(record, student);
+      if (owner !== student) {
+        const error = new Error(`reward owner mismatch: expected ${student}, received ${owner || 'missing'}`);
+        error.code = 'REWARD_OWNER_MISMATCH';
+        throw error;
+      }
+      record.owner = student;
+      return record;
     }
 
     async function saveReward(user, record) {
       if (typeof root.sbSet !== 'function') return false;
       try {
-        await root.sbSet(rewardKey(user), normalizeRewardRecord(record));
+        const student = user === 'brother' ? 'brother' : 'sister';
+        const normalized = normalizeRewardRecord(record);
+        const owner = rewardOwner(normalized, student);
+        if (owner !== student) throw new Error(`refusing to save ${owner || 'unknown'} reward as ${student}`);
+        normalized.owner = student;
+        await root.sbSet(rewardKey(student), normalized);
         return true;
       } catch (error) {
         root.showStorageError?.(error);
@@ -522,7 +565,7 @@
         reward.textContent = '预计 5 金币';
         grammarCopy.appendChild(reward);
       }
-      grammarEntry?.setAttribute('aria-label', '语法挑战，复习上一节课语法，完成可领取5金币');
+      grammarEntry?.setAttribute('aria-label', '语法挑战，20题综合复习，近期和历史知识各10题，完成可领取5金币');
     }
 
     function renderStudentIdentity(user) {
@@ -541,8 +584,10 @@
       return 'idle';
     }
 
-    function renderHomeClaimStates(recordValue) {
+    function renderHomeClaimStates(recordValue, ownerValue) {
       const record = normalizeRewardRecord(recordValue);
+      const owner = rewardOwner(record, ownerValue);
+      if (!shouldRenderRewardOwner(owner, currentUserValue())) return record;
       const day = normalizeDay(record.daily[dateKey()]);
       const completionStatusIds = {
         adventure: 'vocabularyAdventureHomeStatus',
@@ -553,6 +598,7 @@
       Object.keys(SOURCE_MAX).forEach(source => {
         const card = document.querySelector(`.student-home-card[data-reward-source="${source}"]`);
         if (!card) return;
+        card.dataset.rewardUser = owner;
         const claim = normalizeClaim(day.claims[source], source, day.sources[source]);
         const state = homeClaimState(claim);
         const completed = claim.status !== 'idle';
@@ -567,6 +613,7 @@
         const chest = card.querySelector('.student-reward-chest');
         const image = chest?.querySelector('img');
         if (!chest || !image) return;
+        chest.dataset.rewardUser = owner;
         chest.dataset.state = state;
         chest.disabled = state !== 'pending';
         image.src = state === 'pending'
@@ -623,14 +670,22 @@
 
     async function claimHomeReward(source, button) {
       if (!Object.prototype.hasOwnProperty.call(SOURCE_MAX, source) || button?.dataset.claiming === 'true') return;
-      const student = currentUserValue() === 'brother' ? 'brother' : 'sister';
+      const activeStudent = currentUserValue();
+      const renderedStudent = studentKey(
+        button?.dataset.rewardUser || button?.closest?.('.student-home-card')?.dataset.rewardUser
+      ) || activeStudent;
+      if (!shouldRenderRewardOwner(renderedStudent, activeStudent)) {
+        showHomeNotice('账号已切换，请刷新后再领取');
+        return;
+      }
+      const student = renderedStudent;
       if (button) {
         button.dataset.claiming = 'true';
         button.disabled = true;
       }
       try {
-        let current = await loadReward(student);
-        let result = claimSourceReward(current, { date: dateKey(), source });
+        let current = await loadReward(student, { requireRemote: true });
+        let result = claimSourceReward(current, { user: student, date: dateKey(), source });
 
         if (!result.changed && result.code === 'NOT_CLAIMABLE' && source === 'vocabularyChallenge') {
           if (typeof root.settleVocabularyChallengeReward !== 'function'
@@ -641,35 +696,47 @@
             ? await root.settleVocabularyChallengeReward({ user: student, silent: true })
             : { ok: false, code: 'SETTLEMENT_DEPENDENCIES_UNAVAILABLE' };
           if (repaired && repaired.ok !== false) {
-            current = await loadReward(student);
-            result = claimSourceReward(current, { date: dateKey(), source });
+            current = await loadReward(student, { requireRemote: true });
+            result = claimSourceReward(current, { user: student, date: dateKey(), source });
           }
           if (!result.changed) {
-            renderEnhancedReward(result.record);
-            showHomeNotice(repaired && repaired.ok === false
-              ? '奖励对账暂未完成，请检查网络后重试'
-              : '奖励记录正在同步，请稍后再点一次');
+            if (shouldRenderRewardOwner(student, currentUserValue())) {
+              renderEnhancedReward(result.record, student);
+              showHomeNotice(repaired && repaired.ok === false
+                ? '奖励对账暂未完成，请检查网络后重试'
+                : '奖励记录正在同步，请稍后再点一次');
+            }
             return;
           }
         }
 
         if (!result.changed) {
-          renderEnhancedReward(result.record);
-          showHomeNotice(result.code === 'NOT_CLAIMABLE' ? '当前没有可领取的奖励' : '奖励状态已更新');
+          if (shouldRenderRewardOwner(student, currentUserValue())) {
+            renderEnhancedReward(result.record, student);
+            showHomeNotice(result.code === 'OWNER_MISMATCH'
+              ? '奖励账号不匹配，请刷新后重试'
+              : result.code === 'NOT_CLAIMABLE' ? '当前没有可领取的奖励' : '奖励状态已更新');
+          }
           return;
         }
         animateClaim(button);
         if (!await saveReward(student, result.record)) {
-          renderEnhancedReward(current);
-          showHomeNotice('领取未完成，请检查网络后重试');
+          if (shouldRenderRewardOwner(student, currentUserValue())) {
+            renderEnhancedReward(current, student);
+            showHomeNotice('领取未完成，请检查网络后重试');
+          }
           return;
         }
-        renderEnhancedReward(result.record);
-        showHomeNotice(`已领取 ${result.claim.amount} 金币`);
+        if (shouldRenderRewardOwner(student, currentUserValue())) {
+          renderEnhancedReward(result.record, student);
+          showHomeNotice(`已领取 ${result.claim.amount} 金币`);
+        }
       } catch (error) {
         console.warn('Unable to claim home reward', error);
-        showHomeNotice('领取暂时失败，请检查网络后重试');
-        if (button) button.disabled = false;
+        if (shouldRenderRewardOwner(student, currentUserValue())) {
+          showHomeNotice('领取暂时失败，请检查网络后重试');
+          if (button) button.disabled = false;
+        }
       } finally {
         if (button) delete button.dataset.claiming;
       }
@@ -686,10 +753,15 @@
       });
     }
 
-    function renderEnhancedReward(recordValue) {
+    function renderEnhancedReward(recordValue, ownerValue) {
       prepareSummaryMarkup();
       prepareHomeRewardCopy();
       const record = normalizeRewardRecord(recordValue);
+      const owner = rewardOwner(record, ownerValue);
+      if (!shouldRenderRewardOwner(owner, currentUserValue()) || root.isTeacher?.()) return null;
+      record.owner = owner;
+      const dashboard = document.getElementById('studentDashboard');
+      if (dashboard) dashboard.dataset.rewardUser = owner;
       const day = normalizeDay(record.daily[dateKey()]);
       root.renderStudentRewardSummary?.({
         available: true,
@@ -698,39 +770,43 @@
         todayCoins: day.coins,
         todayMaxCoins: REGULAR_DAILY_MAX
       });
-      renderStudentIdentity(currentUserValue());
-      renderHomeClaimStates(record);
+      renderStudentIdentity(owner);
+      renderHomeClaimStates(record, owner);
       return record;
     }
 
     async function loadEnhancedStudentRewardSummary() {
       if (root.isTeacher?.()) return;
-      await ensureInitialBreakthrough();
       const user = currentUserValue() === 'brother' ? 'brother' : 'sister';
+      await ensureInitialBreakthrough();
+      if (!shouldRenderRewardOwner(user, currentUserValue())) return;
       const local = root.getMirrorValue?.(rewardKey(user));
       studentTagsCache = normalizedStudentTags(root.getMirrorValue?.(STUDENT_TAG_KEY));
-      if (local) renderEnhancedReward(local);
-      const [record] = await Promise.all([loadReward(user), loadStudentTags()]);
-      renderEnhancedReward(record);
+      if (local) renderEnhancedReward(local, user);
+      const [record] = await Promise.all([
+        loadReward(user, { requireRemote: true }).catch(() => loadReward(user)),
+        loadStudentTags()
+      ]);
+      if (shouldRenderRewardOwner(user, currentUserValue())) renderEnhancedReward(record, user);
     }
 
     async function recordSource(user, source, amount, mode, options) {
       const settings = options && typeof options === 'object' ? options : {};
       const student = user === 'brother' ? 'brother' : 'sister';
-      const current = await loadReward(student);
+      const current = await loadReward(student, { requireRemote: true });
       const result = markSourceClaim(current, { date: dateKey(), source, amount, mode: mode === 'max' ? 'max' : 'set' });
       if (result.changed && !await saveReward(student, result.record)) {
         return { ok: false, record: current, delta: 0, projectDelta: 0 };
       }
       if (settings.render !== false && currentUserValue() === student && !root.isTeacher?.()) {
-        renderEnhancedReward(result.record);
+        renderEnhancedReward(result.record, student);
       }
       return { ok: true, ...result };
     }
 
     async function adjustRewardProject(user, project, delta) {
       const student = user === 'brother' ? 'brother' : 'sister';
-      const current = await loadReward(student);
+      const current = await loadReward(student, { requireRemote: true });
       const result = applyRewardAdjustment(current, { date: dateKey(), project, delta });
       if (result.changed && !await saveReward(student, result.record)) {
         return { ok: false, record: current, delta: 0, projectDelta: 0 };
@@ -1112,6 +1188,9 @@
     STUDENT_TAG_MAX_LENGTH,
     DEFAULT_STUDENT_TAGS,
     dateKey,
+    studentKey,
+    rewardOwner,
+    shouldRenderRewardOwner,
     clampInteger,
     challengeRewardAmount,
     normalizeStudentTag,

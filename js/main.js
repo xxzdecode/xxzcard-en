@@ -219,9 +219,9 @@
   installVocabularyAdventurePreviewLatestGuard();
 })(typeof window !== 'undefined' ? window : globalThis);
 
-// Keep home refreshes in one ordered chain. Remote reward/classroom reads are
-// awaited and guarded by user + request id, so an older response cannot replace
-// the newest home state after exits, saves or user switches.
+// Render the mirrored home state immediately. Remote reward/classroom refreshes
+// run together in the background and are guarded by user + request id, so an
+// older response cannot replace the newest state after exits or user switches.
 (function installHomeRefreshCoordinator(root) {
   if (!root || root.__homeRefreshCoordinatorInstalled || typeof root.loadHome !== 'function') return;
   root.__homeRefreshCoordinatorInstalled = true;
@@ -244,10 +244,15 @@
       && !(typeof isTeacher === 'function' && isTeacher());
   }
 
-  async function loadRewardFor(user, id) {
+  function renderCachedReward(user, id) {
     if (!isCurrent(user, id) || typeof renderReward !== 'function') return;
     const key = studentRewardKey(user);
     renderReward(getMirrorValue(key));
+  }
+
+  async function refreshRewardFromCloud(user, id) {
+    if (!isCurrent(user, id) || typeof renderReward !== 'function') return;
+    const key = studentRewardKey(user);
     try {
       const remote = await sbGetRemote(key);
       if (isCurrent(user, id) && remote && typeof remote === 'object') {
@@ -258,11 +263,16 @@
     }
   }
 
-  async function loadClassroomFor(user, id) {
+  function renderCachedClassroom(user, id) {
     if (!isCurrent(user, id) || typeof renderClassroom !== 'function') return;
     const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + user;
     const local = getMirrorValue(key);
     renderClassroom(local && typeof local === 'object' ? local[todayISO()] : null);
+  }
+
+  async function refreshClassroomFromCloud(user, id) {
+    if (!isCurrent(user, id) || typeof renderClassroom !== 'function') return;
+    const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + user;
     try {
       const remote = await sbGetRemote(key);
       if (!isCurrent(user, id)) return;
@@ -273,17 +283,28 @@
     }
   }
 
-  async function performHomeLoad(user, id) {
+  function refreshHomeFromCloud(user, id) {
+    const jobs = [
+      refreshRewardFromCloud(user, id),
+      refreshClassroomFromCloud(user, id)
+    ];
+    if (typeof root.updateVocabularyAdventurePreviewEntry === 'function') {
+      jobs.push(root.updateVocabularyAdventurePreviewEntry());
+    }
+    return Promise.allSettled(jobs);
+  }
+
+  function performHomeLoad(user, id) {
     updateUserBar();
     if (currentUser === 'teacher') document.body.classList.add('is-teacher');
     else document.body.classList.remove('is-teacher');
     if (!user) {
       root.refreshTeacherDashboardSummaries?.();
-      return;
+      return Promise.resolve();
     }
 
-    await loadRewardFor(user, id);
-    if (!isCurrent(user, id)) return;
+    renderCachedReward(user, id);
+    renderCachedClassroom(user, id);
 
     const notice = document.getElementById('studentHomeNotice');
     if (notice) {
@@ -291,12 +312,10 @@
       notice.textContent = '';
     }
 
-    await loadClassroomFor(user, id);
-    if (!isCurrent(user, id)) return;
-
-    if (typeof root.updateVocabularyAdventurePreviewEntry === 'function') {
-      await root.updateVocabularyAdventurePreviewEntry();
-    }
+    Promise.resolve()
+      .then(() => refreshHomeFromCloud(user, id))
+      .catch(error => console.warn('home background refresh unavailable', error && (error.message || error)));
+    return Promise.resolve();
   }
 
   const coordinatedLoadHome = function coordinatedLoadHome() {
@@ -363,6 +382,12 @@
           console.warn('student activity controls unavailable', error && (error.message || error));
           return null;
         });
+
+      // Install the teacher-selected route authority before the first route
+      // request. A cold start must not race ahead with the static fallback.
+      await loadFeatureScript('js/dailyLearningRouteOverride.js').catch(error => {
+        console.warn('manual learning selection unavailable', error && (error.message || error));
+      });
 
       // Start the tiny current-route request before loading any optional
       // startup script. The helper consumes this promise when it becomes ready,

@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const currentWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const oldWorker = `
-const CACHE = 'xxzcard-app-shell-v82';
+const CACHE = 'xxzcard-app-shell-v84';
 self.addEventListener('install', event => event.waitUntil(
   caches.open(CACHE).then(cache => cache.add('./index.html')).then(() => self.skipWaiting())
 ));
@@ -88,7 +88,7 @@ async function waitForActiveVersion(page, cacheName) {
           && !registration.installing
           && !registration.waiting
           && keys.includes(expected)
-          && (!/v83$/.test(expected) || !keys.some(key => /v82$/.test(key)))
+          && (!/v85$/.test(expected) || !keys.some(key => /v84$/.test(key)))
       };
     }, cacheName);
     if (latest.ready) return;
@@ -132,27 +132,29 @@ const page = await context.newPage();
 try {
   await page.goto(`${baseUrl}/sw-harness.html`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => navigator.serviceWorker.register('./service-worker.js'));
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v82');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v84');
 
   serveCurrentWorker = true;
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v83');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v85');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v83');
+    const shell = await caches.open('xxzcard-app-shell-v85');
     const urls = (await shell.keys()).map(request => decodeURIComponent(new URL(request.url).pathname));
     return { keys, urls };
   });
   assert.ok(
-    !cacheState.keys.some(key => /v82$/.test(key)),
-    `v82 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
+    !cacheState.keys.some(key => /v84$/.test(key)),
+    `v84 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
   );
+  assert.equal(cacheState.urls.length, 22, 'v85 Apple-safe app shell must contain exactly 22 resources');
   assert.ok(cacheState.urls.some(url => /index\.html$/.test(url)));
-  assert.ok(cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
+  assert.ok(!cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
+  assert.ok(cacheState.urls.some(url => /dailyLearningRouteOverride\.js$/.test(url)));
   assert.ok(cacheState.urls.some(url => /vocabularyReview\.js$/.test(url)));
   assert.ok(cacheState.urls.some(url => /styles-vocabulary-lesson\.css$/.test(url)));
   assert.ok(!cacheState.urls.some(url => /grammar-challenge\//.test(url)));
@@ -160,7 +162,23 @@ try {
   assert.ok(!cacheState.urls.some(url => /studentActivityControls\.js$/.test(url)));
 
   const route = JSON.parse(fs.readFileSync(path.join(root, 'data', 'daily-learning-route.json'), 'utf8'));
-  await page.evaluate(value => {
+  const offlineSelection = {
+    schemaVersion: 2,
+    current: {
+      grammarChallenge: {
+        id: 'grammar-offline-manual',
+        title: '最后保存的语法内容',
+        lessonKey: 'offline-manual-grammar'
+      },
+      classroomPractice: {
+        practiceId: 'classroom-offline-manual',
+        title: '最后保存的随堂内容',
+        path: 'courseware/offline-manual.html'
+      },
+      updatedAt: '2026-08-21T00:00:00.000Z'
+    }
+  };
+  await page.evaluate(({ value, selection }) => {
     localStorage.setItem('wc_user', 'sister');
     localStorage.setItem('wc_sb_main', JSON.stringify({ pin: null, batches: [], mixedAssignments: [], taskAssignments: [] }));
     localStorage.setItem('wc_supabase_mirror', JSON.stringify({
@@ -175,18 +193,23 @@ try {
       }
     }));
     localStorage.setItem('daily_learning_route_cache_v1', JSON.stringify({ version: 1, route: value }));
-  }, route);
+    localStorage.setItem('daily_learning_route_override_cache_v1', JSON.stringify(selection));
+  }, { value: route, selection: offlineSelection });
 
   originAvailable = false;
   await context.route('https://**/*', route => route.abort());
-  await page.goto(`${baseUrl}/?cold=v83`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(window.getDailyLearningRoute?.()?.grammarChallenge));
+  await page.goto(`${baseUrl}/?cold=v85`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => {
+    const current = window.getDailyLearningRoute?.();
+    return current?.grammarChallenge?.id === 'grammar-offline-manual'
+      && current?.classroomPractice?.id === 'classroom-offline-manual';
+  });
   await openOfflineVocabularyGuide(page, 'sister', { width: 1180, height: 820 });
   await openOfflineVocabularyGuide(page, 'brother', { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v83', 'xxzcard-runtime-v83']);
-  console.log(`student runtime v82-to-v83 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v85', 'xxzcard-runtime-v85']);
+  console.log(`student runtime v84-to-v85 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
 } finally {
   originAvailable = true;
   await context.close();
