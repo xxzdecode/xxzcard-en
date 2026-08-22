@@ -11,7 +11,7 @@ const bank = require('../grammar-challenge/data/question-bank.js');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const resultDir = path.join(root, '.codex-backups', 'grammar-adaptive-visual-qa');
-const questions = bank.items.slice(0, 20).map(item => ({ ...item, id: item.bankItemId }));
+const questions = bank.items.slice(0, 15).map(item => ({ ...item, id: item.bankItemId }));
 
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -67,21 +67,21 @@ async function checkViewport(browser, baseUrl, viewport, filename) {
       };
     }, {
       version: 1,
-      title: '20题综合语法挑战',
+      title: '15题综合语法挑战',
       interactionMode: 'challenge-locked',
       completionTitle: '今日语法挑战完成',
       completion: '最近课程与已学知识点都完成了复习。',
       feedbackDelayMs: 10,
-      knowledge: ['最近课程 10 题', '历史知识 10 题', '错题稍后再练'],
-      round: { size: 20, shuffle: false },
-      adaptiveSession: { enabled: true, cursor: 0, results: Array(20).fill(null) },
+      knowledge: ['最近课程 8 题', '历史知识 7 题', '错题稍后再练'],
+      round: { size: 15, shuffle: false },
+      adaptiveSession: { enabled: true, cursor: 0, results: Array(15).fill(null) },
       questions
     });
     await page.goto(`${baseUrl}/adaptive-harness.html`, { waitUntil: 'commit' });
     await page.waitForFunction(() => /grammar-challenge\/index\.html/.test(document.getElementById('challenge')?.contentWindow?.location?.pathname || ''));
     const frame = page.frames().find(candidate => /grammar-challenge\/index\.html/.test(candidate.url()));
     assert.ok(frame, 'adaptive grammar frame should open');
-    await frame.waitForFunction(() => window.__LESSON_PREP_QA__?.state?.().total === 20);
+    await frame.waitForFunction(() => window.__LESSON_PREP_QA__?.state?.().total === 15);
     const layout = await frame.evaluate(() => {
       const options = [...document.querySelectorAll('.option')].map(node => node.getBoundingClientRect());
       return {
@@ -96,15 +96,23 @@ async function checkViewport(browser, baseUrl, viewport, filename) {
     });
     assert.deepEqual([layout.width, layout.height], [viewport.width, viewport.height]);
     assert.equal(layout.overflowX, false);
-    assert.equal(layout.total, 20);
-    assert.match(layout.progress, /1\s*\/\s*20/);
+    assert.equal(layout.total, 15);
+    assert.match(layout.progress, /1\s*\/\s*15/);
     assert.ok(layout.minTapHeight >= 44, `option tap height was ${layout.minTapHeight}`);
     if (viewport.width === 393) assert.equal(new Set(layout.optionLefts).size, 1, 'phone options should use one column');
 
-    await frame.evaluate(() => window.__LESSON_PREP_QA__.solveCurrent());
+    await frame.evaluate(() => window.__LESSON_PREP_QA__.selectWrong());
+    await frame.locator('#nextButton').click();
+    await frame.waitForSelector('#feedback.wrong');
+    await new Promise(resolve => setTimeout(resolve, 40));
+    assert.equal((await frame.evaluate(() => window.__LESSON_PREP_QA__.state().index)), 0, '答错后应留在当前题');
+    assert.equal(await frame.locator('#nextButton').isEnabled(), true);
     await frame.locator('#nextButton').click();
     await frame.waitForFunction(() => window.__LESSON_PREP_QA__?.state?.().index === 1);
-    assert.match(await frame.locator('#progressText').textContent(), /2\s*\/\s*20/);
+    assert.match(await frame.locator('#progressText').textContent(), /2\s*\/\s*15/);
+    await frame.evaluate(() => window.__LESSON_PREP_QA__.solveCurrent());
+    await frame.locator('#nextButton').click();
+    await frame.waitForFunction(() => window.__LESSON_PREP_QA__?.state?.().index === 2);
     await page.screenshot({ path: path.join(resultDir, filename), fullPage: true });
   } finally {
     await context.close();

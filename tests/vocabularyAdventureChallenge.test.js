@@ -71,6 +71,39 @@ const eligible = challenge.collectChallengeCandidates(candidates, state, today);
 assert.equal(eligible.length, 13);
 assert.equal(eligible.some(item => item.key === 'word13'), false, 'challenge pending words must stay out of challenge');
 
+const prioritizedLesson = challenge.buildChallengeSession({
+  candidates: candidates.map((item, index) => ({ ...item, lessonQueuePriority: index === 11 })),
+  state,
+  today,
+  userKey: 'sister',
+  attemptIndex: 1,
+  startedAt: '2026-07-29T01:00:00.000Z'
+});
+assert.equal(prioritizedLesson.ok, true);
+assert.equal(prioritizedLesson.session.items[0].wordKey, 'word11', 'newly taught words outrank F/H/due history');
+
+const priorityCandidates = candidates.slice(0, 6).map((item, index) => ({
+  ...item,
+  lessonQueuePriority: index === 5
+}));
+const priorityState = {
+  version: 1,
+  words: {
+    word0: { ...words.word0, lastResult: 'F', nextReviewAt: '2026-08-10', intervalIndex: 0 },
+    word1: { ...words.word1, lastResult: 'H', nextReviewAt: '2026-08-10', intervalIndex: 0 },
+    word2: { ...words.word2, lastResult: 'D', nextReviewAt: today, intervalIndex: 1 },
+    word3: { ...words.word3, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 1 },
+    word4: { ...words.word4, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 4 },
+    word5: { ...words.word5, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 1 }
+  }
+};
+assert.deepEqual(
+  challenge.collectChallengeCandidates(priorityCandidates, priorityState, today)
+    .map(item => item.challengePriority),
+  [1, 2, 3, 4, 5, 0],
+  'priority tiers are new lesson, F, H, due, ordinary learned, then stable'
+);
+
 const withUnscreened = {
   ...state,
   words: { ...state.words, word0: { ...state.words.word0, reviewCount: 0 } }

@@ -83,6 +83,9 @@
       && typeof root.jumpVocabularyLessonBatch === 'function'
       && typeof root.sbGet === 'function'
       && typeof root.sbSet === 'function'
+      && typeof root.loadVocabularyLessonTaughtState === 'function'
+      && typeof root.saveVocabularyLessonTaughtGroup === 'function'
+      && typeof root.isVocabularyLessonGroupTaught === 'function'
       && typeof root.showScreen === 'function'
       && typeof vocabularyLessonState !== 'undefined'
     );
@@ -115,6 +118,7 @@
       let activeCategory = null;
       let virtualBatch = null;
       let progressCache = null;
+      let taughtCache = null;
       let positionSaveTimer = 0;
 
       function lessonState() {
@@ -164,6 +168,27 @@
         }
       }
 
+      async function loadTaught(force = false) {
+        if (!force && taughtCache) return taughtCache;
+        try {
+          taughtCache = await root.loadVocabularyLessonTaughtState({ fresh: force, silent: true });
+        } catch (error) {
+          console.warn('Vocabulary category taught state load failed', error);
+          taughtCache = typeof root.normalizeVocabularyLessonTaughtState === 'function'
+            ? root.normalizeVocabularyLessonTaughtState(null)
+            : { version: 1, groups: {}, migrations: {} };
+        }
+        return taughtCache;
+      }
+
+      function isGroupTaught(group) {
+        return Boolean(group && root.isVocabularyLessonGroupTaught(
+          taughtCache,
+          group.id,
+          group.wordKeys
+        ));
+      }
+
       function ensureVirtualBatch(category) {
         if (virtualBatch && virtualBatch.id === `${CATEGORY_BATCH_PREFIX}${category.id}`) return virtualBatch;
         removeVirtualBatch();
@@ -181,6 +206,7 @@
         activeCategory = null;
         virtualBatch = null;
         progressCache = null;
+        taughtCache = null;
       }
 
       function groupConfigForCategory(category) {
@@ -240,66 +266,42 @@
       }
 
       async function decorateCategoryProgress() {
-        const progress = await loadProgress();
-        document.querySelectorAll('.vocabulary-lesson-category-button').forEach(button => {
-          const onclick = button.getAttribute('onclick') || '';
-          const match = /selectVocabularyLessonCategory\(decodeURIComponent\('([^']+)'\)\)/.exec(onclick);
-          if (!match) return;
-          const categoryId = decodeURIComponent(match[1]);
+        await loadTaught(true);
+        document.querySelectorAll('.vocabulary-lesson-category-card').forEach(card => {
+          const categoryId = String(card.dataset.categoryId || '');
           const category = root.getVocabularyLessonCategoryById(categoryId);
           if (!category) return;
           const config = groupConfigForCategory(category);
-          const total = category.cards.length;
-          const completed = completedWordCount(config, progress);
-          let counter = button.querySelector('.vocabulary-lesson-category-progress');
-          if (!counter) {
-            counter = document.createElement('span');
-            counter.className = 'vocabulary-lesson-category-progress';
-            const arrow = button.querySelector('.vocabulary-lesson-book-arrow');
-            button.insertBefore(counter, arrow || null);
+          const groupById = new Map(config.groups.map(group => [group.id, group]));
+          const buttons = Array.from(card.querySelectorAll('[data-group-id]'));
+          buttons.forEach(button => {
+            const group = groupById.get(String(button.dataset.groupId || ''));
+            button.classList.toggle('is-completed', isGroupTaught(group));
+          });
+          const completed = buttons.length > 0 && buttons.every(button => button.classList.contains('is-completed'));
+          card.classList.toggle('is-completed', completed);
+          const inline = card.querySelector('.vocabulary-lesson-inline-groups');
+          if (inline) {
+            buttons.sort((left, right) => Number(left.classList.contains('is-completed'))
+              - Number(right.classList.contains('is-completed')))
+              .forEach(button => inline.appendChild(button));
           }
-          counter.textContent = `${completed}/${total}`;
+        });
+        document.querySelectorAll('.vocabulary-lesson-category-grid').forEach(grid => {
+          const cards = Array.from(grid.children).filter(item => item.classList?.contains('vocabulary-lesson-category-card'));
+          cards.sort((left, right) => Number(left.classList.contains('is-completed'))
+            - Number(right.classList.contains('is-completed')))
+            .forEach(card => grid.appendChild(card));
         });
       }
 
       async function renderCategoryGroups() {
-        if (!activeCategory) return;
-        if (typeof root.setVocabularyLessonSelectionRoute === 'function') {
-          root.setVocabularyLessonSelectionRoute('category-groups');
-        }
-        const state = lessonState();
-        const progress = await loadProgress(true);
-        const config = state.groupConfig || groupConfigForCategory(activeCategory);
-        const defaultIndex = firstIncompleteGroupIndex(config, progress);
-        const list = document.getElementById('vocabularyLessonBookList');
-        const title = document.getElementById('vocabularyLessonSelectionTitle');
-        const copy = title && title.parentElement ? title.parentElement.querySelector('p') : null;
-        const icon = document.querySelector('.vocabulary-lesson-selection-icon');
-        const topbarTitle = document.querySelector('#screenVocabularyReviewList .topbar-title');
-        const selectionCopy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
-        const empty = document.getElementById('vocabularyLessonBookEmpty');
-        if (!list) return;
-
-        if (topbarTitle) topbarTitle.textContent = activeCategory.name;
-        if (selectionCopy) selectionCopy.hidden = true;
-        if (title) title.textContent = '';
-        if (copy) copy.textContent = '';
-        if (icon) icon.textContent = '';
-        if (empty) empty.hidden = true;
-
-        list.className = 'vocabulary-lesson-book-list vocabulary-lesson-category-group-picker';
-        list.innerHTML = config.groups.map((group, index) => {
-          const completed = root.VocabularyLessonGroups.isVocabularyLessonGroupCompleted(progress, group.id);
-          const selected = index === defaultIndex;
-          return `
-            <button type="button" class="vocabulary-lesson-category-group-row${selected ? ' is-default' : ''}" onclick="openVocabularyLessonCategoryGroup(${index})">
-              <span class="vocabulary-lesson-category-group-name">第${index + 1}组</span>
-              <small>${groupProgressLabel(group, progress)}</small>
-              <span class="vocabulary-lesson-category-group-status">${completed ? '已通关' : ''}</span>
-            </button>`;
-        }).join('');
-        installCategoryBackButton(root.closeVocabularyLessonCategoryGroups);
+        resetCategoryRuntime();
+        if (typeof root.setVocabularyLessonSelectionRoute === 'function') root.setVocabularyLessonSelectionRoute('categories');
         document.body.classList.remove('vocabulary-review-open');
+        baseRenderSelection();
+        installCategoryBackButton(root.closeVocabularyReviewList);
+        await decorateCategoryProgress();
         root.showScreen('screenVocabularyReviewList');
       }
 
@@ -314,8 +316,9 @@
         state.categoryId = activeCategory.id;
         state.categoryName = activeCategory.name;
         const progress = await loadProgress(true);
+        await loadTaught(false);
         const group = state.groupConfig && state.groupConfig.groups[index];
-        if (group && root.VocabularyLessonGroups.isVocabularyLessonGroupCompleted(progress, group.id)) {
+        if (group && (root.VocabularyLessonGroups.isVocabularyLessonGroupCompleted(progress, group.id) || isGroupTaught(group))) {
           state.wordIndex = 0;
         }
         queueCurrentPositionSave();
@@ -329,35 +332,24 @@
         }
         const category = root.getVocabularyLessonCategoryById(String(categoryId || ''));
         if (!category || !category.cards || !category.cards.length) return false;
+        const config = groupConfigForCategory(category);
+        await loadTaught(true);
+        const firstUntaught = config.groups.findIndex(group => !isGroupTaught(group));
+        return openCategoryFromSelection(category.id, firstUntaught >= 0 ? firstUntaught : 0);
+      }
+
+      async function openCategoryFromSelection(categoryId, index) {
+        if (typeof root.loadVocabularyLessonCategories === 'function') await root.loadVocabularyLessonCategories();
+        const category = root.getVocabularyLessonCategoryById(String(categoryId || ''));
+        if (!category || !category.cards || !category.cards.length) return false;
         activeCategory = category;
-        const batch = ensureVirtualBatch(category);
-        await loadProgress(true);
-        const opened = typeof root.selectVocabularyLessonVirtualBatch === 'function'
-          ? await root.selectVocabularyLessonVirtualBatch(batch, null)
-          : await root.selectVocabularyLessonGroup(batch, null);
-        if (!opened) return false;
-        const state = lessonState();
-        state.categoryId = category.id;
-        state.categoryName = category.name;
-        await renderCategoryGroups();
-        return true;
+        ensureVirtualBatch(category);
+        await loadTaught(false);
+        return openCategoryGroup(index);
       }
 
       function closeCategoryGroups() {
-        if (typeof root.clearVocabularyLessonTransientState === 'function') {
-          root.clearVocabularyLessonTransientState();
-        } else {
-          resetCategoryRuntime();
-        }
-        const copy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
-        if (copy) copy.hidden = false;
-        if (typeof root.setVocabularyLessonSelectionRoute === 'function') {
-          root.setVocabularyLessonSelectionRoute('categories');
-        }
-        baseRenderSelection();
-        installCategoryBackButton(root.closeVocabularyLessonCategorySelection || root.closeVocabularyReviewList);
-        decorateCategoryProgress();
-        root.showScreen('screenVocabularyReviewList');
+        return renderCategoryGroups();
       }
 
       function renderLowPressureQuickNav() {
@@ -369,9 +361,7 @@
         nav.innerHTML = state.batches.map((items, index) => {
           const selected = index === state.batchIndex;
           const group = state.groupConfig && state.groupConfig.groups[index];
-          const completed = progressCache && group
-            ? root.VocabularyLessonGroups.isVocabularyLessonGroupCompleted(progressCache, group.id)
-            : false;
+          const completed = isGroupTaught(group);
           return `<button type="button" class="vocabulary-lesson-quick-button batch${completed ? ' is-completed' : ''}${selected ? ' is-active' : ''}" onclick="jumpVocabularyLessonBatch(${index})" aria-current="${selected ? 'step' : 'false'}">第${index + 1}组</button>`;
         }).join('');
       }
@@ -397,6 +387,12 @@
         if (title && state.mode === 'teaching') title.textContent = activeCategory.name;
         const change = document.getElementById('vocabularyLessonChangeButton');
         if (change) change.hidden = true;
+        const next = document.querySelector('.vocabulary-lesson-next-batch');
+        if (next && state.mode === 'batchReview') {
+          next.textContent = currentRoundOffset() + ROUND_SIZE < currentGroupItems().length
+            ? '继续 →'
+            : '完成本组 →';
+        }
         renderLowPressureQuickNav();
         renderClickableDots();
       }
@@ -415,26 +411,42 @@
       }
 
       async function markCurrentCategoryGroupCompleted() {
-        if (!isCategoryMode() || !isStudent()) return true;
+        if (!isCategoryMode()) return true;
         const state = lessonState();
         const config = state.groupConfig;
         const group = config && config.groups[state.batchIndex];
         if (!group) return false;
-        const progress = await loadProgress(true);
-        const result = root.VocabularyLessonGroups.markVocabularyLessonGroupCompleted(progress, {
-          groupId: group.id,
-          wordKeys: group.wordKeys,
-          completedAt: new Date().toISOString(),
-          eligibleDate: root.VocabularyLessonGroups.addLocalDays(
-            root.VocabularyLessonGroups.localDateKey(new Date()),
-            1
-          )
-        });
-        return saveProgress(result.progress);
+        const completedAt = new Date().toISOString();
+        if (isStudent()) {
+          const progress = await loadProgress(true);
+          const result = root.VocabularyLessonGroups.markVocabularyLessonGroupCompleted(progress, {
+            groupId: group.id,
+            wordKeys: group.wordKeys,
+            completedAt,
+            eligibleDate: root.VocabularyLessonGroups.addLocalDays(
+              root.VocabularyLessonGroups.localDateKey(new Date()),
+              1
+            )
+          });
+          return saveProgress(result.progress);
+        }
+        try {
+          taughtCache = await root.saveVocabularyLessonTaughtGroup({
+            groupId: group.id,
+            wordKeys: group.wordKeys,
+            taughtAt: completedAt
+          });
+          return true;
+        } catch (error) {
+          console.warn('Vocabulary category taught state save failed', error);
+          if (typeof root.showStorageError === 'function') root.showStorageError(error);
+          return false;
+        }
       }
 
       root.selectVocabularyLessonCategory = openCategory;
       root.openVocabularyLessonCategoryGroup = openCategoryGroup;
+      root.selectVocabularyLessonCategoryGroup = openCategoryFromSelection;
       root.closeVocabularyLessonCategoryGroups = closeCategoryGroups;
       root.renderVocabularyLessonCategoryGroups = renderCategoryGroups;
       root.jumpVocabularyLessonRoundWord = jumpRoundWord;

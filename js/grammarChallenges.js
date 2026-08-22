@@ -73,7 +73,7 @@ function openGrammarChallenge(id) {
     const title = document.getElementById('grammarChallengeTitle');
     const frame = document.getElementById('grammarChallengeFrame');
     activeGrammarChallengeId = id;
-    if (title) title.textContent = '20题综合语法挑战';
+    if (title) title.textContent = '15题综合语法挑战';
     if (frame) frame.src = 'grammar-challenge/index.html?adaptive=1&embedded=1';
     document.body.classList.add('grammar-challenge-open');
     showScreen('screenGrammarChallengePlayer');

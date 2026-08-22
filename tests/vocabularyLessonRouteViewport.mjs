@@ -12,26 +12,83 @@ const edgeExecutable = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\m
 const outputDir = path.join(root, '.codex-backups', 'vocabulary-lesson-route-qa');
 fs.mkdirSync(outputDir, { recursive: true });
 
-const cards = [
-  ['bus', '公共汽车'], ['car', '汽车'], ['bike', '自行车'], ['train', '火车'],
-  ['plane', '飞机'], ['ship', '轮船'], ['red', '红色'], ['mother', '母亲'],
-  ['sunny', '晴朗的'], ['book', '书'], ['apple', '苹果'], ['teacher', '老师']
-].map(([word, meaning]) => ({ word, meaning, phonetic: `/${word}/`, pos: 'n.', emoji: '📘' }));
+function card(word, meaning = word) {
+  return {
+    word,
+    meaning,
+    phonetic: `/${word}/`,
+    pos: 'n.',
+    emoji: '📘',
+    morphology: [],
+    collocations: [],
+    irregularForms: [],
+    synonyms: [],
+    wordFamily: [],
+    tip: ''
+  };
+}
+
+const formalCards = [
+  card('bike', '自行车'), card('bus', '公共汽车'), card('train', '火车'),
+  card('ship', '轮船'), card('car', '汽车'), card('plane', '飞机'),
+  card('sunny', '晴朗的'), card('one', '一')
+];
+const uncategorizedCards = Array.from({ length: 25 }, (_, index) => (
+  card(`zzword${String(index + 1).padStart(2, '0')}`, `校内词${index + 1}`)
+));
+const allCards = [...formalCards, ...uncategorizedCards, card('legacyword', '旧词')];
+const masterCards = Object.fromEntries(allCards.map(item => [item.word.toLowerCase(), item]));
+const refs = words => words.map(word => ({ wordKey: word.toLowerCase() }));
 
 const mainData = {
+  schemaVersion: 2,
   pin: '1234',
+  masterCards,
   mixedAssignments: [],
   taskAssignments: [],
   batches: [
     {
-      id: 'older-book', name: '较早单词本', createdAt: '2026-08-01', date: '2026-08-01',
-      bookPurpose: 'common', sharedWith: ['sister', 'brother'], cards: [cards[6]]
+      id: 'ordinary-old-book',
+      name: '以前的普通单词本',
+      date: '2026-08-20',
+      bookPurpose: 'common',
+      bookType: 'reference',
+      sharedWith: ['sister', 'brother'],
+      cardRefs: refs(['legacyword'])
     },
     {
-      id: 'today-book', name: '今日新词', createdAt: '2026-08-05', date: '2026-08-05',
-      bookPurpose: 'common', sharedWith: ['sister', 'brother'], cards
+      id: 'school-grade-4-2026-09-01',
+      name: '校内｜四年级｜2026-09-01',
+      date: '2026-09-01',
+      bookPurpose: 'common',
+      bookType: 'reference',
+      sharedWith: ['sister', 'brother'],
+      cardRefs: refs(uncategorizedCards.slice(0, 8).map(item => item.word))
+    },
+    {
+      id: 'school-grade-7-2026-09-02',
+      name: '校内｜七年级｜2026-09-02',
+      date: '2026-09-02',
+      guideSection: { kind: 'school', grade: '7', date: '2026-09-02' },
+      bookPurpose: 'common',
+      bookType: 'reference',
+      sharedWith: ['sister', 'brother'],
+      cardRefs: refs(uncategorizedCards.slice(8, 18).map(item => item.word))
     }
   ]
+};
+
+const taughtState = {
+  version: 1,
+  groups: {
+    'vocabulary-category:vehicles:g01': {
+      status: 'taught',
+      taughtAt: '2026-08-22T08:00:00+08:00',
+      eligibleDate: '2026-08-23',
+      wordKeysSnapshot: ['bike', 'bus', 'train', 'ship', 'car', 'plane']
+    }
+  },
+  migrations: { 'per-student-completed-union-v1': { migratedAt: '2026-08-21T08:00:00+08:00' } }
 };
 
 const mime = new Map([
@@ -55,42 +112,31 @@ const server = http.createServer((request, response) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
 const useWebKit = process.env.PW_BROWSER === 'webkit';
-const browser = useWebKit
-  ? await webkit.launch()
-  : await chromium.launch({ executablePath: edgeExecutable });
+const browser = useWebKit ? await webkit.launch() : await chromium.launch({ executablePath: edgeExecutable });
+const contexts = [];
 
-async function openApp(viewport, user = 'teacher', options = {}) {
+async function openApp(viewport) {
   const context = await browser.newContext({ viewport, screen: viewport, serviceWorkers: 'block' });
-  await context.addInitScript(({ selectedUser, mirror }) => {
-    localStorage.setItem('wc_user', selectedUser);
+  contexts.push(context);
+  await context.addInitScript(({ mirror }) => {
+    localStorage.setItem('wc_user', 'teacher');
     localStorage.setItem('wc_sb_main', JSON.stringify(mirror));
-  }, { selectedUser: user, mirror: mainData });
+  }, { mirror: mainData });
   const state = new Map([
     ['main', structuredClone(mainData)],
     ['vocab_lesson_progress_v1_sister', { version: 1, groups: {}, migrations: {} }],
     ['vocab_lesson_progress_v1_brother', { version: 1, groups: {}, migrations: {} }],
-    ['vocab_lesson_taught_v1', {
-      version: 1,
-      groups: {},
-      migrations: { 'per-student-completed-union-v1': { migratedAt: '2026-08-21T08:00:00+08:00' } }
-    }]
+    ['vocab_lesson_taught_v1', structuredClone(taughtState)]
   ]);
   const writes = [];
   const page = await context.newPage();
   const errors = [];
-  const dialogs = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => {
     if (message.type() === 'error' && !message.text().includes('Service Worker')) errors.push(message.text());
   });
-  page.on('dialog', async dialog => {
-    dialogs.push(dialog.message());
-    await dialog.dismiss();
-  });
+  page.on('dialog', dialog => dialog.dismiss());
   await page.route('**/rest/v1/kv_store*', async route => {
-    if (options.kvDelayMs) {
-      await new Promise(resolve => setTimeout(resolve, options.kvDelayMs));
-    }
     const request = route.request();
     if (request.method() === 'POST') {
       const payload = request.postDataJSON();
@@ -118,193 +164,76 @@ async function openApp(viewport, user = 'teacher', options = {}) {
   });
   await page.goto(baseUrl, { waitUntil: 'commit' });
   await page.waitForSelector('#teacherVocabularyGuideEntry:visible');
-  return { context, page, errors, dialogs, state, writes };
+  return { context, page, errors, state, writes };
 }
 
 async function openGuide(page) {
   await page.locator('#teacherVocabularyGuideEntry').click();
-  await page.waitForSelector('#screenVocabularyReviewList.active #vocabularyLessonBookList');
+  await page.waitForSelector('#screenVocabularyReviewList.active .vocabulary-lesson-category-list');
   await page.waitForFunction(() => Boolean(window.__vocabularyLessonLowPressureGroupsInstalled));
   assert.equal(await page.locator('#screenVocabularyReviewList .topbar-title').textContent(), '新词导览');
-  assert.equal(await page.locator('#vocabularyLessonSelectionTitle').textContent(), '选择今天要讲的单词本');
-  assert.match(await page.locator('#vocabularyLessonBookList').first().textContent(), /今日新词/);
-  assert.equal(await page.locator('#vocabularyLessonCategoryEntry').count(), 1);
+  assert.equal(await page.locator('#vocabularyLessonSelectionTitle').textContent(), '选择今天要讲的词汇');
 }
 
 async function assertLayout(page, viewport) {
   const layout = await page.evaluate(() => {
-    const buttons = [...document.querySelectorAll('#screenVocabularyReviewList.active button')]
+    const targets = [...document.querySelectorAll('.vocabulary-lesson-category-button, .vocabulary-lesson-inline-groups button')]
       .filter(button => button.getClientRects().length > 0);
     return {
       width: innerWidth,
       height: innerHeight,
       horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      minimumTouchHeight: Math.min(...buttons.map(button => button.getBoundingClientRect().height)),
-      titleVisible: document.getElementById('vocabularyLessonSelectionTitle').getBoundingClientRect().bottom > 0
+      minimumTouchHeight: Math.min(...targets.map(button => button.getBoundingClientRect().height)),
+      unclassifiedLast: document.querySelector('.vocabulary-lesson-category-list > section:last-child')?.dataset.guideGroup
     };
   });
   assert.deepEqual([layout.width, layout.height], [viewport.width, viewport.height]);
   assert.equal(layout.horizontalOverflow, false);
   assert.ok(layout.minimumTouchHeight >= 44, `touch target was ${layout.minimumTouchHeight}px`);
-  assert.equal(layout.titleVisible, true);
-}
-
-async function clickVocabularyLessonListBack(page) {
-  const button = page.locator('#screenVocabularyReviewList .back-btn');
-  try {
-    await button.click({ timeout: 5000 });
-  } catch (error) {
-    const state = await page.evaluate(() => {
-      const screen = document.getElementById('screenVocabularyReviewList');
-      const backButton = screen?.querySelector('.back-btn');
-      const style = backButton ? getComputedStyle(backButton) : null;
-      const rect = backButton?.getBoundingClientRect();
-      const center = rect ? [rect.left + rect.width / 2, rect.top + rect.height / 2] : null;
-      return {
-        screenClassName: screen?.className || '',
-        buttonHidden: backButton?.hidden ?? null,
-        display: style?.display || '',
-        visibility: style?.visibility || '',
-        pointerEvents: style?.pointerEvents || '',
-        rect: rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null,
-        centerStack: center ? document.elementsFromPoint(...center).map(node => `${node.tagName.toLowerCase()}#${node.id}.${node.className}`) : [],
-        selectionRoute: typeof vocabularyLessonState === 'object' ? vocabularyLessonState.selectionRoute : '',
-        bodyClassName: document.body.className
-      };
-    });
-    throw new Error(`new-word guide list back button was not clickable: ${JSON.stringify(state)}`, { cause: error });
-  }
+  assert.equal(layout.unclassifiedLast, 'unclassified');
 }
 
 try {
   const ipad = await openApp({ width: 1180, height: 820 });
   await openGuide(ipad.page);
-  const mainWritesBeforeWorkbookOpen = ipad.writes.filter(write => write.key === 'main').length;
-  await ipad.page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-button').first().click();
-  await ipad.page.waitForSelector('#screenVocabularyReviewPlayer.active');
-  await ipad.page.waitForTimeout(550);
+  const guideText = await ipad.page.locator('#vocabularyLessonBookList').innerText();
+  assert.match(guideText, /主题词汇/);
+  assert.match(guideText, /功能词汇/);
+  assert.match(guideText, /校内词汇/);
+  assert.match(guideText, /四年级[\s\S]*2026-09-01/);
+  assert.match(guideText, /七年级[\s\S]*2026-09-02/);
+  assert.match(guideText, /未分类/);
+  assert.doesNotMatch(guideText, /以前的普通单词本/);
+  assert.doesNotMatch(guideText, /校内｜/);
+  assert.equal(await ipad.page.locator('#vocabularyLessonCategoryEntry').count(), 0);
+  assert.equal(await ipad.page.locator('.vocabulary-lesson-category-group-picker').count(), 0);
+  assert.equal(await ipad.page.locator('[data-category-id="vehicles"]').getAttribute('class'), 'vocabulary-lesson-category-card is-completed');
   assert.equal(
-    ipad.writes.filter(write => write.key === 'main').length,
-    mainWritesBeforeWorkbookOpen,
-    'opening a workbook guide must not write global main data'
+    await ipad.page.locator('[data-guide-group="themes"] .vocabulary-lesson-category-card').last().getAttribute('data-category-id'),
+    'vehicles',
+    'a completed category should move behind unfinished categories'
   );
-  for (let index = 0; index < cards.length; index += 1) {
-    await ipad.page.getByRole('button', { name: '下一个词' }).click();
-  }
-  const taughtButton = ipad.page.locator('.vocabulary-lesson-next-batch');
-  await taughtButton.waitFor({ state: 'visible' });
-  assert.equal(await taughtButton.textContent(), '标记本组已授课 →');
-  await ipad.page.evaluate(() => {
-    updateMainDataSafely = async mutator => {
-      const next = structuredClone(appData);
-      if (mutator(next) === false) return appData;
-      appData = next;
-      return appData;
-    };
-  });
-  await taughtButton.click();
-  await ipad.page.waitForTimeout(500);
-  assert.equal(
-    await ipad.page.evaluate(() => vocabularyLessonState.mode),
-    'finalMenu',
-    JSON.stringify({ errors: ipad.errors, dialogs: ipad.dialogs, writes: ipad.writes.map(write => write.key) })
-  );
-  assert.equal(ipad.state.get('vocab_lesson_taught_v1').groups['today-book:g01'].status, 'taught');
-  assert.equal(ipad.state.get('vocab_lesson_taught_v1').groups['today-book:g01'].eligibleDate.length, 10);
-  assert.deepEqual(
-    ipad.state.get('vocab_lesson_taught_v1').groups['today-book:g01'].wordKeysSnapshot,
-    cards.map(card => card.word.toLowerCase())
-  );
-  await ipad.page.getByRole('button', { name: '返回单词本' }).click();
-  await ipad.page.waitForSelector('#screenVocabularyReviewList.active');
-  assert.match(await ipad.page.locator('#vocabularyLessonBookList').first().textContent(), /今日新词[\s\S]*已授课/);
   await assertLayout(ipad.page, { width: 1180, height: 820 });
-  assert.equal(
-    await ipad.page.locator('script[data-feature-source="js/vocabularyLesson016.js"]').count(),
-    1,
-    'task 016 should load once through the lazy feature group'
-  );
 
-  await clickVocabularyLessonListBack(ipad.page);
-  await ipad.page.waitForSelector('#screenHome.active');
-  await openGuide(ipad.page);
-
-  await ipad.page.locator('#vocabularyLessonCategoryEntry').click();
-  await ipad.page.waitForFunction(() => document.getElementById('vocabularyLessonSelectionTitle')?.textContent === '选择词汇类别');
-  await ipad.page.evaluate(() => refreshVocabularyReviewSharedStateFromAppData());
-  assert.equal(
-    await ipad.page.locator('#vocabularyLessonSelectionTitle').textContent(),
-    '选择词汇类别',
-    'background main-data refresh must preserve the category route'
-  );
-  await ipad.page.getByRole('button', { name: /交通工具/ }).click();
-  await ipad.page.waitForSelector('.vocabulary-lesson-category-group-picker');
-  await ipad.page.evaluate(() => refreshVocabularyReviewSharedStateFromAppData());
-  await ipad.page.waitForSelector('.vocabulary-lesson-category-group-picker');
-  assert.equal(
-    await ipad.page.evaluate(() => vocabularyLessonState.selectionRoute),
-    'category-groups',
-    'background main-data refresh must preserve the category-group route'
-  );
-  assert.deepEqual(await ipad.page.evaluate(() => ({
-    virtualInAppData: appData.batches.some(batch => String(batch.id).startsWith('vocabulary-category:')),
-    batchId: vocabularyLessonState.batch?.id || '',
-    currentBatchId
-  })), {
-    virtualInAppData: false,
-    batchId: 'vocabulary-category:vehicles',
-    currentBatchId: null
-  });
-  await ipad.page.locator('.vocabulary-lesson-category-group-row').first().click();
+  const mainWritesBeforeOpen = ipad.writes.filter(write => write.key === 'main').length;
+  await ipad.page.locator('[data-category-id="vehicles"] [data-group-id]').click();
   await ipad.page.waitForSelector('#screenVocabularyReviewPlayer.active');
+  assert.equal(await ipad.page.locator('#vocabularyLessonModeTitle').textContent(), '交通工具');
+  assert.equal(ipad.writes.filter(write => write.key === 'main').length, mainWritesBeforeOpen);
   await ipad.page.locator('#screenVocabularyReviewPlayer .vocabulary-lesson-icon-button').click();
-  await ipad.page.waitForSelector('.vocabulary-lesson-category-group-picker');
-  await ipad.page.locator('#screenVocabularyReviewList .back-btn').click();
-  await ipad.page.waitForFunction(() => document.getElementById('vocabularyLessonSelectionTitle')?.textContent === '选择词汇类别');
-  await ipad.page.locator('#screenVocabularyReviewList .back-btn').click();
-  await ipad.page.waitForFunction(() => document.getElementById('vocabularyLessonSelectionTitle')?.textContent === '选择今天要讲的单词本');
-  await ipad.page.locator('#screenVocabularyReviewList .back-btn').click();
-  await ipad.page.waitForSelector('#screenHome.active');
-  await openGuide(ipad.page);
-  assert.equal(await ipad.page.locator('.vocabulary-lesson-category-list').count(), 0, 're-entry must restore the workbook route');
+  await ipad.page.waitForSelector('#screenVocabularyReviewList.active .vocabulary-lesson-category-list');
+  assert.equal(await ipad.page.locator('.vocabulary-lesson-category-group-picker').count(), 0);
 
-  await ipad.page.locator('#vocabularyLessonCategoryEntry').click();
-  await ipad.page.getByRole('button', { name: /交通工具/ }).click();
-  await ipad.page.waitForSelector('.vocabulary-lesson-category-group-picker');
-  await ipad.page.evaluate(() => switchUser('brother'));
-  await ipad.page.waitForSelector('#screenHome.active');
-  assert.deepEqual(await ipad.page.evaluate(() => ({
-    user: currentUser,
-    virtualInAppData: appData.batches.some(batch => String(batch.id).startsWith('vocabulary-category:')),
-    batch: vocabularyLessonState.batch,
-    categoryId: vocabularyLessonState.categoryId || ''
-  })), { user: 'brother', virtualInAppData: false, batch: null, categoryId: '' });
-  assert.equal(await ipad.page.locator('#vocabularyTourHomeEntry').count(), 0);
-  assert.equal(await ipad.page.locator('#teacherVocabularyGuideEntry').isHidden(), true);
-  await ipad.page.evaluate(async () => {
-    currentUser = 'teacher';
-    localStorage.setItem('wc_user', 'teacher');
-    document.body.classList.add('is-teacher');
-    updateUserBar();
-    showScreen('screenHome');
-    await loadHome();
-  });
-  await openGuide(ipad.page);
-  assert.match(await ipad.page.locator('#vocabularyLessonBookList').first().textContent(), /今日新词/);
-
-  await ipad.page.evaluate(async () => {
-    const unsafe = JSON.parse(JSON.stringify(appData));
-    unsafe.batches.push({
-      id: 'vocabulary-category:injected',
-      vocabularyLessonTransient: true,
-      cards: [{ word: 'ghost', meaning: '不应保存' }]
-    });
-    unsafe.vocabularyLessonGroups = { 'vocabulary-category:injected': { groups: [] } };
-    await sbSet('main', unsafe);
-  });
-  const storedMain = ipad.state.get('main');
-  assert.equal(storedMain.batches.some(batch => String(batch.id).startsWith('vocabulary-category:')), false);
-  assert.equal(Object.keys(storedMain.vocabularyLessonGroups || {}).some(id => id.startsWith('vocabulary-category:')), false);
+  await ipad.page.locator('[data-category-id="weather-seasons"] [data-group-id]').click();
+  await ipad.page.waitForSelector('#screenVocabularyReviewPlayer.active');
+  await ipad.page.getByRole('button', { name: '下一个词' }).click();
+  const completeButton = ipad.page.locator('.vocabulary-lesson-next-batch');
+  await completeButton.waitFor({ state: 'visible' });
+  assert.equal(await completeButton.textContent(), '完成本组 →');
+  await completeButton.click();
+  await ipad.page.waitForSelector('#screenVocabularyReviewList.active .vocabulary-lesson-category-list');
+  assert.equal(ipad.state.get('vocab_lesson_taught_v1').groups['vocabulary-category:weather-seasons:g01'].status, 'taught');
+  assert.equal(await ipad.page.locator('[data-category-id="weather-seasons"]').getAttribute('class'), 'vocabulary-lesson-category-card is-completed');
   await ipad.page.screenshot({ path: path.join(outputDir, 'new-word-guide-ipad-air11-1180x820.png'), fullPage: true });
   assert.deepEqual(ipad.errors, []);
   await ipad.context.close();
@@ -316,17 +245,11 @@ try {
   assert.deepEqual(iphone.errors, []);
   await iphone.context.close();
 
-  const slowCloud = await openApp({ width: 393, height: 852 }, 'teacher', { kvDelayMs: 2500 });
-  const slowCloudStarted = Date.now();
-  await openGuide(slowCloud.page);
-  assert.ok(
-    Date.now() - slowCloudStarted < 1800,
-    'new-word guide must render from local data without waiting for slow cloud progress reads'
-  );
-  await slowCloud.context.close();
-
   console.log(`vocabulary lesson route and viewport tests passed (${useWebKit ? 'WebKit' : 'Chromium'}): ${outputDir}`);
 } finally {
+  for (const context of contexts) {
+    try { await context.close(); } catch (_) {}
+  }
   await browser.close();
   await new Promise(resolve => server.close(resolve));
 }

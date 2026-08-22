@@ -565,7 +565,7 @@
         reward.textContent = '预计 5 金币';
         grammarCopy.appendChild(reward);
       }
-      grammarEntry?.setAttribute('aria-label', '语法挑战，20题综合复习，近期和历史知识各10题，完成可领取5金币');
+      grammarEntry?.setAttribute('aria-label', '语法挑战，15题综合复习，近期8题加历史7题，完成可领取5金币');
     }
 
     function renderStudentIdentity(user) {

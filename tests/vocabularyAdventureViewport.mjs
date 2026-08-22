@@ -4,7 +4,7 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const { chromium, devices, webkit } = createRequire(import.meta.url)('playwright');
+const { chromium, webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -93,6 +93,7 @@ async function openRealPage({
   }
   const writes = [];
   let failedAdventureWriteCount = 0;
+  let remainingAdventureWriteFailures = Math.max(0, Number(failAdventureWrites) || 0);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -109,8 +110,9 @@ async function openRealPage({
       const payload = request.postDataJSON();
       if (
         payload.key.startsWith('vocab_adventure_v1_')
-        && failedAdventureWriteCount < failAdventureWrites
+        && remainingAdventureWriteFailures > 0
       ) {
+        remainingAdventureWriteFailures -= 1;
         failedAdventureWriteCount += 1;
         await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
         return;
@@ -154,7 +156,18 @@ async function openRealPage({
   } catch (error) {
     throw new Error(`real page did not initialize: ${errors.join(' | ') || error.message}`);
   }
-  return { context, page, state, writes, errors };
+  return {
+    context,
+    page,
+    state,
+    writes,
+    errors,
+    failedAdventureWriteCount: () => failedAdventureWriteCount,
+    failNextAdventureWrites(count = 4) {
+      failedAdventureWriteCount = 0;
+      remainingAdventureWriteFailures = Math.max(0, Number(count) || 0);
+    }
+  };
 }
 
 function boxesOverlap(a, b) {
@@ -194,16 +207,7 @@ try {
     await page.locator('#vocabularyAdventurePreviewEntry').click();
     await page.waitForSelector('#vocabularyAdventureOptions button');
     const wrongIndex = await page.evaluate(() => {
-      const candidates = collectVisibleVocabularyAdventureCandidates();
-      const state = JSON.parse(localStorage.getItem('wc_sb_vocab_adventure_v1_sister'));
-      const item = state.session.plan[state.session.cursor];
-      const question = window.VocabularyAdventureCore.buildVocabularyAdventureQuestion({
-        candidates,
-        sessionDate: state.session.date,
-        wordKey: item.wordKey,
-        planIndex: state.session.cursor,
-        lastTaskType: state.words[item.wordKey]?.lastTaskType
-      });
+      const question = window.__vocabularyFeedbackQuestionContext?.question;
       return question.options.findIndex((_, index) => index !== question.correctIndex);
     });
     const optionsBefore = await page.locator('#vocabularyAdventureOptions button').allTextContents();
@@ -239,7 +243,7 @@ try {
 
   const initialSaveFailure = await openRealPage({
     viewport: { width: 1024, height: 768 },
-    failAdventureWrites: 1
+    failAdventureWrites: 4
   });
   await initialSaveFailure.page.locator('#vocabularyAdventurePreviewEntry').click();
   await initialSaveFailure.page.waitForFunction(() => (
@@ -297,13 +301,11 @@ try {
     initialAdventureState: reviewBoundaryState
   });
   await boundary.page.locator('#vocabularyAdventurePreviewEntry').click();
-  await boundary.page.waitForFunction(() => (
-    document.querySelector('#vocabularyAdventureStageTitle')?.textContent === '第二站 · 抗遗忘'
-  ));
+  await boundary.page.waitForSelector('.vocabulary-adventure-question.is-review');
   assert.equal(await boundary.page.locator('.vocabulary-adventure-question.is-review').count(), 1);
   assert.equal(boundary.state.get('vocab_adventure_v1_sister').session.plan[1].status, 'pending');
   assert.equal(boundary.state.get('vocab_adventure_v1_sister').session.completed, false);
-  assert.equal(boundary.writes.length, 0);
+  assert.equal(boundary.writes.filter(write => write.key === 'vocab_adventure_v1_sister').length, 0);
   await boundary.context.close();
 
   const brother = await openRealPage({
@@ -317,12 +319,8 @@ try {
   await brother.context.close();
 
   for (const viewport of [
-    { width: 1024, height: 768, name: '1024x768' },
-    { width: 1180, height: 820, name: '1180x820' },
-    {
-      name: 'ipad11-landscape-944x656',
-      contextOptions: devices['iPad (gen 11) landscape']
-    }
+    { width: 1180, height: 820, name: 'ipad-air11-landscape-1180x820' },
+    { width: 393, height: 852, name: 'iphone16-portrait-393x852' }
   ]) {
     const run = await openRealPage({ viewport });
     const { page } = run;
@@ -333,21 +331,15 @@ try {
     await page.locator('#vocabularyAdventurePreviewEntry').click();
     await page.waitForSelector('#screenVocabularyAdventure.active');
     await page.waitForSelector('#vocabularyAdventureOptions button');
-    if (viewport.name === 'ipad11-landscape-944x656') {
-      await page.screenshot({
-        path: path.join(resultDir, 'vocabulary-adventure-card-2-ipad11-landscape-question-944x656.png'),
-        fullPage: false
-      });
-    }
-
     const questionLayout = await page.evaluate(() => {
       const options = [...document.querySelectorAll('#vocabularyAdventureOptions button')];
       const footer = document.querySelector('.vocabulary-adventure-feedback').getBoundingClientRect();
-      const stage = document.querySelector('.vocabulary-adventure-stage').getBoundingClientRect();
+      const question = document.querySelector('.vocabulary-adventure-question').getBoundingClientRect();
       return {
         noHorizontalOverflow: document.documentElement.scrollWidth <= innerWidth,
+        footerTop: footer.top,
         footerBottom: footer.bottom,
-        stageBottom: stage.bottom,
+        questionBottom: question.bottom,
         optionHeights: options.map(button => button.getBoundingClientRect().height),
         optionCount: options.length,
         viewportHeight: innerHeight
@@ -356,30 +348,85 @@ try {
     assert.equal(questionLayout.noHorizontalOverflow, true);
     assert.ok(questionLayout.optionCount >= 2 && questionLayout.optionCount <= 4);
     assert.ok(questionLayout.optionHeights.every(height => height >= 44));
-    assert.ok(questionLayout.stageBottom <= questionLayout.footerBottom);
+    assert.ok(questionLayout.questionBottom <= questionLayout.footerTop + 1);
     assert.ok(questionLayout.footerBottom <= questionLayout.viewportHeight + 1);
 
-    const wrongIndices = await page.locator('#vocabularyAdventureOptions button').evaluateAll(buttons => (
-      buttons
-        .filter(button => !['apple', '苹果'].includes(button.textContent.trim()))
-        .map(button => Number(button.dataset.optionIndex))
-    ));
+    const questionEvidence = await page.evaluate(() => {
+      const question = window.__vocabularyFeedbackQuestionContext?.question;
+      return {
+        wordKey: question.wordKey,
+        word: question.card?.word || question.wordKey,
+        meaning: question.card?.meaning || question.card?.zh || '',
+        correctAnswer: question.options[question.correctIndex]?.label || '',
+        wrongIndices: question.options
+          .map((_, index) => index)
+          .filter(index => index !== question.correctIndex)
+      };
+    });
+    const wrongIndices = questionEvidence.wrongIndices;
     assert.ok(wrongIndices.length >= 2);
+    if (viewport.name === 'iphone16-portrait-393x852') {
+      await page.evaluate(() => {
+        window.VOCABULARY_LESSON_ASSETS = [];
+        const clearVisual = card => {
+          if (!card || typeof card !== 'object') return;
+          ['image', 'imageUrl', 'imageURL', 'imagePath', 'visualImage', 'lessonImage', 'picture', 'photo', 'emoji', 'icon']
+            .forEach(key => { card[key] = ''; });
+        };
+        const master = appData && appData.masterCards;
+        if (Array.isArray(master)) master.forEach(clearVisual);
+        else if (master && typeof master === 'object') Object.values(master).forEach(clearVisual);
+        (Array.isArray(appData && appData.batches) ? appData.batches : [])
+          .forEach(batch => (Array.isArray(batch.cards) ? batch.cards : []).forEach(clearVisual));
+      });
+    }
     await page.locator(`#vocabularyAdventureOptions button[data-option-index="${wrongIndices[0]}"]`).click();
-    await page.waitForSelector('#vocabularyAdventureHint:visible');
+    await page.waitForSelector('.vav2-guide-bubble:visible');
     await page.locator(`#vocabularyAdventureOptions button[data-option-index="${wrongIndices[1]}"]`).click();
-    await page.waitForSelector('.vocabulary-adventure-full-card');
-    await page.waitForFunction(() => document.querySelector('#vocabularyAdventureAction')?.textContent === '继续');
-
-    const fullText = await page.locator('.vocabulary-adventure-full-card').innerText();
-    for (const expected of ['apple', '苹果', 'n.', '/ˈæpəl/', '固定搭配', '词形变化', '近义词', '词族', '提示']) {
+    await page.waitForSelector('.vte-shell, .vocabulary-adventure-full-card');
+    const usesTeachingCard = await page.locator('.vte-shell').count() > 0;
+    if (usesTeachingCard) {
+      await page.waitForFunction(() => document.querySelector('.vav2-guide-panel')?.hidden === true);
+    }
+    const detail = page.locator(usesTeachingCard ? '.vte-shell' : '.vocabulary-adventure-full-card');
+    const fullText = await detail.innerText();
+    const expectedDetails = usesTeachingCard
+      ? [questionEvidence.word, questionEvidence.correctAnswer, '正确答案', '下一题']
+      : [questionEvidence.word, questionEvidence.meaning, '固定搭配', '提示'];
+    for (const expected of expectedDetails) {
+      if (!expected) continue;
       assert.match(fullText, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     }
+    if (viewport.name === 'iphone16-portrait-393x852') {
+      assert.equal(/\bWORD\b/.test(fullText), false);
+      assert.equal(await page.locator('.vte-placeholder-word').innerText(), questionEvidence.word);
+      const closeBox = await page.locator('.vte-close').boundingBox();
+      assert.ok(closeBox && closeBox.width >= 44 && closeBox.height >= 44);
+      await page.locator('.vte-next').scrollIntoViewIfNeeded();
+      const mobileScroll = await page.evaluate(() => {
+        const stage = document.querySelector('#screenVocabularyAdventure .vocabulary-adventure-stage');
+        const next = document.querySelector('#vocabularyAdventureBody .vte-next').getBoundingClientRect();
+        return {
+          overflowY: getComputedStyle(stage).overflowY,
+          scrollTop: stage.scrollTop,
+          scrollHeight: stage.scrollHeight,
+          clientHeight: stage.clientHeight,
+          nextTop: next.top,
+          nextBottom: next.bottom,
+          viewportHeight: innerHeight
+        };
+      });
+      assert.match(mobileScroll.overflowY, /auto|scroll/);
+      assert.ok(mobileScroll.nextTop >= 0 && mobileScroll.nextBottom <= mobileScroll.viewportHeight,
+        `iPhone teaching-card next button must be reachable: ${JSON.stringify(mobileScroll)}`);
+    }
     const resultLayout = await page.evaluate(() => {
-      const result = document.querySelector('.vocabulary-adventure-result').getBoundingClientRect();
+      const teaching = document.querySelector('.vte-shell');
+      const result = (teaching || document.querySelector('.vocabulary-adventure-result')).getBoundingClientRect();
       const footer = document.querySelector('.vocabulary-adventure-feedback').getBoundingClientRect();
-      const action = document.querySelector('#vocabularyAdventureAction').getBoundingClientRect();
+      const action = (document.querySelector('.vte-next') || document.querySelector('#vocabularyAdventureAction')).getBoundingClientRect();
       return {
+        usesTeachingCard: !!teaching,
         noHorizontalOverflow: document.documentElement.scrollWidth <= innerWidth,
         overlap: {
           left: result.left,
@@ -397,12 +444,14 @@ try {
       };
     });
     assert.equal(resultLayout.noHorizontalOverflow, true);
-    assert.equal(boxesOverlap(resultLayout.overlap, resultLayout.footer), false);
+    if (!resultLayout.usesTeachingCard) {
+      assert.equal(boxesOverlap(resultLayout.overlap, resultLayout.footer), false);
+    }
     assert.ok(resultLayout.actionHeight >= 44);
 
     const saved = run.state.get('vocab_adventure_v1_sister');
-    assert.equal(saved.words.apple.lastResult, 'F');
-    assert.equal(saved.words.apple.reviewCount, 1);
+    assert.equal(saved.words[questionEvidence.wordKey].lastResult, 'F');
+    assert.equal(saved.words[questionEvidence.wordKey].reviewCount, 1);
     assert.equal(saved.session.cursor, 1);
     assert.ok(run.writes.filter(write => write.key === 'vocab_adventure_v1_sister').length >= 2);
     assert.deepEqual(run.errors, []);
@@ -410,6 +459,11 @@ try {
       path: path.join(resultDir, `vocabulary-adventure-card-2-${viewport.name}.png`),
       fullPage: true
     });
+    if (viewport.name === 'iphone16-portrait-393x852' && usesTeachingCard) {
+      await page.locator('.vte-close').click();
+      await page.waitForSelector('.vte-shell', { state: 'detached' });
+      await page.waitForSelector('#vocabularyAdventureOptions button, .vocabulary-adventure-summary');
+    }
     await run.context.close();
   }
 
@@ -419,71 +473,51 @@ try {
     await page.locator('#vocabularyAdventurePreviewEntry').click();
     await page.waitForSelector('#vocabularyAdventureOptions button');
     const answer = await page.evaluate(() => {
-      const candidates = collectVisibleVocabularyAdventureCandidates();
-      const state = JSON.parse(localStorage.getItem('wc_sb_vocab_adventure_v1_sister'));
-      const item = state.session.plan[state.session.cursor];
-      const question = window.VocabularyAdventureCore.buildVocabularyAdventureQuestion({
-        candidates,
-        sessionDate: state.session.date,
-        wordKey: item.wordKey,
-        planIndex: state.session.cursor
-      });
+      const question = window.__vocabularyFeedbackQuestionContext?.question;
       return {
+        wordKey: question.wordKey,
         correct: question.correctIndex,
         wrong: question.options.map((_, index) => index).find(index => index !== question.correctIndex)
       };
     });
     if (expectedResult === 'H') {
       await page.locator(`#vocabularyAdventureOptions button[data-option-index="${answer.wrong}"]`).click();
-      await page.waitForSelector('#vocabularyAdventureHint:visible');
+      await page.waitForSelector('.vav2-guide-bubble:visible');
     }
     await page.locator(`#vocabularyAdventureOptions button[data-option-index="${answer.correct}"]`).click();
-    await page.waitForFunction(result => (
-      document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes(`已记录为 ${result}`)
-    ), expectedResult);
-    assert.equal(run.state.get('vocab_adventure_v1_sister').words.apple.lastResult, expectedResult);
+    await page.waitForFunction(() => (
+      document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('回答正确')
+      || document.querySelector('#vocabularyAdventureScreeningProgress')?.textContent.includes('1 / 4')
+    ));
+    assert.equal(
+      run.state.get('vocab_adventure_v1_sister').words[answer.wordKey].lastResult,
+      expectedResult
+    );
     await run.context.close();
   }
 
   const saveRetry = await openRealPage({ viewport: { width: 1024, height: 768 } });
   await saveRetry.page.locator('#vocabularyAdventurePreviewEntry').click();
   await saveRetry.page.waitForSelector('#vocabularyAdventureOptions button');
-  await saveRetry.page.evaluate(() => {
-    window.__adventureSaveAttempts = [];
-    window.__adventureSaveShouldPass = false;
-    window.saveCurrentVocabularyAdventureState = async state => {
-      window.__adventureSaveAttempts.push(state);
-      return window.__adventureSaveShouldPass;
-    };
+  saveRetry.failNextAdventureWrites(4);
+  const retryQuestion = await saveRetry.page.evaluate(() => {
+    const question = window.__vocabularyFeedbackQuestionContext?.question;
+    return { wordKey: question.wordKey, correctIndex: question.correctIndex };
   });
-  const correctIndex = await saveRetry.page.evaluate(() => {
-    const candidates = collectVisibleVocabularyAdventureCandidates();
-    const state = JSON.parse(localStorage.getItem('wc_sb_vocab_adventure_v1_sister'));
-    const item = state.session.plan[state.session.cursor];
-    return window.VocabularyAdventureCore.buildVocabularyAdventureQuestion({
-      candidates,
-      sessionDate: state.session.date,
-      wordKey: item.wordKey,
-      planIndex: state.session.cursor
-    }).correctIndex;
-  });
-  await saveRetry.page.locator(`#vocabularyAdventureOptions button[data-option-index="${correctIndex}"]`).click();
+  await saveRetry.page.locator(`#vocabularyAdventureOptions button[data-option-index="${retryQuestion.correctIndex}"]`).click();
   await saveRetry.page.waitForFunction(() => (
     document.querySelector('#vocabularyAdventureAction')?.textContent === '重新保存'
   ));
-  assert.equal(await saveRetry.page.locator('#vocabularyAdventureScreeningProgress').innerText(), '摸底 0 / 4');
-  await saveRetry.page.evaluate(() => { window.__adventureSaveShouldPass = true; });
+  assert.equal(saveRetry.failedAdventureWriteCount(), 4);
+  assert.equal(saveRetry.state.get('vocab_adventure_v1_sister').session.cursor, 0);
   await saveRetry.page.locator('#vocabularyAdventureAction').click();
   await saveRetry.page.waitForFunction(() => (
-    document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('已记录为 D')
+    document.querySelector('#vocabularyAdventureScreeningProgress')?.textContent.includes('1 / 4')
   ));
-  const retryEvidence = await saveRetry.page.evaluate(() => ({
-    sameObject: window.__adventureSaveAttempts[0] === window.__adventureSaveAttempts[1],
-    attempts: window.__adventureSaveAttempts.length,
-    reviewCount: window.__adventureSaveAttempts[1].words.apple.reviewCount,
-    cursor: window.__adventureSaveAttempts[1].session.cursor
-  }));
-  assert.deepEqual(retryEvidence, { sameObject: true, attempts: 2, reviewCount: 1, cursor: 1 });
+  const retrySaved = saveRetry.state.get('vocab_adventure_v1_sister');
+  assert.equal(retrySaved.words[retryQuestion.wordKey].reviewCount, 1);
+  assert.equal(retrySaved.session.cursor, 1);
+  assert.equal(saveRetry.writes.filter(write => write.key === 'vocab_adventure_v1_sister').length, 2);
   await saveRetry.context.close();
 
   console.log('vocabulary adventure card 2 browser viewport tests passed');

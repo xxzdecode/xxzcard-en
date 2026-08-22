@@ -198,7 +198,7 @@
       };
       const state = {
         round: [], index: 0, selected: [], assignments: {}, activeOption: null, locked: false, judging: false,
-        solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: []
+        solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: [], awaitingAdvance: false
       };
 
       function shuffle(values) {
@@ -316,7 +316,7 @@
       }
       function renderQuestion() {
         const q = state.round[state.index];
-        state.selected = []; state.assignments = {}; state.activeOption = null; state.locked = false; state.judging = false;
+        state.selected = []; state.assignments = {}; state.activeOption = null; state.locked = false; state.judging = false; state.awaitingAdvance = false;
         ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
         ui.category.textContent = q.categoryLabel || q.category;
         ui.prompt.textContent = q.prompt;
@@ -351,7 +351,7 @@
           });
           return button;
         }));
-        ui.next.disabled = true; ui.next.hidden = false;
+        ui.next.disabled = true; ui.next.hidden = false; ui.next.textContent = "下一题";
         ui.check.hidden = challengeMode; ui.show.hidden = challengeMode;
         ui.check.disabled = false; ui.show.disabled = false;
         feedback("", q.type === "multi" ? "请选择全部正确答案。" : q.type === "order" ? "请按正确语序点击全部词块。" : q.type === "classify" ? "先点词卡，再点目标区。" : "请选择答案。");
@@ -419,6 +419,7 @@
         if (typeof ui.dialog.showModal === "function") ui.dialog.showModal(); else ui.dialog.setAttribute("open", "");
       }
       function submitChallenge() {
+        if (state.awaitingAdvance) { nextQuestion(); return; }
         const q = state.round[state.index];
         if (state.judging || !hasResponse(q)) return;
         state.judging = true; state.solved[state.index] = true; state.attempts[state.index] = 1;
@@ -433,12 +434,14 @@
           ? `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim()
           : `${q.wrongFeedback || "这次没有选对。"} 正确答案：${completeAnswer(q)}。${q.explanation || ""}`.trim();
         feedback(correct ? "correct" : "wrong", message);
-        ui.next.disabled = true;
-        setTimeout(() => {
-          if (state.index + 1 < state.round.length) {
-            state.index += 1; renderQuestion();
-          } else showCompletion();
-        }, Number(config.feedbackDelayMs || 1000));
+        if (correct) {
+          ui.next.disabled = true;
+          setTimeout(nextQuestion, Number(config.feedbackDelayMs || 1000));
+        } else {
+          state.awaitingAdvance = true;
+          ui.next.textContent = state.index + 1 < state.round.length ? "下一题" : "查看结果";
+          ui.next.disabled = false;
+        }
       }
 
       ui.title.textContent = config.title;

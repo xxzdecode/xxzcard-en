@@ -218,7 +218,11 @@
     if (!root) return;
     const controls = [...root.querySelectorAll('.vocabulary-adventure-speak')];
     controls.forEach((control,index) => { control.hidden = index > 0; });
-    if (root.querySelector('.vocabulary-adventure-result,.vocabulary-adventure-summary,.vav2-final-panel')) setBubble(panel,null,false);
+    const resultVisible = !!root.querySelector(
+      '.vocabulary-adventure-result,.vocabulary-adventure-summary,.vav2-final-panel,.vte-shell'
+    );
+    if (resultVisible) setBubble(panel,null,false);
+    if (panel) panel.hidden = resultVisible;
   }
 
   function prepareActionPosition() {

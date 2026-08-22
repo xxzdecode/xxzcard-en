@@ -4,14 +4,13 @@
   const CATEGORY_REGISTRY_URL = 'data/vocabularyCategories.json';
   const CATEGORY_STYLE_URL = 'styles-vocabulary-lesson-categories.css';
   const VIRTUAL_BATCH_PREFIX = 'vocabulary-category:';
-  const MAX_CATEGORY_WORDS = 40;
+  const SCHOOL_NAME_PATTERN = /^\s*校内(?:词汇)?\s*[｜|]\s*(四年级|4年级|七年级|7年级)\s*[｜|]\s*(\d{4}-\d{2}-\d{2})\s*$/;
   let categoryRegistry = { schemaVersion: 1, groups: [] };
   let categoryRegistryPromise = null;
   let categoryRegistryLoaded = false;
   let installed = false;
   let originalSelectVocabularyLessonBook = null;
   let originalRenderVocabularyLesson = null;
-  let originalRenderVocabularyLessonBookSelection = null;
 
   function playerReady() {
     return typeof installVocabularyLessonShell === 'function'
@@ -22,17 +21,41 @@
   }
 
   function normalizeCategoryWord(value) {
-    return String(value || '')
-      .trim()
-      .toLocaleLowerCase()
-      .replace(/[’']/g, '')
-      .replace(/[^a-z0-9]+/g, '');
+    return String(value || '').trim().toLocaleLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '');
+  }
+
+  function normalizeSchoolGrade(value) {
+    const grade = String(value || '').trim().toLocaleLowerCase();
+    if (grade === '4' || grade === '4年级' || grade === '四年级' || grade === 'grade 4') return '4';
+    if (grade === '7' || grade === '7年级' || grade === '七年级' || grade === 'grade 7') return '7';
+    return '';
+  }
+
+  function normalizeISODate(value) {
+    const text = String(value || '').trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+    if (!match) return '';
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return date.getFullYear() === Number(match[1])
+      && date.getMonth() === Number(match[2]) - 1
+      && date.getDate() === Number(match[3]) ? text : '';
+  }
+
+  function schoolGuideMeta(batch) {
+    const section = batch && batch.guideSection && typeof batch.guideSection === 'object' ? batch.guideSection : {};
+    const kind = String(section.kind || section.type || '').trim().toLocaleLowerCase();
+    const grade = normalizeSchoolGrade(section.grade);
+    const date = normalizeISODate(section.date);
+    if (kind === 'school' && grade && date) return { kind: 'school', grade, date };
+    const match = SCHOOL_NAME_PATTERN.exec(String(batch && batch.name || '').trim());
+    if (!match) return null;
+    const inferredGrade = normalizeSchoolGrade(match[1]);
+    const inferredDate = normalizeISODate(match[2]);
+    return inferredGrade && inferredDate ? { kind: 'school', grade: inferredGrade, date: inferredDate } : null;
   }
 
   function validateCategoryRegistry(value) {
-    if (!value || value.schemaVersion !== 1 || !Array.isArray(value.groups)) {
-      return { schemaVersion: 1, groups: [] };
-    }
+    if (!value || value.schemaVersion !== 1 || !Array.isArray(value.groups)) return { schemaVersion: 1, groups: [] };
     return {
       schemaVersion: 1,
       source: String(value.source || ''),
@@ -79,12 +102,14 @@
     };
   }
 
-  function visibleCategoryBatches() {
-    const visible = getVocabularyLessonVisibleBatches(appData, currentUser).slice();
-    if (typeof compareVocabularyLessonBatchesNewestFirst === 'function') {
-      visible.sort(compareVocabularyLessonBatchesNewestFirst);
-    }
-    return visible;
+  function allCategoryBatches() {
+    return Array.isArray(appData && appData.batches) ? appData.batches : [];
+  }
+
+  function visibleGuideBatches() {
+    return typeof getVocabularyLessonVisibleBatches === 'function'
+      ? getVocabularyLessonVisibleBatches(appData, currentUser)
+      : allCategoryBatches();
   }
 
   function mergeCategoryWords(category, words) {
@@ -100,50 +125,31 @@
   function effectiveCategoryRegistry() {
     const groups = categoryRegistry.groups.map(group => ({
       ...group,
-      categories: group.categories.map(category => ({
-        ...category,
-        words: category.words.slice()
-      }))
+      categories: group.categories.map(category => ({ ...category, words: category.words.slice() }))
     }));
     const groupById = new Map(groups.map(group => [group.id, group]));
     const categoryById = new Map();
     groups.forEach(group => group.categories.forEach(category => categoryById.set(category.id, category)));
-
-    visibleCategoryBatches().forEach(batch => {
+    allCategoryBatches().forEach(batch => {
       (Array.isArray(batch.categoryAssignments) ? batch.categoryAssignments : []).forEach(rawAssignment => {
         const assignment = normalizeCategoryAssignment(rawAssignment);
         if (!assignment) return;
         let group = groupById.get(assignment.groupId);
         if (!group) {
-          group = {
-            id: assignment.groupId,
-            name: assignment.groupName,
-            description: assignment.groupDescription || '由导入单词本携带的分类信息自动生成。',
-            categories: []
-          };
+          group = { id: assignment.groupId, name: assignment.groupName, description: assignment.groupDescription, categories: [] };
           groups.push(group);
           groupById.set(group.id, group);
         }
         let category = categoryById.get(assignment.categoryId);
         if (!category) {
-          category = {
-            id: assignment.categoryId,
-            name: assignment.categoryName,
-            icon: assignment.icon,
-            words: []
-          };
+          category = { id: assignment.categoryId, name: assignment.categoryName, icon: assignment.icon, words: [] };
           group.categories.push(category);
           categoryById.set(category.id, category);
         }
         mergeCategoryWords(category, assignment.words);
       });
     });
-
-    return {
-      schemaVersion: 1,
-      source: categoryRegistry.source,
-      groups
-    };
+    return { schemaVersion: 1, source: categoryRegistry.source, groups };
   }
 
   function ensureCategoryStyles() {
@@ -177,20 +183,60 @@
     return categoryRegistryPromise;
   }
 
-  function visibleCategoryCards() {
+  function masterCategoryCards() {
     const byMatchKey = new Map();
-    visibleCategoryBatches().forEach(batch => {
+    const masterCards = appData && appData.masterCards && typeof appData.masterCards === 'object'
+      ? Object.values(appData.masterCards)
+      : [];
+    masterCards.forEach(card => {
+      const matchKey = normalizeCategoryWord(getVocabularyLessonCardWord(card));
+      if (matchKey && !byMatchKey.has(matchKey)) byMatchKey.set(matchKey, card);
+    });
+    if (byMatchKey.size) return byMatchKey;
+    allCategoryBatches().forEach(batch => {
       (Array.isArray(batch.cards) ? batch.cards : []).forEach(card => {
-        const word = getVocabularyLessonCardWord(card);
-        const matchKey = normalizeCategoryWord(word);
+        const matchKey = normalizeCategoryWord(getVocabularyLessonCardWord(card));
         if (matchKey && !byMatchKey.has(matchKey)) byMatchKey.set(matchKey, card);
       });
     });
     return byMatchKey;
   }
 
+  function schoolCategoryGroup() {
+    const grades = ['4', '7'].map(grade => ({
+      id: `school-grade-${grade}`,
+      name: grade === '4' ? '四年级' : '七年级',
+      grade,
+      categories: []
+    }));
+    const gradeById = new Map(grades.map(item => [item.grade, item]));
+    visibleGuideBatches().forEach(batch => {
+      const meta = schoolGuideMeta(batch);
+      if (!meta || !Array.isArray(batch.cards) || !batch.cards.length) return;
+      gradeById.get(meta.grade).categories.push({
+        id: `school-${String(batch.id)}`,
+        name: meta.date,
+        icon: '🏫',
+        cards: batch.cards.slice(),
+        schoolMeta: meta,
+        sourceBatchId: String(batch.id)
+      });
+    });
+    grades.forEach(grade => grade.categories.sort((left, right) => (
+      String(right.schoolMeta.date).localeCompare(String(left.schoolMeta.date))
+      || String(right.sourceBatchId).localeCompare(String(left.sourceBatchId))
+    )));
+    return {
+      id: 'school',
+      name: '校内词汇',
+      description: '按年级和日期整理。',
+      categories: grades.flatMap(grade => grade.categories),
+      schoolGrades: grades
+    };
+  }
+
   function availableCategoryGroups() {
-    const cardIndex = visibleCategoryCards();
+    const cardIndex = masterCategoryCards();
     const matchedKeys = new Set();
     const groups = effectiveCategoryRegistry().groups.map(group => {
       const categories = group.categories.map(category => {
@@ -210,27 +256,19 @@
       return { ...group, categories };
     }).filter(group => group.categories.length > 0);
 
+    groups.push(schoolCategoryGroup());
     const unclassified = [];
     cardIndex.forEach((card, matchKey) => {
       if (!matchedKeys.has(matchKey)) unclassified.push(card);
     });
+    unclassified.sort((left, right) => String(getVocabularyLessonCardWord(left))
+      .localeCompare(String(getVocabularyLessonCardWord(right)), 'en'));
     if (unclassified.length) {
-      const categories = [];
-      for (let index = 0; index < unclassified.length; index += MAX_CATEGORY_WORDS) {
-        const part = Math.floor(index / MAX_CATEGORY_WORDS) + 1;
-        const multiple = unclassified.length > MAX_CATEGORY_WORDS;
-        categories.push({
-          id: `unclassified-${part}`,
-          name: multiple ? `其他未分类 ${part}` : '其他未分类',
-          icon: '🗂️',
-          cards: unclassified.slice(index, index + MAX_CATEGORY_WORDS)
-        });
-      }
       groups.push({
         id: 'unclassified',
-        name: '待继续整理',
-        description: '这些词仍可正常授课，只是暂未收入分类索引。',
-        categories
+        name: '未分类',
+        description: '暂未整理进主题或功能分类的单词。',
+        categories: [{ id: 'unclassified', name: '未分类', icon: '🗂️', cards: unclassified }]
       });
     }
     return groups;
@@ -251,10 +289,71 @@
     })[character]);
   }
 
-  function renderCategorySelection() {
-    if (typeof setVocabularyLessonSelectionRoute === 'function') {
-      setVocabularyLessonSelectionRoute('categories');
+  function makeVirtualCategoryBatch(category) {
+    return {
+      id: `${VIRTUAL_BATCH_PREFIX}${category.id}`,
+      name: category.name,
+      bookPurpose: 'common',
+      vocabularyLessonTransient: true,
+      cards: category.cards.slice()
+    };
+  }
+
+  function groupConfigForCategory(category) {
+    if (!window.VocabularyLessonGroups) return { groups: [] };
+    return window.VocabularyLessonGroups.reconcileVocabularyLessonGroups(
+      makeVirtualCategoryBatch(category),
+      null,
+      window.VocabularyLessonGroups.GROUP_SIZE || 20
+    );
+  }
+
+  function renderCategoryCard(category) {
+    const encodedId = encodeURIComponent(category.id);
+    const groups = groupConfigForCategory(category).groups;
+    const icon = `<span class="vocabulary-lesson-category-icon" aria-hidden="true">${escapeCategoryHtml(category.icon)}</span>`;
+    if (groups.length <= 1) {
+      const group = groups[0];
+      return `<article class="vocabulary-lesson-category-card" data-category-id="${escapeCategoryHtml(category.id)}">
+        <button class="vocabulary-lesson-category-button" type="button" data-group-id="${escapeCategoryHtml(group && group.id)}" onclick="selectVocabularyLessonCategoryGroup(decodeURIComponent('${encodedId}'), 0)">
+          ${icon}<strong>${escapeCategoryHtml(category.name)}</strong>
+          <span class="vocabulary-lesson-category-check" aria-hidden="true">✓</span>
+          <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>
+        </button>
+      </article>`;
     }
+    return `<article class="vocabulary-lesson-category-card" data-category-id="${escapeCategoryHtml(category.id)}">
+      <div class="vocabulary-lesson-category-heading">
+        ${icon}<strong>${escapeCategoryHtml(category.name)}</strong>
+        <span class="vocabulary-lesson-category-check" aria-hidden="true">✓</span>
+      </div>
+      <div class="vocabulary-lesson-inline-groups">
+        ${groups.map((group, index) => `<button type="button" data-group-id="${escapeCategoryHtml(group.id)}" onclick="selectVocabularyLessonCategoryGroup(decodeURIComponent('${encodedId}'), ${index})"><span>第${index + 1}组</span><span class="vocabulary-lesson-group-check" aria-hidden="true">✓</span></button>`).join('')}
+      </div>
+    </article>`;
+  }
+
+  function renderRegularGroup(group) {
+    return `<section class="vocabulary-lesson-category-group" data-guide-group="${escapeCategoryHtml(group.id)}" aria-labelledby="vocabularyCategoryGroup-${escapeCategoryHtml(group.id)}">
+      <header><h2 id="vocabularyCategoryGroup-${escapeCategoryHtml(group.id)}">${escapeCategoryHtml(group.name)}</h2>${group.description ? `<p>${escapeCategoryHtml(group.description)}</p>` : ''}</header>
+      <div class="vocabulary-lesson-category-grid">${group.categories.map(renderCategoryCard).join('')}</div>
+    </section>`;
+  }
+
+  function renderSchoolGroup(group) {
+    return `<section class="vocabulary-lesson-category-group vocabulary-lesson-school-group" data-guide-group="school" aria-labelledby="vocabularyCategoryGroup-school">
+      <header><h2 id="vocabularyCategoryGroup-school">${escapeCategoryHtml(group.name)}</h2><p>${escapeCategoryHtml(group.description)}</p></header>
+      <div class="vocabulary-lesson-school-grades">
+        ${group.schoolGrades.map(grade => `<section class="vocabulary-lesson-school-grade" data-school-grade="${grade.grade}">
+          <h3>${escapeCategoryHtml(grade.name)}</h3>
+          <div class="vocabulary-lesson-category-grid">${grade.categories.length ? grade.categories.map(renderCategoryCard).join('') : '<p class="vocabulary-lesson-school-empty">暂无内容</p>'}</div>
+        </section>`).join('')}
+      </div>
+    </section>`;
+  }
+
+  function renderCategorySelection() {
+    if (typeof setVocabularyLessonSelectionRoute === 'function') setVocabularyLessonSelectionRoute('categories');
     installVocabularyLessonShell();
     ensureCategoryStyles();
     const list = document.getElementById('vocabularyLessonBookList');
@@ -265,12 +364,12 @@
     const topbarTitle = document.querySelector('#screenVocabularyReviewList .topbar-title');
     const selectionCopy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
     if (!list) return;
-
     if (selectionCopy) selectionCopy.hidden = false;
-    if (topbarTitle) topbarTitle.textContent = '分类词汇导览';
-    if (title) title.textContent = '选择词汇类别';
-    if (copy) copy.textContent = '同一个词可以出现在多个类别中；正式单词卡和探险记录不会改变。';
+    if (topbarTitle) topbarTitle.textContent = '新词导览';
+    if (title) title.textContent = '选择今天要讲的词汇';
+    if (copy) copy.textContent = '按主题、功能和校内内容选择；完成的分组会自动移到最后。';
     if (icon) icon.textContent = '🗂️';
+    installSelectionBackButton(closeVocabularyReviewList);
 
     if (!categoryRegistryLoaded) {
       list.innerHTML = '<p class="vocabulary-lesson-category-loading">正在整理分类……</p>';
@@ -278,69 +377,16 @@
       loadVocabularyLessonCategories().then(renderCategorySelection);
       return;
     }
-
     const groups = availableCategoryGroups();
     list.className = 'vocabulary-lesson-book-list vocabulary-lesson-category-list';
-    list.innerHTML = groups.map(group => `
-      <section class="vocabulary-lesson-category-group" aria-labelledby="vocabularyCategoryGroup-${escapeCategoryHtml(group.id)}">
-        <header>
-          <h2 id="vocabularyCategoryGroup-${escapeCategoryHtml(group.id)}">${escapeCategoryHtml(group.name)}</h2>
-          ${group.description ? `<p>${escapeCategoryHtml(group.description)}</p>` : ''}
-        </header>
-        <div class="vocabulary-lesson-category-grid">
-          ${group.categories.map(category => `
-            <button class="vocabulary-lesson-category-button" type="button" onclick="selectVocabularyLessonCategory(decodeURIComponent('${encodeURIComponent(category.id)}'))">
-              <span class="vocabulary-lesson-category-icon" aria-hidden="true">${escapeCategoryHtml(category.icon)}</span>
-              <strong>${escapeCategoryHtml(category.name)}</strong>
-              <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>
-            </button>`).join('')}
-        </div>
-      </section>`).join('');
+    list.innerHTML = groups.map(group => group.id === 'school' ? renderSchoolGroup(group) : renderRegularGroup(group)).join('');
     if (empty) {
-      empty.textContent = categoryRegistry.groups.length
-        ? '当前可见单词中没有匹配到分类词。'
-        : '分类索引暂时无法读取，请刷新后重试。';
+      empty.textContent = '分类索引暂时无法读取，请刷新后重试。';
       empty.hidden = groups.length > 0;
     }
-    if (typeof renderVocabularyLessonSharedAdmin === 'function') renderVocabularyLessonSharedAdmin();
-    if (typeof window.decorateVocabularyLessonCategoryProgress === 'function') {
-      window.decorateVocabularyLessonCategoryProgress();
-    }
-  }
-
-  function renderCategorySecondaryEntry() {
-    const list = document.getElementById('vocabularyLessonBookList');
-    if (!list || document.getElementById('vocabularyLessonCategoryEntry')) return;
-    const entry = document.createElement('button');
-    entry.id = 'vocabularyLessonCategoryEntry';
-    entry.className = 'vocabulary-lesson-book-button vocabulary-lesson-category-entry';
-    entry.type = 'button';
-    entry.addEventListener('click', openVocabularyLessonCategorySelection);
-    entry.innerHTML = `
-      <span aria-hidden="true">🗂️</span>
-      <span class="vocabulary-lesson-book-name">分类词汇<small>按主题浏览</small></span>
-      <span class="vocabulary-lesson-status-badge">次级入口</span>
-      <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>`;
-    list.appendChild(entry);
-  }
-
-  function renderBookSelectionWithCategoryEntry() {
-    if (!originalRenderVocabularyLessonBookSelection) return;
-    if (typeof setVocabularyLessonSelectionRoute === 'function') {
-      setVocabularyLessonSelectionRoute('books');
-    }
-    originalRenderVocabularyLessonBookSelection();
-    const topbarTitle = document.querySelector('#screenVocabularyReviewList .topbar-title');
-    const title = document.getElementById('vocabularyLessonSelectionTitle');
-    const copy = title && title.parentElement ? title.parentElement.querySelector('p') : null;
-    const icon = document.querySelector('.vocabulary-lesson-selection-icon');
-    const selectionCopy = document.querySelector('#screenVocabularyReviewList .vocabulary-lesson-selection-copy');
-    if (selectionCopy) selectionCopy.hidden = false;
-    if (topbarTitle) topbarTitle.textContent = '新词导览';
-    if (title) title.textContent = '选择今天要讲的单词本';
-    if (copy) copy.textContent = '优先显示今天或当前可见的单词本；分类词汇可从下方次级入口打开。';
-    if (icon) icon.textContent = '🖼️';
-    renderCategorySecondaryEntry();
+    const sharedAdmin = document.getElementById('vocabularyLessonSharedAdmin');
+    if (sharedAdmin) sharedAdmin.hidden = true;
+    if (typeof window.decorateVocabularyLessonCategoryProgress === 'function') window.decorateVocabularyLessonCategoryProgress();
   }
 
   function installSelectionBackButton(handler) {
@@ -350,32 +396,13 @@
 
   function openVocabularyLessonCategorySelection() {
     if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
-    if (typeof setVocabularyLessonSelectionRoute === 'function') {
-      setVocabularyLessonSelectionRoute('categories');
-    }
     renderCategorySelection();
-    installSelectionBackButton(closeVocabularyLessonCategorySelection);
     showScreen('screenVocabularyReviewList');
   }
 
   function closeVocabularyLessonCategorySelection() {
     if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
-    if (typeof setVocabularyLessonSelectionRoute === 'function') {
-      setVocabularyLessonSelectionRoute('books');
-    }
-    renderBookSelectionWithCategoryEntry();
-    installSelectionBackButton(closeVocabularyReviewList);
-    showScreen('screenVocabularyReviewList');
-  }
-
-  function makeVirtualCategoryBatch(category) {
-    return {
-      id: `${VIRTUAL_BATCH_PREFIX}${category.id}`,
-      name: `分类｜${category.name}`,
-      bookPurpose: 'common',
-      vocabularyLessonTransient: true,
-      cards: category.cards.slice()
-    };
+    closeVocabularyReviewList();
   }
 
   async function selectVocabularyLessonCategory(categoryId) {
@@ -399,14 +426,11 @@
     ensureCategoryStyles();
     originalSelectVocabularyLessonBook = selectVocabularyLessonBook;
     originalRenderVocabularyLesson = renderVocabularyLesson;
-    originalRenderVocabularyLessonBookSelection = renderVocabularyLessonBookSelection;
-    renderVocabularyLessonBookSelection = renderBookSelectionWithCategoryEntry;
+    renderVocabularyLessonBookSelection = renderCategorySelection;
     renderVocabularyLesson = function renderVocabularyLessonWithCategoryTitle() {
       originalRenderVocabularyLesson();
       const title = document.getElementById('vocabularyLessonModeTitle');
-      if (title && vocabularyLessonState.categoryName && vocabularyLessonState.mode === 'teaching') {
-        title.textContent = vocabularyLessonState.categoryName;
-      }
+      if (title && vocabularyLessonState.categoryName && vocabularyLessonState.mode === 'teaching') title.textContent = vocabularyLessonState.categoryName;
     };
     window.loadVocabularyLessonCategories = loadVocabularyLessonCategories;
     window.selectVocabularyLessonCategory = selectVocabularyLessonCategory;
@@ -414,19 +438,15 @@
     window.normalizeVocabularyCategoryAssignment = normalizeCategoryAssignment;
     window.getVocabularyLessonEffectiveCategoryRegistry = effectiveCategoryRegistry;
     window.getVocabularyLessonCategoryById = categoryById;
+    window.getVocabularyLessonSchoolGuideMeta = schoolGuideMeta;
     window.makeVocabularyLessonVirtualCategoryBatch = makeVirtualCategoryBatch;
+    window.getVocabularyLessonCategoryGroupConfig = groupConfigForCategory;
     window.renderVocabularyLessonCategorySelection = renderCategorySelection;
     window.openVocabularyLessonCategorySelection = openVocabularyLessonCategorySelection;
     window.closeVocabularyLessonCategorySelection = closeVocabularyLessonCategorySelection;
     window.getVocabularyLessonAvailableCategoryGroups = availableCategoryGroups;
     loadVocabularyLessonCategories().then(() => {
-      if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) {
-        if (typeof refreshVocabularyLessonSelectionRoute === 'function') {
-          refreshVocabularyLessonSelectionRoute();
-        } else {
-          renderVocabularyLessonBookSelection();
-        }
-      }
+      if (document.getElementById('screenVocabularyReviewList')?.classList.contains('active')) renderCategorySelection();
     });
     return true;
   }

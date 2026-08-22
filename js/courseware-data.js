@@ -3,7 +3,7 @@ window.CLASSROOM_PRACTICE_ITEMS = [
   {
     "id": "courseware-2026-08-22-comparatives",
     "title": "26.08.22｜比较级 -er、more 与 than 随堂练习",
-    "description": "两者比较、-er、more 与 than 的基础随堂练习，共20题",
+    "description": "两者比较、-er、more 与 than 的基础随堂练习，共15题",
     "icon": "screen",
     "tone": "purple",
     "path": "courseware/26.08.22｜比较级 -er、more 与 than 随堂练习.html",

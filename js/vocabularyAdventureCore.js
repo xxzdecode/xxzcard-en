@@ -295,9 +295,9 @@
     const candidates = Array.isArray(settings.candidates) ? settings.candidates : [];
     const state = normalizeVocabularyAdventureState(settings.state);
     const today = isLocalDate(settings.today) ? settings.today : localDateKey(new Date());
-    const screeningTarget = positiveTarget(settings.screeningTarget, 20);
-    const reviewTarget = positiveTarget(settings.reviewTarget, 10);
-    const firstSessionTarget = positiveTarget(settings.firstSessionTarget, 30);
+    const screeningTarget = positiveTarget(settings.screeningTarget, 12);
+    const reviewTarget = positiveTarget(settings.reviewTarget, 8);
+    const firstSessionTarget = positiveTarget(settings.firstSessionTarget, 20);
     const pools = classifyVocabularyAdventureCandidates(candidates, state, today);
     const firstSession = !Object.values(state.words).some(wordState => wordState.reviewCount > 0);
 

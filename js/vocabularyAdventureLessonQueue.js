@@ -5,13 +5,16 @@
   const taught = typeof module === 'object' && module.exports
     ? require('./vocabularyLessonTaught.js')
     : root;
-  const api = factory(lessonGroups, taught);
+  const core = typeof module === 'object' && module.exports
+    ? require('./vocabularyAdventureCore.js')
+    : root.VocabularyAdventureCore;
+  const api = factory(lessonGroups, taught, core);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) {
     root.VocabularyAdventureLessonQueue = api;
     api.installVocabularyAdventureLessonQueueBrowserPatch(root);
   }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureLessonQueue(lessonGroups, taught) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function createVocabularyAdventureLessonQueue(lessonGroups, taught, core) {
   'use strict';
 
   function plainObject(value) {
@@ -51,6 +54,53 @@
     });
   }
 
+  function mergeFormalChallengeCandidates(visibleCandidates, masterCards) {
+    const result = [];
+    const seen = new Set();
+    const append = candidate => {
+      const key = lessonGroups.wordKey(candidate && (candidate.key || candidate.word));
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      result.push({ ...candidate, key });
+    };
+    (Array.isArray(visibleCandidates) ? visibleCandidates : []).forEach(append);
+
+    if (core && typeof core.collectVocabularyAdventureCandidates === 'function' && plainObject(masterCards)) {
+      core.collectVocabularyAdventureCandidates([{
+        id: 'master-vocabulary',
+        name: '词汇总库',
+        cards: Object.values(masterCards)
+      }]).forEach(append);
+    }
+    return result;
+  }
+
+  function collectChallengeCandidatesForLessonQueue(options) {
+    const settings = plainObject(options) ? options : {};
+    const state = plainObject(settings.state) ? settings.state : {};
+    const words = plainObject(state.words) ? state.words : {};
+    const eligible = entriesByWord(settings.taughtState, String(settings.today || ''));
+
+    return (Array.isArray(settings.candidates) ? settings.candidates : []).reduce((result, candidate) => {
+      const key = lessonGroups.wordKey(candidate && (candidate.key || candidate.word));
+      if (!key) return result;
+      const previous = normalizeAdventureWordState(words[key]);
+      const taughtEntry = eligible.get(key);
+      const learnedHistorically = previous.reviewCount > 0;
+      if (!taughtEntry && !learnedHistorically) return result;
+
+      const challengedAfterLesson = taughtEntry
+        && previous.lessonChallengeAt
+        && String(previous.lessonChallengeAt) >= String(taughtEntry.taughtAt || '');
+      result.push({
+        ...candidate,
+        key,
+        lessonQueuePriority: !!taughtEntry && !challengedAfterLesson
+      });
+      return result;
+    }, []);
+  }
+
   function decorateAdventureStateForLessonQueue(options) {
     const settings = plainObject(options) ? options : {};
     const today = String(settings.today || '');
@@ -69,7 +119,13 @@
       const previous = normalizeAdventureWordState(state.words[key]);
       const challengedAfterLesson = previous.lessonChallengeAt
         && String(previous.lessonChallengeAt) >= String(taughtEntry.taughtAt || '');
-      if (challengedAfterLesson) return;
+      if (challengedAfterLesson) {
+        state.words[key] = {
+          ...previous,
+          reviewCount: Math.max(1, previous.reviewCount)
+        };
+        return;
+      }
       state.words[key] = {
         ...previous,
         lastResult: 'F',
@@ -134,15 +190,31 @@
       return user === 'sister' || user === 'brother' ? user : '';
     }
 
-    function originalVisibleWordKeys() {
-      return originalCollect.call(root)
-        .map(candidate => lessonGroups.wordKey(candidate && (candidate.key || candidate.word)))
-        .filter(Boolean);
+    function challengeSourceCandidates(args) {
+      const visible = originalCollect.apply(root, args || []);
+      const data = plainObject(root.appData) ? root.appData : {};
+      return mergeFormalChallengeCandidates(visible, data.masterCards);
     }
 
-    function collectVisibleVocabularyAdventureTaughtCandidates() {
-      const challengeDate = candidateMode === 'challenge' ? candidateDate : '';
-      return filterTaughtCandidates(originalCollect.apply(root, arguments), taughtState, challengeDate);
+    function collectVisibleVocabularyAdventureEligibleCandidates() {
+      const request = plainObject(arguments[0]) ? arguments[0] : {};
+      const challengeRequested = request.mode === 'challenge'
+        || root.__vocabularyChallengeCandidateExpansion === true
+        || candidateMode === 'challenge';
+      const challengeDate = challengeRequested
+        ? String(request.today || candidateDate || lessonGroups.localDateKey(new Date()))
+        : '';
+      const candidates = challengeDate
+        ? challengeSourceCandidates(arguments)
+        : originalCollect.apply(root, arguments);
+      if (!challengeDate) return filterTaughtCandidates(candidates, taughtState);
+      const actual = actualStates.get(currentStudent()) || { words: {} };
+      return collectChallengeCandidatesForLessonQueue({
+        candidates,
+        state: actual,
+        taughtState,
+        today: challengeDate
+      });
     }
 
     async function loadVocabularyAdventureStateWithLessonQueue(userValue, options) {
@@ -159,7 +231,7 @@
         state: actual,
         taughtState,
         today: candidateDate,
-        visibleWordKeys: originalVisibleWordKeys()
+        visibleWordKeys: challengeSourceCandidates([]).map(candidate => candidate.key)
       }).state;
     }
 
@@ -181,10 +253,10 @@
     saveCurrentVocabularyAdventureStateWithLessonQueue.__vteCoordinatorWrapped =
       originalSave.__vteCoordinatorWrapped === true;
 
-    root.collectVisibleVocabularyAdventureCandidates = collectVisibleVocabularyAdventureTaughtCandidates;
+    root.collectVisibleVocabularyAdventureCandidates = collectVisibleVocabularyAdventureEligibleCandidates;
     root.loadVocabularyAdventureState = loadVocabularyAdventureStateWithLessonQueue;
     root.saveCurrentVocabularyAdventureState = saveCurrentVocabularyAdventureStateWithLessonQueue;
-    try { collectVisibleVocabularyAdventureCandidates = collectVisibleVocabularyAdventureTaughtCandidates; } catch (_) {}
+    try { collectVisibleVocabularyAdventureCandidates = collectVisibleVocabularyAdventureEligibleCandidates; } catch (_) {}
     try { loadVocabularyAdventureState = loadVocabularyAdventureStateWithLessonQueue; } catch (_) {}
     try { saveCurrentVocabularyAdventureState = saveCurrentVocabularyAdventureStateWithLessonQueue; } catch (_) {}
     return true;
@@ -192,6 +264,8 @@
 
   return Object.freeze({
     filterTaughtCandidates,
+    mergeFormalChallengeCandidates,
+    collectChallengeCandidatesForLessonQueue,
     decorateAdventureStateForLessonQueue,
     mergeChallengeStateIntoOriginal,
     installVocabularyAdventureLessonQueueBrowserPatch

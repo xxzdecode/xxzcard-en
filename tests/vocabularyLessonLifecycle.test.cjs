@@ -35,7 +35,7 @@ function element(id = '') {
   };
 }
 
-test('category enhancement preserves the workbook route and never inserts its virtual batch into appData', async () => {
+test('category-first guide hides the workbook route and never inserts its virtual batch into appData', async () => {
   const script = read('js/vocabularyLessonCategories.js');
   const list = element('vocabularyLessonBookList');
   const empty = element('vocabularyLessonBookEmpty');
@@ -116,12 +116,15 @@ test('category enhancement preserves the workbook route and never inserts its vi
   vm.runInContext(script, context, { filename: 'vocabularyLessonCategories.js' });
   await Promise.resolve();
   await Promise.resolve();
+  await context.loadVocabularyLessonCategories();
 
   context.renderVocabularyLessonBookSelection();
-  assert.equal(normalRenders, 1);
+  assert.equal(normalRenders, 0);
   assert.equal(topbarTitle.textContent, '新词导览');
-  assert.equal(title.textContent, '选择今天要讲的单词本');
-  assert.equal(list.children.filter(child => child.id === 'vocabularyLessonCategoryEntry').length, 1);
+  assert.equal(title.textContent, '选择今天要讲的词汇');
+  assert.match(list.innerHTML, /主题词汇/);
+  assert.doesNotMatch(list.innerHTML, /今日新词/);
+  assert.equal(list.children.filter(child => child.id === 'vocabularyLessonCategoryEntry').length, 0);
 
   const before = JSON.stringify(context.appData);
   const opened = await context.selectVocabularyLessonCategory('vehicles');

@@ -14,6 +14,8 @@ const repository = fs.readFileSync(path.join(root, 'js/repository.js'), 'utf8');
 const task016 = fs.readFileSync(path.join(root, 'js/vocabularyLesson016.js'), 'utf8');
 const groupStyles = fs.readFileSync(path.join(root, 'styles-vocabulary-lesson-groups.css'), 'utf8');
 const review = fs.readFileSync(path.join(root, 'js/vocabularyReview.js'), 'utf8');
+const importScript = fs.readFileSync(path.join(root, 'js/import.js'), 'utf8');
+const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
 assert.equal(registry.schemaVersion, 1);
 assert.ok(Array.isArray(registry.groups) && registry.groups.length >= 2);
@@ -55,7 +57,13 @@ assert.match(script, /normalizeCategoryAssignment/);
 assert.match(script, /effectiveCategoryRegistry/);
 assert.match(script, /categoryAssignments/);
 assert.match(script, /availableCategoryGroups/);
-assert.match(script, /其他未分类/);
+assert.match(script, /masterCards/);
+assert.match(script, /name: '未分类'/);
+assert.match(script, /name: '校内词汇'/);
+assert.match(script, /四年级/);
+assert.match(script, /七年级/);
+assert.match(script, /SCHOOL_NAME_PATTERN/);
+assert.doesNotMatch(script, /其他未分类/);
 assert.doesNotMatch(script, /appData\.batches\.(?:push|splice)\(/);
 assert.doesNotMatch(lowPressure, /appData\.batches\.(?:push|splice)\(/);
 assert.doesNotMatch(script, /createdAt:\s*['"]9999-12-31['"]/);
@@ -64,10 +72,15 @@ assert.match(script, /selectVocabularyLessonVirtualBatch\(virtualBatch/);
 assert.match(repository, /stripVocabularyLessonTransientData/);
 assert.match(repository, /const storedValue = key === 'main' \? cloneMainForStorage\(value\) : value/);
 assert.doesNotMatch(script, /card\.(category|categories|topic)\s*=/, 'word-card JSON fields must remain untouched');
-assert.match(script, /同一个词可以出现在多个类别中/);
-assert.match(script, /renderVocabularyLessonBookSelection = renderBookSelectionWithCategoryEntry/);
-assert.match(script, /id = 'vocabularyLessonCategoryEntry'/);
-assert.match(script, /次级入口/);
+assert.match(script, /renderVocabularyLessonBookSelection = renderCategorySelection/);
+assert.doesNotMatch(script, /vocabularyLessonCategoryEntry/);
+assert.doesNotMatch(script, /次级入口/);
+assert.match(script, /selectVocabularyLessonCategoryGroup/);
+assert.match(lowPressure, /selectVocabularyLessonCategoryGroup = openCategoryFromSelection/);
+assert.doesNotMatch(lowPressure, /counter\.textContent\s*=\s*`\$\{completed\}\/\$\{total\}`/);
+assert.match(indexHtml, /＋ 新建单词本/);
+assert.match(indexHtml, /id="newBatchText"/);
+assert.match(importScript, /manual input remains supported/);
 assert.match(review, /selectionRoute:\s*'books'/);
 assert.match(review, /renderCurrentVocabularyLessonSelectionRoute/);
 assert.match(review, /refreshVocabularyLessonSelectionRoute/);
@@ -87,7 +100,10 @@ assert.doesNotMatch(reviewData, /vocabularyLesson016\.js/, 'task 016 must only l
 
 assert.match(styles, /grid-template-columns:\s*repeat\(3,/);
 assert.match(styles, /orientation:\s*landscape/);
-assert.match(styles, /min-height:\s*64px/);
+assert.match(styles, /min-height:\s*62px/);
+assert.match(styles, /\.vocabulary-lesson-category-card\.is-completed/);
+assert.match(styles, /\.vocabulary-lesson-inline-groups button\.is-completed/);
+assert.match(styles, /min-height:\s*44px/);
 
 function card(word, meaning) {
   return {
@@ -185,5 +201,27 @@ const builtPackage = referenceImport.buildPackageFromCards(importData, [card('se
 });
 assert.equal(builtPackage.wordbook.categoryAssignments.length, 1);
 assert.deepEqual(builtPackage.wordbook.categoryAssignments[0].words, ['season']);
+
+const schoolPackage = referenceImport.buildPackageFromCards(importData, [card('season', '季节')], {
+  id: 'school-grade-4-2026-09-01',
+  name: '校内｜四年级｜2026-09-01',
+  bookPurpose: 'common'
+});
+assert.deepEqual(schoolPackage.wordbook.guideSection, {
+  kind: 'school',
+  grade: '4',
+  date: '2026-09-01'
+});
+const schoolAudit = referenceImport.auditReferenceImport(importData, schoolPackage);
+assert.deepEqual(schoolAudit.errors, []);
+const schoolResult = referenceImport.applyReferenceImport(importData, schoolAudit);
+assert.deepEqual(schoolResult.batch.guideSection, schoolPackage.wordbook.guideSection);
+assert.equal(schoolResult.batch.name, '校内｜四年级｜2026-09-01');
+
+assert.deepEqual(
+  referenceImport.inferGuideSectionFromName('校内｜七年级｜2026-09-02'),
+  { kind: 'school', grade: '7', date: '2026-09-02' }
+);
+assert.equal(referenceImport.inferGuideSectionFromName('普通单词本'), null);
 
 console.log('vocabulary category index tests passed');

@@ -61,7 +61,9 @@ assert.match(coordinatorSource, /saveContext\.mode/);
 assert.doesNotMatch(coordinatorSource, /challengeSession\.cursor\)\s*>\s*0/);
 assert.match(playerSource, /mode:\s*'adventure'/);
 assert.match(challengeSource, /mode:\s*'challenge'/);
+assert.match(challengeSource, /collectVisibleVocabularyAdventureCandidates\(\{ mode: 'challenge', today/);
 assert.match(queueSource, /saveContext\.mode\s*!==\s*'challenge'/);
+assert.match(queueSource, /mergeFormalChallengeCandidates/);
 assert.match(activitySource, /saveContext\.mode/);
 assert.match(activitySource, /openStudentGrammarChallengeBase/);
 assert.match(activitySource, /baseEntry\.apply\(this, arguments\)/);
@@ -124,6 +126,7 @@ const routeSource = fs.readFileSync(path.join(root, 'js/dailyLearningRoute.js'),
 const overrideSource = fs.readFileSync(path.join(root, 'js/dailyLearningRouteOverride.js'), 'utf8');
 const mainSource = fs.readFileSync(path.join(root, 'js/main.js'), 'utf8');
 const lazySource = fs.readFileSync(path.join(root, 'js/lazyFeatures.js'), 'utf8');
+assert.match(mainSource, /loadVocabularyAdventureState\(user, \{ mode: 'challenge' \}\)/);
 assert.match(routeSource, /DAILY_ROUTE_CACHE_KEY/);
 assert.match(routeSource, /readCachedRoute/);
 assert.match(routeSource, /refresh.*background/i);
@@ -146,8 +149,8 @@ assert.doesNotMatch(mainSource, /await loadRewardFor|await loadClassroomFor/);
 assert.doesNotMatch(lazySource, /warmAdventure|warmWrongAnswerOrganizer|adventure-preload/);
 
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
-assert.match(serviceWorker, /xxzcard-app-shell-v86/);
-assert.match(serviceWorker, /xxzcard-runtime-v86/);
+assert.match(serviceWorker, /xxzcard-app-shell-v89/);
+assert.match(serviceWorker, /xxzcard-runtime-v89/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.match(serviceWorker, /match\(request, \{ ignoreSearch: true \}\)/);

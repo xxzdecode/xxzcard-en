@@ -75,9 +75,10 @@
     );
   }
 
-  function completionLabel(groupId) {
+  function completionLabel(group) {
     const taught = typeof isVocabularyLessonGroupTaught === 'function'
-      && isVocabularyLessonGroupTaught(taughtState, groupId);
+      && group
+      && isVocabularyLessonGroupTaught(taughtState, group.id, group.wordKeys);
     return taught
       ? '<span class="vocabulary-lesson-group-completed is-teacher">已授课</span>'
       : '<span class="vocabulary-lesson-group-completed is-teacher" aria-hidden="true"></span>';
@@ -87,7 +88,7 @@
     if (!config || !config.groups.length) return 0;
     const index = config.groups.findIndex(group => (
       typeof isVocabularyLessonGroupTaught !== 'function'
-      || !isVocabularyLessonGroupTaught(taughtState, group.id)
+      || !isVocabularyLessonGroupTaught(taughtState, group.id, group.wordKeys)
     ));
     return index >= 0 ? index : 0;
   }
@@ -155,7 +156,7 @@
           <span aria-hidden="true">${isCurrent ? '🌞' : '📚'}</span>
           <span class="vocabulary-lesson-book-name"><span class="vocabulary-lesson-book-title">${escapeVocabularyLessonHtml(batch.name || '未命名单词本')}</span><small>${wordCount}词</small></span>
           ${statusBadge}
-          ${group ? completionLabel(group.id) : ''}
+          ${group ? completionLabel(group) : ''}
           <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>
         </button>`;
     }
@@ -171,7 +172,7 @@
             <button type="button" onclick="selectVocabularyLessonGroup(decodeURIComponent('${encodeURIComponent(String(batch.id))}'), ${index})">
               <span>第${index + 1}组</span>
               <small>${group.wordKeys.length}词</small>
-              ${completionLabel(group.id)}
+              ${completionLabel(group)}
               <b aria-hidden="true">›</b>
             </button>`).join('')}
         </div>
@@ -347,7 +348,7 @@
     const group = activeGroupConfig();
     if (!group || typeof saveVocabularyLessonTaughtGroup !== 'function') return false;
     if (typeof isVocabularyLessonGroupTaught === 'function'
-      && isVocabularyLessonGroupTaught(taughtState, group.id)) return true;
+      && isVocabularyLessonGroupTaught(taughtState, group.id, group.wordKeys)) return true;
 
     const sealed = await sealCurrentGroupInMain();
     if (!sealed) return false;
@@ -384,7 +385,7 @@
       if (next) {
         const group = activeGroupConfig();
         const alreadyTaught = group && typeof isVocabularyLessonGroupTaught === 'function'
-          && isVocabularyLessonGroupTaught(taughtState, group.id);
+          && isVocabularyLessonGroupTaught(taughtState, group.id, group.wordKeys);
         next.textContent = vocabularyLessonState.batchIndex < vocabularyLessonState.batches.length - 1
           ? `${alreadyTaught ? '本组已授课' : '标记本组已授课'}并进入下一组 →`
           : `${alreadyTaught ? '本组已授课' : '标记本组已授课'} →`;

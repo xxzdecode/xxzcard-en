@@ -220,7 +220,7 @@
     if (model.visual.kind === 'emoji') {
       return `<div class="vte-visual-media is-emoji" aria-label="${escapeHtml(model.word)}">${escapeHtml(model.visual.value)}</div>${meaning}`;
     }
-    return `<div class="vte-visual-media is-placeholder" aria-label="暂无图片"><span>◇</span><small>WORD</small></div>${meaning}`;
+    return `<div class="vte-visual-media is-placeholder" aria-label="${escapeHtml(model.word || '暂无配图')}"><strong class="vte-placeholder-word">${escapeHtml(model.word || '单词')}</strong><small>暂无配图</small></div>${meaning}`;
   }
 
   function renderTeachingHtml(model, actionKey) {
@@ -229,6 +229,7 @@
       model.tip ? `<p><strong>记忆提示</strong><span>${escapeHtml(model.tip)}</span></p>` : ''
     ].filter(Boolean).join('');
     return `<article class="vte-shell vte-shell--${escapeHtml(model.source)}" aria-labelledby="vteTitle">
+      <button type="button" class="vte-close" data-vte-action="${escapeHtml(actionKey)}" aria-label="关闭错题卡并进入下一题">×</button>
       <section class="vte-visual-panel">${visualHtml(model)}</section>
       <section class="vte-info-panel">
         <header class="vte-heading">
@@ -274,13 +275,17 @@
     container.dataset.mode = 'error-teaching';
 
     container.querySelector('[data-vte-speak]')?.addEventListener('click', () => speak(model.word));
-    const nextButton = container.querySelector('[data-vte-action]');
-    nextButton?.addEventListener('click', () => advance(actionKey, nextButton));
+    const actionButtons = [...container.querySelectorAll('[data-vte-action]')];
+    actionButtons.forEach(button => button.addEventListener('click', () => advance(actionKey, button)));
     container.querySelector('[data-vte-image]')?.addEventListener(
       'error',
       event => handleImageError(event.currentTarget),
       { once: true }
     );
+    container.scrollTop = 0;
+    const stage = container.closest('.vocabulary-adventure-stage');
+    if (stage) stage.scrollTop = 0;
+    root.refreshVocabularyAdventureVisualV2?.();
     return model;
   }
 
@@ -288,8 +293,11 @@
     const action = state.nextActions.get(actionKey);
     if (!action) return false;
     if (button) {
-      button.disabled = true;
-      button.setAttribute('aria-busy', 'true');
+      const shell = button.closest('.vte-shell');
+      (shell ? shell.querySelectorAll('[data-vte-action]') : [button]).forEach(control => {
+        control.disabled = true;
+        control.setAttribute('aria-busy', 'true');
+      });
     }
     return action();
   }
@@ -300,7 +308,9 @@
     const card = findCardByWord(holder.dataset.vteFallback || '', root);
     const emoji = text(card && card.emoji);
     holder.className = `vte-visual-media ${emoji ? 'is-emoji' : 'is-placeholder'}`;
-    holder.innerHTML = emoji ? escapeHtml(emoji) : '<span>◇</span><small>WORD</small>';
+    holder.innerHTML = emoji
+      ? escapeHtml(emoji)
+      : `<strong class="vte-placeholder-word">${escapeHtml(holder.dataset.vteFallback || '单词')}</strong><small>暂无配图</small>`;
   }
 
   function speak(word) {
@@ -397,17 +407,19 @@
     style.textContent = `
       .vte-answer-correct{background:#e5f6e9!important;border:2px solid #8dcba0!important;color:#276746!important}
       .vte-answer-wrong{background:#fff0ed!important;border:2px solid #e4a49b!important;color:#a84646!important}
-      .vte-shell{width:100%;height:100%;min-height:0;display:grid;grid-template-columns:minmax(280px,43%) minmax(0,57%);gap:clamp(14px,2vw,26px);padding:clamp(14px,2vw,24px);border-radius:26px;background:#fffdf9;color:#514b50;box-shadow:0 16px 40px rgba(104,83,92,.12);overflow:hidden}
+      .vte-shell{position:relative;width:100%;height:100%;min-height:0;display:grid;grid-template-columns:minmax(280px,43%) minmax(0,57%);gap:clamp(14px,2vw,26px);padding:clamp(14px,2vw,24px);border-radius:26px;background:#fffdf9;color:#514b50;box-shadow:0 16px 40px rgba(104,83,92,.12);overflow:hidden;touch-action:pan-y}
+      .vte-close{position:absolute;top:10px;right:10px;z-index:4;width:44px;height:44px;border:0;border-radius:50%;background:#fff;color:#6d656b;box-shadow:0 4px 14px rgba(78,67,73,.18);font-size:30px;line-height:1;cursor:pointer;touch-action:manipulation}
+      .vte-close:focus-visible{outline:3px solid #5d9174;outline-offset:2px}
       .vte-visual-panel{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;border-radius:22px;background:linear-gradient(145deg,#f2f8ee,#fff4e8)}
       .vte-visual-media{width:100%;height:min(42dvh,340px);min-height:180px;display:grid;place-items:center;border-radius:20px;overflow:hidden;background:#edf5ea}
       .vte-visual-media img{width:100%;height:100%;object-fit:cover;display:block}
       .vte-visual-media.is-emoji{font-size:clamp(74px,12vw,148px);background:linear-gradient(145deg,#e7f5eb,#fff3df)}
       .vte-visual-media.is-placeholder{gap:2px;color:#8aa899;background:repeating-linear-gradient(135deg,#edf5ef,#edf5ef 18px,#e7f0ea 18px,#e7f0ea 36px)}
-      .vte-visual-media.is-placeholder span{font-size:86px;line-height:1}
-      .vte-visual-media.is-placeholder small{font-weight:900;letter-spacing:.24em}
+      .vte-visual-media.is-placeholder .vte-placeholder-word{max-width:90%;font-size:clamp(28px,4vw,48px);line-height:1.08;overflow-wrap:anywhere;text-align:center;color:#587566}
+      .vte-visual-media.is-placeholder small{font-weight:800;letter-spacing:.08em}
       .vte-visual-meaning{margin:0;font-size:clamp(16px,1.7vw,22px);font-weight:800;text-align:center;color:#637064}
       .vte-info-panel{min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px;padding:4px 4px 2px;overflow:auto}
-      .vte-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+      .vte-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-right:46px}
       .vte-kicker{margin:0;color:#5d9174;font-weight:900;font-size:clamp(15px,1.5vw,20px)}
       .vte-heading h2{margin:2px 0 0;font-size:clamp(32px,4.4vw,58px);line-height:1;color:#423c42;overflow-wrap:anywhere}
       .vte-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
@@ -429,7 +441,7 @@
       .vte-more summary{cursor:pointer;font-weight:800}
       .vte-next{margin-top:auto;align-self:flex-end;min-width:170px;min-height:54px;padding:10px 26px;border:0;border-radius:999px;background:#98c9a8;color:#fff;font-size:19px;font-weight:900;box-shadow:0 8px 18px rgba(80,135,96,.22);cursor:pointer}
       .vte-next:disabled{opacity:.55;cursor:default}
-      @media (orientation:portrait) and (max-width:900px){#screenVocabularyAdventure .vocabulary-adventure-stage,#screenVocabularyAdventureChallenge .vocabulary-adventure-stage{align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}#screenVocabularyAdventure .vocabulary-adventure-body[data-mode="error-teaching"],#screenVocabularyAdventureChallenge .vocabulary-adventure-body[data-mode="error-teaching"]{max-height:none;align-items:flex-start;overflow:visible}.vte-shell{height:auto;min-height:100%;grid-template-columns:1fr;overflow:visible}.vte-visual-media{height:min(30dvh,280px);min-height:180px}.vte-answer-grid{grid-template-columns:1fr}.vte-next{width:100%;align-self:stretch}.vte-info-panel{overflow:visible}}
+      @media (orientation:portrait) and (max-width:900px){#screenVocabularyAdventure .vocabulary-adventure-stage,#screenVocabularyAdventureChallenge .vocabulary-adventure-stage{align-items:flex-start;overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y}#screenVocabularyAdventure .vocabulary-adventure-body[data-mode="error-teaching"],#screenVocabularyAdventureChallenge .vocabulary-adventure-body[data-mode="error-teaching"]{max-height:none;align-items:flex-start;overflow:visible;touch-action:pan-y}.vte-shell{height:auto;min-height:0;grid-template-columns:1fr;gap:10px;padding:12px 12px 18px;overflow:visible}.vte-close{position:sticky;top:4px;justify-self:end;margin-bottom:-54px}.vte-visual-panel{padding:8px}.vte-visual-media{height:min(22dvh,170px);min-height:128px;touch-action:pan-y}.vte-visual-media img{-webkit-user-drag:none}.vte-heading{padding-right:0}.vte-answer-grid{grid-template-columns:1fr}.vte-next{width:100%;align-self:stretch}.vte-info-panel{overflow:visible}}
       @media (orientation:landscape) and (max-height:560px){.vte-shell{padding:10px;gap:10px;border-radius:18px}.vte-visual-media{height:calc(100dvh - 170px);min-height:150px}.vte-info-panel{gap:7px}.vte-heading h2{font-size:34px}.vte-answer{padding:8px 10px}.vte-teaching-points p{padding:7px 9px}.vte-next{min-height:46px}}
     `;
     root.document.head.appendChild(style);

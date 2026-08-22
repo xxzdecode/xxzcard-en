@@ -67,6 +67,7 @@ assert.match(wrapper, /page-practice-shell\.js/);
 const auth = fs.readFileSync(path.join(root, 'js/auth.js'), 'utf8');
 assert.doesNotMatch(auth, /dailyLearningRouteOverride\.js/);
 const main = fs.readFileSync(path.join(root, 'js/main.js'), 'utf8');
+const dailyRouteRuntime = fs.readFileSync(path.join(root, 'js/dailyLearningRoute.js'), 'utf8');
 assert.match(main, /await loadFeatureScript\('js\/dailyLearningRouteOverride\.js'\)/);
 assert.ok(
   main.indexOf("await loadFeatureScript('js/dailyLearningRouteOverride.js')")
@@ -83,6 +84,9 @@ const coursewareData = fs.readFileSync(path.join(root, 'js/courseware-data.js'),
 assert.match(overrideRuntime, /root\.openManualGrammarChallenge = openManualGrammar/);
 assert.match(overrideRuntime, /Promise\.race/);
 assert.match(overrideRuntime, /AbortController/);
+assert.match(overrideRuntime, /REMOTE_REFRESH_TIMEOUT_MS = 5000/);
+assert.match(overrideRuntime, /refreshDailyLearningRouteOverride/);
+assert.doesNotMatch(overrideRuntime, /const \[routeResult, freshResult\] = await Promise\.all/);
 assert.match(overrideRuntime, /schemaVersion:\s*2/);
 assert.match(overrideRuntime, /manualSelection:/);
 assert.equal((coursewareData.match(/"grammarCompatible": true/g) || []).length, 19);
@@ -90,10 +94,12 @@ assert.equal((coursewareData.match(/"grammarCompatible": false/g) || []).length,
 assert.doesNotMatch(overrideRuntime, /ensurePinnedSlot/);
 assert.doesNotMatch(overrideRuntime, /daily_learning_route_assignment_v1_/);
 assert.doesNotMatch(overrideRuntime, /patchGrammarLoader/);
+assert.match(dailyRouteRuntime, /MANUAL_ROUTE_PENDING/);
+assert.match(dailyRouteRuntime, /return route && route\.manualSelection \? route : null/);
+assert.match(dailyRouteRuntime, /addEventListener\?\.\('pageshow'/);
+assert.match(dailyRouteRuntime, /8 题 \+ 历史 7 题/);
 
-async function testFreshSelectionWinsDuringColdStart() {
-  const now = new Date();
-  const testDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+async function testCachedSelectionRendersBeforeFreshSelectionArrives() {
   const storage = new Map();
   storage.set('daily_learning_route_override_cache_v1', JSON.stringify({
     schemaVersion: 2,
@@ -111,9 +117,17 @@ async function testFreshSelectionWinsDuringColdStart() {
       updatedAt: '2026-08-21T01:00:00.000Z'
     }
   };
+  let resolveRemote;
+  const remoteResponse = new Promise(resolve => { resolveRemote = resolve; });
+  let firstRemoteRead = true;
+  const listeners = new Map();
   const baseFetch = async input => {
     const url = String(input);
     if (url.includes('/rest/v1/kv_store')) {
+      if (firstRemoteRead) {
+        firstRemoteRead = false;
+        return remoteResponse;
+      }
       return new Response(JSON.stringify([{ value: freshOverride }]), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -127,7 +141,7 @@ async function testFreshSelectionWinsDuringColdStart() {
   const timers = [];
   const context = {
     AbortController,
-    CustomEvent: class CustomEvent { constructor(type) { this.type = type; } },
+    CustomEvent: class CustomEvent { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
     Response,
     URL,
     console,
@@ -135,7 +149,8 @@ async function testFreshSelectionWinsDuringColdStart() {
       addEventListener() {},
       getElementById() { return null; }
     },
-    dispatchEvent() {},
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    dispatchEvent(event) { listeners.get(event.type)?.(event); },
     fetch: baseFetch,
     location: { href: 'https://example.test/index.html' },
     localStorage: {
@@ -158,12 +173,57 @@ async function testFreshSelectionWinsDuringColdStart() {
 
   const response = await context.fetch('data/daily-learning-route.json');
   const route = await response.json();
-  assert.equal(route.grammarChallenge.id, 'manual-courseware::grammar-new');
-  assert.equal(route.classroomPractice.id, 'classroom-new');
+  assert.equal(route.grammarChallenge.id, 'manual-courseware::grammar-old');
+  assert.equal(route.classroomPractice.id, 'classroom-old');
+
+  const refresh = context.refreshDailyLearningRouteOverride({ force: true, reason: 'test' });
+  resolveRemote(new Response(JSON.stringify([{ value: freshOverride }]), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  }));
+  await refresh;
+
+  const refreshedResponse = await context.fetch('data/daily-learning-route.json');
+  const refreshedRoute = await refreshedResponse.json();
+  assert.equal(refreshedRoute.grammarChallenge.id, 'manual-courseware::grammar-new');
+  assert.equal(refreshedRoute.classroomPractice.id, 'classroom-new');
   assert.equal(
     JSON.parse(storage.get('daily_learning_route_override_cache_v1')).current.grammarChallenge.practiceId,
     'grammar-new'
   );
+}
+
+async function testAutomaticRouteStaysPendingWithoutManualSelection() {
+  const storage = new Map();
+  const never = new Promise(() => {});
+  const context = {
+    AbortController,
+    CustomEvent: class CustomEvent { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
+    Response,
+    URL,
+    console,
+    document: { addEventListener() {}, getElementById() { return null; } },
+    dispatchEvent() {},
+    fetch: async input => String(input).includes('/rest/v1/kv_store')
+      ? never
+      : new Response(JSON.stringify(automatic), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    location: { href: 'https://example.test/index.html' },
+    localStorage: {
+      getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+      setItem(key, value) { storage.set(key, String(value)); }
+    },
+    SB_HEADERS: {},
+    SB_URL: 'https://example.supabase.test',
+    setTimeout() { return 1; },
+    clearTimeout() {}
+  };
+  context.globalThis = context;
+  vm.runInNewContext(overrideRuntime, context, { filename: 'dailyLearningRouteOverride.js' });
+
+  const response = await context.fetch('data/daily-learning-route.json');
+  const route = await response.json();
+  assert.equal(route.manualSelectionPending, true);
+  assert.equal(route.grammarChallenge.id, 'grammar-auto');
 }
 
 async function testCachedSelectionSurvivesOfflineColdStart() {
@@ -211,8 +271,9 @@ async function testCachedSelectionSurvivesOfflineColdStart() {
 }
 
 Promise.all([
-  testFreshSelectionWinsDuringColdStart(),
-  testCachedSelectionSurvivesOfflineColdStart()
+  testCachedSelectionRendersBeforeFreshSelectionArrives(),
+  testCachedSelectionSurvivesOfflineColdStart(),
+  testAutomaticRouteStaysPendingWithoutManualSelection()
 ])
   .then(() => console.log('daily learning route override tests passed'))
   .catch(error => {

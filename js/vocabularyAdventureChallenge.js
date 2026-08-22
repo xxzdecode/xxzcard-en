@@ -231,12 +231,13 @@
     return state;
   }
 
-  function challengeCandidatePriority(wordState, today) {
-    if (wordState.lastResult === 'F') return 0;
-    if (wordState.lastResult === 'H') return 1;
-    if (wordState.nextReviewAt && wordState.nextReviewAt <= today) return 2;
-    if (wordState.intervalIndex >= 4) return 4;
-    return 3;
+  function challengeCandidatePriority(candidate, wordState, today) {
+    if (candidate && candidate.lessonQueuePriority === true) return 0;
+    if (wordState.lastResult === 'F') return 1;
+    if (wordState.lastResult === 'H') return 2;
+    if (wordState.nextReviewAt && wordState.nextReviewAt <= today) return 3;
+    if (wordState.intervalIndex >= 4) return 5;
+    return 4;
   }
 
   function collectChallengeCandidates(candidates, stateValue, today) {
@@ -253,7 +254,11 @@
       })
       .map(candidate => ({
         ...candidate,
-        challengePriority: challengeCandidatePriority(state.words[core.adventureWordKey(candidate.key)], today)
+        challengePriority: challengeCandidatePriority(
+          candidate,
+          state.words[core.adventureWordKey(candidate.key)],
+          today
+        )
       }));
   }
 
@@ -576,7 +581,7 @@
       ]);
       if (user !== studentUser()) return;
 
-      const candidates = collectVisibleVocabularyAdventureCandidates();
+      const candidates = collectVisibleVocabularyAdventureCandidates({ mode: 'challenge', today: core.localDateKey(new Date()) });
       const session = state.session;
       const adventureTitle = element('vocabularyAdventureHomeTitle');
       const adventureSub = element('vocabularyAdventureHomeSub');
@@ -842,7 +847,7 @@
         ]);
         runtime.state = normalizeChallengeState(loaded, today);
         runtime.legacy = legacy;
-        runtime.candidates = collectVisibleVocabularyAdventureCandidates();
+        runtime.candidates = collectVisibleVocabularyAdventureCandidates({ mode: 'challenge', today });
 
         const status = challengeHomeStatus({
           state: runtime.state,

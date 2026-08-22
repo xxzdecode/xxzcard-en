@@ -5,6 +5,8 @@
   const OVERRIDE_CACHE_KEY = 'daily_learning_route_override_cache_v1';
   const ROUTE_CACHE_KEY = 'daily_learning_route_cache_v1';
   const READ_TIMEOUT_MS = 1800;
+  const REMOTE_REFRESH_TIMEOUT_MS = 5000;
+  const REFRESH_MIN_INTERVAL_MS = 15000;
   const VERIFY_TIMEOUT_MS = 2200;
   const baseFetch = typeof root.fetch === 'function' ? root.fetch.bind(root) : null;
 
@@ -228,6 +230,7 @@
     KEY,
     PREFIX,
     READ_TIMEOUT_MS,
+    REMOTE_REFRESH_TIMEOUT_MS,
     VERIFY_TIMEOUT_MS,
     mergeRoute,
     normalize,
@@ -276,31 +279,60 @@
     return rows && rows.length ? rows[0].value : null;
   }
 
-  let routeRefreshTimer = 0;
-
   function notifyOverrideUpdated() {
     root.dispatchEvent?.(new CustomEvent('daily-route-override-updated'));
-    if (routeRefreshTimer) root.clearTimeout(routeRefreshTimer);
-    routeRefreshTimer = root.setTimeout(() => {
-      routeRefreshTimer = 0;
-      if (typeof root.loadDailyLearningRoute === 'function') {
-        root.loadDailyLearningRoute({ force: true, reason: 'override-updated' }).catch?.(() => null);
-      }
-    }, 150);
   }
+
+  let overrideRefreshPromise = null;
+  let lastOverrideRefreshAt = 0;
+
+  function hasManualSelection(value) {
+    const current = normalize(value).current;
+    return !!(current
+      && manualGrammarRoute(current.grammarChallenge)
+      && manualClassroomRoute(current.classroomPractice));
+  }
+
+  function refreshOverrideFromCloud(options) {
+    const settings = options && typeof options === 'object' ? options : {};
+    const now = Date.now();
+    if (overrideRefreshPromise) return overrideRefreshPromise;
+    if (settings.force !== true && now - lastOverrideRefreshAt < REFRESH_MIN_INTERVAL_MS) {
+      return Promise.resolve(readCachedOverride());
+    }
+    lastOverrideRefreshAt = now;
+    overrideRefreshPromise = readDirect(REMOTE_REFRESH_TIMEOUT_MS)
+      .then(value => {
+        const fresh = normalize(value);
+        if (!hasManualSelection(fresh)) throw new Error('manual route selection is missing');
+        const changed = writeCachedOverride(fresh);
+        if (changed || settings.notifyAlways === true) notifyOverrideUpdated();
+        return fresh;
+      })
+      .catch(error => {
+        root.dispatchEvent?.(new CustomEvent('daily-route-override-refresh-failed', { detail: error }));
+        throw error;
+      })
+      .finally(() => {
+        overrideRefreshPromise = null;
+      });
+    overrideRefreshPromise.catch(error => {
+      console.warn('daily route selection sync unavailable', error && (error.message || error));
+    });
+    return overrideRefreshPromise;
+  }
+
+  root.refreshDailyLearningRouteOverride = refreshOverrideFromCloud;
 
   root.fetch = async function (input, init) {
     let path = '';
     try { path = new URL(typeof input === 'string' ? input : input.url, location.href).pathname; } catch (_) {}
     if (!path.endsWith('/data/daily-learning-route.json')) return baseFetch(input, init);
 
-    const [routeResult, freshResult] = await Promise.all([
-      Promise.resolve()
-        .then(() => baseFetch(input, init))
-        .then(response => ({ ok: true, response }))
-        .catch(error => ({ ok: false, error })),
-      readDirect().then(value => ({ ok: true, value })).catch(error => ({ ok: false, error }))
-    ]);
+    const routeResult = await Promise.resolve()
+      .then(() => baseFetch(input, init))
+      .then(response => ({ ok: true, response }))
+      .catch(error => ({ ok: false, error }));
     const response = routeResult.response || null;
     try {
       const automatic = response && response.ok
@@ -310,14 +342,12 @@
         if (response) return response;
         throw routeResult.error || new Error('daily route unavailable');
       }
-      const selected = freshResult.ok ? normalize(freshResult.value) : readCachedOverride();
-      if (freshResult.ok) {
-        writeCachedOverride(selected);
-        warmPracticeAssets(selected);
-      } else {
-        console.warn('daily route selection sync unavailable', freshResult.error);
-      }
-      const merged = mergeRoute(automatic, selected);
+      const selected = readCachedOverride();
+      const hasCachedManualSelection = hasManualSelection(selected);
+      const merged = hasCachedManualSelection
+        ? mergeRoute(automatic, selected)
+        : { ...automatic, manualSelectionPending: true };
+      refreshOverrideFromCloud({ force: true, reason: 'route-request' }).catch(() => null);
       return new Response(JSON.stringify(merged), {
         status: response && response.ok ? response.status : 200,
         headers: { 'Content-Type': 'application/json;charset=utf-8', 'Cache-Control': 'no-store' }
@@ -449,7 +479,7 @@
     panel.innerHTML = `
       <h2>当前学习安排</h2><p>这里只使用你手动保存的选择；不按日期自动切换。下次修改前会一直保持不变。</p>
       <div class="daily-route-grid">
-        <div class="daily-route-field"><label for="teacherGrammarOverride">语法挑战近期知识</label><select id="teacherGrammarOverride"></select><small>固定 20 题：所选近期知识 10 题 + 历史知识 10 题。</small></div>
+        <div class="daily-route-field"><label for="teacherGrammarOverride">语法挑战近期知识</label><select id="teacherGrammarOverride"></select><small>固定 15 题：所选近期知识 8 题 + 历史知识 7 题。</small></div>
         <div class="daily-route-field"><label for="teacherClassroomOverride">随堂练习</label><select id="teacherClassroomOverride"></select><small>学生首页始终进入最后一次保存的练习。</small></div>
       </div>
       <div class="daily-route-actions"><span id="teacherDailyRouteStatus"></span><button class="daily-route-refresh" id="teacherDailyRouteRefresh">重新读取</button><button class="daily-route-save" id="teacherDailyRouteSave">保存当前安排</button></div>`;
@@ -492,10 +522,11 @@
     addPanel();
     status('正在读取最后一次保存的安排…');
     try {
-      await Promise.all([loadCoursewareData(), loadGrammarSelectionData()]);
-      const store = normalize(typeof root.sbGet === 'function'
-        ? await withTimeout(root.sbGet(KEY), READ_TIMEOUT_MS, 'override panel read')
-        : await readDirect());
+      const [, , store] = await Promise.all([
+        loadCoursewareData(),
+        loadGrammarSelectionData(),
+        refreshOverrideFromCloud({ force: true, reason: 'teacher-panel' })
+      ]);
       writeCachedOverride(store);
       warmPracticeAssets(store);
       const current = store.current || {};
@@ -561,5 +592,14 @@
   document.addEventListener('click', event => {
     if (event.target && event.target.closest && event.target.closest('#uBtnTeacher')) root.setTimeout(refreshPanel, 0);
   });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshOverrideFromCloud({ force: true, reason: 'visibility' }).catch(() => null);
+    }
+  });
+  root.addEventListener?.('pageshow', () => {
+    refreshOverrideFromCloud({ force: true, reason: 'pageshow' }).catch(() => null);
+  });
+  refreshOverrideFromCloud({ force: true, reason: 'startup' }).catch(() => null);
   try { if (typeof root.isTeacher === 'function' && root.isTeacher()) refreshPanel(); } catch (_) {}
 })(typeof globalThis !== 'undefined' ? globalThis : window);

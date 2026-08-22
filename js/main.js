@@ -156,7 +156,7 @@
       if (!enabled) return;
 
       const [state, legacy] = await Promise.all([
-        root.loadVocabularyAdventureState(user),
+        root.loadVocabularyAdventureState(user, { mode: 'challenge' }),
         typeof root.getVocabularyAdventureLegacyChallengeUsage === 'function'
           ? root.getVocabularyAdventureLegacyChallengeUsage()
           : Promise.resolve({ attempts: 0, bestScore: 0 })
@@ -166,7 +166,10 @@
       let candidates = [];
       root.__vocabularyChallengeCandidateExpansion = true;
       try {
-        candidates = root.collectVisibleVocabularyAdventureCandidates();
+        candidates = root.collectVisibleVocabularyAdventureCandidates({
+          mode: 'challenge',
+          today: coreApi.localDateKey(new Date())
+        });
       } finally {
         root.__vocabularyChallengeCandidateExpansion = false;
       }

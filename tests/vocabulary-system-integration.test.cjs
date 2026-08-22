@@ -113,6 +113,16 @@ assert.deepEqual(feedback.chooseVisual({ word: 'apple', emoji: '🍎' }, visualE
 assert.deepEqual(feedback.chooseVisual({ word: 'pear', emoji: '🍐' }, visualEnv), { kind: 'emoji', value: '🍐' });
 assert.deepEqual(feedback.chooseVisual({ word: 'unknown' }, visualEnv), { kind: 'placeholder', value: '◇' });
 
+const placeholderTeaching = feedback.renderTeachingHtml(
+  feedback.buildTeachingModel({ word: 'unknown', meaning: '未知词' }, { source: 'adventure' }, {}),
+  'adventure-placeholder'
+);
+assert.match(placeholderTeaching, /class="vte-close"/);
+assert.match(placeholderTeaching, /关闭错题卡并进入下一题/);
+assert.match(placeholderTeaching, /class="vte-placeholder-word">unknown</);
+assert.match(placeholderTeaching, /暂无配图/);
+assert.doesNotMatch(placeholderTeaching, />WORD</);
+
 let nextCount = 0;
 const once = feedback.createOneShot(() => { nextCount += 1; });
 assert.equal(once(), true);

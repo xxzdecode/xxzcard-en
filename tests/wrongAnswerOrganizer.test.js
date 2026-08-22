@@ -307,8 +307,9 @@ assert.match(styles, /\.teacher-dashboard-entry-card--wrong-answers\s*\{\s*order
 assert.match(styles, /\.wrong-answer-question:has\(input:checked\)/);
 assert.match(loader, /wrongAnswerOrganizer:\s*\['js\/wrongAnswerOrganizer\.js'\]/);
 assert.doesNotMatch(organizerSource, /root\.loadHome\s*=|window\.loadHome\s*=/);
-assert.match(serviceWorker, /styles-wrong-answer-organizer\.css/);
-assert.match(serviceWorker, /js\/wrongAnswerOrganizer\.js/);
+assert.match(html, /styles-wrong-answer-organizer\.css/);
+assert.doesNotMatch(serviceWorker, /styles-wrong-answer-organizer\.css/);
+assert.doesNotMatch(serviceWorker, /js\/wrongAnswerOrganizer\.js/);
 assert.match(organizerSource, /assessment_weakness_view_v1/);
 assert.match(organizerSource, /homework:\s*'暑假作业'/);
 assert.match(organizerSource, /pro:\s*'薄弱专项'/);

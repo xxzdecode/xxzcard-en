@@ -463,7 +463,7 @@ let teacherDashboardSummaryRefreshPromise = null;
 function refreshTeacherDashboardSummaries() {
   if (typeof isTeacher === 'function' && !isTeacher()) return Promise.resolve(null);
   if (teacherDashboardSummaryRefreshPromise) return teacherDashboardSummaryRefreshPromise;
-  teacherDashboardSummaryRefreshPromise = loadIndependentFeatureScript('js/teacherDashboardSummaries.js')
+  const summaryTask = loadIndependentFeatureScript('js/teacherDashboardSummaries.js')
     .then(() => window.TeacherDashboardSummaries?.refresh?.())
     .catch(error => {
       console.warn('teacher dashboard summaries unavailable', error && (error.message || error));
@@ -474,7 +474,19 @@ function refreshTeacherDashboardSummaries() {
         panel.setAttribute('aria-busy', 'false');
       });
       return null;
-    })
+    });
+  const assessmentTask = loadFeatureGroup('wrongAnswerOrganizer')
+    .catch(error => {
+      console.warn('teacher assessment summary unavailable', error && (error.message || error));
+      const entry = document.getElementById('teacherLatestAssessmentEntry');
+      if (entry) {
+        entry.disabled = true;
+        entry.setAttribute('aria-busy', 'false');
+      }
+      return null;
+    });
+  teacherDashboardSummaryRefreshPromise = Promise.allSettled([summaryTask, assessmentTask])
+    .then(() => true)
     .finally(() => {
       teacherDashboardSummaryRefreshPromise = null;
     });

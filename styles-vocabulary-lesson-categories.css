@@ -1,24 +1,21 @@
-/* Category-based vocabulary guide. The official word-card JSON remains unchanged. */
+/* Category-first vocabulary guide. Word-card data remains in the master library. */
+#screenVocabularyReviewList {
+  min-height: 100dvh;
+  background: var(--vl-bg);
+}
+
+#screenVocabularyReviewList:has(.vocabulary-lesson-category-list) .vocabulary-lesson-shared-admin {
+  display: none;
+}
+
 .vocabulary-lesson-category-list {
   display: grid;
-  gap: 18px;
-}
-
-.vocabulary-lesson-category-entry {
-  margin-top: 8px;
-  border-style: dashed;
-  border-color: #cfc5d8;
-  background: #fcfaff;
-}
-
-.vocabulary-lesson-category-entry .vocabulary-lesson-status-badge {
-  color: #7b6689;
-  background: #f1eaf6;
+  gap: 16px;
 }
 
 .vocabulary-lesson-category-group {
   min-width: 0;
-  padding: 16px;
+  padding: 15px;
   border: 1px solid var(--vl-line);
   border-radius: 20px;
   background: #fff;
@@ -29,17 +26,27 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: 12px;
+  margin-bottom: 11px;
+}
+
+.vocabulary-lesson-category-group h2,
+.vocabulary-lesson-school-grade h3 {
+  margin: 0;
+  color: var(--vl-ink);
 }
 
 .vocabulary-lesson-category-group h2 {
-  margin: 0;
-  color: var(--vl-ink);
   font-size: 18px;
 }
 
+.vocabulary-lesson-school-grade h3 {
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
 .vocabulary-lesson-category-group p,
-.vocabulary-lesson-category-loading {
+.vocabulary-lesson-category-loading,
+.vocabulary-lesson-school-empty {
   margin: 0;
   color: var(--vl-muted);
   font-size: 13px;
@@ -52,29 +59,49 @@
   gap: 10px;
 }
 
-.vocabulary-lesson-category-button {
+.vocabulary-lesson-category-card {
   min-width: 0;
-  min-height: 64px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 13px;
+  overflow: hidden;
   border: 1px solid var(--vl-line);
   border-radius: 17px;
-  color: var(--vl-ink);
   background: #fffdfc;
-  box-shadow: none;
+}
+
+.vocabulary-lesson-category-card.is-completed {
+  border-color: #d8ebdc;
+  background: #f3faf5;
+}
+
+.vocabulary-lesson-category-button,
+.vocabulary-lesson-category-heading {
+  width: 100%;
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  color: var(--vl-ink);
+  background: transparent;
   text-align: left;
 }
 
+.vocabulary-lesson-category-button {
+  border: 0;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
 .vocabulary-lesson-category-button:hover,
-.vocabulary-lesson-category-button:focus-visible {
-  border-color: #b7dfd2;
+.vocabulary-lesson-category-button:focus-visible,
+.vocabulary-lesson-inline-groups button:hover,
+.vocabulary-lesson-inline-groups button:focus-visible {
   background: var(--vl-mint-soft);
 }
 
-.vocabulary-lesson-category-button strong {
+.vocabulary-lesson-category-button strong,
+.vocabulary-lesson-category-heading strong {
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: 15px;
@@ -90,34 +117,85 @@
   font-size: 21px;
 }
 
+.vocabulary-lesson-category-card.is-completed .vocabulary-lesson-category-icon {
+  background: #e3f2e7;
+}
+
+.vocabulary-lesson-category-check,
+.vocabulary-lesson-group-check {
+  display: none;
+  color: #5f9b70;
+  font-weight: 800;
+}
+
+.vocabulary-lesson-category-card.is-completed .vocabulary-lesson-category-check,
+.vocabulary-lesson-inline-groups button.is-completed .vocabulary-lesson-group-check,
+.vocabulary-lesson-category-button.is-completed .vocabulary-lesson-category-check {
+  display: inline;
+}
+
+.vocabulary-lesson-inline-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 12px 12px 60px;
+}
+
+.vocabulary-lesson-inline-groups button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid #e2dce4;
+  border-radius: 13px;
+  color: var(--vl-ink);
+  background: #fff;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vocabulary-lesson-inline-groups button.is-completed {
+  order: 2;
+  border-color: #d8ebdc;
+  color: #568a65;
+  background: #edf7f0;
+}
+
+.vocabulary-lesson-school-grades {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.vocabulary-lesson-school-grade {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 16px;
+  background: #faf8fb;
+}
+
+.vocabulary-lesson-school-grade .vocabulary-lesson-category-grid {
+  grid-template-columns: 1fr;
+}
+
+.vocabulary-lesson-school-empty {
+  padding: 12px 4px;
+}
+
 .vocabulary-lesson-category-loading {
   padding: 28px 12px;
   text-align: center;
 }
 
-/* The category group picker reuses the selection shell. Keep the hidden
-   heading truly removed and make the shell fill the viewport instead of
-   exposing the home-screen background below short category lists. */
-#screenVocabularyReviewList {
-  min-height: 100dvh;
-  background: var(--vl-bg);
+.vocabulary-lesson-category-group[data-guide-group="unclassified"] {
+  order: 99;
 }
 
-#screenVocabularyReviewList .vocabulary-lesson-selection-copy[hidden] {
-  display: none !important;
-}
-
-#screenVocabularyReviewList:has(.vocabulary-lesson-category-group-picker) .vocabulary-lesson-selection {
-  width: min(920px, calc(100% - 28px));
-  margin: 18px auto 32px;
-}
-
-#screenVocabularyReviewList:has(.vocabulary-lesson-category-group-picker) .vocabulary-lesson-selection-card {
-  padding: 18px;
-}
-
-#screenVocabularyReviewList:has(.vocabulary-lesson-category-group-picker) .vocabulary-lesson-shared-admin {
-  display: none;
+.vocabulary-lesson-category-group[data-guide-group="unclassified"] .vocabulary-lesson-category-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (orientation: landscape) and (min-width: 900px) and (max-height: 850px) {
@@ -146,14 +224,10 @@
     margin-bottom: 8px;
   }
 
-  .vocabulary-lesson-category-button {
+  .vocabulary-lesson-category-button,
+  .vocabulary-lesson-category-heading {
     min-height: 56px;
-    padding: 8px 11px;
-  }
-
-  #screenVocabularyReviewList:has(.vocabulary-lesson-category-group-picker) .vocabulary-lesson-selection {
-    width: min(920px, calc(100% - 22px));
-    margin-top: 12px;
+    padding-block: 8px;
   }
 }
 
@@ -166,7 +240,32 @@
     display: block;
   }
 
-  .vocabulary-lesson-category-group p {
+  .vocabulary-lesson-category-group > header p {
     margin-top: 4px;
+  }
+}
+
+@media (max-width: 520px) {
+  .vocabulary-lesson-category-list {
+    gap: 12px;
+  }
+
+  .vocabulary-lesson-category-group {
+    padding: 11px;
+    border-radius: 17px;
+  }
+
+  .vocabulary-lesson-category-grid,
+  .vocabulary-lesson-school-grades {
+    grid-template-columns: 1fr;
+  }
+
+  .vocabulary-lesson-category-button,
+  .vocabulary-lesson-category-heading {
+    min-height: 58px;
+  }
+
+  .vocabulary-lesson-inline-groups {
+    padding-left: 12px;
   }
 }

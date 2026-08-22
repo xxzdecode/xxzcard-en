@@ -73,9 +73,9 @@ const firstPlan = core.buildVocabularyAdventurePlan({
   state: core.defaultVocabularyAdventureState(),
   today: TODAY
 });
-assert.equal(firstPlan.length, 30);
+assert.equal(firstPlan.length, 20);
 assert.ok(firstPlan.every(item => item.phase === 'screening'));
-assert.equal(new Set(firstPlan.map(item => item.wordKey)).size, 30);
+assert.equal(new Set(firstPlan.map(item => item.wordKey)).size, 20);
 const sisterFirstPlan = core.buildVocabularyAdventurePlan({
   candidates: firstCandidates,
   state: core.defaultVocabularyAdventureState(),
@@ -119,18 +119,18 @@ const reviewPool = candidates(20, 'review');
 const normalCandidates = [...screeningPool, ...reviewPool].map((item, index) => ({ ...item, sourceIndex: index }));
 const normalState = reviewedState(reviewPool);
 const normalPlan = core.buildVocabularyAdventurePlan({ candidates: normalCandidates, state: normalState, today: TODAY });
-assert.equal(normalPlan.filter(item => item.phase === 'screening').length, 20);
-assert.equal(normalPlan.filter(item => item.phase === 'review').length, 10);
-assert.deepEqual(normalPlan.map(item => item.phase), [...Array(20).fill('screening'), ...Array(10).fill('review')]);
+assert.equal(normalPlan.filter(item => item.phase === 'screening').length, 12);
+assert.equal(normalPlan.filter(item => item.phase === 'review').length, 8);
+assert.deepEqual(normalPlan.map(item => item.phase), [...Array(12).fill('screening'), ...Array(8).fill('review')]);
 
 const fourReviews = reviewPool.slice(0, 4);
-const plan26And4 = core.buildVocabularyAdventurePlan({
+const plan16And4 = core.buildVocabularyAdventurePlan({
   candidates: [...screeningPool, ...fourReviews].map((item, index) => ({ ...item, sourceIndex: index })),
   state: reviewedState(fourReviews),
   today: TODAY
 });
-assert.equal(plan26And4.filter(item => item.phase === 'screening').length, 26);
-assert.equal(plan26And4.filter(item => item.phase === 'review').length, 4);
+assert.equal(plan16And4.filter(item => item.phase === 'screening').length, 16);
+assert.equal(plan16And4.filter(item => item.phase === 'review').length, 4);
 
 const sevenScreening = screeningPool.slice(0, 7);
 const manyReviews = [...reviewPool, ...candidates(10, 'more-review')];
@@ -140,7 +140,7 @@ const plan7And23 = core.buildVocabularyAdventurePlan({
   today: TODAY
 });
 assert.equal(plan7And23.filter(item => item.phase === 'screening').length, 7);
-assert.equal(plan7And23.filter(item => item.phase === 'review').length, 23);
+assert.equal(plan7And23.filter(item => item.phase === 'review').length, 13);
 
 const smallScreen = candidates(3, 'small-screen');
 const smallReview = candidates(5, 'small-review');
@@ -214,7 +214,7 @@ const urgentBeforeStablePlan = core.buildVocabularyAdventurePlan({
   )),
   today: TODAY
 });
-assert.equal(urgentBeforeStablePlan.filter(item => item.phase === 'screening').length, 26);
+assert.equal(urgentBeforeStablePlan.filter(item => item.phase === 'screening').length, 16);
 assert.equal(urgentBeforeStablePlan.filter(item => item.wordKey.startsWith('urgent-four')).length, 4);
 assert.equal(urgentBeforeStablePlan.filter(item => item.wordKey.startsWith('stable-twenty')).length, 0);
 
@@ -231,10 +231,10 @@ const stableLastPlan = core.buildVocabularyAdventurePlan({
   )),
   today: TODAY
 });
-assert.equal(stableLastPlan.length, 30);
+assert.equal(stableLastPlan.length, 20);
 assert.equal(stableLastPlan.filter(item => item.phase === 'screening').length, 3);
 assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('five-urgent')).length, 5);
-assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('thirty-stable')).length, 22);
+assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('thirty-stable')).length, 12);
 
 const sameDayState = {
   ...normalState,
@@ -482,10 +482,10 @@ assert.equal(prefetchedReads, 0);
 assert.equal(globalThis.__vocabularyAdventurePrefetchedState, undefined);
 
 console.log(JSON.stringify({
-  sample: '26 screening + 4 review',
-  total: plan26And4.length,
-  screening: plan26And4.filter(item => item.phase === 'screening').length,
-  review: plan26And4.filter(item => item.phase === 'review').length
+  sample: '16 screening + 4 review',
+  total: plan16And4.length,
+  screening: plan16And4.filter(item => item.phase === 'screening').length,
+  review: plan16And4.filter(item => item.phase === 'review').length
 }));
 console.log('vocabulary adventure tests passed');
 })().catch(error => {

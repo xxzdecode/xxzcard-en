@@ -14,6 +14,7 @@
   ]);
   const ARRAY_FIELDS = new Set(['morphology', 'collocations', 'irregularForms', 'synonyms', 'wordFamily']);
   const STRING_FIELDS = new Set(['word', 'meaning', 'pos', 'phonetic', 'emoji', 'tip']);
+  const SCHOOL_NAME_PATTERN = /^\s*校内(?:词汇)?\s*[｜|]\s*(四年级|4年级|七年级|7年级)\s*[｜|]\s*(\d{4}-\d{2}-\d{2})\s*$/;
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -24,6 +25,40 @@
       return masterLibrary.normalizeWordKey(value);
     }
     return String(value || '').trim().toLocaleLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ');
+  }
+
+  function normalizeSchoolGrade(value) {
+    const grade = String(value || '').trim().toLocaleLowerCase();
+    if (grade === '4' || grade === '4年级' || grade === '四年级' || grade === 'grade 4') return '4';
+    if (grade === '7' || grade === '7年级' || grade === '七年级' || grade === 'grade 7') return '7';
+    return '';
+  }
+
+  function normalizeISODate(value) {
+    const text = String(value || '').trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+    if (!match) return '';
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return date.getFullYear() === Number(match[1])
+      && date.getMonth() === Number(match[2]) - 1
+      && date.getDate() === Number(match[3]) ? text : '';
+  }
+
+  function inferGuideSectionFromName(name) {
+    const match = SCHOOL_NAME_PATTERN.exec(String(name || '').trim());
+    if (!match) return null;
+    const grade = normalizeSchoolGrade(match[1]);
+    const date = normalizeISODate(match[2]);
+    return grade && date ? { kind: 'school', grade, date } : null;
+  }
+
+  function normalizeGuideSection(value, name) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const kind = String(source.kind || source.type || '').trim().toLocaleLowerCase();
+    const grade = normalizeSchoolGrade(source.grade);
+    const date = normalizeISODate(source.date);
+    if (kind === 'school' && grade && date) return { kind: 'school', grade, date };
+    return inferGuideSectionFromName(name);
   }
 
   function normalizeCardShape(card) {
@@ -161,6 +196,8 @@
       description: String(wordbook.description || '').trim(),
       cardRefs
     };
+    const guideSection = normalizeGuideSection(wordbook.guideSection, normalizedWordbook.name);
+    if (guideSection) normalizedWordbook.guideSection = guideSection;
     if (Object.prototype.hasOwnProperty.call(wordbook, 'categoryAssignments')) {
       normalizedWordbook.categoryAssignments = normalizeCategoryAssignments(wordbook.categoryAssignments);
     }
@@ -401,6 +438,8 @@
     batch.bookType = 'reference';
     if (!Array.isArray(batch.sharedWith)) batch.sharedWith = [];
     if (wordbook.description) batch.description = wordbook.description;
+    const guideSection = normalizeGuideSection(wordbook.guideSection, batch.name);
+    if (guideSection) batch.guideSection = clone(guideSection);
     if (Object.prototype.hasOwnProperty.call(wordbook, 'categoryAssignments')) {
       batch.categoryAssignments = clone(wordbook.categoryAssignments);
     }
@@ -468,6 +507,7 @@
       name: wordbook && wordbook.name,
       bookPurpose: wordbook && wordbook.bookPurpose,
       description: wordbook && wordbook.description,
+      guideSection: wordbook && wordbook.guideSection,
       cardRefs: refs
     };
     if (wordbook && Object.prototype.hasOwnProperty.call(wordbook, 'categoryAssignments')) {
@@ -485,6 +525,8 @@
     CARD_FIELDS,
     ARRAY_FIELDS,
     normalizePackage,
+    inferGuideSectionFromName,
+    normalizeGuideSection,
     normalizeCategoryAssignments,
     auditReferenceImport,
     applyReferenceImport,

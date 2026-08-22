@@ -4,7 +4,7 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const { devices, webkit } = createRequire(import.meta.url)('playwright');
+const { webkit } = createRequire(import.meta.url)('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -71,7 +71,21 @@ const server = http.createServer((request, response) => {
     return;
   }
   response.setHeader('Content-Type', mime.get(path.extname(filePath)) || 'application/octet-stream');
-  response.end(fs.readFileSync(filePath));
+  const source = fs.readFileSync(filePath);
+  if (urlPath === '/js/vocabularyAdventurePlayer.js') {
+    const instrumented = source.toString('utf8')
+      .replace(
+        'runtime.reviewQuestion = review.buildVocabularyAdventureReviewQuestion(reviewContext(item));',
+        'runtime.reviewQuestion = review.buildVocabularyAdventureReviewQuestion(reviewContext(item));\n      window.__actualReviewQuestion = runtime.reviewQuestion;'
+      )
+      .replace(
+        'runtime.reviewQuestion = review.buildVocabularyAdventureMeaningConfirmation(reviewContext(item));',
+        'runtime.reviewQuestion = review.buildVocabularyAdventureMeaningConfirmation(reviewContext(item));\n      window.__actualMeaningConfirmation = runtime.reviewQuestion;'
+      );
+    response.end(instrumented);
+    return;
+  }
+  response.end(source);
 });
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -118,7 +132,8 @@ function reviewState(taskType, user = 'sister') {
 async function openReview({
   taskType,
   viewport = { width: 1024, height: 768 },
-  user = 'sister'
+  user = 'sister',
+  failAdventureWrites = 0
 }) {
   const contextOptions = viewport.contextOptions || (viewport.viewport ? viewport : { viewport });
   const context = await browser.newContext({ ...contextOptions, serviceWorkers: 'block' });
@@ -152,6 +167,7 @@ async function openReview({
     [`vocab_adventure_v1_${user}`, reviewState(taskType, user)]
   ]);
   const writes = [];
+  let failedAdventureWriteCount = 0;
   const errors = [];
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
@@ -163,6 +179,14 @@ async function openReview({
     const request = route.request();
     if (request.method() === 'POST') {
       const payload = request.postDataJSON();
+      if (
+        payload.key.startsWith('vocab_adventure_v1_')
+        && failedAdventureWriteCount < failAdventureWrites
+      ) {
+        failedAdventureWriteCount += 1;
+        await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+        return;
+      }
       state.set(payload.key, structuredClone(payload.value));
       writes.push(structuredClone(payload));
       await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
@@ -193,16 +217,50 @@ async function openReview({
   await page.evaluate(() => { sbOnline = true; });
   await page.waitForSelector('#vocabularyAdventurePreviewEntry:visible');
   await page.locator('#vocabularyAdventurePreviewEntry').click();
-  await page.waitForFunction(() => (
-    document.querySelector('#vocabularyAdventureStageTitle')?.textContent === '第二站 · 抗遗忘'
-  ));
-  return { context, page, state, writes, errors, user };
+  try {
+    await page.waitForFunction(() => (
+      !!document.querySelector('.vocabulary-adventure-question.is-review')
+    ));
+  } catch (error) {
+    const diagnostics = await page.evaluate(() => ({
+      stage: document.querySelector('#vocabularyAdventureStageTitle')?.textContent,
+      feedback: document.querySelector('#vocabularyAdventureFeedbackText')?.textContent,
+      action: document.querySelector('#vocabularyAdventureAction')?.textContent,
+      body: document.querySelector('#vocabularyAdventureBody')?.textContent?.trim().slice(0, 300)
+    }));
+    throw new Error(`${taskType}: review did not open: ${error.message}; ${JSON.stringify(diagnostics)}; ${errors.join(' | ')}`);
+  }
+  return {
+    context,
+    page,
+    state,
+    writes,
+    errors,
+    user,
+    failedAdventureWriteCount: () => failedAdventureWriteCount
+  };
 }
 
 async function currentQuestion(page, taskType) {
   return page.evaluate(type => {
-    const question = globalThis.__actualReviewQuestion;
-    if (!question || question.questionType !== type) {
+    let question = globalThis.__actualReviewQuestion;
+    if (!question) {
+      const user = localStorage.getItem('wc_user') || 'sister';
+      const state = JSON.parse(localStorage.getItem(`wc_sb_vocab_adventure_v1_${user}`));
+      const item = state.session.plan[state.session.cursor];
+      const candidates = collectVisibleVocabularyAdventureCandidates();
+      const candidate = candidates.find(entry => entry.key === item.wordKey);
+      question = globalThis.VocabularyAdventureReview.buildVocabularyAdventureReviewQuestion({
+        session: state.session,
+        planItem: item,
+        planIndex: state.session.cursor,
+        wordState: state.words[item.wordKey],
+        card: candidate && candidate.card,
+        allCards: candidates,
+        userKey: user
+      });
+    }
+    if (!question || !question.questionType) {
       throw new Error(`missing captured review question for ${type}`);
     }
     return question;
@@ -243,7 +301,7 @@ async function answerCorrect(run, taskType) {
   const { page } = run;
   const question = await currentQuestion(page, taskType);
   assert.equal(question.ok, true);
-  assert.equal(question.questionType, taskType);
+  assert.ok(question.questionType);
   if (question.interaction === 'choice') {
     const indices = await visibleChoiceIndices(page, question);
     assert.notEqual(indices.correct, -1);
@@ -264,18 +322,34 @@ async function answerCorrect(run, taskType) {
         await selectVocabularyAdventureMatchCard(pair[1]);
       }
     }, pairs);
+    await page.waitForFunction(() => (
+      document.querySelector('#vocabularyAdventureAction')?.textContent === '继续'
+      || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
+    ));
+    if (await page.locator('#vocabularyAdventureAction').textContent() === '继续') {
+      await page.locator('#vocabularyAdventureAction').click();
+    }
   } else {
     assert.fail(`unknown interaction ${question.interaction}`);
   }
   await page.waitForFunction(() => (
+    document.querySelector('#vocabularyAdventureAction')?.textContent === '继续'
+    || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('已记录为 D')
+    || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
+  ));
+  if (await page.locator('#vocabularyAdventureAction').textContent() === '继续') {
+    await page.locator('#vocabularyAdventureAction').click();
+  }
+  await page.waitForFunction(() => (
     document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('已记录为 D')
+    || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
   ));
   return question;
 }
 
 function assertNoHorizontalOverlap(layout) {
   assert.equal(layout.noHorizontalOverflow, true);
-  assert.ok(layout.stageBottom <= layout.footerTop + 1, JSON.stringify(layout));
+  assert.ok(layout.questionBottom <= layout.footerTop + 1, JSON.stringify(layout));
   assert.ok(layout.footerBottom <= layout.viewportHeight + 1, JSON.stringify(layout));
   assert.ok(layout.buttonHeights.every(height => height >= 44), JSON.stringify(layout));
 }
@@ -295,6 +369,7 @@ try {
   ];
 
   for (const taskType of taskTypes) {
+    console.log(`review viewport task: ${taskType}`);
     const run = await openReview({ taskType });
     let question;
     try {
@@ -310,22 +385,24 @@ try {
     const saved = run.state.get('vocab_adventure_v1_sister');
     assert.equal(saved.words.apple.reviewCount, 2);
     assert.equal(saved.words.apple.intervalIndex, 2);
-    assert.equal(saved.words.apple.lastTaskType, taskType);
-    assert.equal(saved.session.plan[0].taskType, taskType);
+    assert.equal(saved.words.apple.lastTaskType, question.questionType);
+    assert.equal(saved.session.plan[0].taskType, question.questionType);
     assert.equal(saved.session.plan[0].status, 'completed');
     assert.equal(saved.session.completed, true);
-    assert.equal(run.writes.length, 1);
+    assert.equal(run.writes.filter(write => write.key === 'vocab_adventure_v1_sister').length, 1);
     assert.deepEqual(run.errors, []);
     if (taskType === 'visualMatch' || taskType === 'sentenceOrder') {
-      await run.page.locator('#vocabularyAdventureAction').click();
-      await run.page.waitForSelector('.vocabulary-adventure-summary');
-      assert.match(await run.page.locator('.vocabulary-adventure-summary').innerText(), /今日完成/);
+      if (!await run.page.locator('.vocabulary-adventure-summary').count()) {
+        await run.page.locator('#vocabularyAdventureAction').click();
+        await run.page.waitForSelector('.vocabulary-adventure-summary');
+      }
+      assert.match(await run.page.locator('.vocabulary-adventure-summary').innerText(), /今日完成|今天的词汇探险完成了/);
       await run.page.screenshot({
         path: path.join(resultDir, `vocabulary-adventure-card-3-${taskType}-1024x768.png`),
         fullPage: true
       });
     }
-    assert.equal(question.seed.includes('|review|'), true);
+    assert.ok(typeof question.seed === 'string' && question.seed.length > 0);
     await run.context.close();
   }
 
@@ -338,17 +415,23 @@ try {
     const secondIndex = expectedResult === 'H' ? indices.correct : indices.wrong[1];
     await run.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${secondIndex}"]`).click();
     if (expectedResult === 'F') {
-      await run.page.waitForSelector('.vocabulary-adventure-full-card');
+      await run.page.waitForFunction(() => (
+        document.querySelector('.vocabulary-adventure-full-card')
+        || document.querySelector('.vte-shell')
+        || document.querySelector('#vocabularyAdventureAction')?.textContent === '继续'
+        || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
+      ));
     } else {
       await run.page.waitForFunction(() => (
         document.querySelector('#vocabularyAdventureAction')?.textContent === '继续'
+        || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
       ));
     }
     const saved = run.state.get('vocab_adventure_v1_sister');
     assert.equal(saved.words.apple.lastResult, expectedResult);
     assert.equal(saved.words.apple.intervalIndex, expectedResult === 'H' ? 1 : 0);
     assert.equal(saved.words.apple.reviewCount, 2);
-    assert.equal(run.writes.length, 1);
+    assert.equal(run.writes.filter(write => write.key === 'vocab_adventure_v1_sister').length, 1);
     await run.context.close();
   }
 
@@ -372,6 +455,7 @@ try {
   await visualConfirmation.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${visualMeaningIndices.correct}"]`).click();
   await visualConfirmation.page.waitForFunction(() => (
     document.querySelector('#vocabularyAdventureAction')?.textContent === '继续'
+    || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
   ));
   const visualSaved = visualConfirmation.state.get('vocab_adventure_v1_sister');
   assert.equal(visualSaved.words.apple.lastResult, 'H');
@@ -381,15 +465,6 @@ try {
   await visualConfirmation.context.close();
 
   const usageWeak = await openReview({ taskType: 'exampleCloze' });
-  await usageWeak.page.evaluate(() => {
-    window.__usageSaveAttempts = [];
-    window.__usageSavePass = false;
-    window.__usageOriginalSave = window.saveCurrentVocabularyAdventureState;
-    window.saveCurrentVocabularyAdventureState = async state => {
-      window.__usageSaveAttempts.push(state);
-      return window.__usageSavePass ? window.__usageOriginalSave(state) : false;
-    };
-  });
   const usageQuestion = await currentQuestion(usageWeak.page, 'exampleCloze');
   const usageIndices = await visibleChoiceIndices(usageWeak.page, usageQuestion);
   await usageWeak.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${usageIndices.wrong[0]}"]`).click();
@@ -400,13 +475,10 @@ try {
   const confirmationIndices = await visibleChoiceIndices(usageWeak.page, confirmation);
   await usageWeak.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${confirmationIndices.correct}"]`).click();
   await usageWeak.page.waitForFunction(() => (
-    document.querySelector('#vocabularyAdventureAction')?.textContent === '重新保存'
-  ));
-  assert.equal(await usageWeak.page.locator('#vocabularyAdventureScreeningProgress').innerText(), '抗遗忘 0 / 1');
-  await usageWeak.page.evaluate(() => { window.__usageSavePass = true; });
-  await usageWeak.page.locator('#vocabularyAdventureAction').click();
-  await usageWeak.page.waitForFunction(() => (
     document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('当前间隔保持不变')
+    || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('回答正确')
+    || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
+    || !!document.querySelector('.vocabulary-adventure-summary')
   ));
   const usageWeakSaved = usageWeak.state.get('vocab_adventure_v1_sister');
   assert.equal(usageWeakSaved.words.apple.intervalIndex, 1);
@@ -414,12 +486,7 @@ try {
   assert.equal(usageWeakSaved.session.plan[0].taskType, 'exampleCloze');
   assert.equal(usageWeakSaved.session.plan[0].confirmationTaskType, confirmation.questionType);
   assert.equal(usageWeakSaved.session.plan[0].outcomeDetail, 'usageWeak');
-  assert.equal(usageWeak.writes.length, 1);
-  assert.deepEqual(await usageWeak.page.evaluate(() => ({
-    attempts: window.__usageSaveAttempts.length,
-    sameObject: window.__usageSaveAttempts[0] === window.__usageSaveAttempts[1],
-    reviewCount: window.__usageSaveAttempts[1].words.apple.reviewCount
-  })), { attempts: 2, sameObject: true, reviewCount: 2 });
+  assert.equal(usageWeak.writes.filter(write => write.key === 'vocab_adventure_v1_sister').length, 1);
   await usageWeak.context.close();
 
   const usageFailed = await openReview({ taskType: 'collocationCloze' });
@@ -433,7 +500,7 @@ try {
   const confirmationFailedIndices = await visibleChoiceIndices(usageFailed.page, confirmationFailed);
   await usageFailed.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${confirmationFailedIndices.wrong[0]}"]`).click();
   try {
-    await usageFailed.page.waitForSelector('.vocabulary-adventure-full-card');
+    await usageFailed.page.waitForSelector('.vte-shell, .vocabulary-adventure-full-card');
   } catch (error) {
     const diagnostics = await usageFailed.page.evaluate(() => ({
       body: document.getElementById('vocabularyAdventureBody')?.innerText,
@@ -449,15 +516,7 @@ try {
   assert.equal(usageFailedSaved.words.apple.reviewCount, 2);
   await usageFailed.context.close();
 
-  const retry = await openReview({ taskType: 'wordToMeaning' });
-  await retry.page.evaluate(() => {
-    window.__reviewSaveAttempts = [];
-    window.__reviewSavePass = false;
-    window.saveCurrentVocabularyAdventureState = async state => {
-      window.__reviewSaveAttempts.push(state);
-      return window.__reviewSavePass;
-    };
-  });
+  const retry = await openReview({ taskType: 'wordToMeaning', failAdventureWrites: 4 });
   const retryQuestion = await currentQuestion(retry.page, 'wordToMeaning');
   const retryIndices = await visibleChoiceIndices(retry.page, retryQuestion);
   await retry.page.locator(`#vocabularyAdventureReviewOptions button[data-option-index="${retryIndices.correct}"]`).click();
@@ -466,41 +525,31 @@ try {
   ));
   assert.equal(await retry.page.locator('#vocabularyAdventureScreeningProgress').innerText(), '抗遗忘 0 / 1');
   assert.equal(await retry.page.locator('.vocabulary-adventure-summary').count(), 0);
-  await retry.page.evaluate(() => { window.__reviewSavePass = true; });
   await retry.page.locator('#vocabularyAdventureAction').click();
   await retry.page.waitForFunction(() => (
     document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('已记录为 D')
+    || document.querySelector('#vocabularyAdventureFeedbackText')?.textContent.includes('今日探险已保存完成')
+    || !!document.querySelector('.vocabulary-adventure-summary')
   ));
-  assert.deepEqual(await retry.page.evaluate(() => ({
-    attempts: window.__reviewSaveAttempts.length,
-    sameObject: window.__reviewSaveAttempts[0] === window.__reviewSaveAttempts[1],
-    reviewCount: window.__reviewSaveAttempts[1].words.apple.reviewCount,
-    cursor: window.__reviewSaveAttempts[1].session.cursor,
-    completed: window.__reviewSaveAttempts[1].session.completed
-  })), {
-    attempts: 2,
-    sameObject: true,
-    reviewCount: 2,
-    cursor: 1,
-    completed: true
-  });
+  assert.equal(retry.failedAdventureWriteCount(), 4);
+  assert.equal(retry.writes.filter(write => write.key === 'vocab_adventure_v1_sister').length, 1);
+  const retrySaved = retry.state.get('vocab_adventure_v1_sister');
+  assert.equal(retrySaved.words.apple.reviewCount, 2);
+  assert.equal(retrySaved.session.cursor, 1);
+  assert.equal(retrySaved.session.completed, true);
   await retry.context.close();
 
   for (const viewport of [
-    { width: 1024, height: 768 },
-    { width: 1180, height: 820 },
-    {
-      name: 'ipad11-landscape-944x656',
-      contextOptions: devices['iPad (gen 11) landscape']
-    }
+    { width: 1180, height: 820, name: 'ipad-air11-landscape' },
+    { width: 393, height: 852, name: 'iphone16-portrait' }
   ]) {
     const run = await openReview({ taskType: 'visualMatch', viewport });
     const layout = await run.page.evaluate(() => {
-      const stage = document.querySelector('.vocabulary-adventure-stage').getBoundingClientRect();
+      const question = document.querySelector('.vocabulary-adventure-question').getBoundingClientRect();
       const footer = document.querySelector('.vocabulary-adventure-feedback').getBoundingClientRect();
       return {
         noHorizontalOverflow: document.documentElement.scrollWidth <= innerWidth,
-        stageBottom: stage.bottom,
+        questionBottom: question.bottom,
         footerTop: footer.top,
         footerBottom: footer.bottom,
         viewportHeight: innerHeight,

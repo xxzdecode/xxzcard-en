@@ -51,13 +51,13 @@ assert.match(
 );
 assert.match(
   categoryStyles,
-  /\.vocabulary-lesson-selection-copy\[hidden\]\s*\{[\s\S]*?display:\s*none\s*!important;/,
-  'the reused selection heading must disappear in group-picker mode'
+  /\.vocabulary-lesson-inline-groups\s*\{[\s\S]*?flex-wrap:\s*wrap;/,
+  'category groups should be shown directly under the category title'
 );
 assert.match(
   categoryStyles,
-  /:has\(\.vocabulary-lesson-category-group-picker\)[\s\S]*?\.vocabulary-lesson-selection\s*\{/,
-  'the group picker should use its compact selection layout'
+  /\.vocabulary-lesson-inline-groups button\.is-completed\s*\{[\s\S]*?background:\s*#edf7f0;/,
+  'completed groups should use a quiet green state'
 );
 
 console.log('vocabularyLessonLowPressureGroups tests passed');

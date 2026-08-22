@@ -65,6 +65,8 @@ const marked = taught.markVocabularyLessonGroupTaught(migrated.state, {
 });
 assert.equal(marked.changed, true);
 assert.equal(taught.isVocabularyLessonGroupTaught(marked.state, 'book-vehicles:g01'), true);
+assert.equal(taught.isVocabularyLessonGroupTaught(marked.state, 'book-vehicles:g01', ['bus', 'car']), true);
+assert.equal(taught.isVocabularyLessonGroupTaught(marked.state, 'book-vehicles:g01', ['bus', 'car', 'truck']), false);
 assert.equal(marked.state.groups['book-vehicles:g01'].eligibleDate, '2026-08-22');
 assert.deepEqual(marked.state.groups['book-vehicles:g01'].wordKeysSnapshot, ['bus', 'car']);
 

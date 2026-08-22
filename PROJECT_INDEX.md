@@ -16,7 +16,7 @@
 `index.html` 中的主要 screen：
 
 - `screenHome`：首页与用户切换；学生端显示今日学习仪表板，老师端显示置顶“单词卡管理”及今日安排、金币与次数、学生标签、随堂练习、知识点库和“错题整理”卡片。
-- `screenVocabularyReviewList`：老师端生词巩固目录与单词选择页。
+- `screenVocabularyReviewList`：新词导览选择页；默认按主题、功能、校内年级/日期和未分类展示，旧普通单词本不再作为导览主入口。
 - `screenVocabularyReview`：生词巩固学习/自测卡片页。
 - `screenTeacherWordCards`：老师端单词管理入口页，包含任务词库设置、单词去重、新建单词本和单词本列表。
 - `screenCourseware` / `screenCoursewarePlayer`：老师端随堂练习目录与独立 iframe 播放页；内部 ID 保留旧名称以兼容已有入口。
@@ -63,6 +63,8 @@
 - `js/wordDedupe.js`：老师端单词去重入口、权限检查和 iframe 页面开关逻辑。
 - `js/vocabularyReviewData.js`：生词巩固当前词表、音标、释义和图片路径。
 - `js/vocabularyReview.js`：生词巩固目录、学习/自测切换、卡片翻面、滑动和图片预加载。
+- `js/vocabularyLessonCategories.js`：新词导览的分类首页、校内年级/日期入口、总库未分类索引和内嵌分组。
+- `js/vocabularyLessonLowPressureGroups.js`：分类分组的低压力授课流程、完成状态和返回分类首页逻辑。
 - `tools/word-dedupe/index.html`：可独立打开的只读 Supabase 单词去重工具。
 - `scripts/add-practice.mjs`：随堂练习上传的主命令；`scripts/add-courseware.mjs` 作为旧命令兼容入口保留。详细触发流程由 `xxzdecode/xxz-tools` 的 `xxzcard-en-hub/README.md` 维护。
 - `scripts/create-wordbook.mjs`：从已完成内容的真实导入 TXT 自动校验、查重并通过事务 RPC 新建单词本；使用说明见 `docs/create-wordbook-automation.md`。

@@ -10,9 +10,9 @@
 
   const CHALLENGE_ID = 'grammar-adaptive-daily-v1';
   const ALGORITHM_VERSION = 1;
-  const QUESTION_LIMIT = 20;
-  const RECENT_LIMIT = 10;
-  const HISTORY_LIMIT = 10;
+  const QUESTION_LIMIT = 15;
+  const RECENT_LIMIT = 8;
+  const HISTORY_LIMIT = 7;
   const PRIORITY_HISTORY_LIMIT = 6;
   const RECHECK_GAP = 3;
   const PROGRESS_KEY = 'grammar_progress';
@@ -527,7 +527,7 @@
         challengeId: CHALLENGE_ID,
         routeUpdatedAt: routeRevision,
         reviewLessonKey: `adaptive:${session.recentLessonKey || session.recentLessonDate}`,
-        title: '20题综合语法挑战',
+        title: '15题综合语法挑战',
         status: 'started',
         startedAt: text(record.startedAt) || now,
         completedAt: '',
@@ -551,12 +551,12 @@
       if (!runtime.session) return null;
       return {
         version: 1,
-        title: '20题综合语法挑战',
+        title: '15题综合语法挑战',
         interactionMode: 'challenge-locked',
         completionTitle: '今日语法挑战完成',
         completion: '最近课程与已学知识点都完成了复习。',
         feedbackDelayMs: 900,
-        knowledge: ['最近课程 10 题', '历史知识 10 题', '错题稍后再练'],
+        knowledge: ['最近课程 8 题', '历史知识 7 题', '错题稍后再练'],
         round: { size: QUESTION_LIMIT, shuffle: false },
         adaptiveSession: {
           enabled: true,
@@ -587,7 +587,7 @@
     root.getAdaptiveGrammarChallengeMeta = challengeId => challengeId === CHALLENGE_ID && runtime.session
       ? {
           challengeId: CHALLENGE_ID,
-          challengeTitle: '20题综合语法挑战',
+          challengeTitle: '15题综合语法挑战',
           challengeContentDate: runtime.session.date,
           lessonKey: `adaptive:${runtime.session.recentLessonKey || runtime.session.recentLessonDate}`,
           kpIds: unique(getFrameConfig()?.questions.flatMap(item => item.kpIds || []))

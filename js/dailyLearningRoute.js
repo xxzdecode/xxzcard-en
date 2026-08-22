@@ -151,7 +151,7 @@
     const classroomRoute = state.route.classroomPractice;
 
     if (grammar.title) grammar.title.textContent = '语法挑战';
-    if (grammar.subtitle) grammar.subtitle.textContent = `${routeLabel(grammarRoute, '近期知识')} 10 题 + 历史 10 题`;
+    if (grammar.subtitle) grammar.subtitle.textContent = `${routeLabel(grammarRoute, '近期知识')} 8 题 + 历史 7 题`;
     if (grammar.status) {
       const grammarRecord = state.grammarRecordStudent === currentStudent() ? state.grammarRecord : null;
       grammar.status.textContent = grammarRecord && grammarRecord.status === 'completed'
@@ -161,7 +161,7 @@
           : '今日挑战已准备';
     }
     if (grammar.entry) {
-      grammar.entry.setAttribute('aria-label', `语法挑战，${routeLabel(grammarRoute, '近期知识')}10题加历史知识10题，一天一次，完成可领取5金币`);
+      grammar.entry.setAttribute('aria-label', `语法挑战，${routeLabel(grammarRoute, '近期知识')}8题加历史知识7题，一天一次，完成可领取5金币`);
     }
 
     if (classroom.title) classroom.title.textContent = '随堂练习';
@@ -184,6 +184,11 @@
 
   function validateRoute(value) {
     if (!value || typeof value !== 'object') throw new Error('route payload is not an object');
+    if (value.manualSelectionPending === true) {
+      const error = new Error('manual route selection is pending');
+      error.code = 'MANUAL_ROUTE_PENDING';
+      throw error;
+    }
     const grammar = value.grammarChallenge;
     const classroom = value.classroomPractice;
     if (!grammar || typeof grammar !== 'object' || !String(grammar.id || '').trim()) {
@@ -192,19 +197,24 @@
     if (!classroom || typeof classroom !== 'object' || !String(classroom.id || '').trim()) {
       throw new Error('classroom practice route is missing');
     }
-    return {
+    const route = {
       schemaVersion: Number(value.schemaVersion || value.schema_version || 1),
       updatedAt: String(value.updatedAt || value.updated_at || ''),
       grammarChallenge: { ...grammar, id: String(grammar.id) },
       classroomPractice: { ...classroom, id: String(classroom.id) }
     };
+    if (value.manualSelection && typeof value.manualSelection === 'object') {
+      route.manualSelection = { ...value.manualSelection };
+    }
+    return route;
   }
 
   function readCachedRoute() {
     try {
       const raw = root.localStorage?.getItem(DAILY_ROUTE_CACHE_KEY);
       const envelope = raw ? JSON.parse(raw) : null;
-      return envelope && envelope.route ? validateRoute(envelope.route) : null;
+      const route = envelope && envelope.route ? validateRoute(envelope.route) : null;
+      return route && route.manualSelection ? route : null;
     } catch (_) {
       return null;
     }
@@ -286,10 +296,11 @@
       })
       .catch(error => {
         state.route = fallbackRoute || null;
-        state.status = fallbackRoute ? 'ready' : 'error';
+        state.status = fallbackRoute ? 'ready' : error && error.code === 'MANUAL_ROUTE_PENDING' ? 'loading' : 'error';
         state.error = error;
         state.fetchedAt = 0;
         if (fallbackRoute) renderReady();
+        else if (state.status === 'loading') renderLoading(state.refreshingReason);
         else renderError();
         console.warn('Unable to load current daily learning route', error && (error.message || error));
         return fallbackRoute || null;
@@ -729,6 +740,16 @@
     });
     root.addEventListener?.('daily-route-override-updated', () => {
       refreshDailyRouteInBackground('override-updated');
+    });
+    root.addEventListener?.('daily-route-override-refresh-failed', event => {
+      if (state.route) return;
+      state.status = 'error';
+      state.error = event && event.detail || new Error('manual route refresh failed');
+      renderError();
+    });
+    root.addEventListener?.('pageshow', () => {
+      if (isTeacherMode()) return;
+      refreshDailyRouteInBackground('pageshow');
     });
   }
 

@@ -72,11 +72,11 @@ const first = adaptive.buildSession(settings);
 const repeated = adaptive.buildSession(settings);
 assert.equal(first.ok, true);
 assert.deepEqual(repeated, first, 'same student and date must receive the same frozen plan');
-assert.equal(first.session.items.length, 20);
-assert.equal(first.session.items.filter(item => item.bucket === 'recent').length, 10);
-assert.equal(first.session.items.filter(item => item.bucket === 'history').length, 10);
+assert.equal(first.session.items.length, 15);
+assert.equal(first.session.items.filter(item => item.bucket === 'recent').length, 8);
+assert.equal(first.session.items.filter(item => item.bucket === 'history').length, 7);
 assert.equal(first.session.items.filter(item => item.reason === 'priority').length, 6);
-assert.equal(new Set(first.session.items.map(item => item.bankItemId)).size, 20);
+assert.equal(new Set(first.session.items.map(item => item.bankItemId)).size, 15);
 assert.equal(first.session.recentLessonDate, '2026-08-20');
 assert.equal(first.session.recentLessonKey, 'recent-kp');
 
@@ -86,7 +86,7 @@ const manuallySelected = adaptive.buildSession({
 });
 assert.equal(manuallySelected.ok, true);
 assert.equal(manuallySelected.session.recentLessonKey, 'history-kp');
-assert.equal(manuallySelected.session.items.filter(item => item.bucket === 'recent').length, 10);
+assert.equal(manuallySelected.session.items.filter(item => item.bucket === 'recent').length, 8);
 assert.ok(
   manuallySelected.session.items
     .filter(item => item.bucket === 'recent')
@@ -131,7 +131,7 @@ const wrong = adaptive.applyAnswer(first.session, {
   correct: false,
   answeredAt: '2026-08-21T08:01:00.000Z'
 });
-assert.equal(wrong.session.items.length, 20);
+assert.equal(wrong.session.items.length, 15);
 assert.equal(wrong.session.cursor, 1);
 assert.ok(wrong.replacement, 'an early wrong answer should schedule a parallel question');
 assert.ok(wrong.replacement.slot >= adaptive.RECHECK_GAP);
@@ -142,21 +142,21 @@ assert.notEqual(wrong.session.items[wrong.replacement.slot].bankItemId, beforeId
 
 const late = adaptive.normalizeSession(first.session, bank);
 late.items.forEach((item, index) => {
-  if (index < 18) {
+  if (index < 13) {
     item.status = 'answered';
     item.firstTryCorrect = true;
     item.answeredAt = '2026-08-21T08:00:00.000Z';
   }
 });
-late.cursor = 18;
+late.cursor = 13;
 const lateWrong = adaptive.applyAnswer(late, {
   bank,
-  questionId: late.items[18].bankItemId,
+  questionId: late.items[13].bankItemId,
   correct: false,
   answeredAt: '2026-08-21T08:19:00.000Z'
 });
-assert.equal(lateWrong.replacement, null, 'late errors must roll into later challenge history instead of exceeding 20 questions');
-assert.equal(lateWrong.session.items.length, 20);
+assert.equal(lateWrong.replacement, null, 'late errors must roll into later challenge history instead of exceeding 15 questions');
+assert.equal(lateWrong.session.items.length, 15);
 
 assert.ok(generatedBank.items.length >= 100, 'compiled bank should contain the existing reusable challenge questions');
 assert.equal(new Set(generatedBank.items.map(item => item.bankItemId)).size, generatedBank.items.length);

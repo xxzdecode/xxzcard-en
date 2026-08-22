@@ -121,9 +121,15 @@
     return { state, changed: true };
   }
 
-  function isVocabularyLessonGroupTaught(stateValue, groupId) {
+  function isVocabularyLessonGroupTaught(stateValue, groupId, currentWordKeys) {
     const state = normalizeVocabularyLessonTaughtState(stateValue);
-    return state.groups[String(groupId || '')]?.status === 'taught';
+    const entry = state.groups[String(groupId || '')];
+    if (!entry || entry.status !== 'taught') return false;
+    if (!Array.isArray(currentWordKeys)) return true;
+    const current = normalizeWordKeys(currentWordKeys);
+    if (current.length !== entry.wordKeysSnapshot.length) return false;
+    const snapshot = new Set(entry.wordKeysSnapshot);
+    return current.every(wordKey => snapshot.has(wordKey));
   }
 
   function collectTaughtWordEntries(stateValue, options) {

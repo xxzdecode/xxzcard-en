@@ -190,17 +190,7 @@ async function verifyDirectPage({ date, challengeId }) {
   assert.equal(beforeSubmit.answeredCount, 0, `${date} does not write history before Next`);
   assert.equal(beforeSubmit.questions.length, 0, `${date} has no captured answer before Next`);
 
-  await frame.evaluate(() => {
-    const next = document.getElementById('nextButton');
-    next.click();
-    next.click();
-  });
-
-  const locked = await frame.evaluate(() => window.__LESSON_PREP_QA__.state());
-  assert.equal(locked.locked, true, `${date} locks only after Next`);
-  assert.equal(locked.judging, true, `${date} judges only after Next`);
-  assert.deepEqual(locked.selected, [1]);
-  assert.equal(await frame.locator('.option').nth(1).isDisabled(), true);
+  await frame.locator('#nextButton').click();
 
   const recorded = await waitFor(() => {
     const attempt = latestAttempt('sister', challengeId);
@@ -209,11 +199,19 @@ async function verifyDirectPage({ date, challengeId }) {
 
   assert.equal(recorded.questions.length, 1, `${date} records one question result`);
   assert.equal(recorded.questions[0].questionId, edited.id);
-  assert.equal(recorded.questions[0].correct, expectedForSelection(config, edited.id, 1));
+  const correct = expectedForSelection(config, edited.id, 1);
+  assert.equal(recorded.questions[0].correct, correct);
 
   await frame.waitForTimeout(Number(config.feedbackDelayMs || 1000) + 180);
-  const nextState = await frame.evaluate(() => window.__LESSON_PREP_QA__.state());
-  assert.equal(nextState.index, 1, `${date} advances exactly one question after a fast double click`);
+  if (correct) {
+    await frame.waitForFunction(() => window.__LESSON_PREP_QA__.state().index === 1);
+  } else {
+    const held = await frame.evaluate(() => window.__LESSON_PREP_QA__.state());
+    assert.equal(held.index, 0, `${date} keeps a wrong answer visible until the child taps Next`);
+    assert.equal(await frame.locator('#nextButton').isEnabled(), true);
+    await frame.locator('#nextButton').click();
+    await frame.waitForFunction(() => window.__LESSON_PREP_QA__.state().index === 1);
+  }
   const afterTransition = latestAttempt('sister', challengeId);
   assert.equal(afterTransition.answeredCount, 1, `${date} does not duplicate history after transition`);
   assert.equal(afterTransition.questions.length, 1, `${date} keeps one final record`);

@@ -12,7 +12,8 @@
   const ARRAY_FIELDS = new Set(['morphology', 'collocations', 'irregularForms', 'synonyms', 'wordFamily']);
   const CATEGORY_KEYS = new Set(['category', 'categories', 'categoryId', 'categoryName']);
   const TOP_LEVEL_KEYS = new Set(['schemaVersion', 'wordbook', 'masterPatch']);
-  const WORDBOOK_KEYS = new Set(['id', 'name', 'bookType', 'bookPurpose', 'purpose', 'description', 'cardRefs']);
+  const WORDBOOK_KEYS = new Set(['id', 'name', 'bookType', 'bookPurpose', 'purpose', 'description', 'guideSection', 'cardRefs']);
+  const GUIDE_SECTION_KEYS = new Set(['kind', 'grade', 'date']);
   const REF_KEYS = new Set(['wordKey', 'overrides']);
   const PATCH_KEYS = new Set(['create', 'setIfEmpty', 'appendUnique']);
   const OPERATION_KEYS = new Set(['wordKey', 'fields']);
@@ -39,6 +40,21 @@
 
   function normalizeString(value) {
     return value == null ? '' : String(value).trim();
+  }
+
+  function normalizeGuideSection(rawValue) {
+    if (rawValue == null) return null;
+    assertPlainObject(rawValue, 'wordbook.guideSection');
+    rejectUnknownKeys(rawValue, GUIDE_SECTION_KEYS, 'wordbook.guideSection');
+    const kind = normalizeString(rawValue.kind).toLocaleLowerCase();
+    const grade = normalizeString(rawValue.grade);
+    const date = normalizeString(rawValue.date);
+    if (kind !== 'school') throw new Error('wordbook.guideSection.kind 只能是 school');
+    if (!['4', '7'].includes(grade)) throw new Error('wordbook.guideSection.grade 只能是 4 或 7');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error('wordbook.guideSection.date 必须是 YYYY-MM-DD');
+    }
+    return { kind, grade, date };
   }
 
   function normalizeCard(rawCard, label) {
@@ -168,15 +184,19 @@
       }
     });
 
+    const wordbook = {
+      id,
+      name,
+      bookPurpose: purpose,
+      description: normalizeString(payload.wordbook.description),
+      cardRefs
+    };
+    const guideSection = normalizeGuideSection(payload.wordbook.guideSection);
+    if (guideSection) wordbook.guideSection = guideSection;
+
     return {
       schemaVersion: 2,
-      wordbook: {
-        id,
-        name,
-        bookPurpose: purpose,
-        description: normalizeString(payload.wordbook.description),
-        cardRefs
-      },
+      wordbook,
       masterPatch: {
         create: (rawPatch.create || []).map((card, index) => normalizeCard(card, `masterPatch.create[${index}]`)),
         setIfEmpty: (rawPatch.setIfEmpty || []).map((operation, index) => normalizeOperation(operation, index, 'setIfEmpty')),

@@ -30,7 +30,8 @@
       firstTry: [],
       wrongEver: [],
       saving: false,
-      pendingAdaptive: null
+      pendingAdaptive: null,
+      awaitingAdvance: false
     };
     let transitionTimer = null;
 
@@ -269,6 +270,7 @@
     function renderQuestion(notifyRecordWatcher) {
       const item = question();
       state.interaction = core.createInteractionState();
+      state.awaitingAdvance = false;
       removePracticeData(Boolean(notifyRecordWatcher));
       ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
       ui.category.textContent = item.categoryLabel || item.category || '';
@@ -318,17 +320,25 @@
       else ui.dialog.setAttribute('open', '');
     }
 
-    function scheduleAdvance() {
+    function advanceNow() {
       window.clearTimeout(transitionTimer);
-      transitionTimer = window.setTimeout(() => {
-        if (state.index + 1 >= state.round.length) {
-          showCompletion();
-          return;
-        }
-        removePracticeData(true);
-        state.index += 1;
-        renderQuestion(false);
-      }, Number(settings.feedbackDelayMs || 1000));
+      if (state.index + 1 >= state.round.length) {
+        showCompletion();
+        return;
+      }
+      removePracticeData(true);
+      state.index += 1;
+      renderQuestion(false);
+    }
+
+    function continueAfterFeedback(correct) {
+      if (correct) {
+        transitionTimer = window.setTimeout(advanceNow, Number(settings.feedbackDelayMs || 1000));
+        return;
+      }
+      state.awaitingAdvance = true;
+      ui.next.textContent = state.index + 1 >= state.round.length ? '查看结果' : '下一题';
+      ui.next.disabled = false;
     }
 
     async function persistAdaptiveResult() {
@@ -337,7 +347,7 @@
       const adaptive = Boolean(adaptiveSession);
       if (!adaptive) {
         state.pendingAdaptive = null;
-        scheduleAdvance();
+        continueAfterFeedback(pending.correct);
         return;
       }
       let bridge = null;
@@ -368,7 +378,7 @@
         }
         state.pendingAdaptive = null;
         ui.next.textContent = '下一题';
-        scheduleAdvance();
+        continueAfterFeedback(pending.correct);
       } catch (error) {
         console.warn('Unable to save adaptive grammar answer', error);
         feedback('wrong', '本题尚未保存，请检查网络后点击“重试保存”。');
@@ -381,6 +391,10 @@
 
     async function submit() {
       if (state.saving) return;
+      if (state.awaitingAdvance) {
+        advanceNow();
+        return;
+      }
       if (state.pendingAdaptive) {
         await persistAdaptiveResult();
         return;
@@ -433,6 +447,7 @@
       state.wrongEver = state.round.map((_, index) => index < cursor && results[index] === false);
       state.saving = false;
       state.pendingAdaptive = null;
+      state.awaitingAdvance = false;
       ui.dialog.dataset.complete = 'false';
       if (ui.dialog.open) ui.dialog.close();
       if (cursor >= state.round.length) showCompletion();

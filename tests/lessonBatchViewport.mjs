@@ -19,7 +19,7 @@ const pages = [
   ['grammar-challenge/practices/2026-08-21.html', 10],
   ['courseware/26.08.21｜形容词与感官系动词随堂练习.html', 20],
   ['grammar-challenge/practices/2026-08-22.html', 10],
-  ['courseware/26.08.22｜比较级 -er、more 与 than 随堂练习.html', 20]
+  ['courseware/26.08.22｜比较级 -er、more 与 than 随堂练习.html', 15]
 ];
 
 const viewports = [
