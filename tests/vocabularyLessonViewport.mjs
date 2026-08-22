@@ -180,11 +180,11 @@ try {
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-22')));
     await page.evaluate(() => closeVocabularyReviewPlayer());
-    assert.deepEqual(
-      (await page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-name, #vocabularyLessonBookList .vocabulary-lesson-book-group > header strong').allTextContents())
-        .map(text => text.replace(/\d+词$/, '')),
-      ['今日生词', '较早单词本', '分类词汇按主题浏览']
-    );
+    await page.waitForSelector('#screenVocabularyReviewList.active .vocabulary-lesson-category-list');
+    const categoryGuideText = await page.locator('#vocabularyLessonBookList').innerText();
+    assert.match(categoryGuideText, /未分类/);
+    assert.doesNotMatch(categoryGuideText, /今日生词|较早单词本/);
+    assert.equal(await page.locator('#vocabularyLessonBookList .vocabulary-lesson-book-button').count(), 0);
     await page.evaluate(() => selectVocabularyLessonBook('today'));
     assert.equal(await page.locator('#vocabularyLessonModeTitle').textContent(), '新词导览');
     assert.ok(await page.locator('.vocabulary-lesson-word-row h2').innerText().then(text => text.includes('word-21')));
