@@ -55,7 +55,7 @@
 
 .vocabulary-lesson-category-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -68,8 +68,8 @@
 }
 
 .vocabulary-lesson-category-card.is-completed {
-  border-color: #d8ebdc;
-  background: #f3faf5;
+  border-color: #72b786;
+  background: #dff4e5;
 }
 
 .vocabulary-lesson-category-button,
@@ -87,6 +87,10 @@
   text-align: left;
 }
 
+.vocabulary-lesson-category-heading {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
 .vocabulary-lesson-category-button {
   border: 0;
   border-radius: 16px;
@@ -97,7 +101,15 @@
 .vocabulary-lesson-category-button:focus-visible,
 .vocabulary-lesson-inline-groups button:hover,
 .vocabulary-lesson-inline-groups button:focus-visible {
-  background: var(--vl-mint-soft);
+  background: #fff7fa;
+}
+
+.vocabulary-lesson-category-card.is-completed .vocabulary-lesson-category-button,
+.vocabulary-lesson-category-card.is-completed .vocabulary-lesson-category-button:hover,
+.vocabulary-lesson-category-card.is-completed .vocabulary-lesson-category-button:focus-visible,
+.vocabulary-lesson-category-card.is-completed .vocabulary-lesson-category-heading {
+  color: #28623a;
+  background: #dff4e5;
 }
 
 .vocabulary-lesson-category-button strong,
@@ -105,6 +117,29 @@
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: 15px;
+}
+
+.vocabulary-lesson-category-content,
+.vocabulary-lesson-category-label {
+  min-width: 0;
+}
+
+.vocabulary-lesson-category-label {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.vocabulary-lesson-category-count {
+  color: var(--vl-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.vocabulary-lesson-category-card.is-completed .vocabulary-lesson-category-count {
+  color: #4d7f5b;
 }
 
 .vocabulary-lesson-category-icon {
@@ -138,7 +173,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 12px 12px 60px;
+  margin-top: 7px;
 }
 
 .vocabulary-lesson-inline-groups button {
@@ -161,6 +196,11 @@
   order: 2;
   border-color: #d8ebdc;
   color: #568a65;
+  background: #edf7f0;
+}
+
+.vocabulary-lesson-inline-groups button.is-completed:hover,
+.vocabulary-lesson-inline-groups button.is-completed:focus-visible {
   background: #edf7f0;
 }
 
@@ -232,10 +272,6 @@
 }
 
 @media (max-width: 860px) {
-  .vocabulary-lesson-category-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .vocabulary-lesson-category-group > header {
     display: block;
   }
@@ -265,7 +301,4 @@
     min-height: 58px;
   }
 
-  .vocabulary-lesson-inline-groups {
-    padding-left: 12px;
-  }
 }

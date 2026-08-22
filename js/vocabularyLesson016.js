@@ -68,10 +68,13 @@
   }
 
   function deriveGroupConfig(batch, data = appData) {
+    const transientGroupSize = batch && batch.vocabularyLessonTransient
+      ? Math.max(0, Math.trunc(Number(batch.vocabularyLessonGroupSize)) || 0)
+      : 0;
     return groupCore.reconcileVocabularyLessonGroups(
       batch,
       getStoredGroupConfig(batch, data),
-      groupCore.GROUP_SIZE
+      transientGroupSize || groupCore.GROUP_SIZE
     );
   }
 

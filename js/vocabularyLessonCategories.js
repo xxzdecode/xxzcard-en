@@ -290,21 +290,24 @@
   }
 
   function makeVirtualCategoryBatch(category) {
+    const cards = category.cards.slice();
     return {
       id: `${VIRTUAL_BATCH_PREFIX}${category.id}`,
       name: category.name,
       bookPurpose: 'common',
       vocabularyLessonTransient: true,
-      cards: category.cards.slice()
+      vocabularyLessonGroupSize: category.id === 'unclassified' ? Math.max(1, cards.length) : undefined,
+      cards
     };
   }
 
   function groupConfigForCategory(category) {
     if (!window.VocabularyLessonGroups) return { groups: [] };
+    const batch = makeVirtualCategoryBatch(category);
     return window.VocabularyLessonGroups.reconcileVocabularyLessonGroups(
-      makeVirtualCategoryBatch(category),
+      batch,
       null,
-      window.VocabularyLessonGroups.GROUP_SIZE || 20
+      batch.vocabularyLessonGroupSize || window.VocabularyLessonGroups.GROUP_SIZE || 20
     );
   }
 
@@ -312,11 +315,12 @@
     const encodedId = encodeURIComponent(category.id);
     const groups = groupConfigForCategory(category).groups;
     const icon = `<span class="vocabulary-lesson-category-icon" aria-hidden="true">${escapeCategoryHtml(category.icon)}</span>`;
+    const label = `<span class="vocabulary-lesson-category-label"><strong>${escapeCategoryHtml(category.name)}</strong><span class="vocabulary-lesson-category-count">${category.cards.length} 词</span></span>`;
     if (groups.length <= 1) {
       const group = groups[0];
       return `<article class="vocabulary-lesson-category-card" data-category-id="${escapeCategoryHtml(category.id)}">
         <button class="vocabulary-lesson-category-button" type="button" data-group-id="${escapeCategoryHtml(group && group.id)}" onclick="selectVocabularyLessonCategoryGroup(decodeURIComponent('${encodedId}'), 0)">
-          ${icon}<strong>${escapeCategoryHtml(category.name)}</strong>
+          ${icon}${label}
           <span class="vocabulary-lesson-category-check" aria-hidden="true">✓</span>
           <span class="vocabulary-lesson-book-arrow" aria-hidden="true">›</span>
         </button>
@@ -324,11 +328,14 @@
     }
     return `<article class="vocabulary-lesson-category-card" data-category-id="${escapeCategoryHtml(category.id)}">
       <div class="vocabulary-lesson-category-heading">
-        ${icon}<strong>${escapeCategoryHtml(category.name)}</strong>
+        ${icon}
+        <div class="vocabulary-lesson-category-content">
+          ${label}
+          <div class="vocabulary-lesson-inline-groups">
+            ${groups.map((group, index) => `<button type="button" data-group-id="${escapeCategoryHtml(group.id)}" onclick="selectVocabularyLessonCategoryGroup(decodeURIComponent('${encodedId}'), ${index})"><span>第${index + 1}组 · ${group.wordKeys.length}词</span><span class="vocabulary-lesson-group-check" aria-hidden="true">✓</span></button>`).join('')}
+          </div>
+        </div>
         <span class="vocabulary-lesson-category-check" aria-hidden="true">✓</span>
-      </div>
-      <div class="vocabulary-lesson-inline-groups">
-        ${groups.map((group, index) => `<button type="button" data-group-id="${escapeCategoryHtml(group.id)}" onclick="selectVocabularyLessonCategoryGroup(decodeURIComponent('${encodedId}'), ${index})"><span>第${index + 1}组</span><span class="vocabulary-lesson-group-check" aria-hidden="true">✓</span></button>`).join('')}
       </div>
     </article>`;
   }

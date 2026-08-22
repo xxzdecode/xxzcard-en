@@ -124,12 +124,20 @@
   function isVocabularyLessonGroupTaught(stateValue, groupId, currentWordKeys) {
     const state = normalizeVocabularyLessonTaughtState(stateValue);
     const entry = state.groups[String(groupId || '')];
-    if (!entry || entry.status !== 'taught') return false;
-    if (!Array.isArray(currentWordKeys)) return true;
+    if (entry && entry.status === 'taught' && !Array.isArray(currentWordKeys)) return true;
+    if (!Array.isArray(currentWordKeys)) return false;
     const current = normalizeWordKeys(currentWordKeys);
-    if (current.length !== entry.wordKeysSnapshot.length) return false;
-    const snapshot = new Set(entry.wordKeysSnapshot);
-    return current.every(wordKey => snapshot.has(wordKey));
+    if (!current.length) return false;
+    if (entry && entry.status === 'taught' && current.length === entry.wordKeysSnapshot.length) {
+      const snapshot = new Set(entry.wordKeysSnapshot);
+      if (current.every(wordKey => snapshot.has(wordKey))) return true;
+    }
+    const taughtWords = new Set();
+    Object.values(state.groups).forEach(group => {
+      if (!group || group.status !== 'taught') return;
+      group.wordKeysSnapshot.forEach(wordKey => taughtWords.add(wordKey));
+    });
+    return current.every(wordKey => taughtWords.has(wordKey));
   }
 
   function collectTaughtWordEntries(stateValue, options) {

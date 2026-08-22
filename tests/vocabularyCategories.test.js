@@ -98,12 +98,18 @@ assert.ok(taskIndex >= 0 && categoryIndex > taskIndex, 'category enhancement mus
 assert.equal((lazyFeatures.match(/'js\/vocabularyLesson016\.js'/g) || []).length, 1);
 assert.doesNotMatch(reviewData, /vocabularyLesson016\.js/, 'task 016 must only load through the lazy feature group');
 
-assert.match(styles, /grid-template-columns:\s*repeat\(3,/);
+assert.match(styles, /grid-template-columns:\s*repeat\(2,/);
 assert.match(styles, /orientation:\s*landscape/);
 assert.match(styles, /min-height:\s*62px/);
 assert.match(styles, /\.vocabulary-lesson-category-card\.is-completed/);
 assert.match(styles, /\.vocabulary-lesson-inline-groups button\.is-completed/);
+assert.match(styles, /\.vocabulary-lesson-category-count/);
+assert.match(styles, /background:\s*#dff4e5/);
+assert.match(styles, /background:\s*#fff7fa/);
 assert.match(styles, /min-height:\s*44px/);
+assert.match(script, /vocabularyLessonGroupSize:\s*category\.id === 'unclassified'/);
+assert.match(script, /vocabulary-lesson-category-count/);
+assert.match(script, /第\$\{index \+ 1\}组 · \$\{group\.wordKeys\.length\}词/);
 
 function card(word, meaning) {
   return {

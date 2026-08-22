@@ -31,7 +31,11 @@ function card(word, meaning = word) {
 const formalCards = [
   card('bike', '自行车'), card('bus', '公共汽车'), card('train', '火车'),
   card('ship', '轮船'), card('car', '汽车'), card('plane', '飞机'),
-  card('sunny', '晴朗的'), card('one', '一')
+  card('sunny', '晴朗的'), card('one', '一'),
+  ...[
+    'cat', 'dog', 'pig', 'duck', 'rabbit', 'horse', 'elephant', 'ant', 'fish', 'bird',
+    'snake', 'mouse', 'kangaroo', 'monkey', 'panda', 'bear', 'lion', 'tiger', 'fox', 'zebra', 'deer'
+  ].map(word => card(word))
 ];
 const uncategorizedCards = Array.from({ length: 25 }, (_, index) => (
   card(`zzword${String(index + 1).padStart(2, '0')}`, `校内词${index + 1}`)
@@ -81,7 +85,7 @@ const mainData = {
 const taughtState = {
   version: 1,
   groups: {
-    'vocabulary-category:vehicles:g01': {
+    'book-vehicles:g01': {
       status: 'taught',
       taughtAt: '2026-08-22T08:00:00+08:00',
       eligibleDate: '2026-08-23',
@@ -207,13 +211,51 @@ try {
   assert.doesNotMatch(guideText, /校内｜/);
   assert.equal(await ipad.page.locator('#vocabularyLessonCategoryEntry').count(), 0);
   assert.equal(await ipad.page.locator('.vocabulary-lesson-category-group-picker').count(), 0);
+  assert.equal(
+    await ipad.page.locator('.vocabulary-lesson-category-card').count(),
+    await ipad.page.locator('.vocabulary-lesson-category-count').count(),
+    'every category must show its word count'
+  );
+  assert.equal(await ipad.page.locator('[data-category-id="vehicles"] .vocabulary-lesson-category-count').textContent(), '6 词');
+  assert.equal(await ipad.page.locator('[data-category-id="animals"] .vocabulary-lesson-category-count').textContent(), '21 词');
+  assert.deepEqual(
+    await ipad.page.locator('[data-category-id="animals"] .vocabulary-lesson-inline-groups button').allTextContents(),
+    ['第1组 · 20词✓', '第2组 · 1词✓']
+  );
+  assert.equal(await ipad.page.locator('[data-category-id="unclassified"] .vocabulary-lesson-category-count').textContent(), '26 词');
+  assert.equal(await ipad.page.locator('[data-category-id="unclassified"] [data-group-id]').count(), 1);
+  assert.equal(await ipad.page.locator('[data-category-id="unclassified"] .vocabulary-lesson-inline-groups').count(), 0);
   assert.equal(await ipad.page.locator('[data-category-id="vehicles"]').getAttribute('class'), 'vocabulary-lesson-category-card is-completed');
+  const taughtCard = ipad.page.locator('[data-category-id="vehicles"] .vocabulary-lesson-category-button');
+  const untaughtCard = ipad.page.locator('[data-category-id="weather-seasons"] .vocabulary-lesson-category-button');
+  const taughtBackground = await taughtCard.evaluate(element => getComputedStyle(element).backgroundColor);
+  const untaughtBackground = await untaughtCard.evaluate(element => getComputedStyle(element).backgroundColor);
+  assert.equal(taughtBackground, 'rgb(223, 244, 229)');
+  assert.notEqual(untaughtBackground, taughtBackground);
+  await untaughtCard.hover();
+  assert.notEqual(await untaughtCard.evaluate(element => getComputedStyle(element).backgroundColor), taughtBackground);
+  await taughtCard.hover();
+  assert.equal(await taughtCard.evaluate(element => getComputedStyle(element).backgroundColor), taughtBackground);
   assert.equal(
     await ipad.page.locator('[data-guide-group="themes"] .vocabulary-lesson-category-card').last().getAttribute('data-category-id'),
     'vehicles',
     'a completed category should move behind unfinished categories'
   );
   await assertLayout(ipad.page, { width: 1180, height: 820 });
+
+  await ipad.page.locator('[data-category-id="unclassified"] [data-group-id]').click();
+  await ipad.page.waitForSelector('#screenVocabularyReviewPlayer.active');
+  assert.deepEqual(
+    await ipad.page.evaluate(() => ({
+      groups: vocabularyLessonState.batches.length,
+      words: vocabularyLessonState.batches[0]?.length,
+      quickGroups: document.querySelectorAll('#vocabularyLessonQuickNav .vocabulary-lesson-quick-button.batch').length
+    })),
+    { groups: 1, words: 26, quickGroups: 1 },
+    'opening unclassified must preserve one large group'
+  );
+  await ipad.page.locator('#screenVocabularyReviewPlayer .vocabulary-lesson-icon-button').click();
+  await ipad.page.waitForSelector('#screenVocabularyReviewList.active .vocabulary-lesson-category-list');
 
   const mainWritesBeforeOpen = ipad.writes.filter(write => write.key === 'main').length;
   await ipad.page.locator('[data-category-id="vehicles"] [data-group-id]').click();
@@ -241,6 +283,8 @@ try {
   const iphone = await openApp({ width: 393, height: 852 });
   await openGuide(iphone.page);
   await assertLayout(iphone.page, { width: 393, height: 852 });
+  assert.equal(await iphone.page.locator('[data-category-id="animals"] .vocabulary-lesson-category-count').textContent(), '21 词');
+  assert.equal(await iphone.page.locator('[data-category-id="unclassified"] [data-group-id]').count(), 1);
   await iphone.page.screenshot({ path: path.join(outputDir, 'new-word-guide-iphone16-393x852.png'), fullPage: true });
   assert.deepEqual(iphone.errors, []);
   await iphone.context.close();

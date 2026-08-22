@@ -71,6 +71,7 @@
     const ready = () => Boolean(
       root.VocabularyLessonGroups
       && typeof root.getVocabularyLessonCategoryById === 'function'
+      && typeof root.getVocabularyLessonCategoryGroupConfig === 'function'
       && typeof root.makeVocabularyLessonVirtualCategoryBatch === 'function'
       && typeof root.renderVocabularyLessonCategorySelection === 'function'
       && typeof root.selectVocabularyLessonGroup === 'function'
@@ -210,8 +211,7 @@
       }
 
       function groupConfigForCategory(category) {
-        const batch = root.makeVocabularyLessonVirtualCategoryBatch(category);
-        return root.VocabularyLessonGroups.reconcileVocabularyLessonGroups(batch, null, root.VocabularyLessonGroups.GROUP_SIZE || 20);
+        return root.getVocabularyLessonCategoryGroupConfig(category);
       }
 
       function currentGroupItems() {

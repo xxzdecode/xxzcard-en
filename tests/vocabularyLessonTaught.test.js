@@ -67,6 +67,12 @@ assert.equal(marked.changed, true);
 assert.equal(taught.isVocabularyLessonGroupTaught(marked.state, 'book-vehicles:g01'), true);
 assert.equal(taught.isVocabularyLessonGroupTaught(marked.state, 'book-vehicles:g01', ['bus', 'car']), true);
 assert.equal(taught.isVocabularyLessonGroupTaught(marked.state, 'book-vehicles:g01', ['bus', 'car', 'truck']), false);
+assert.equal(
+  taught.isVocabularyLessonGroupTaught(marked.state, 'vocabulary-category:vehicles:g01', ['bus', 'car']),
+  true,
+  'a category card must recognize words taught under the formal wordbook group id'
+);
+assert.equal(taught.isVocabularyLessonGroupTaught(marked.state, 'vocabulary-category:vehicles:g01', ['bus', 'truck']), false);
 assert.equal(marked.state.groups['book-vehicles:g01'].eligibleDate, '2026-08-22');
 assert.deepEqual(marked.state.groups['book-vehicles:g01'].wordKeysSnapshot, ['bus', 'car']);
 
