@@ -108,6 +108,65 @@
     return config;
   }
 
+  function taughtGroupOrder(groupId, prefixes) {
+    for (let index = 0; index < prefixes.length; index += 1) {
+      const prefix = `${prefixes[index]}:g`;
+      if (!String(groupId || '').startsWith(prefix)) continue;
+      const order = Math.trunc(Number(String(groupId).slice(prefix.length)));
+      if (order > 0) return { order, priority: index };
+    }
+    return null;
+  }
+
+  function reconcileVocabularyLessonGroupsWithTaught(batch, taughtState, size = GROUP_SIZE) {
+    const id = bookId(batch);
+    const aliases = Array.isArray(batch && batch.vocabularyLessonTaughtGroupAliases)
+      ? batch.vocabularyLessonTaughtGroupAliases.map(value => String(value || '').trim()).filter(Boolean)
+      : [];
+    const prefixes = [...new Set([id, ...aliases].filter(Boolean))];
+    const available = collectBookWordKeys(batch);
+    const availableSet = new Set(available);
+    const taughtGroups = plainObject(taughtState && taughtState.groups) ? taughtState.groups : {};
+    const byOrder = new Map();
+
+    Object.entries(taughtGroups).forEach(([groupId, entry]) => {
+      if (!entry || entry.status !== 'taught') return;
+      const match = taughtGroupOrder(groupId, prefixes);
+      if (!match) return;
+      const seen = new Set();
+      const wordKeys = (Array.isArray(entry.wordKeysSnapshot) ? entry.wordKeysSnapshot : [])
+        .map(wordKey)
+        .filter(key => key && !seen.has(key) && seen.add(key));
+      if (!wordKeys.length || wordKeys.some(key => !availableSet.has(key))) return;
+      const current = byOrder.get(match.order);
+      if (current && current.priority <= match.priority) return;
+      byOrder.set(match.order, {
+        id: groupId,
+        order: match.order,
+        wordKeys,
+        sealed: true,
+        priority: match.priority
+      });
+    });
+
+    const assigned = new Set();
+    const frozenGroups = [...byOrder.values()]
+      .sort((left, right) => left.order - right.order || left.priority - right.priority)
+      .filter(group => {
+        if (group.wordKeys.some(key => assigned.has(key))) return false;
+        group.wordKeys.forEach(key => assigned.add(key));
+        return true;
+      })
+      .map(({ priority, ...group }) => group);
+
+    return reconcileVocabularyLessonGroups(batch, {
+      version: VERSION,
+      bookId: id,
+      groupSize: size,
+      groups: frozenGroups
+    }, size);
+  }
+
   function sealVocabularyLessonGroup(configValue, targetGroupId) {
     const config = normalizeGroupConfig(configValue, configValue && configValue.bookId, configValue && configValue.groupSize);
     let changed = false;
@@ -408,6 +467,7 @@
     groupIdFor,
     normalizeGroupConfig,
     reconcileVocabularyLessonGroups,
+    reconcileVocabularyLessonGroupsWithTaught,
     sealVocabularyLessonGroup,
     materializeVocabularyLessonGroups,
     defaultVocabularyLessonProgress,

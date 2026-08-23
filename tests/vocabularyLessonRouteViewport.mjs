@@ -30,7 +30,7 @@ function card(word, meaning = word) {
 
 const formalCards = [
   card('bike', '自行车'), card('bus', '公共汽车'), card('train', '火车'),
-  card('ship', '轮船'), card('car', '汽车'), card('plane', '飞机'),
+  card('ship', '轮船'), card('car', '汽车'), card('plane', '飞机'), card('truck', '卡车'),
   card('sunny', '晴朗的'), card('one', '一'),
   ...[
     'cat', 'dog', 'pig', 'duck', 'rabbit', 'horse', 'elephant', 'ant', 'fish', 'bird',
@@ -58,7 +58,15 @@ const mainData = {
       bookPurpose: 'common',
       bookType: 'reference',
       sharedWith: ['sister', 'brother'],
-      cardRefs: refs(['legacyword'])
+      cardRefs: refs(['legacyword', 'truck']),
+      categoryAssignments: [{
+        categoryId: 'vehicles',
+        categoryName: '交通工具',
+        groupId: 'themes',
+        groupName: '主题词汇',
+        icon: '🚌',
+        words: ['truck']
+      }]
     },
     {
       id: 'school-grade-4-2026-09-01',
@@ -216,7 +224,12 @@ try {
     await ipad.page.locator('.vocabulary-lesson-category-count').count(),
     'every category must show its word count'
   );
-  assert.equal(await ipad.page.locator('[data-category-id="vehicles"] .vocabulary-lesson-category-count').textContent(), '6 词');
+  assert.equal(await ipad.page.locator('[data-category-id="vehicles"] .vocabulary-lesson-category-count').textContent(), '7 词');
+  const vehicleGroups = ipad.page.locator('[data-category-id="vehicles"] [data-group-id]');
+  assert.equal(await vehicleGroups.count(), 2);
+  assert.deepEqual(await vehicleGroups.allTextContents(), ['第2组 · 1词✓', '第1组 · 6词✓']);
+  assert.doesNotMatch(await vehicleGroups.nth(0).getAttribute('class') || '', /is-completed/);
+  assert.match(await vehicleGroups.nth(1).getAttribute('class'), /is-completed/);
   assert.equal(await ipad.page.locator('[data-category-id="animals"] .vocabulary-lesson-category-count').textContent(), '21 词');
   assert.deepEqual(
     await ipad.page.locator('[data-category-id="animals"] .vocabulary-lesson-inline-groups button').allTextContents(),
@@ -225,22 +238,17 @@ try {
   assert.equal(await ipad.page.locator('[data-category-id="unclassified"] .vocabulary-lesson-category-count').textContent(), '26 词');
   assert.equal(await ipad.page.locator('[data-category-id="unclassified"] [data-group-id]').count(), 1);
   assert.equal(await ipad.page.locator('[data-category-id="unclassified"] .vocabulary-lesson-inline-groups').count(), 0);
-  assert.equal(await ipad.page.locator('[data-category-id="vehicles"]').getAttribute('class'), 'vocabulary-lesson-category-card is-completed');
-  const taughtCard = ipad.page.locator('[data-category-id="vehicles"] .vocabulary-lesson-category-button');
+  assert.equal(await ipad.page.locator('[data-category-id="vehicles"]').getAttribute('class'), 'vocabulary-lesson-category-card');
+  const taughtCard = vehicleGroups.nth(1);
   const untaughtCard = ipad.page.locator('[data-category-id="weather-seasons"] .vocabulary-lesson-category-button');
   const taughtBackground = await taughtCard.evaluate(element => getComputedStyle(element).backgroundColor);
   const untaughtBackground = await untaughtCard.evaluate(element => getComputedStyle(element).backgroundColor);
-  assert.equal(taughtBackground, 'rgb(223, 244, 229)');
+  assert.equal(taughtBackground, 'rgb(237, 247, 240)');
   assert.notEqual(untaughtBackground, taughtBackground);
   await untaughtCard.hover();
   assert.notEqual(await untaughtCard.evaluate(element => getComputedStyle(element).backgroundColor), taughtBackground);
   await taughtCard.hover();
   assert.equal(await taughtCard.evaluate(element => getComputedStyle(element).backgroundColor), taughtBackground);
-  assert.equal(
-    await ipad.page.locator('[data-guide-group="themes"] .vocabulary-lesson-category-card').last().getAttribute('data-category-id'),
-    'vehicles',
-    'a completed category should move behind unfinished categories'
-  );
   await assertLayout(ipad.page, { width: 1180, height: 820 });
 
   await ipad.page.locator('[data-category-id="unclassified"] [data-group-id]').click();
@@ -258,9 +266,16 @@ try {
   await ipad.page.waitForSelector('#screenVocabularyReviewList.active .vocabulary-lesson-category-list');
 
   const mainWritesBeforeOpen = ipad.writes.filter(write => write.key === 'main').length;
-  await ipad.page.locator('[data-category-id="vehicles"] [data-group-id]').click();
+  await vehicleGroups.nth(1).click();
   await ipad.page.waitForSelector('#screenVocabularyReviewPlayer.active');
   assert.equal(await ipad.page.locator('#vocabularyLessonModeTitle').textContent(), '交通工具');
+  assert.deepEqual(
+    await ipad.page.evaluate(() => ({
+      ids: vocabularyLessonState.groupConfig.groups.map(group => group.id),
+      counts: vocabularyLessonState.batches.map(items => items.length)
+    })),
+    { ids: ['book-vehicles:g01', 'vocabulary-category:vehicles:g02'], counts: [6, 1] }
+  );
   assert.equal(ipad.writes.filter(write => write.key === 'main').length, mainWritesBeforeOpen);
   await ipad.page.locator('#screenVocabularyReviewPlayer .vocabulary-lesson-icon-button').click();
   await ipad.page.waitForSelector('#screenVocabularyReviewList.active .vocabulary-lesson-category-list');

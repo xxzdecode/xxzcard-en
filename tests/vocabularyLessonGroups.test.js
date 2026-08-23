@@ -26,6 +26,75 @@ function book(id, count) {
   });
   assert.deepEqual(openTwelve.groups.map(group => group.wordKeys.length), [15]);
 
+  const expandedCategory = {
+    id: 'vocabulary-category:vehicles',
+    vocabularyLessonTransient: true,
+    vocabularyLessonTaughtGroupAliases: ['book-vehicles'],
+    cards: [{ word: 'bus' }, { word: 'car' }, { word: 'truck' }]
+  };
+  const frozenCategory = groups.reconcileVocabularyLessonGroupsWithTaught(expandedCategory, {
+    version: 1,
+    groups: {
+      'book-vehicles:g01': {
+        status: 'taught',
+        wordKeysSnapshot: ['bus', 'car']
+      }
+    }
+  });
+  assert.deepEqual(
+    frozenCategory.groups.map(group => ({ id: group.id, words: group.wordKeys, sealed: group.sealed })),
+    [
+      { id: 'book-vehicles:g01', words: ['bus', 'car'], sealed: true },
+      { id: 'vocabulary-category:vehicles:g02', words: ['truck'], sealed: false }
+    ],
+    'words added to a taught category must start a new group without changing the taught snapshot'
+  );
+
+  const noTaughtCategory = groups.reconcileVocabularyLessonGroupsWithTaught(expandedCategory, null);
+  assert.deepEqual(noTaughtCategory.groups.map(group => group.wordKeys), [['bus', 'car', 'truck']]);
+
+  const expandedAgain = {
+    ...expandedCategory,
+    cards: [
+      { word: 'bus' },
+      { word: 'car' },
+      ...Array.from({ length: 21 }, (_, index) => ({ word: `new-${index + 1}` }))
+    ]
+  };
+  const frozenAcrossBoundaries = groups.reconcileVocabularyLessonGroupsWithTaught(expandedAgain, {
+    version: 1,
+    groups: {
+      'book-vehicles:g01': { status: 'taught', wordKeysSnapshot: ['bus', 'car'] }
+    }
+  });
+  assert.deepEqual(frozenAcrossBoundaries.groups.map(group => group.wordKeys.length), [2, 20, 1]);
+  assert.deepEqual(frozenAcrossBoundaries.groups.map(group => group.id), [
+    'book-vehicles:g01',
+    'vocabulary-category:vehicles:g02',
+    'vocabulary-category:vehicles:g03'
+  ]);
+
+  const newlyTaught = groups.markVocabularyLessonGroupCompleted(null, {
+    groupId: frozenCategory.groups[1].id,
+    wordKeys: frozenCategory.groups[1].wordKeys,
+    completedAt: '2026-08-23T10:00:00+08:00',
+    eligibleDate: '2026-08-24'
+  });
+  assert.deepEqual(newlyTaught.progress.groups['vocabulary-category:vehicles:g02'].wordKeysSnapshot, ['truck']);
+  assert.equal(newlyTaught.progress.challengeQueue['vocabulary-category:vehicles:g02'].eligibleDate, '2026-08-24');
+
+  const unrelatedTaughtCategory = groups.reconcileVocabularyLessonGroupsWithTaught(expandedCategory, {
+    version: 1,
+    groups: {
+      'book-colours:g01': { status: 'taught', wordKeysSnapshot: ['bus', 'car'] }
+    }
+  });
+  assert.deepEqual(
+    unrelatedTaughtCategory.groups.map(group => group.wordKeys),
+    [['bus', 'car', 'truck']],
+    'an unrelated taught group must not freeze this category'
+  );
+
   const sister = groups.markVocabularyLessonGroupCompleted(null, {
     groupId: 'book-a:g01',
     wordKeys: thirtyOne.groups[0].wordKeys,
