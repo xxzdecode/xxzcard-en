@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const referenceImport = require('../js/referenceWordbookImport.js');
+const lessonGroups = require('../js/vocabularyLessonGroups.js');
 
 const root = path.resolve(__dirname, '..');
 const registry = JSON.parse(fs.readFileSync(path.join(root, 'data/vocabularyCategories.json'), 'utf8'));
@@ -28,15 +29,24 @@ assert.equal(new Set(categories.map(category => category.id)).size, categories.l
 categories.forEach(category => {
   assert.ok(category.name);
   assert.ok(Array.isArray(category.words) && category.words.length > 0);
-  assert.ok(category.words.length <= 40, `${category.id} should remain within four ten-word teaching batches`);
   const normalized = category.words.map(word => String(word).toLowerCase().replace(/[^a-z0-9]+/g, ''));
   assert.equal(new Set(normalized).size, normalized.length, `${category.id} contains duplicate match keys`);
+  const groupPlan = lessonGroups.reconcileVocabularyLessonGroups({
+    id: `vocabulary-category:${category.id}`,
+    cards: category.words.map(word => ({ word }))
+  }, null);
+  assert.ok(groupPlan.groups.every(group => group.wordKeys.length <= lessonGroups.GROUP_SIZE));
+  assert.deepEqual(
+    groupPlan.groups.flatMap(group => group.wordKeys),
+    category.words.map(lessonGroups.wordKey),
+    `${category.id} teaching groups must preserve every ordered word`
+  );
 });
 
 const allWords = categories.flatMap(category => category.words);
 const normalizedAllWords = new Set(allWords.map(word => String(word).toLowerCase().replace(/[^a-z0-9]+/g, '')));
-assert.equal(allWords.length, 630, 'the uploaded 33-page source should be fully represented');
-assert.equal(normalizedAllWords.size, 624, 'cross-category repeats should remain intentional');
+assert.equal(allWords.length, 996, 'the source skeleton and approved formal-library additions should be fully represented');
+assert.equal(normalizedAllWords.size, 990, 'cross-category repeats should remain intentional');
 [
   'pencil-case',
   'TV reporter',
