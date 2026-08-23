@@ -71,6 +71,15 @@
     const transientGroupSize = batch && batch.vocabularyLessonTransient
       ? Math.max(0, Math.trunc(Number(batch.vocabularyLessonGroupSize)) || 0)
       : 0;
+    if (isTransientBatch(batch)
+      && !String(batch && batch.id || '').endsWith(':unclassified')
+      && typeof groupCore.reconcileVocabularyLessonGroupsWithTaught === 'function') {
+      return groupCore.reconcileVocabularyLessonGroupsWithTaught(
+        batch,
+        taughtState,
+        transientGroupSize || groupCore.GROUP_SIZE
+      );
+    }
     return groupCore.reconcileVocabularyLessonGroups(
       batch,
       getStoredGroupConfig(batch, data),

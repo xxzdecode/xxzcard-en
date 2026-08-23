@@ -220,6 +220,10 @@
     return clone(cachedState);
   }
 
+  function getVocabularyLessonTaughtStateCache() {
+    return clone(cachedState || normalizeVocabularyLessonTaughtState(null));
+  }
+
   return Object.freeze({
     TAUGHT_STATE_KEY,
     LEGACY_PROGRESS_KEYS,
@@ -231,6 +235,7 @@
     collectTaughtWordEntries,
     loadVocabularyLessonTaughtState,
     saveVocabularyLessonTaughtGroup,
-    setVocabularyLessonTaughtStateCache
+    setVocabularyLessonTaughtStateCache,
+    getVocabularyLessonTaughtStateCache
   });
 });

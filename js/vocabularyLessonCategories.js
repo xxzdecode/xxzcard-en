@@ -291,12 +291,25 @@
 
   function makeVirtualCategoryBatch(category) {
     const cards = category.cards.slice();
+    const taughtGroupAliases = category.id === 'unclassified'
+      ? []
+      : [
+        `book-${category.id}`,
+        ...allCategoryBatches()
+          .filter(batch => (
+            String(batch && batch.id || '').trim()
+            && (String(batch.id) === String(category.sourceBatchId || '')
+              || String(batch.name || '').trim() === String(category.name || '').trim())
+          ))
+          .map(batch => String(batch.id))
+      ];
     return {
       id: `${VIRTUAL_BATCH_PREFIX}${category.id}`,
       name: category.name,
       bookPurpose: 'common',
       vocabularyLessonTransient: true,
       vocabularyLessonGroupSize: category.id === 'unclassified' ? Math.max(1, cards.length) : undefined,
+      vocabularyLessonTaughtGroupAliases: [...new Set(taughtGroupAliases)],
       cards
     };
   }
@@ -304,6 +317,17 @@
   function groupConfigForCategory(category) {
     if (!window.VocabularyLessonGroups) return { groups: [] };
     const batch = makeVirtualCategoryBatch(category);
+    if (category.id !== 'unclassified'
+      && typeof window.VocabularyLessonGroups.reconcileVocabularyLessonGroupsWithTaught === 'function') {
+      const taughtState = typeof window.getVocabularyLessonTaughtStateCache === 'function'
+        ? window.getVocabularyLessonTaughtStateCache()
+        : null;
+      return window.VocabularyLessonGroups.reconcileVocabularyLessonGroupsWithTaught(
+        batch,
+        taughtState,
+        window.VocabularyLessonGroups.GROUP_SIZE || 20
+      );
+    }
     return window.VocabularyLessonGroups.reconcileVocabularyLessonGroups(
       batch,
       null,

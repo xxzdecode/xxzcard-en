@@ -108,6 +108,9 @@ assert.match(styles, /background:\s*#dff4e5/);
 assert.match(styles, /background:\s*#fff7fa/);
 assert.match(styles, /min-height:\s*44px/);
 assert.match(script, /vocabularyLessonGroupSize:\s*category\.id === 'unclassified'/);
+assert.match(script, /vocabularyLessonTaughtGroupAliases/);
+assert.match(script, /reconcileVocabularyLessonGroupsWithTaught/);
+assert.match(task016, /reconcileVocabularyLessonGroupsWithTaught/);
 assert.match(script, /vocabulary-lesson-category-count/);
 assert.match(script, /第\$\{index \+ 1\}组 · \$\{group\.wordKeys\.length\}词/);
 
