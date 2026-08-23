@@ -29,6 +29,9 @@ for (let i = 1; i <= 65; i++) assert.ok(coverage.some(item => item.sourceItemKey
 const which = topics.find(topic => topic.topicKey === 'which');
 assert.match(which.summary, /哪一个|选择/);
 assert.doesNotMatch(which.summary, /谁的/);
+for (const lessonTopic of ['adjective-positive-as-as', 'adjective-superlative-usage', 'ed-ing-adjectives', 'adjective-order', 'compound-adjectives-hyphen']) {
+  assert.ok(topicKeys.has(lessonTopic), `${lessonTopic} must be available in the grammar library`);
+}
 for (const advanced of ['past-continuous', 'past-perfect', 'past-perfect-continuous', 'present-perfect-continuous', 'future-continuous', 'future-perfect', 'future-perfect-continuous', 'passive-voice', 'subjunctive-present-contrary', 'infinitives-complex-verbs']) {
   assert.equal(topics.find(topic => topic.topicKey === advanced).level, 'advanced');
 }

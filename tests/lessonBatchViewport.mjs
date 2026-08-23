@@ -10,16 +10,16 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 
 const pages = [
-  ['grammar-challenge/practices/2026-08-18.html', 10],
-  ['courseware/26.08.18｜原因与结果 why-because-so 随堂练习.html', 20],
-  ['grammar-challenge/practices/2026-08-19.html', 10],
-  ['courseware/26.08.19｜although 让步与转折随堂练习.html', 20],
-  ['grammar-challenge/practices/2026-08-20.html', 10],
-  ['courseware/26.08.20｜代词系统与基础反身代词随堂练习.html', 20],
-  ['grammar-challenge/practices/2026-08-21.html', 10],
-  ['courseware/26.08.21｜形容词与感官系动词随堂练习.html', 20],
-  ['grammar-challenge/practices/2026-08-22.html', 10],
-  ['courseware/26.08.22｜比较级 -er、more 与 than 随堂练习.html', 15]
+  ['grammar-challenge/practices/2026-08-23.html', 10],
+  ['courseware/26.08.23｜形容词原级 as-as 同级比较随堂练习.html', 20],
+  ['grammar-challenge/practices/2026-08-24.html', 10],
+  ['courseware/26.08.24｜形容词最高级 -est、most 与 in-of 随堂练习.html', 20],
+  ['grammar-challenge/practices/2026-08-25.html', 10],
+  ['courseware/26.08.25｜-ed 与 -ing 形容词：感受者与引发者随堂练习.html', 20],
+  ['grammar-challenge/practices/2026-08-26.html', 10],
+  ['courseware/26.08.26｜多个形容词的顺序：大小长短、形状、颜色随堂练习.html', 20],
+  ['grammar-challenge/practices/2026-08-27.html', 10],
+  ['courseware/26.08.27｜复合形容词与连字符随堂练习.html', 20]
 ];
 
 const viewports = [

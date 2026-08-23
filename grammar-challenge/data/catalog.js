@@ -5,6 +5,106 @@
   // 缺少这些精确字段的旧题只参与普通练习统计，不作为 mastered 判定证据。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-27-cardinal-ordinal-review',
+      date: '2026-08-27',
+      title: '基数词与序数词基础复习挑战',
+      lessonKey: 'cardinal-ordinal-numbers-basics',
+      kpIds: ['cardinal-ordinal-numbers-basics', 'sentence-parts', 'noun-types'],
+      questionKpIds: {
+        GC01: ['cardinal-ordinal-numbers-basics'],
+        GC02: ['cardinal-ordinal-numbers-basics'],
+        GC03: ['sentence-parts'],
+        GC04: ['noun-types'],
+        GC05: ['cardinal-ordinal-numbers-basics'],
+        GC06: ['cardinal-ordinal-numbers-basics'],
+        GC07: ['cardinal-ordinal-numbers-basics'],
+        GC08: ['cardinal-ordinal-numbers-basics'],
+        GC09: ['cardinal-ordinal-numbers-basics'],
+        GC10: ['cardinal-ordinal-numbers-basics']
+      },
+      pagePath: './practices/2026-08-27.html'
+    },
+    {
+      id: 'grammar-2026-08-26-adverb-review',
+      date: '2026-08-26',
+      title: '方式副词与 -ly 线索复习挑战',
+      lessonKey: 'adverb-basics-ly',
+      kpIds: ['adverb-basics-ly', 'sentence-parts', 'simple-present-use'],
+      questionKpIds: {
+        GC01: ['adverb-basics-ly'],
+        GC02: ['adverb-basics-ly'],
+        GC03: ['adverb-basics-ly'],
+        GC04: ['adverb-basics-ly'],
+        GC05: ['adverb-basics-ly'],
+        GC06: ['adverb-basics-ly'],
+        GC07: ['adverb-basics-ly'],
+        GC08: ['adverb-basics-ly'],
+        GC09: ['sentence-parts'],
+        GC10: ['simple-present-use']
+      },
+      pagePath: './practices/2026-08-26.html'
+    },
+    {
+      id: 'grammar-2026-08-25-place-prepositions-review',
+      date: '2026-08-25',
+      title: '地点介词上与下复习挑战',
+      lessonKey: 'place-prepositions-on-over-above-under-below',
+      kpIds: ['place-prepositions-on-over-above-under-below', 'sentence-parts'],
+      questionKpIds: {
+        GC01: ['place-prepositions-on-over-above-under-below'],
+        GC02: ['place-prepositions-on-over-above-under-below'],
+        GC03: ['place-prepositions-on-over-above-under-below'],
+        GC04: ['place-prepositions-on-over-above-under-below'],
+        GC05: ['place-prepositions-on-over-above-under-below'],
+        GC06: ['place-prepositions-on-over-above-under-below'],
+        GC07: ['place-prepositions-on-over-above-under-below'],
+        GC08: ['place-prepositions-on-over-above-under-below'],
+        GC09: ['sentence-parts'],
+        GC10: ['sentence-parts']
+      },
+      pagePath: './practices/2026-08-25.html'
+    },
+    {
+      id: 'grammar-2026-08-24-why-because-so-review',
+      date: '2026-08-24',
+      title: 'why / because / so 复习挑战',
+      lessonKey: 'why-because-so',
+      kpIds: ['why-because-so', 'wh-question-method', 'simple-present-negative-question'],
+      questionKpIds: {
+        GC01: ['why-because-so'],
+        GC02: ['why-because-so'],
+        GC03: ['wh-question-method'],
+        GC04: ['simple-present-negative-question'],
+        GC05: ['why-because-so'],
+        GC06: ['why-because-so'],
+        GC07: ['why-because-so'],
+        GC08: ['why-because-so'],
+        GC09: ['why-because-so'],
+        GC10: ['why-because-so']
+      },
+      pagePath: './practices/2026-08-24.html'
+    },
+    {
+      id: 'grammar-2026-08-23-although-review',
+      date: '2026-08-23',
+      title: 'although 让步转折复习挑战',
+      lessonKey: 'although',
+      kpIds: ['although', 'sentence-parts'],
+      questionKpIds: {
+        GC01: ['although'],
+        GC02: ['although'],
+        GC03: ['sentence-parts'],
+        GC04: ['sentence-parts'],
+        GC05: ['although'],
+        GC06: ['although'],
+        GC07: ['although'],
+        GC08: ['although'],
+        GC09: ['although'],
+        GC10: ['although']
+      },
+      pagePath: './practices/2026-08-23.html'
+    },
+    {
       id: 'grammar-2026-08-22-adjectives-linking-verbs-review',
       date: '2026-08-22',
       title: '形容词与系动词复习挑战',

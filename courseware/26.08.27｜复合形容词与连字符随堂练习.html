@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>2026-08-27｜复合形容词与连字符随堂练习</title>
+  <style>
+    :root {
+      --page-bg: #fff4f7;
+      --panel: #fffdfc;
+      --title: #d97892;
+      --mint: #a8d8c8;
+      --mint-deep: #397c69;
+      --mint-soft: #dff3ea;
+      --knowledge: #fff0c9;
+      --line: #efdde4;
+      --text: #625b63;
+      --muted: #81747c;
+      --correct: #d7f3dc;
+      --wrong: #ffd9d9;
+      --feedback-height: 52px;
+      --tap: 46px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: var(--page-bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    button { font: inherit; min-height: var(--tap); cursor: pointer; }
+    button:focus-visible { outline: 3px solid #f3b6c7; outline-offset: 2px; }
+    .practice-app {
+      width: 100vw; height: 100dvh; overflow: hidden;
+      display: grid; grid-template-rows: auto minmax(0, 1fr) var(--feedback-height); gap: 10px;
+      padding: max(9px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right))
+        max(9px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+    }
+    .practice-header {
+      display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+      align-items: center; gap: 10px; min-width: 0; padding: 9px 12px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(220, 170, 180, .14);
+    }
+    h1 { margin: 0; color: var(--title); font-size: clamp(21px, 2.4vw, 31px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .knowledge-strip { min-width: 0; display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow: hidden; }
+    .knowledge-chip { padding: 5px 9px; border-radius: 999px; background: var(--knowledge); font-size: clamp(12px, 1.25vw, 15px); font-weight: 700; white-space: nowrap; }
+    .header-actions { display: flex; gap: 7px; align-items: center; }
+    .progress { padding: 8px 12px; border-radius: 999px; background: var(--mint-soft); color: var(--mint-deep); font-weight: 900; white-space: nowrap; }
+    .action { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--mint); color: #fff; font-weight: 800; }
+    .action.secondary { color: var(--mint-deep); background: var(--mint-soft); }
+    .practice-stage {
+      min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center;
+      padding: clamp(12px, 2vw, 24px); background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+    }
+    .question-card { width: min(920px, 100%); max-height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 12px; }
+    .category { margin: 0; color: var(--muted); font-weight: 800; }
+    .prompt { margin: 0; font-size: clamp(21px, 3vw, 35px); line-height: 1.35; overflow-wrap: anywhere; white-space: pre-line; }
+    .prompt-context { display: grid; gap: 7px; min-height: 0; }
+    .source-line, .answer-zone, .rule-line {
+      border-radius: 14px; padding: 8px 12px; overflow-wrap: anywhere;
+    }
+    .source-line { background: #fff8ef; font-size: clamp(16px, 1.8vw, 21px); font-weight: 800; }
+    .answer-zone { min-height: 48px; background: var(--mint-soft); color: var(--mint-deep); font-size: clamp(17px, 2vw, 23px); font-weight: 900; }
+    .rule-line { background: var(--knowledge); color: var(--muted); font-size: clamp(13px, 1.35vw, 16px); font-weight: 700; }
+    .options { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .options.order-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .options.classify-options { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .option {
+      min-width: 0; border: 2px solid var(--line); border-radius: 16px; padding: 10px 14px;
+      background: #fff8fb; color: var(--text); font-weight: 800; font-size: clamp(16px, 2vw, 22px); overflow-wrap: anywhere;
+    }
+    .option[aria-pressed="true"] { border-color: #e88fa3; background: #fff0f5; }
+    .option.correct-option { border-color: #6bb985; background: var(--correct); }
+    .option.wrong-option { border-color: #e28a8a; background: var(--wrong); }
+    .option.order-picked { opacity: .48; }
+    .classify-zone { display: grid; gap: 7px; }
+    .classify-targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 7px; }
+    .classify-target {
+      min-width: 0; min-height: 54px; border: 2px dashed #83baa9; border-radius: 13px;
+      padding: 6px 9px; background: #f7fffb; color: var(--mint-deep); font-weight: 900;
+    }
+    .classify-target span { display: block; margin-top: 3px; color: var(--text); font-size: .82em; font-weight: 750; overflow-wrap: anywhere; }
+    .question-actions { display: flex; justify-content: center; gap: 9px; }
+    .feedback {
+      height: var(--feedback-height); min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .feedback.correct { background: var(--correct); }
+    .feedback.wrong { background: var(--wrong); }
+    .completion {
+      border: 0; border-radius: 22px; padding: 24px; color: var(--text); background: var(--panel);
+      box-shadow: 0 20px 60px rgba(80, 55, 70, .25); text-align: center;
+    }
+    .completion::backdrop { background: rgba(80, 55, 70, .25); }
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --feedback-height: 40px; --tap: 38px; }
+      .practice-app { gap: 6px; padding: 6px; }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+    @media (orientation: portrait) and (max-width: 767px) {
+      .practice-app {
+        position: fixed; left: 0; top: 100dvh; width: 100dvh; height: 100vw;
+        transform: rotate(-90deg); transform-origin: top left;
+        --feedback-height: 40px; --tap: 44px; gap: 6px; padding: 6px;
+      }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="practice-header">
+      <h1 id="pageTitle"></h1>
+      <div class="knowledge-strip" id="knowledgeStrip" aria-label="知识摘要"></div>
+      <div class="header-actions">
+        <span class="progress" id="progressText" aria-live="polite"></span>
+        <button class="action" id="newRoundButton" type="button">重新开始</button>
+      </div>
+    </header>
+    <main class="practice-stage">
+      <section class="question-card" aria-live="polite">
+        <p class="category" id="categoryText"></p>
+        <div class="prompt-context">
+          <div class="source-line" id="sourceLine" hidden></div>
+          <h2 class="prompt" id="promptText"></h2>
+          <div class="rule-line" id="ruleLine" hidden></div>
+        </div>
+        <div class="options" id="options"></div>
+        <div class="answer-zone" id="answerZone" hidden></div>
+        <div class="question-actions">
+          <button class="action" id="checkButton" type="button">检查答案</button>
+          <button class="action secondary" id="showAnswerButton" type="button">显示答案</button>
+          <button class="action secondary" id="nextButton" type="button" disabled>下一题</button>
+        </div>
+      </section>
+    </main>
+    <footer class="feedback" id="feedback" aria-live="polite">△ 请选择答案。</footer>
+  </div>
+  <dialog class="completion" id="completionDialog" data-complete="false">
+    <h2 id="completionTitle">本轮完成</h2>
+    <p id="completionText"></p>
+    <button class="action" id="restartButton" type="button">重新开始</button>
+    <button class="action secondary" id="continueButton" type="button" hidden>完成</button>
+  </dialog>
+  <script id="practice-data" type="application/json">{"version":1,"title":"2026-08-27｜复合形容词与连字符随堂练习","completionTitle":"连字符小队完成","completion":"名词前把数字、单数单位和描述词连成一个整体；放回句末时去掉连字符，单位按数量变复数。","restartLabel":"重新练习","continueLabel":"返回课程","knowledge":["compound-adjectives-hyphen","名词前使用连字符","单位名词用单数","three-year-old child","five-day trip","The child is three years old"],"round":{"size":20,"shuffle":false,"quotas":{"position":3,"hyphen":5,"unit_singular":4,"contrast":5,"error_check":2,"summary":1}},"scope":{"mode":"declared","allowedWords":[],"ignoredWords":["child","children","year","years","old","trip","day","days","table","metre","metres","long","wall","high","week","weeks","course","walk","hour","hours","lesson","baby","game","minute","minutes"]},"questions":[{"id":"CP01","category":"position","categoryLabel":"先看位置","type":"single","prompt":"哪一个表达放在名词 child 前面？","options":["a three-year-old child","The child is three years old.","three years old","The child three-year-old."],"answer":"a three-year-old child","answerDisplay":"a three-year-old child","correctFeedback":"正确。three-year-old 整体放在 child 前。","wrongFeedback":"先找后面的名词 child。","explanation":"名词前的整体描述用连字符连接。"},{"id":"CP02","category":"position","categoryLabel":"句末表达","type":"single","prompt":"哪一句正确说明这个孩子三岁？","options":["The child is three years old.","The child is three-year-old.","The child is three year old.","The child three-years-old."],"answer":"The child is three years old.","answerDisplay":"The child is three years old.","correctFeedback":"正确。句末不用连字符，three 后用 years。","wrongFeedback":"放在 is 后面时，不再把三部分连起来。","explanation":"The child is three years old。"},{"id":"CP03","category":"position","categoryLabel":"名词前还是句末","type":"single","prompt":"先判断位置，再选全部正确的一组。","options":["a five-day trip / The trip lasts five days.","a five-days trip / The trip lasts five-day.","a five day trip / The trip lasts five-days.","a five-days-trip / The trip last five day."],"answer":"a five-day trip / The trip lasts five days.","answerDisplay":"a five-day trip / The trip lasts five days.","correctFeedback":"正确。名词前连写 day；句中数量表达用 days。","wrongFeedback":"trip 前是整体描述，lasts 后是普通数量。","explanation":"位置决定连字符和单位单复数。"},{"id":"CP04","category":"hyphen","categoryLabel":"连字符｜three-year-old","type":"single","prompt":"选择正确的名词短语。","options":["a three-year-old child","a three year old child","a three-years-old child","a three-year-olds child"],"answer":"a three-year-old child","answerDisplay":"a three-year-old child","correctFeedback":"正确。three-year-old 用连字符连成整体。","wrongFeedback":"三个词一起修饰 child。","explanation":"数字-单位单数-描述词放在名词前。"},{"id":"CP05","category":"hyphen","categoryLabel":"连字符｜five-day","type":"single","prompt":"选择正确的名词短语。","options":["a five-day trip","a five day trip","a five-days trip","a five-day-trip"],"answer":"a five-day trip","answerDisplay":"a five-day trip","correctFeedback":"正确。five-day 共同修饰 trip。","wrongFeedback":"只把数字和单位连起来，trip 不放进复合形容词。","explanation":"a five-day trip。"},{"id":"CP06","category":"hyphen","categoryLabel":"连字符｜two-metre-long","type":"single","prompt":"选择正确的名词短语。","options":["a two-metre-long table","a two metres long table","a two-metre-long-table","a two-metres-long table"],"answer":"a two-metre-long table","answerDisplay":"a two-metre-long table","correctFeedback":"正确。two-metre-long 整体修饰 table。","wrongFeedback":"名词 table 前，单位 metre 用单数。","explanation":"数字-单位单数-描述词 + 名词。"},{"id":"CP07","category":"hyphen","categoryLabel":"连字符｜nine-metre-high","type":"single","prompt":"墙高九米，名词前应写？","options":["a nine-metre-high wall","a nine-metres-high wall","a nine metre high wall","a nine-metre-high-wall"],"answer":"a nine-metre-high wall","answerDisplay":"a nine-metre-high wall","correctFeedback":"正确。nine-metre-high 共同修饰 wall。","wrongFeedback":"单位用单数，复合形容词内部用连字符。","explanation":"a nine-metre-high wall。"},{"id":"CP08","category":"hyphen","categoryLabel":"连字符边界","type":"single","prompt":"哪一个连字符范围正确？","options":["a two-week course","a-two-week-course","a two-week-course","a two week-course"],"answer":"a two-week course","answerDisplay":"a two-week course","correctFeedback":"正确。two-week 连起来，course 是中心名词。","wrongFeedback":"冠词 a 和中心名词 course 不放进连字符组合。","explanation":"只有名词前的复合形容词内部连写。"},{"id":"CP09","category":"unit_singular","categoryLabel":"单位单数｜year","type":"single","source":"a four-___-old child","prompt":"填入正确单位形式。","options":["year","years","year's","years'"],"answer":"year","answerDisplay":"a four-year-old child","correctFeedback":"正确。复合形容词中的单位用单数。","wrongFeedback":"即使数字大于 1，连字符组合里的单位仍用单数。","explanation":"four-year-old。"},{"id":"CP10","category":"unit_singular","categoryLabel":"单位单数｜day","type":"single","source":"a ten-___ trip","prompt":"填入正确单位形式。","options":["day","days","day's","days'"],"answer":"day","answerDisplay":"a ten-day trip","correctFeedback":"正确。ten-day 中 day 用单数。","wrongFeedback":"名词 trip 前的复合形容词里，单位用单数。","explanation":"ten-day。"},{"id":"CP11","category":"unit_singular","categoryLabel":"单位单数｜hour","type":"single","source":"a two-___ lesson","prompt":"填入正确单位形式。","options":["hour","hours","hour's","hours'"],"answer":"hour","answerDisplay":"a two-hour lesson","correctFeedback":"正确。two-hour 共同修饰 lesson。","wrongFeedback":"复合形容词内部单位不加 s。","explanation":"two-hour。"},{"id":"CP12","category":"unit_singular","categoryLabel":"单位单数综合","type":"single","prompt":"哪一组名词前形式全部正确？","options":["three-year-old / five-day / two-hour","three-years-old / five-days / two-hours","three-year-olds / five-day's / two-hour's","three year old / five day / two hour"],"answer":"three-year-old / five-day / two-hour","answerDisplay":"three-year-old / five-day / two-hour","correctFeedback":"正确。名词前均使用单数单位和连字符。","wrongFeedback":"检查每组是否同时做到连字符与单位单数。","explanation":"复合形容词中的单位用单数。"},{"id":"CP13","category":"contrast","categoryLabel":"前置改句末｜年龄","type":"single","source":"a six-year-old child","prompt":"改成完整句子。","options":["The child is six years old.","The child is six-year-old.","The child is six year old.","The child six years old."],"answer":"The child is six years old.","answerDisplay":"The child is six years old.","correctFeedback":"正确。句末去连字符，year 变 years。","wrongFeedback":"放到 is 后后，使用普通年龄表达。","explanation":"名词前形式与句末形式不同。"},{"id":"CP14","category":"contrast","categoryLabel":"句末改前置｜年龄","type":"single","source":"The baby is one year old.","prompt":"改成名词前的表达。","options":["a one-year-old baby","a one-years-old baby","a one year old baby","a one-year-old-baby"],"answer":"a one-year-old baby","answerDisplay":"a one-year-old baby","correctFeedback":"正确。one-year-old 作为一个整体放在 baby 前。","wrongFeedback":"把 one、year、old 连起来，但不要连接 baby。","explanation":"a one-year-old baby。"},{"id":"CP15","category":"contrast","categoryLabel":"前置改句末｜长度","type":"single","source":"a two-metre-long table","prompt":"选择对应的句末表达。","options":["The table is two metres long.","The table is two-metre-long.","The table is two metre long.","The table two metres long."],"answer":"The table is two metres long.","answerDisplay":"The table is two metres long.","correctFeedback":"正确。句末不用连字符，metre 变 metres。","wrongFeedback":"放在 is 后是普通度量表达。","explanation":"The table is two metres long。"},{"id":"CP16","category":"contrast","categoryLabel":"句末改前置｜时长","type":"single","source":"The lesson lasts two hours.","prompt":"选择对应的名词前表达。","options":["a two-hour lesson","a two-hours lesson","a two hour lesson","a two-hour-lesson"],"answer":"a two-hour lesson","answerDisplay":"a two-hour lesson","correctFeedback":"正确。two-hour 共同修饰 lesson。","wrongFeedback":"名词 lesson 前使用连字符，单位 hour 用单数。","explanation":"a two-hour lesson。"},{"id":"CP17","category":"contrast","categoryLabel":"两种形式配对","type":"classify","prompt":"先点击表达，再放入正确位置。","options":["a three-year-old child","The child is three years old.","a five-day trip","The trip lasts five days."],"targets":["名词前","句中或句末"],"answerMap":{"a three-year-old child":"名词前","The child is three years old.":"句中或句末","a five-day trip":"名词前","The trip lasts five days.":"句中或句末"},"correctFeedback":"正确。位置决定连字符和单位形式。","wrongFeedback":"看表达后面是否紧跟中心名词。","explanation":"名词前为复合形容词；句末为普通数量或度量表达。"},{"id":"CP18","category":"error_check","categoryLabel":"改错｜years","type":"single","prompt":"把 a three-years-old child 改正确。","options":["a three-year-old child","a three-years old child","a three-year-olds child","a three year-old child"],"answer":"a three-year-old child","answerDisplay":"a three-year-old child","correctFeedback":"正确。单位 year 用单数。","wrongFeedback":"连字符组合中的单位名词不加 s。","explanation":"three-year-old。"},{"id":"CP19","category":"error_check","categoryLabel":"改错｜句末连字符","type":"single","prompt":"把 The child is eight-year-old. 改正确。","options":["The child is eight years old.","The child is eight-year-old.","The child is eight year old.","The child eight years-old."],"answer":"The child is eight years old.","answerDisplay":"The child is eight years old.","correctFeedback":"正确。句末去掉连字符，years 用复数。","wrongFeedback":"is 后不是名词前的复合形容词结构。","explanation":"The child is eight years old。"},{"id":"CP20","category":"summary","categoryLabel":"三步检查法","type":"single","prompt":"选择最完整的判断步骤。","options":["先看位置 → 名词前连字符 → 单位用单数","只要有数字就全部加连字符","数字大于 1 时单位一定加 s","把中心名词也连进复合形容词"],"answer":"先看位置 → 名词前连字符 → 单位用单数","answerDisplay":"先看位置 → 名词前连字符 → 单位用单数","correctFeedback":"正确。这是本课的核心检查法。","wrongFeedback":"先判断表达是否在名词前。","explanation":"位置、连字符、单位单数三步检查。"}]}</script>
+  <script>
+    (() => {
+      "use strict";
+      const config = JSON.parse(document.getElementById("practice-data").textContent);
+      const byId = (id) => document.getElementById(id);
+      const challengeMode = ["challenge-locked", "challenge-adjustable"].includes(config.interactionMode);
+      const lockOnSelect = config.interactionMode === "challenge-locked";
+      const ui = {
+        title: byId("pageTitle"), knowledge: byId("knowledgeStrip"), progress: byId("progressText"),
+        category: byId("categoryText"), prompt: byId("promptText"), source: byId("sourceLine"),
+        answerZone: byId("answerZone"), rule: byId("ruleLine"), options: byId("options"),
+        check: byId("checkButton"), show: byId("showAnswerButton"), next: byId("nextButton"),
+        feedback: byId("feedback"), dialog: byId("completionDialog"), completion: byId("completionText"),
+        completionTitle: byId("completionTitle"), continueButton: byId("continueButton")
+      };
+      const state = {
+        round: [], index: 0, selected: [], assignments: {}, activeOption: null, locked: false, judging: false,
+        solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: []
+      };
+
+      function shuffle(values) {
+        const copy = [...values];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+      function buildRound() {
+        if (config.round.shuffle === false) return config.questions.slice(0, config.round.size);
+        if (Array.isArray(config.round.groups)) {
+          return config.round.groups.flatMap((group) => {
+            const ids = new Set(group.ids || []);
+            let items = config.questions.filter((q) => ids.has(q.id));
+            if (group.shuffle !== false) items = shuffle(items);
+            return items;
+          }).slice(0, config.round.size);
+        }
+        const picked = [];
+        for (const [category, count] of Object.entries(config.round.quotas)) {
+          picked.push(...shuffle(config.questions.filter((q) => q.category === category)).slice(0, count));
+        }
+        return shuffle(picked);
+      }
+      function answerIndices(question) {
+        const answers = Array.isArray(question.answer) ? question.answer : [question.answer];
+        const used = new Set();
+        return answers.map((value) => {
+          if (typeof value === "number") return value;
+          const index = question.options.findIndex((option, optionIndex) => option === value && !used.has(optionIndex));
+          used.add(index); return index;
+        });
+      }
+      function answerValues(question) {
+        return answerIndices(question).map((index) => question.options[index]);
+      }
+      function expectedAssignments(question) {
+        return question.answerMap || {};
+      }
+      function selectedValues(question) {
+        return state.selected.map((index) => question.options[index]);
+      }
+      function isCorrect(question) {
+        if (question.type === "classify") {
+          const expected = expectedAssignments(question);
+          return question.options.every((option) => state.assignments[option] === expected[option]);
+        }
+        const selected = selectedValues(question);
+        const answers = answerValues(question);
+        if (question.type === "order") {
+          const indices = answerIndices(question);
+          return state.selected.length === indices.length && state.selected.every((value, index) => value === indices[index]);
+        }
+        if (question.type === "multi") return selected.length === answers.length && selected.every((value) => answers.includes(value));
+        return selected.length === 1 && selected[0] === answers[0];
+      }
+      function completeAnswer(question) {
+        if (question.type === "classify") {
+          return Object.entries(expectedAssignments(question)).map(([option, target]) => `${option} → ${target}`).join("；");
+        }
+        return question.answerDisplay || answerValues(question).join(question.type === "order" ? " " : "、");
+      }
+      function hasResponse(question) {
+        if (question.type === "classify") return question.options.every((option) => state.assignments[option]);
+        return state.selected.length > 0;
+      }
+      function feedback(type, message) {
+        ui.feedback.className = `feedback ${type || ""}`.trim();
+        ui.feedback.textContent = `${type === "correct" ? "✓" : type === "wrong" ? "×" : "△"} ${message}`;
+      }
+      function updateAnswerZone(question) {
+        if (question.type === "order") {
+          ui.answerZone.textContent = state.selected.length ? selectedValues(question).join(" ") : "按顺序点击词块，句子会在这里组成。";
+          return;
+        }
+        if (question.type !== "classify") return;
+        const zone = document.createElement("div");
+        zone.className = "classify-zone";
+        const hint = document.createElement("div");
+        hint.textContent = state.activeOption === null ? "先点词卡，再点目标区。" : `已选：${question.options[state.activeOption]}，请选择目标区。`;
+        const targets = document.createElement("div");
+        targets.className = "classify-targets";
+        for (const target of question.targets) {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "classify-target"; button.dataset.target = target;
+          const assigned = question.options.filter((option) => state.assignments[option] === target);
+          button.textContent = target;
+          const values = document.createElement("span");
+          values.textContent = assigned.length ? assigned.join(" · ") : "点击放入";
+          button.append(values);
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.activeOption === null) return;
+            const option = question.options[state.activeOption];
+            state.assignments[option] = target;
+            state.activeOption = null;
+            updateAnswerZone(question);
+            renderOptionStates(question);
+            feedback("", hasResponse(question) ? "分类完成，可以检查答案。" : "继续选择词卡并放入目标区。");
+          });
+          targets.append(button);
+        }
+        zone.append(hint, targets);
+        ui.answerZone.replaceChildren(zone);
+      }
+      function renderOptionStates(question) {
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          const index = Number(item.dataset.optionIndex);
+          const picked = state.selected.includes(index) || state.activeOption === index;
+          item.setAttribute("aria-pressed", String(picked));
+          item.classList.toggle("order-picked", question.type === "order" && picked);
+          item.disabled = challengeMode && state.locked;
+        });
+      }
+      function renderQuestion() {
+        const q = state.round[state.index];
+        state.selected = []; state.assignments = {}; state.activeOption = null; state.locked = false; state.judging = false;
+        ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
+        ui.category.textContent = q.categoryLabel || q.category;
+        ui.prompt.textContent = q.prompt;
+        ui.source.hidden = !q.source; ui.source.textContent = q.source || "";
+        ui.rule.hidden = !q.rule; ui.rule.textContent = q.rule || "";
+        ui.answerZone.hidden = !["order", "classify"].includes(q.type); updateAnswerZone(q);
+        ui.options.classList.toggle("order-options", q.type === "order");
+        ui.options.classList.toggle("classify-options", q.type === "classify");
+        ui.options.replaceChildren(...q.options.map((option, index) => {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "option"; button.dataset.optionIndex = String(index);
+          button.setAttribute("aria-pressed", "false"); button.textContent = option;
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.locked) return;
+            if (q.type === "classify") {
+              state.activeOption = index;
+            } else if (q.type === "multi") {
+              state.selected = state.selected.includes(index) ? state.selected.filter((item) => item !== index) : [...state.selected, index];
+            } else if (q.type === "order") {
+              if (state.selected.includes(index)) state.selected = state.selected.filter((item) => item !== index);
+              else state.selected.push(index);
+            } else state.selected = [index];
+            if (lockOnSelect) state.locked = true;
+            renderOptionStates(q);
+            updateAnswerZone(q);
+            if (challengeMode) {
+              ui.next.disabled = false;
+              feedback("", lockOnSelect ? "答案已锁定，点击“下一题”判分。" : "答案已选择；点击“下一题”前仍可调整。");
+            } else if (q.type === "classify") {
+              feedback("", `已选择 ${option}，请点击目标区。`);
+            } else feedback("", "已选择，点击“检查答案”。");
+          });
+          return button;
+        }));
+        ui.next.disabled = true; ui.next.hidden = false;
+        ui.check.hidden = challengeMode; ui.show.hidden = challengeMode;
+        ui.check.disabled = false; ui.show.disabled = false;
+        feedback("", q.type === "multi" ? "请选择全部正确答案。" : q.type === "order" ? "请按正确语序点击全部词块。" : q.type === "classify" ? "先点词卡，再点目标区。" : "请选择答案。");
+      }
+      function startRound() {
+        state.round = buildRound(); state.index = 0; state.selected = [];
+        state.solved = Array(state.round.length).fill(false); state.revealed = Array(state.round.length).fill(false);
+        state.attempts = Array(state.round.length).fill(0); state.firstTry = Array(state.round.length).fill(false);
+        state.wrongEver = Array(state.round.length).fill(false);
+        ui.dialog.dataset.complete = "false";
+        if (ui.dialog.open) ui.dialog.close();
+        renderQuestion();
+      }
+      function checkAnswer() {
+        if (!hasResponse(state.round[state.index])) return feedback("wrong", "请先完成作答。");
+        if (state.solved[state.index]) return;
+        const q = state.round[state.index];
+        state.attempts[state.index] += 1;
+        if (isCorrect(q)) {
+          state.solved[state.index] = true;
+          state.firstTry[state.index] = state.attempts[state.index] === 1 && !state.revealed[state.index];
+          ui.options.querySelectorAll(".option").forEach((item) => {
+            if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          });
+          feedback("correct", `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim());
+          ui.check.disabled = true; ui.show.disabled = true; ui.next.disabled = false;
+        } else {
+          state.wrongEver[state.index] = true;
+          state.selected.forEach((index) => ui.options.querySelector(`[data-option-index="${index}"]`)?.classList.add("wrong-option"));
+          feedback("wrong", q.wrongFeedback || "再看助动词、主语和动词原形。你可以继续修改。");
+          state.selected = [];
+          ui.options.querySelectorAll(".option").forEach((item) => { item.setAttribute("aria-pressed", "false"); item.classList.remove("order-picked"); });
+          updateAnswerZone(q);
+        }
+      }
+      function showAnswer() {
+        const q = state.round[state.index];
+        state.revealed[state.index] = true; state.solved[state.index] = true;
+        feedback("correct", `答案：${completeAnswer(q)}。${q.explanation || ""}`);
+        if (q.type === "classify") {
+          state.assignments = { ...expectedAssignments(q) };
+          ui.answerZone.hidden = false; updateAnswerZone(q); renderOptionStates(q);
+        } else {
+          ui.answerZone.hidden = false; ui.answerZone.textContent = completeAnswer(q);
+        }
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+        });
+        ui.check.disabled = true; ui.show.disabled = true;
+        ui.next.disabled = false;
+      }
+      function nextQuestion() {
+        if (state.index + 1 < state.round.length) { state.index += 1; renderQuestion(); return; }
+        showCompletion();
+      }
+      function showCompletion() {
+        const first = state.firstTry.filter(Boolean).length;
+        const final = state.solved.filter(Boolean).length;
+        const wrongIds = state.round.filter((_, index) => state.wrongEver[index]).map((question) => question.id);
+        ui.completionTitle.textContent = config.completionTitle || (challengeMode ? "挑战完成" : "本轮完成");
+        ui.completion.textContent = challengeMode
+          ? `${config.completion || "本轮完成。"} 正确 ${first} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`
+          : `${config.completion || "本轮完成。"} 首次正确 ${first} / ${state.round.length}，最终正确 ${final} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`;
+        ui.dialog.dataset.complete = "true";
+        if (typeof ui.dialog.showModal === "function") ui.dialog.showModal(); else ui.dialog.setAttribute("open", "");
+      }
+      function submitChallenge() {
+        const q = state.round[state.index];
+        if (state.judging || !hasResponse(q)) return;
+        state.judging = true; state.solved[state.index] = true; state.attempts[state.index] = 1;
+        const correct = isCorrect(q);
+        state.firstTry[state.index] = correct;
+        state.wrongEver[state.index] = !correct;
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          else if (state.selected.includes(Number(item.dataset.optionIndex))) item.classList.add("wrong-option");
+        });
+        const message = correct
+          ? `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim()
+          : `${q.wrongFeedback || "这次没有选对。"} 正确答案：${completeAnswer(q)}。${q.explanation || ""}`.trim();
+        feedback(correct ? "correct" : "wrong", message);
+        ui.next.disabled = true;
+        setTimeout(() => {
+          if (state.index + 1 < state.round.length) {
+            state.index += 1; renderQuestion();
+          } else showCompletion();
+        }, Number(config.feedbackDelayMs || 1000));
+      }
+
+      ui.title.textContent = config.title;
+      ui.knowledge.replaceChildren(...config.knowledge.map((text) => {
+        const chip = document.createElement("span"); chip.className = "knowledge-chip"; chip.textContent = text; return chip;
+      }));
+      byId("newRoundButton").hidden = challengeMode;
+      byId("newRoundButton").addEventListener("click", startRound);
+      byId("restartButton").addEventListener("click", startRound);
+      byId("restartButton").textContent = config.restartLabel || (challengeMode ? "重新挑战" : "重新练习");
+      if (config.continueLabel) {
+        ui.continueButton.hidden = false; ui.continueButton.textContent = config.continueLabel;
+        ui.continueButton.addEventListener("click", () => {
+          if (config.continueHref) location.href = config.continueHref;
+          else if (ui.dialog.open) ui.dialog.close();
+        });
+      }
+      ui.check.addEventListener("click", checkAnswer);
+      ui.show.addEventListener("click", showAnswer);
+      ui.next.addEventListener("click", challengeMode ? submitChallenge : nextQuestion);
+      window.__LESSON_PREP_QA__ = {
+        state: () => ({
+          mode: challengeMode ? config.interactionMode : "practice", index: state.index, total: state.round.length,
+          complete: ui.dialog.dataset.complete === "true", id: state.round[state.index]?.id,
+          order: state.round.map((question) => question.id), selected: [...state.selected], locked: state.locked
+        }),
+        selectWrong: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = Object.fromEntries(q.options.map((option) => {
+              const expected = expectedAssignments(q)[option];
+              return [option, q.targets.find((target) => target !== expected) || q.targets[0]];
+            }));
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          const correct = new Set(answerIndices(q));
+          const wrongIndex = q.options.findIndex((_, index) => !correct.has(index));
+          state.selected = wrongIndex >= 0 ? [wrongIndex] : [];
+          if (challengeMode) { state.locked = lockOnSelect; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        solveCurrent: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = { ...expectedAssignments(q) };
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          state.selected = answerIndices(q).filter((index) => index >= 0);
+          if (challengeMode) { state.locked = lockOnSelect; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        restart: startRound
+      };
+      startRound();
+    })();
+  </script>
+</body>
+</html>
