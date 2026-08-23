@@ -5,7 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createGrammarQuestionBank() {
   return Object.freeze({
   "schemaVersion": 1,
-  "version": "sha256:004a04a0f8c9536e1bf3a60e0a2b4be3f0f1e4fa7815a35566f3c60f2a51d1de",
+  "version": "sha256:def87e4af6383387caa19e39d6fa01cbd467abcbb9d675639827c96e5fe6ba9d",
   "sourceCatalog": "grammar-challenge/data/catalog.js",
   "skippedChallengeIds": [
     "grammar-2026-08-01-adjective-review",
@@ -16,6 +16,1973 @@
     "grammar-2026-07-15-sentence-skeleton"
   ],
   "items": [
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC01",
+      "category": "cardinal",
+      "categoryLabel": "基数词｜数量",
+      "type": "single",
+      "source": "There are ___ apples.",
+      "prompt": "有 12 个苹果，选择正确答案。",
+      "options": [
+        "twelve",
+        "twelfth",
+        "twelveth",
+        "two"
+      ],
+      "answer": "twelve",
+      "answerDisplay": "There are twelve apples.",
+      "correctFeedback": "正确。twelve 表示数量 12。",
+      "wrongFeedback": "这里回答有多少个，用基数词。",
+      "explanation": "基数词表示数量。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC01",
+      "sourceQuestionId": "GC01",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:e2389f264c81e32316fdc2511d16822de5fe428ca280eaaa8b6a14c6a89e3373",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::cardinal"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC02",
+      "category": "cardinal",
+      "categoryLabel": "基数词｜20",
+      "type": "single",
+      "prompt": "数字 20 的英文是？",
+      "options": [
+        "twenty",
+        "twentieth",
+        "twelve",
+        "thirty"
+      ],
+      "answer": "twenty",
+      "answerDisplay": "20 = twenty",
+      "correctFeedback": "正确。twenty 是基数词。",
+      "wrongFeedback": "不要把 20 和第 20 混在一起。",
+      "explanation": "twenty 表示数量 20。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC02",
+      "sourceQuestionId": "GC02",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:d5ce1be63b5e18470b193a4868cc1d6f3e9431bd62f43c6016ea476a354dc18f",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::cardinal"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC03",
+      "category": "weakness_review",
+      "categoryLabel": "薄弱项复测｜时间补充信息",
+      "type": "single",
+      "source": "The trip starts on May fifth.",
+      "prompt": "哪一部分是补充什么时候的时间信息？",
+      "options": [
+        "on May fifth",
+        "The trip",
+        "starts",
+        "May"
+      ],
+      "answer": "on May fifth",
+      "answerDisplay": "on May fifth",
+      "correctFeedback": "正确。on May fifth 补充说明旅行什么时候开始。",
+      "wrongFeedback": "找回答什么时候的完整部分。",
+      "explanation": "时间短语是句子的补充信息。",
+      "kpId": "sentence-parts",
+      "primaryWeaknessId": "brother.sentence-parts.time-adjunct",
+      "weaknessIds": [
+        "brother.sentence-parts.time-adjunct"
+      ],
+      "diagnosticTargets": [
+        "time-adjunct",
+        "date-phrase-as-time-information"
+      ],
+      "contentHash": "sha256:ac975c77a0667967894dda97c73ca04583218c6501dfaf41cfa6099513f2b89e",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC03",
+      "sourceQuestionId": "GC03",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "variantGroupId": "brother.sentence-parts.time-adjunct"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC04",
+      "category": "weakness_review",
+      "categoryLabel": "薄弱项复测｜专有名词大写",
+      "type": "single",
+      "source": "Tom is twelve years old.",
+      "prompt": "哪个词是专有名词，首字母必须大写？",
+      "options": [
+        "Tom",
+        "twelve",
+        "years",
+        "old"
+      ],
+      "answer": "Tom",
+      "answerDisplay": "Tom",
+      "correctFeedback": "正确。Tom 是人名，首字母大写。",
+      "wrongFeedback": "找句子中的人名。",
+      "explanation": "人名是专有名词，首字母要大写。",
+      "kpId": "noun-types",
+      "primaryWeaknessId": "brother.noun-types.proper-noun-capitalization",
+      "weaknessIds": [
+        "brother.noun-types.proper-noun-capitalization"
+      ],
+      "diagnosticTargets": [
+        "proper-noun-capitalization",
+        "person-name-capital-letter"
+      ],
+      "contentHash": "sha256:51352c143c0e12656079ecade3a7a9f2c5dc9d9b58356836efd4cf2bbb251dcf",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC04",
+      "sourceQuestionId": "GC04",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "noun-types"
+      ],
+      "primaryKpId": "noun-types",
+      "variantGroupId": "brother.noun-types.proper-noun-capitalization"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC05",
+      "category": "ordinal",
+      "categoryLabel": "序数词｜第一个",
+      "type": "single",
+      "source": "Lily is the ___ runner in line.",
+      "prompt": "Lily 排第一，选择正确答案。",
+      "options": [
+        "first",
+        "one",
+        "second",
+        "three"
+      ],
+      "answer": "first",
+      "answerDisplay": "Lily is the first runner in line.",
+      "correctFeedback": "正确。first 表示第一。",
+      "wrongFeedback": "这里回答第几个，用序数词。",
+      "explanation": "one 对应 first。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC05",
+      "sourceQuestionId": "GC05",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:9607b60a1c6920c2c10531fee7a960666440fe2d682d22c59b776a6bacd936df",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::ordinal"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC06",
+      "category": "ordinal",
+      "categoryLabel": "序数词｜第三个",
+      "type": "single",
+      "prompt": "three 对应的序数词是？",
+      "options": [
+        "third",
+        "three",
+        "threeth",
+        "thirtieth"
+      ],
+      "answer": "third",
+      "answerDisplay": "three → third",
+      "correctFeedback": "正确。three 的序数词是不规则形式 third。",
+      "wrongFeedback": "third 是需要单独记住的形式。",
+      "explanation": "three → third。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC06",
+      "sourceQuestionId": "GC06",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:924b0fb0b40db9917d69b0c87764f14d2e013356fee32add725fe9bb1c1b1c47",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::ordinal"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC07",
+      "category": "ordinal",
+      "categoryLabel": "序数词｜第五个",
+      "type": "single",
+      "prompt": "five 对应的序数词是？",
+      "options": [
+        "fifth",
+        "five",
+        "fiveth",
+        "fiftieth"
+      ],
+      "answer": "fifth",
+      "answerDisplay": "five → fifth",
+      "correctFeedback": "正确。five 变成 fifth。",
+      "wrongFeedback": "注意 fifth 的拼写。",
+      "explanation": "five → fifth。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC07",
+      "sourceQuestionId": "GC07",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:93072f50ba02f029e3f45f0203e04aadfaaebfc7b686d735dcb0114a376faa11",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::ordinal"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC08",
+      "category": "cardinal",
+      "categoryLabel": "基数词与序数词辨析",
+      "type": "single",
+      "prompt": "哪一组是数量词和对应的顺序词？",
+      "options": [
+        "two / second",
+        "two / twelve",
+        "second / third",
+        "five / twenty"
+      ],
+      "answer": "two / second",
+      "answerDisplay": "two / second",
+      "correctFeedback": "正确。two 表示 2，second 表示第 2。",
+      "wrongFeedback": "找同一个数字的基数词和序数词。",
+      "explanation": "two → second。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC08",
+      "sourceQuestionId": "GC08",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:c1d9b32dca9f4baf1ed2c703e62627c63cfa42ef0db11fcea1846480c5f64ad7",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::cardinal"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC09",
+      "category": "date_order",
+      "categoryLabel": "日期｜May fifth",
+      "type": "single",
+      "prompt": "May 5 读作？",
+      "options": [
+        "May fifth",
+        "May five",
+        "the five May",
+        "fifth May five"
+      ],
+      "answer": "May fifth",
+      "answerDisplay": "May fifth",
+      "correctFeedback": "正确。日期中的日使用序数词 fifth。",
+      "wrongFeedback": "月份后面的日期要读序数词。",
+      "explanation": "May 5 → May fifth。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC09",
+      "sourceQuestionId": "GC09",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:00e7d6b2d8d345032c8681b15fdad13d82a012e2871cbc51f329fb4f7fdeb0cf",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::date_order"
+    },
+    {
+      "id": "grammar-2026-08-27-cardinal-ordinal-review::GC10",
+      "category": "date_order",
+      "categoryLabel": "顺序｜第十二层",
+      "type": "single",
+      "source": "Our classroom is on the ___ floor.",
+      "prompt": "教室在第十二层，选择正确答案。",
+      "options": [
+        "twelfth",
+        "twelve",
+        "twentieth",
+        "second"
+      ],
+      "answer": "twelfth",
+      "answerDisplay": "Our classroom is on the twelfth floor.",
+      "correctFeedback": "正确。twelfth 表示第十二。",
+      "wrongFeedback": "楼层回答第几层，用序数词。",
+      "explanation": "twelve → twelfth。",
+      "bankItemId": "grammar-2026-08-27-cardinal-ordinal-review::GC10",
+      "sourceQuestionId": "GC10",
+      "sourceChallengeId": "grammar-2026-08-27-cardinal-ordinal-review",
+      "sourceChallengeDate": "2026-08-27",
+      "sourceChallengeTitle": "基数词与序数词基础复习挑战",
+      "sourceLessonKey": "cardinal-ordinal-numbers-basics",
+      "sourceLessonKpIds": [
+        "cardinal-ordinal-numbers-basics",
+        "sentence-parts",
+        "noun-types"
+      ],
+      "kpIds": [
+        "cardinal-ordinal-numbers-basics"
+      ],
+      "primaryKpId": "cardinal-ordinal-numbers-basics",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:819d733622128b0c59fe4cbf1b95832f394dc80e1d9ffb255cb8581433334ebe",
+      "variantGroupId": "cardinal-ordinal-numbers-basics::date_order"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC01",
+      "category": "action_manner",
+      "categoryLabel": "动作怎样发生",
+      "type": "single",
+      "prompt": "The rabbit runs ___.",
+      "options": [
+        "quickly",
+        "quick",
+        "quicker",
+        "quickness"
+      ],
+      "answer": "quickly",
+      "answerDisplay": "quickly",
+      "correctFeedback": "正确。quickly 说明 runs 怎样发生。",
+      "wrongFeedback": "quickly 说明 runs 怎样发生。",
+      "explanation": "quickly 说明 runs 怎样发生。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC01",
+      "sourceQuestionId": "GC01",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:bcc45901a2ce507e295e81e0e98b53b955d910119540fe8168db24ee1946d0aa",
+      "variantGroupId": "adverb-basics-ly::action_manner"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC02",
+      "category": "action_manner",
+      "categoryLabel": "有宾语时的位置",
+      "type": "single",
+      "prompt": "Mia reads the story ___.",
+      "options": [
+        "carefully",
+        "careful",
+        "care",
+        "carefulness"
+      ],
+      "answer": "carefully",
+      "answerDisplay": "carefully",
+      "correctFeedback": "正确。有宾语时，本阶段把方式副词放在宾语后。",
+      "wrongFeedback": "有宾语时，本阶段把方式副词放在宾语后。",
+      "explanation": "有宾语时，本阶段把方式副词放在宾语后。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC02",
+      "sourceQuestionId": "GC02",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:25fb5e16157c9104a1efb927b10868ac9e452b92eb86ff70d85be52e6ecaa47a",
+      "variantGroupId": "adverb-basics-ly::action_manner"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC03",
+      "category": "action_manner",
+      "categoryLabel": "动词后的方式副词",
+      "type": "single",
+      "prompt": "The baby sleeps ___.",
+      "options": [
+        "quietly",
+        "quiet",
+        "quieter",
+        "quietness"
+      ],
+      "answer": "quietly",
+      "answerDisplay": "quietly",
+      "correctFeedback": "正确。quietly 说明 sleeps 怎样发生。",
+      "wrongFeedback": "quietly 说明 sleeps 怎样发生。",
+      "explanation": "quietly 说明 sleeps 怎样发生。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC03",
+      "sourceQuestionId": "GC03",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:dd06f77154e73eba436adeac54b4456997b2b9789886399e3a5e04421f1f6509",
+      "variantGroupId": "adverb-basics-ly::action_manner"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC04",
+      "category": "form",
+      "categoryLabel": "y 变 i 再加-ly",
+      "type": "single",
+      "prompt": "happy 的方式副词形式是？",
+      "options": [
+        "happily",
+        "happyly",
+        "happier",
+        "happy"
+      ],
+      "answer": "happily",
+      "answerDisplay": "happily",
+      "correctFeedback": "正确。happy 变 y 为 i，再加 -ly。",
+      "wrongFeedback": "happy 变 y 为 i，再加 -ly。",
+      "explanation": "happy 变 y 为 i，再加 -ly。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC04",
+      "sourceQuestionId": "GC04",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:d8939243b7b71fb460d73e7ac7f29efcb76d495037ebfa69171972bfc3f0a944",
+      "variantGroupId": "adverb-basics-ly::form"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC05",
+      "category": "form",
+      "categoryLabel": "good 的特殊形式",
+      "type": "single",
+      "prompt": "She is a good singer. She sings ___.",
+      "options": [
+        "well",
+        "good",
+        "goodly",
+        "better"
+      ],
+      "answer": "well",
+      "answerDisplay": "well",
+      "correctFeedback": "正确。good 描述人，well 描述 sings。",
+      "wrongFeedback": "good 描述人，well 描述 sings。",
+      "explanation": "good 描述人，well 描述 sings。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC05",
+      "sourceQuestionId": "GC05",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:21545c2dcb812bc7d3b20ae512be3bfc32b9850dbbefd1efccb2e773fe72e253",
+      "variantGroupId": "adverb-basics-ly::form"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC06",
+      "category": "contrast",
+      "categoryLabel": "同形副词",
+      "type": "single",
+      "prompt": "The train moves ___.",
+      "options": [
+        "fast",
+        "fastly",
+        "fasterly",
+        "fastness"
+      ],
+      "answer": "fast",
+      "answerDisplay": "fast",
+      "correctFeedback": "正确。fast 作方式副词时保持原形。",
+      "wrongFeedback": "fast 作方式副词时保持原形。",
+      "explanation": "fast 作方式副词时保持原形。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC06",
+      "sourceQuestionId": "GC06",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:4ad5f125cf8541e2aed5c33fddfaaa55d4e92c9168b7347337c00887c76a0218",
+      "variantGroupId": "adverb-basics-ly::contrast"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC07",
+      "category": "contrast",
+      "categoryLabel": "-ly 不是绝对",
+      "type": "single",
+      "prompt": "Which word is an adjective here: a ___ girl?",
+      "options": [
+        "friendly",
+        "carefully",
+        "quickly",
+        "happily"
+      ],
+      "answer": "friendly",
+      "answerDisplay": "friendly",
+      "correctFeedback": "正确。friendly 虽以 -ly 结尾，仍常作形容词。",
+      "wrongFeedback": "friendly 虽以 -ly 结尾，仍常作形容词。",
+      "explanation": "friendly 虽以 -ly 结尾，仍常作形容词。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC07",
+      "sourceQuestionId": "GC07",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:095e069f93377749426770a5a133a342e49bc797e3b35913fe910efad1b912ee",
+      "variantGroupId": "adverb-basics-ly::contrast"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC08",
+      "category": "position",
+      "categoryLabel": "方式副词位置",
+      "type": "single",
+      "prompt": "Choose the correct sentence.",
+      "options": [
+        "Leo opens the box carefully.",
+        "Leo carefully the box opens.",
+        "Leo opens carefully the box.",
+        "Leo the box carefully opens."
+      ],
+      "answer": "Leo opens the box carefully.",
+      "answerDisplay": "Leo opens the box carefully.",
+      "correctFeedback": "正确。有宾语 the box 时，本阶段把 carefully 放在宾语后。",
+      "wrongFeedback": "有宾语 the box 时，本阶段把 carefully 放在宾语后。",
+      "explanation": "有宾语 the box 时，本阶段把 carefully 放在宾语后。",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC08",
+      "sourceQuestionId": "GC08",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:509726baeb1cc1cd646e7635df97ecde498a8ea75c0efb4c78333e7a0d2ab114",
+      "variantGroupId": "adverb-basics-ly::position"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC09",
+      "category": "weakness_review",
+      "categoryLabel": "薄弱项复测｜时间补充信息",
+      "type": "single",
+      "prompt": "哪一部分是时间补充信息？",
+      "options": [
+        "after school",
+        "Mia",
+        "packs",
+        "her bag"
+      ],
+      "answer": "after school",
+      "answerDisplay": "after school",
+      "correctFeedback": "正确。after school 说明动作何时发生，是时间补充信息。",
+      "wrongFeedback": "after school 说明动作何时发生，是时间补充信息。",
+      "explanation": "after school 说明动作何时发生，是时间补充信息。",
+      "source": "Mia packs her bag carefully after school.",
+      "kpId": "sentence-parts",
+      "primaryWeaknessId": "brother.sentence-parts.time-adjunct",
+      "weaknessIds": [
+        "brother.sentence-parts.time-adjunct"
+      ],
+      "diagnosticTargets": [
+        "time-adjunct",
+        "separate-core-from-time-information"
+      ],
+      "contentHash": "sha256:8a95478bd0a1cfe02d38d0d582bef4be05e461877bde6742cf8ee1a25b215083",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC09",
+      "sourceQuestionId": "GC09",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "variantGroupId": "brother.sentence-parts.time-adjunct"
+    },
+    {
+      "id": "grammar-2026-08-26-adverb-review::GC10",
+      "category": "weakness_review",
+      "categoryLabel": "薄弱项复测｜重复时间标志",
+      "type": "single",
+      "prompt": "哪一部分表示重复发生的时间？",
+      "options": [
+        "every night",
+        "Leo",
+        "reads",
+        "quietly"
+      ],
+      "answer": "every night",
+      "answerDisplay": "every night",
+      "correctFeedback": "正确。every night 是一般现在时的重复时间标志。",
+      "wrongFeedback": "every night 是一般现在时的重复时间标志。",
+      "explanation": "every night 是一般现在时的重复时间标志。",
+      "source": "Leo reads quietly every night.",
+      "kpId": "simple-present-use",
+      "primaryWeaknessId": "brother.simple-present-use.frequency-time-markers",
+      "weaknessIds": [
+        "brother.simple-present-use.frequency-time-markers"
+      ],
+      "diagnosticTargets": [
+        "frequency-time-markers",
+        "repeated-time-marker"
+      ],
+      "contentHash": "sha256:e3363b4430a83e8d5ae1fae3a6ced6bce2cdb4302647b789d43dfd21e9f440c1",
+      "bankItemId": "grammar-2026-08-26-adverb-review::GC10",
+      "sourceQuestionId": "GC10",
+      "sourceChallengeId": "grammar-2026-08-26-adverb-review",
+      "sourceChallengeDate": "2026-08-26",
+      "sourceChallengeTitle": "方式副词与 -ly 线索复习挑战",
+      "sourceLessonKey": "adverb-basics-ly",
+      "sourceLessonKpIds": [
+        "adverb-basics-ly",
+        "sentence-parts",
+        "simple-present-use"
+      ],
+      "kpIds": [
+        "simple-present-use"
+      ],
+      "primaryKpId": "simple-present-use",
+      "variantGroupId": "brother.simple-present-use.frequency-time-markers"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC01",
+      "category": "contact",
+      "categoryLabel": "接触表面｜on",
+      "type": "single",
+      "prompt": "The cup is ___ the table.",
+      "options": [
+        "on",
+        "over",
+        "above",
+        "below"
+      ],
+      "answer": "on",
+      "answerDisplay": "on",
+      "correctFeedback": "正确。杯子接触桌面，用 on。",
+      "wrongFeedback": "杯子接触桌面，用 on。",
+      "explanation": "杯子接触桌面，用 on。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC01",
+      "sourceQuestionId": "GC01",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:bed1a67416820f0f13e22577b629c83f7d8ddd34807e5ef584d00f62bda989a6",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::contact"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC02",
+      "category": "contact",
+      "categoryLabel": "接触表面｜on",
+      "type": "single",
+      "prompt": "Which sentence shows contact?",
+      "options": [
+        "The picture is on the wall.",
+        "The bird is above the wall.",
+        "The lamp is over the desk.",
+        "The cat is under the chair."
+      ],
+      "answer": "The picture is on the wall.",
+      "answerDisplay": "The picture is on the wall.",
+      "correctFeedback": "正确。on 表示接触表面。",
+      "wrongFeedback": "on 表示接触表面。",
+      "explanation": "on 表示接触表面。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC02",
+      "sourceQuestionId": "GC02",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:8935486a7c2801ddbfb2bd9dc8a3b0106db4eccad8393ea78333c744c38a855e",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::contact"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC03",
+      "category": "upper",
+      "categoryLabel": "正上方｜over",
+      "type": "single",
+      "prompt": "A bridge goes ___ the river.",
+      "options": [
+        "over",
+        "on",
+        "below",
+        "under"
+      ],
+      "answer": "over",
+      "answerDisplay": "over",
+      "correctFeedback": "正确。桥横跨河流，用 over。",
+      "wrongFeedback": "桥横跨河流，用 over。",
+      "explanation": "桥横跨河流，用 over。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC03",
+      "sourceQuestionId": "GC03",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:4145d452f97200c20519c03fc187cd70a280896533092ab5e7b053f527c2ed1f",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::upper"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC04",
+      "category": "upper",
+      "categoryLabel": "只比较更高｜above",
+      "type": "single",
+      "prompt": "The kite is high in the sky, ___ the trees.",
+      "options": [
+        "above",
+        "on",
+        "under",
+        "below"
+      ],
+      "answer": "above",
+      "answerDisplay": "above",
+      "correctFeedback": "正确。风筝比树更高，不强调正对，用 above。",
+      "wrongFeedback": "风筝比树更高，不强调正对，用 above。",
+      "explanation": "风筝比树更高，不强调正对，用 above。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC04",
+      "sourceQuestionId": "GC04",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:e2fb967f6be467be2e3137a54c82a17d8dc1e3ae4c249cdf1cd532d11c2ee015",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::upper"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC05",
+      "category": "lower",
+      "categoryLabel": "正下方或遮盖｜under",
+      "type": "single",
+      "prompt": "The shoes are ___ the bed.",
+      "options": [
+        "under",
+        "below",
+        "over",
+        "on"
+      ],
+      "answer": "under",
+      "answerDisplay": "under",
+      "correctFeedback": "正确。鞋在床的正下方或床的遮盖下，用 under。",
+      "wrongFeedback": "鞋在床的正下方或床的遮盖下，用 under。",
+      "explanation": "鞋在床的正下方或床的遮盖下，用 under。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC05",
+      "sourceQuestionId": "GC05",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:a703995204705afe7637806e8699b21833ecef2a71171e2ff2df1fa473513bb4",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::lower"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC06",
+      "category": "lower",
+      "categoryLabel": "只比较更低｜below",
+      "type": "single",
+      "prompt": "Write your answer ___ the line.",
+      "options": [
+        "below",
+        "under",
+        "above",
+        "on"
+      ],
+      "answer": "below",
+      "answerDisplay": "below",
+      "correctFeedback": "正确。答案写在线的下方，不强调遮盖，用 below。",
+      "wrongFeedback": "答案写在线的下方，不强调遮盖，用 below。",
+      "explanation": "答案写在线的下方，不强调遮盖，用 below。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC06",
+      "sourceQuestionId": "GC06",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:a2254e27578061c8d656e1f02c88bb42e2578d7c87a2cc1cdd1632583fc65131",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::lower"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC07",
+      "category": "contrast",
+      "categoryLabel": "over 与 above",
+      "type": "single",
+      "prompt": "Which pair is correct?",
+      "options": [
+        "over = directly higher; above = simply higher",
+        "over = touching; above = covering",
+        "over = lower; above = higher",
+        "over = inside; above = outside"
+      ],
+      "answer": "over = directly higher; above = simply higher",
+      "answerDisplay": "over = directly higher; above = simply higher",
+      "correctFeedback": "正确。over 常强调正上或横跨，above 只比较高低。",
+      "wrongFeedback": "over 常强调正上或横跨，above 只比较高低。",
+      "explanation": "over 常强调正上或横跨，above 只比较高低。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC07",
+      "sourceQuestionId": "GC07",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:4698cf4ac7c0e9aa83e1d0f9c1be2bbfa9367155599e2efaaa55a5f8c2373a56",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::contrast"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC08",
+      "category": "contrast",
+      "categoryLabel": "under 与 below",
+      "type": "single",
+      "prompt": "Which sentence best shows something hidden by another object?",
+      "options": [
+        "The kitten is under the blanket.",
+        "The number is below the line.",
+        "The bird is above the tree.",
+        "The book is on the desk."
+      ],
+      "answer": "The kitten is under the blanket.",
+      "answerDisplay": "The kitten is under the blanket.",
+      "correctFeedback": "正确。under 可表示在遮盖之下。",
+      "wrongFeedback": "under 可表示在遮盖之下。",
+      "explanation": "under 可表示在遮盖之下。",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC08",
+      "sourceQuestionId": "GC08",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "place-prepositions-on-over-above-under-below"
+      ],
+      "primaryKpId": "place-prepositions-on-over-above-under-below",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:78828212f4a7511e956c65f57e5475706c1f5076b8e0ca4a14a6a7236cdc8ca0",
+      "variantGroupId": "place-prepositions-on-over-above-under-below::contrast"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC09",
+      "category": "weakness_review",
+      "categoryLabel": "薄弱项复测｜完整主语与无宾语",
+      "type": "single",
+      "prompt": "完整主语是什么？这个句子有宾语吗？",
+      "options": [
+        "The small lamp；没有宾语",
+        "The；desk",
+        "lamp；the desk",
+        "The small；有宾语"
+      ],
+      "answer": "The small lamp；没有宾语",
+      "answerDisplay": "The small lamp；没有宾语",
+      "correctFeedback": "正确。The small lamp 是完整主语；is above the desk 描述位置，句中没有宾语。",
+      "wrongFeedback": "The small lamp 是完整主语；is above the desk 描述位置，句中没有宾语。",
+      "explanation": "The small lamp 是完整主语；is above the desk 描述位置，句中没有宾语。",
+      "source": "The small lamp is above the desk.",
+      "kpId": "sentence-parts",
+      "primaryWeaknessId": "brother.sentence-parts.subject-boundary-no-object-discrimination",
+      "weaknessIds": [
+        "brother.sentence-parts.subject-boundary-no-object-discrimination"
+      ],
+      "diagnosticTargets": [
+        "subject-boundary-no-object-discrimination",
+        "complete-subject",
+        "no-object"
+      ],
+      "contentHash": "sha256:e5d0ce73f6cf38169ebc00f02cadb94daea13608c4d3a0aee4f24f44f76731ae",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC09",
+      "sourceQuestionId": "GC09",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "variantGroupId": "brother.sentence-parts.subject-boundary-no-object-discrimination"
+    },
+    {
+      "id": "grammar-2026-08-25-place-prepositions-review::GC10",
+      "category": "weakness_review",
+      "categoryLabel": "薄弱项复测｜完整主语与无宾语",
+      "type": "single",
+      "prompt": "完整主语是什么？这个句子有宾语吗？",
+      "options": [
+        "The two birds；没有宾语",
+        "The；trees",
+        "birds；the trees",
+        "The two；有宾语"
+      ],
+      "answer": "The two birds；没有宾语",
+      "answerDisplay": "The two birds；没有宾语",
+      "correctFeedback": "正确。The two birds 是完整主语；are above the trees 描述位置，句中没有宾语。",
+      "wrongFeedback": "The two birds 是完整主语；are above the trees 描述位置，句中没有宾语。",
+      "explanation": "The two birds 是完整主语；are above the trees 描述位置，句中没有宾语。",
+      "source": "The two birds are above the trees.",
+      "kpId": "sentence-parts",
+      "primaryWeaknessId": "brother.sentence-parts.subject-boundary-no-object-discrimination",
+      "weaknessIds": [
+        "brother.sentence-parts.subject-boundary-no-object-discrimination"
+      ],
+      "diagnosticTargets": [
+        "subject-boundary-no-object-discrimination",
+        "plural-complete-subject",
+        "no-object"
+      ],
+      "contentHash": "sha256:962215ae0d5bd0cdb7e53d5f3c23528128dfca33c1c73f489371ccb816de25f9",
+      "bankItemId": "grammar-2026-08-25-place-prepositions-review::GC10",
+      "sourceQuestionId": "GC10",
+      "sourceChallengeId": "grammar-2026-08-25-place-prepositions-review",
+      "sourceChallengeDate": "2026-08-25",
+      "sourceChallengeTitle": "地点介词上与下复习挑战",
+      "sourceLessonKey": "place-prepositions-on-over-above-under-below",
+      "sourceLessonKpIds": [
+        "place-prepositions-on-over-above-under-below",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "variantGroupId": "brother.sentence-parts.subject-boundary-no-object-discrimination"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC01",
+      "category": "why_because",
+      "categoryLabel": "Why 问原因",
+      "type": "single",
+      "source": "Why is Nina smiling?",
+      "prompt": "选择最合适的回答。",
+      "options": [
+        "Because she finds her key.",
+        "She is in the garden.",
+        "It is Tuesday.",
+        "Nina is my friend."
+      ],
+      "answer": "Because she finds her key.",
+      "answerDisplay": "Because she finds her key.",
+      "correctFeedback": "正确。Because 后面给出原因。",
+      "wrongFeedback": "Why 问原因。",
+      "explanation": "Why ...? 常用 Because ... 回答。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:b317ef5af4f284f2ec886c49ec72a19728f755a921d2902d806761ecf657b39f",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC01",
+      "sourceQuestionId": "GC01",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::why_because"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC02",
+      "category": "why_because",
+      "categoryLabel": "识别原因",
+      "type": "single",
+      "source": "The class is quiet because the teacher is speaking.",
+      "prompt": "哪一部分是原因？",
+      "options": [
+        "the teacher is speaking",
+        "The class is quiet",
+        "The class",
+        "quiet"
+      ],
+      "answer": "the teacher is speaking",
+      "answerDisplay": "the teacher is speaking",
+      "correctFeedback": "正确。because 后面是原因。",
+      "wrongFeedback": "先找到 because。",
+      "explanation": "because 引出原因。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:834c30ce032a211a2669593aea44f872c87ec45e51425382072f706e5f6f0d9c",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC02",
+      "sourceQuestionId": "GC02",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::why_because"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC03",
+      "category": "why_because",
+      "categoryLabel": "薄弱项复测｜特殊疑问句",
+      "type": "single",
+      "source": "Leo stays inside because it is raining.",
+      "prompt": "哪一个问句正确询问 Leo 待在室内的原因？",
+      "options": [
+        "Why does Leo stay inside?",
+        "Why Leo stays inside?",
+        "Where does Leo stay inside?",
+        "Why does Leo stays inside?"
+      ],
+      "answer": "Why does Leo stay inside?",
+      "answerDisplay": "Why does Leo stay inside?",
+      "correctFeedback": "正确。Why + does + 主语 + 动词原形。",
+      "wrongFeedback": "先选 Why，再检查 does 后面的动词原形。",
+      "explanation": "特殊疑问句使用 Why does Leo stay ...?",
+      "kpId": "wh-question-method",
+      "primaryWeaknessId": "brother.wh-question-method.wh-word-question-formation",
+      "weaknessIds": [
+        "brother.wh-question-method.wh-word-question-formation"
+      ],
+      "diagnosticTargets": [
+        "why-question-selection",
+        "does-question-order",
+        "base-verb-after-does"
+      ],
+      "contentHash": "sha256:fabf8211f2ac384032dc767d975881feb24cde578336381b21acef3efcc7a100",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC03",
+      "sourceQuestionId": "GC03",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "wh-question-method"
+      ],
+      "primaryKpId": "wh-question-method",
+      "variantGroupId": "brother.wh-question-method.wh-word-question-formation"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC04",
+      "category": "because",
+      "categoryLabel": "薄弱项复测｜does 问句",
+      "type": "single",
+      "source": "Why ___ Amy walk to school?",
+      "prompt": "选择正确的助动词。",
+      "options": [
+        "does",
+        "do",
+        "is",
+        "are"
+      ],
+      "answer": "does",
+      "answerDisplay": "Why does Amy walk to school?",
+      "correctFeedback": "正确。Amy 是第三人称单数，问句用 does。",
+      "wrongFeedback": "先看主语 Amy，再选助动词。",
+      "explanation": "does 后面使用动词原形 walk。",
+      "kpId": "simple-present-negative-question",
+      "primaryWeaknessId": "brother.simple-present-negative-question.do-does-negative-question-formation",
+      "weaknessIds": [
+        "brother.simple-present-negative-question.do-does-negative-question-formation"
+      ],
+      "diagnosticTargets": [
+        "does-question-order",
+        "third-person-singular-helper",
+        "base-verb-after-does"
+      ],
+      "contentHash": "sha256:18e61b8218dbbc301b5638ce4ab34f84c70e4fb6ddfe23ce0a575386255a9569",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC04",
+      "sourceQuestionId": "GC04",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "simple-present-negative-question"
+      ],
+      "primaryKpId": "simple-present-negative-question",
+      "variantGroupId": "brother.simple-present-negative-question.do-does-negative-question-formation"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC05",
+      "category": "because",
+      "categoryLabel": "because 引出原因",
+      "type": "single",
+      "source": "Mia opens the window ___ the room is hot.",
+      "prompt": "选择正确答案。",
+      "options": [
+        "because",
+        "so",
+        "why",
+        "but"
+      ],
+      "answer": "because",
+      "answerDisplay": "Mia opens the window because the room is hot.",
+      "correctFeedback": "正确。房间热是开窗的原因。",
+      "wrongFeedback": "后半句回答“为什么开窗”。",
+      "explanation": "结果 + because + 原因。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:0f1c075a548e58e197f5457fea7a73ec255f350ca6eccc573980fa3d5df98f84",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC05",
+      "sourceQuestionId": "GC05",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::because"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC06",
+      "category": "so",
+      "categoryLabel": "so 引出结果",
+      "type": "single",
+      "source": "The floor is wet, ___ we walk slowly.",
+      "prompt": "选择正确答案。",
+      "options": [
+        "so",
+        "because",
+        "why",
+        "although"
+      ],
+      "answer": "so",
+      "answerDisplay": "The floor is wet, so we walk slowly.",
+      "correctFeedback": "正确。走慢一点是结果。",
+      "wrongFeedback": "后半句说明后来发生什么。",
+      "explanation": "原因 + so + 结果。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:bb12bda92f4be0c023e668d15c78990c2e3a596f01c7ecf7234cb0332c24d9e3",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC06",
+      "sourceQuestionId": "GC06",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::so"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC07",
+      "category": "so",
+      "categoryLabel": "识别结果",
+      "type": "single",
+      "source": "Ella is hungry, so she makes a sandwich.",
+      "prompt": "哪一部分是结果？",
+      "options": [
+        "she makes a sandwich",
+        "Ella is hungry",
+        "hungry",
+        "Ella"
+      ],
+      "answer": "she makes a sandwich",
+      "answerDisplay": "she makes a sandwich",
+      "correctFeedback": "正确。so 后面是结果。",
+      "wrongFeedback": "先找到 so。",
+      "explanation": "so 引出结果。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:0954f32354d53f15090dd20f8b14e6a058b6f09f7eb486da280b95d72347f63e",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC07",
+      "sourceQuestionId": "GC07",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::so"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC08",
+      "category": "so",
+      "categoryLabel": "同义表达",
+      "type": "single",
+      "source": "We wear coats because it is cold.",
+      "prompt": "换成 so 结构，哪一句正确？",
+      "options": [
+        "It is cold, so we wear coats.",
+        "We wear coats, so it is cold.",
+        "Because it is cold, so we wear coats.",
+        "Why it is cold, so we wear coats."
+      ],
+      "answer": "It is cold, so we wear coats.",
+      "answerDisplay": "It is cold, so we wear coats.",
+      "correctFeedback": "正确。原因在前，so 后接结果。",
+      "wrongFeedback": "保持“冷导致穿外套”的方向。",
+      "explanation": "because 与 so 可以从不同方向表达同一因果。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:bb3b3bc93d91de7b0420f88eff21bee8ea7142bcdc4da20fd0f936fc3f3c520d",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC08",
+      "sourceQuestionId": "GC08",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::so"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC09",
+      "category": "no_double",
+      "categoryLabel": "不并用",
+      "type": "single",
+      "prompt": "哪一句需要改正？",
+      "options": [
+        "Because the bus is late, so we walk.",
+        "We walk because the bus is late.",
+        "The bus is late, so we walk.",
+        "Why do we walk? Because the bus is late."
+      ],
+      "answer": "Because the bus is late, so we walk.",
+      "answerDisplay": "Because the bus is late, so we walk.",
+      "correctFeedback": "正确。这一句重复使用 because 与 so。",
+      "wrongFeedback": "找同一句中两个因果连接词都出现的句子。",
+      "explanation": "基础阶段 because 与 so 二选一。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:a024674c234889f9231211edccdf9974a623ff2f4c7951a371267a0b37d7cf58",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC09",
+      "sourceQuestionId": "GC09",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::no_double"
+    },
+    {
+      "id": "grammar-2026-08-24-why-because-so-review::GC10",
+      "category": "no_double",
+      "categoryLabel": "判断步骤",
+      "type": "single",
+      "prompt": "判断 because 与 so 的最佳方法是什么？",
+      "options": [
+        "先分原因和结果，再选连接方向，最后检查不并用。",
+        "同时写 because 和 so。",
+        "只看哪个词更短。",
+        "所有 Why 都用 so 回答。"
+      ],
+      "answer": "先分原因和结果，再选连接方向，最后检查不并用。",
+      "answerDisplay": "分原因结果 → 选方向 → 检查不并用",
+      "correctFeedback": "正确。先读懂关系。",
+      "wrongFeedback": "不要只靠中文词序。",
+      "explanation": "因果关系三步法。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:ce253ff22a39be96a3b92346ff2da70b87aa195ae1cadeb763beee8dc49bd336",
+      "bankItemId": "grammar-2026-08-24-why-because-so-review::GC10",
+      "sourceQuestionId": "GC10",
+      "sourceChallengeId": "grammar-2026-08-24-why-because-so-review",
+      "sourceChallengeDate": "2026-08-24",
+      "sourceChallengeTitle": "why / because / so 复习挑战",
+      "sourceLessonKey": "why-because-so",
+      "sourceLessonKpIds": [
+        "why-because-so",
+        "wh-question-method",
+        "simple-present-negative-question"
+      ],
+      "kpIds": [
+        "why-because-so"
+      ],
+      "primaryKpId": "why-because-so",
+      "variantGroupId": "why-because-so::no_double"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC01",
+      "category": "identify",
+      "categoryLabel": "识别关系",
+      "type": "single",
+      "source": "The box is old. It is useful.",
+      "prompt": "哪一个词最适合连接这两个方向不同的信息？",
+      "options": [
+        "but",
+        "because",
+        "so",
+        "and"
+      ],
+      "answer": "but",
+      "answerDisplay": "The box is old, but it is useful.",
+      "correctFeedback": "正确。old 与 useful 形成转折。",
+      "wrongFeedback": "这里不是原因或结果关系。",
+      "explanation": "but 连接两个方向不同的信息。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:03f845d4623bfdcac80ec0ed21c1bfa102682751ff040dd49491d1b96afc5752",
+      "bankItemId": "grammar-2026-08-23-although-review::GC01",
+      "sourceQuestionId": "GC01",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::identify"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC02",
+      "category": "identify",
+      "categoryLabel": "识别 although",
+      "type": "single",
+      "prompt": "哪一句表示“虽然很冷，我们仍然出去”？",
+      "options": [
+        "Although it is cold, we go outside.",
+        "It is cold because we go outside.",
+        "It is cold, so we go outside.",
+        "Why is it cold?"
+      ],
+      "answer": "Although it is cold, we go outside.",
+      "answerDisplay": "Although it is cold, we go outside.",
+      "correctFeedback": "正确。Although 引出先承认的事实。",
+      "wrongFeedback": "找以 Although 开头的让步句。",
+      "explanation": "Although A, B.",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:31df134c5534bb5919b4774f6cb55e99b2bb497791fb55a522eb3f43225e29bb",
+      "bankItemId": "grammar-2026-08-23-although-review::GC02",
+      "sourceQuestionId": "GC02",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::identify"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC03",
+      "category": "although",
+      "categoryLabel": "薄弱项复测｜状态谓语",
+      "type": "single",
+      "source": "Although the soup is hot, Ben finishes it.",
+      "prompt": "哪一部分共同说明 soup 的状态？",
+      "options": [
+        "is hot",
+        "the soup",
+        "hot Ben",
+        "finishes it"
+      ],
+      "answer": "is hot",
+      "answerDisplay": "is hot",
+      "correctFeedback": "正确。is 与 hot 一起表达状态。",
+      "wrongFeedback": "不要只找 is；状态词 hot 也属于完整谓语。",
+      "explanation": "be 动词与形容词共同构成状态谓语。",
+      "kpId": "sentence-parts",
+      "primaryWeaknessId": "brother.sentence-parts.copular-predicate",
+      "weaknessIds": [
+        "brother.sentence-parts.copular-predicate"
+      ],
+      "diagnosticTargets": [
+        "copular-predicate",
+        "be-plus-adjective-state-predicate"
+      ],
+      "contentHash": "sha256:60d000b55bef44d7b4ad62e807cfd0db823c97d20220abd7654a7dd12e2b4222",
+      "bankItemId": "grammar-2026-08-23-although-review::GC03",
+      "sourceQuestionId": "GC03",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "variantGroupId": "brother.sentence-parts.copular-predicate"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC04",
+      "category": "although",
+      "categoryLabel": "薄弱项复测｜完整主语",
+      "type": "single",
+      "source": "Although the little bird sings, the room stays quiet.",
+      "prompt": "第一部分的完整主语是什么？",
+      "options": [
+        "the little bird",
+        "bird",
+        "sings",
+        "the room"
+      ],
+      "answer": "the little bird",
+      "answerDisplay": "the little bird",
+      "correctFeedback": "正确。冠词、形容词和名词共同组成完整主语。",
+      "wrongFeedback": "不要只选中心名词 bird。",
+      "explanation": "完整主语是 the little bird。",
+      "kpId": "sentence-parts",
+      "primaryWeaknessId": "brother.sentence-parts.subject-boundary-no-object-discrimination",
+      "weaknessIds": [
+        "brother.sentence-parts.subject-boundary-no-object-discrimination"
+      ],
+      "diagnosticTargets": [
+        "subject-noun-phrase",
+        "complete-subject-boundary"
+      ],
+      "contentHash": "sha256:21d51a88d324da71996de03eb04c6ec890c61e8f6627c51c5df98bebc6c2237c",
+      "bankItemId": "grammar-2026-08-23-although-review::GC04",
+      "sourceQuestionId": "GC04",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "variantGroupId": "brother.sentence-parts.subject-boundary-no-object-discrimination"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC05",
+      "category": "although",
+      "categoryLabel": "Although 句首",
+      "type": "single",
+      "source": "___ the task is hard, Mia keeps trying.",
+      "prompt": "选择正确答案。",
+      "options": [
+        "Although",
+        "But",
+        "Because",
+        "So"
+      ],
+      "answer": "Although",
+      "answerDisplay": "Although the task is hard, Mia keeps trying.",
+      "correctFeedback": "正确。困难与继续尝试形成让步。",
+      "wrongFeedback": "空格在句首，要表达“虽然”。",
+      "explanation": "Although A, B.",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:d331f4be9d59a368c0c092a8c1fc7f0a710327a530469ca91861dca42280a140",
+      "bankItemId": "grammar-2026-08-23-although-review::GC05",
+      "sourceQuestionId": "GC05",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::although"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC06",
+      "category": "but",
+      "categoryLabel": "but 句中",
+      "type": "single",
+      "source": "The dog is small, ___ it is brave.",
+      "prompt": "选择正确答案。",
+      "options": [
+        "but",
+        "although",
+        "because",
+        "so"
+      ],
+      "answer": "but",
+      "answerDisplay": "The dog is small, but it is brave.",
+      "correctFeedback": "正确。but 放在两部分之间。",
+      "wrongFeedback": "空格后是转折后的信息。",
+      "explanation": "A, but B.",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:b2bbddf9718a8f527a6632ffaa6acea1c17a91cddd9deb40e99c57076b689cfc",
+      "bankItemId": "grammar-2026-08-23-although-review::GC06",
+      "sourceQuestionId": "GC06",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::but"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC07",
+      "category": "but",
+      "categoryLabel": "but 结构",
+      "type": "single",
+      "prompt": "哪一句结构正确？",
+      "options": [
+        "The road is long, but we keep walking.",
+        "Although the road is long, but we keep walking.",
+        "The road but is long, we keep walking.",
+        "But although the road is long, we keep walking."
+      ],
+      "answer": "The road is long, but we keep walking.",
+      "answerDisplay": "The road is long, but we keep walking.",
+      "correctFeedback": "正确。只使用 but 连接两个完整意思。",
+      "wrongFeedback": "排除同时出现 although 与 but 的句子。",
+      "explanation": "基础阶段二选一。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:56c5d849aa91a5ca1356189e10f0d3ce74a579c2517f77ec3606a99dd2936c3e",
+      "bankItemId": "grammar-2026-08-23-although-review::GC07",
+      "sourceQuestionId": "GC07",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::but"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC08",
+      "category": "but",
+      "categoryLabel": "同义改写",
+      "type": "single",
+      "source": "Although the room is small, it is bright.",
+      "prompt": "改成 but 结构，哪一句正确？",
+      "options": [
+        "The room is small, but it is bright.",
+        "The room is small because it is bright.",
+        "The room is small, so it is bright.",
+        "Although the room is small, but it is bright."
+      ],
+      "answer": "The room is small, but it is bright.",
+      "answerDisplay": "The room is small, but it is bright.",
+      "correctFeedback": "正确。保留原来的转折关系。",
+      "wrongFeedback": "换成 A, but B.，不要保留 Although。",
+      "explanation": "Although A, B. 与 A, but B. 可表达同一组转折。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:68188a5baca33ea5538632e4f83ade14a422b4c4c3376f63e101c8f00b645894",
+      "bankItemId": "grammar-2026-08-23-although-review::GC08",
+      "sourceQuestionId": "GC08",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::but"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC09",
+      "category": "no_double",
+      "categoryLabel": "不并用",
+      "type": "single",
+      "prompt": "哪一句需要改正？",
+      "options": [
+        "Although it is late, we finish the book.",
+        "It is late, but we finish the book.",
+        "Although it is late, but we finish the book.",
+        "The book is long, but it is fun."
+      ],
+      "answer": "Although it is late, but we finish the book.",
+      "answerDisplay": "Although it is late, but we finish the book.",
+      "correctFeedback": "正确。这一句重复使用了两个转折词。",
+      "wrongFeedback": "找同时出现 although 和 but 的句子。",
+      "explanation": "基础阶段 although 与 but 二选一。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:6830e7240a36bb91d441bfbc4bae0878d1bd217aa07ff6c97ce8ecec67187c63",
+      "bankItemId": "grammar-2026-08-23-although-review::GC09",
+      "sourceQuestionId": "GC09",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::no_double"
+    },
+    {
+      "id": "grammar-2026-08-23-although-review::GC10",
+      "category": "no_double",
+      "categoryLabel": "判断步骤",
+      "type": "single",
+      "prompt": "写让步句时，最稳妥的检查顺序是什么？",
+      "options": [
+        "先找相反信息，再选 although 或 but，最后检查不并用。",
+        "先同时写 although 和 but。",
+        "只看句子长短。",
+        "所有句子都使用 because。"
+      ],
+      "answer": "先找相反信息，再选 although 或 but，最后检查不并用。",
+      "answerDisplay": "先找相反信息，再选 although 或 but，最后检查不并用。",
+      "correctFeedback": "正确。先判断关系，再选择结构。",
+      "wrongFeedback": "关键是“找关系—二选一—再检查”。",
+      "explanation": "让步与转折的三步检查法。",
+      "primaryWeaknessId": "",
+      "weaknessIds": [],
+      "diagnosticTargets": [],
+      "contentHash": "sha256:7a88f3fbf1603b05264b814812c5aba9a52408212b48f6c8d30e2b8e03bf1a60",
+      "bankItemId": "grammar-2026-08-23-although-review::GC10",
+      "sourceQuestionId": "GC10",
+      "sourceChallengeId": "grammar-2026-08-23-although-review",
+      "sourceChallengeDate": "2026-08-23",
+      "sourceChallengeTitle": "although 让步转折复习挑战",
+      "sourceLessonKey": "although",
+      "sourceLessonKpIds": [
+        "although",
+        "sentence-parts"
+      ],
+      "kpIds": [
+        "although"
+      ],
+      "primaryKpId": "although",
+      "variantGroupId": "although::no_double"
+    },
     {
       "id": "grammar-2026-08-22-adjectives-linking-verbs-review::GC01",
       "category": "adjective_before_noun",

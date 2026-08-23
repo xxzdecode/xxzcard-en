@@ -260,7 +260,7 @@ assert.match(moduleSource, /root\.setGrammarChallengeWeakRules/);
 assert.match(catalogSource, /lessonKey:/);
 assert.match(catalogSource, /kpIds:/);
 assert.match(catalogSource, /questionPrimaryWeaknessIds/);
-for (const date of ['2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21', '2026-08-22']) {
+for (const date of ['2026-08-23', '2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27']) {
   assert.match(catalogSource, new RegExp(`grammar-${date}-`));
   assert.match(catalogSource, new RegExp(`practices/${date}\\.html`));
   assert.doesNotMatch(serviceWorkerSource, new RegExp(`practices/${date}\\.html`));

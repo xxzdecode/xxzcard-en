@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>2026-08-23｜形容词原级 as...as / not as...as 随堂练习</title>
+  <style>
+    :root {
+      --page-bg: #fff4f7;
+      --panel: #fffdfc;
+      --title: #d97892;
+      --mint: #a8d8c8;
+      --mint-deep: #397c69;
+      --mint-soft: #dff3ea;
+      --knowledge: #fff0c9;
+      --line: #efdde4;
+      --text: #625b63;
+      --muted: #81747c;
+      --correct: #d7f3dc;
+      --wrong: #ffd9d9;
+      --feedback-height: 52px;
+      --tap: 46px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: var(--page-bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    button { font: inherit; min-height: var(--tap); cursor: pointer; }
+    button:focus-visible { outline: 3px solid #f3b6c7; outline-offset: 2px; }
+    .practice-app {
+      width: 100vw; height: 100dvh; overflow: hidden;
+      display: grid; grid-template-rows: auto minmax(0, 1fr) var(--feedback-height); gap: 10px;
+      padding: max(9px, env(safe-area-inset-top)) max(9px, env(safe-area-inset-right))
+        max(9px, env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left));
+    }
+    .practice-header {
+      display: grid; grid-template-columns: minmax(180px, auto) minmax(0, 1fr) auto;
+      align-items: center; gap: 10px; min-width: 0; padding: 9px 12px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(220, 170, 180, .14);
+    }
+    h1 { margin: 0; color: var(--title); font-size: clamp(21px, 2.4vw, 31px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .knowledge-strip { min-width: 0; display: flex; gap: 6px; flex-wrap: wrap; max-height: 64px; overflow: hidden; }
+    .knowledge-chip { padding: 5px 9px; border-radius: 999px; background: var(--knowledge); font-size: clamp(12px, 1.25vw, 15px); font-weight: 700; white-space: nowrap; }
+    .header-actions { display: flex; gap: 7px; align-items: center; }
+    .progress { padding: 8px 12px; border-radius: 999px; background: var(--mint-soft); color: var(--mint-deep); font-weight: 900; white-space: nowrap; }
+    .action { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--mint); color: #fff; font-weight: 800; }
+    .action.secondary { color: var(--mint-deep); background: var(--mint-soft); }
+    .practice-stage {
+      min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center;
+      padding: clamp(12px, 2vw, 24px); background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+    }
+    .question-card { width: min(920px, 100%); max-height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 12px; }
+    .category { margin: 0; color: var(--muted); font-weight: 800; }
+    .prompt { margin: 0; font-size: clamp(21px, 3vw, 35px); line-height: 1.35; overflow-wrap: anywhere; white-space: pre-line; }
+    .prompt-context { display: grid; gap: 7px; min-height: 0; }
+    .source-line, .answer-zone, .rule-line {
+      border-radius: 14px; padding: 8px 12px; overflow-wrap: anywhere;
+    }
+    .source-line { background: #fff8ef; font-size: clamp(16px, 1.8vw, 21px); font-weight: 800; }
+    .answer-zone { min-height: 48px; background: var(--mint-soft); color: var(--mint-deep); font-size: clamp(17px, 2vw, 23px); font-weight: 900; }
+    .rule-line { background: var(--knowledge); color: var(--muted); font-size: clamp(13px, 1.35vw, 16px); font-weight: 700; }
+    .options { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .options.order-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .options.classify-options { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .option {
+      min-width: 0; border: 2px solid var(--line); border-radius: 16px; padding: 10px 14px;
+      background: #fff8fb; color: var(--text); font-weight: 800; font-size: clamp(16px, 2vw, 22px); overflow-wrap: anywhere;
+    }
+    .option[aria-pressed="true"] { border-color: #e88fa3; background: #fff0f5; }
+    .option.correct-option { border-color: #6bb985; background: var(--correct); }
+    .option.wrong-option { border-color: #e28a8a; background: var(--wrong); }
+    .option.order-picked { opacity: .48; }
+    .classify-zone { display: grid; gap: 7px; }
+    .classify-targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 7px; }
+    .classify-target {
+      min-width: 0; min-height: 54px; border: 2px dashed #83baa9; border-radius: 13px;
+      padding: 6px 9px; background: #f7fffb; color: var(--mint-deep); font-weight: 900;
+    }
+    .classify-target span { display: block; margin-top: 3px; color: var(--text); font-size: .82em; font-weight: 750; overflow-wrap: anywhere; }
+    .question-actions { display: flex; justify-content: center; gap: 9px; }
+    .feedback {
+      height: var(--feedback-height); min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); font-weight: 800;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .feedback.correct { background: var(--correct); }
+    .feedback.wrong { background: var(--wrong); }
+    .completion {
+      border: 0; border-radius: 22px; padding: 24px; color: var(--text); background: var(--panel);
+      box-shadow: 0 20px 60px rgba(80, 55, 70, .25); text-align: center;
+    }
+    .completion::backdrop { background: rgba(80, 55, 70, .25); }
+    @media (orientation: landscape) and (max-height: 520px) {
+      :root { --feedback-height: 40px; --tap: 38px; }
+      .practice-app { gap: 6px; padding: 6px; }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+    @media (orientation: portrait) and (max-width: 767px) {
+      .practice-app {
+        position: fixed; left: 0; top: 100dvh; width: 100dvh; height: 100vw;
+        transform: rotate(-90deg); transform-origin: top left;
+        --feedback-height: 40px; --tap: 44px; gap: 6px; padding: 6px;
+      }
+      .practice-header { padding: 5px 8px; border-radius: 15px; }
+      .knowledge-strip { max-height: 40px; gap: 4px; }
+      .knowledge-chip { padding: 3px 6px; font-size: 11px; }
+      .progress, .action { padding: 5px 9px; font-size: 12px; }
+      .practice-stage { padding: 8px; border-radius: 17px; }
+      .question-card { gap: 4px; }
+      .category { font-size: 11px; }
+      .prompt-context { gap: 3px; }
+      .prompt { font-size: clamp(17px, 3vw, 23px); line-height: 1.2; }
+      .source-line, .answer-zone, .rule-line { padding: 3px 7px; font-size: 12px; line-height: 1.2; }
+      .answer-zone { min-height: 30px; }
+      .options { gap: 6px; }
+      .option { padding: 4px 7px; border-radius: 11px; font-size: 13px; line-height: 1.15; }
+      .feedback { padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="practice-app" id="practiceApp">
+    <header class="practice-header">
+      <h1 id="pageTitle"></h1>
+      <div class="knowledge-strip" id="knowledgeStrip" aria-label="知识摘要"></div>
+      <div class="header-actions">
+        <span class="progress" id="progressText" aria-live="polite"></span>
+        <button class="action" id="newRoundButton" type="button">重新开始</button>
+      </div>
+    </header>
+    <main class="practice-stage">
+      <section class="question-card" aria-live="polite">
+        <p class="category" id="categoryText"></p>
+        <div class="prompt-context">
+          <div class="source-line" id="sourceLine" hidden></div>
+          <h2 class="prompt" id="promptText"></h2>
+          <div class="rule-line" id="ruleLine" hidden></div>
+        </div>
+        <div class="options" id="options"></div>
+        <div class="answer-zone" id="answerZone" hidden></div>
+        <div class="question-actions">
+          <button class="action" id="checkButton" type="button">检查答案</button>
+          <button class="action secondary" id="showAnswerButton" type="button">显示答案</button>
+          <button class="action secondary" id="nextButton" type="button" disabled>下一题</button>
+        </div>
+      </section>
+    </main>
+    <footer class="feedback" id="feedback" aria-live="polite">△ 请选择答案。</footer>
+  </div>
+  <dialog class="completion" id="completionDialog" data-complete="false">
+    <h2 id="completionTitle">本轮完成</h2>
+    <p id="completionText"></p>
+    <button class="action" id="restartButton" type="button">重新开始</button>
+    <button class="action secondary" id="continueButton" type="button" hidden>完成</button>
+  </dialog>
+  <script id="practice-data" type="application/json">{"version":1,"title":"2026-08-23｜形容词原级 as...as / not as...as 随堂练习","completionTitle":"同级比较路线完成","completion":"两个 as 中间用形容词原级；一样用 as...as，不一样用 not as...as。","restartLabel":"重新练习","continueLabel":"返回课程","knowledge":["as + 形容词原级 + as","not as + 形容词原级 + as","比较对象要清楚","不使用比较级"],"round":{"size":20,"shuffle":false,"quotas":{"meaning":3,"positive":5,"negative":5,"objects":3,"error_check":3,"summary":1}},"scope":{"mode":"declared","allowedWords":[]},"questions":[{"id":"CP01","category":"meaning","categoryLabel":"意思｜一样","type":"single","prompt":"as...as 表示什么？","options":["和……一样","比……更","在所有中最","因为"],"answer":"和……一样","answerDisplay":"as...as = 和……一样","correctFeedback":"正确。它表示两者程度相同。","wrongFeedback":"本课比较的是“同样程度”。","explanation":"肯定同级比较表示一样。"},{"id":"CP02","category":"meaning","categoryLabel":"意思｜不如","type":"single","prompt":"not as...as 表示什么？","options":["不如……那么","和……一样","比……更","所以"],"answer":"不如……那么","answerDisplay":"not as...as = 不如……那么","correctFeedback":"正确。它表示两者程度不同。","wrongFeedback":"注意句中有 not。","explanation":"否定同级比较表示“不如……那么”。"},{"id":"CP03","category":"meaning","categoryLabel":"原级位置","type":"single","prompt":"两个 as 中间应该放什么？","options":["形容词原级","比较级","最高级","than"],"answer":"形容词原级","answerDisplay":"as + 形容词原级 + as","correctFeedback":"正确。中间保持原级。","wrongFeedback":"不要把 taller 等比较级放进两个 as 中间。","explanation":"同级比较固定使用原级。"},{"id":"CP04","category":"positive","categoryLabel":"肯定｜tall","type":"single","source":"Lily is ___ her cousin.","prompt":"两人一样高，选择正确答案。","options":["as tall as","as taller as","taller than","the tallest"],"answer":"as tall as","answerDisplay":"Lily is as tall as her cousin.","correctFeedback":"正确。一样高用 as tall as。","wrongFeedback":"两个 as 中间用 tall 原级。","explanation":"A + be + as + adjective + as + B."},{"id":"CP05","category":"positive","categoryLabel":"肯定｜heavy","type":"single","source":"This bag is ___ that bag.","prompt":"两个包一样重，选择正确答案。","options":["as heavy as","as heavier as","heavier than","more heavy than"],"answer":"as heavy as","answerDisplay":"This bag is as heavy as that bag.","correctFeedback":"正确。heavy 保持原级。","wrongFeedback":"这里说一样重，不是更重。","explanation":"as heavy as。"},{"id":"CP06","category":"positive","categoryLabel":"肯定｜fast","type":"single","prompt":"哪一句表示“两辆车一样快”？","options":["The blue car is as fast as the red car.","The blue car is faster as the red car.","The blue car is as faster as the red car.","The blue car is fastest in the group."],"answer":"The blue car is as fast as the red car.","answerDisplay":"The blue car is as fast as the red car.","correctFeedback":"正确。as fast as 表示一样快。","wrongFeedback":"一样快需要两个 as，中间是 fast。","explanation":"肯定同级比较。"},{"id":"CP07","category":"positive","categoryLabel":"肯定｜interesting","type":"single","source":"The game is ___ the film.","prompt":"游戏和电影一样有趣，选择正确答案。","options":["as interesting as","more interesting as","as more interesting as","the most interesting"],"answer":"as interesting as","answerDisplay":"The game is as interesting as the film.","correctFeedback":"正确。长词在 as...as 中也保持原级。","wrongFeedback":"同级比较不使用 more。","explanation":"as + 原级 + as 与词长无关。"},{"id":"CP08","category":"positive","categoryLabel":"肯定｜句子排序","type":"order","prompt":"按正确顺序组成句子。","options":["as","My ruler","yours.","long","is","as"],"answer":[1,4,0,3,5,2],"answerDisplay":"My ruler is as long as yours.","correctFeedback":"正确。两个 as 把 long 放在中间。","wrongFeedback":"从 My ruler is 开始。","explanation":"A + be + as + adjective + as + B."},{"id":"CP09","category":"negative","categoryLabel":"否定｜不一样高","type":"single","source":"Ben is ___ his brother.","prompt":"Ben 没有他哥哥那么高，选择正确答案。","options":["not as tall as","as not tall as","not taller as","not the tallest"],"answer":"not as tall as","answerDisplay":"Ben is not as tall as his brother.","correctFeedback":"正确。not 放在第一个 as 前。","wrongFeedback":"结构是 not as + 原级 + as。","explanation":"否定同级比较。"},{"id":"CP10","category":"negative","categoryLabel":"否定｜不一样甜","type":"single","source":"This orange is ___ that one.","prompt":"这个橙子没有那个甜，选择正确答案。","options":["not as sweet as","not as sweeter as","less sweet than as","as sweet not as"],"answer":"not as sweet as","answerDisplay":"This orange is not as sweet as that one.","correctFeedback":"正确。sweet 保持原级。","wrongFeedback":"not as...as 中间不用 sweeter。","explanation":"not as sweet as。"},{"id":"CP11","category":"negative","categoryLabel":"否定｜difficult","type":"single","prompt":"哪一句表示“这本书没有那本难”？","options":["This book is not as difficult as that one.","This book is not as more difficult as that one.","This book is difficult than that one.","This book is the most difficult."],"answer":"This book is not as difficult as that one.","answerDisplay":"This book is not as difficult as that one.","correctFeedback":"正确。difficult 也保持原级。","wrongFeedback":"不要在两个 as 中加入 more。","explanation":"not as + adjective + as。"},{"id":"CP12","category":"negative","categoryLabel":"否定｜句子排序","type":"order","prompt":"按正确顺序组成句子。","options":["as","The desk","the table.","not","wide","is","as"],"answer":[1,5,3,0,4,6,2],"answerDisplay":"The desk is not as wide as the table.","correctFeedback":"正确。not 位于 is 后、第一个 as 前。","wrongFeedback":"从 The desk is not 开始。","explanation":"A + be not + as + adjective + as + B."},{"id":"CP13","category":"negative","categoryLabel":"肯定或否定","type":"single","source":"Both ropes are 2 metres long.","prompt":"哪一句最合适？","options":["The red rope is as long as the blue rope.","The red rope is not as long as the blue rope.","The red rope is longer than the blue rope.","The red rope is the longest."],"answer":"The red rope is as long as the blue rope.","answerDisplay":"The red rope is as long as the blue rope.","correctFeedback":"正确。长度相同，用肯定结构。","wrongFeedback":"两个数字相同，表示一样长。","explanation":"相同用 as...as。"},{"id":"CP14","category":"objects","categoryLabel":"对象｜yours","type":"single","source":"My ruler is as long as ___.","prompt":"选择能代替 your ruler 的词。","options":["yours","your","you","yourself"],"answer":"yours","answerDisplay":"My ruler is as long as yours.","correctFeedback":"正确。yours 代替 your ruler。","wrongFeedback":"这里需要能独立代替名词短语的词。","explanation":"比较对象要清楚。"},{"id":"CP15","category":"objects","categoryLabel":"对象｜完整比较","type":"single","prompt":"哪一句比较对象最清楚？","options":["My bag is as heavy as your bag.","My bag is as heavy as you.","My bag as heavy your bag.","My bag is heavy as your."],"answer":"My bag is as heavy as your bag.","answerDisplay":"My bag is as heavy as your bag.","correctFeedback":"正确。比较的是两个 bag。","wrongFeedback":"检查两边是否是同类对象。","explanation":"比较双方要清楚且可比。"},{"id":"CP16","category":"objects","categoryLabel":"对象｜that one","type":"single","source":"This apple is as red as ___.","prompt":"选择能代替 that apple 的表达。","options":["that one","that","it red","one that red"],"answer":"that one","answerDisplay":"This apple is as red as that one.","correctFeedback":"正确。that one 避免重复 apple。","wrongFeedback":"需要一个完整的比较对象。","explanation":"one 可以代替前面同类的可数名词。"},{"id":"CP17","category":"error_check","categoryLabel":"改错｜比较级误入","type":"single","prompt":"把 Mia is as taller as Lily. 改正确。","options":["Mia is as tall as Lily.","Mia is taller as Lily.","Mia is as more tall as Lily.","Mia is tallest as Lily."],"answer":"Mia is as tall as Lily.","answerDisplay":"Mia is as tall as Lily.","correctFeedback":"正确。两个 as 中间用 tall 原级。","wrongFeedback":"删掉比较级标记 -er。","explanation":"as tall as，不是 as taller as。"},{"id":"CP18","category":"error_check","categoryLabel":"改错｜not 位置","type":"single","prompt":"哪一句否定结构正确？","options":["The cat is not as big as the dog.","The cat is as not big as the dog.","The cat not is as big as the dog.","The cat is not as bigger as the dog."],"answer":"The cat is not as big as the dog.","answerDisplay":"The cat is not as big as the dog.","correctFeedback":"正确。not 在第一个 as 前，big 保持原级。","wrongFeedback":"检查 not 的位置和 big 的形式。","explanation":"not as big as。"},{"id":"CP19","category":"error_check","categoryLabel":"同级与比较级","type":"single","prompt":"哪一组都正确？","options":["as small as / smaller than","as smaller as / small than","more small as / the smallest than","as smallest as / more smaller than"],"answer":"as small as / smaller than","answerDisplay":"as small as / smaller than","correctFeedback":"正确。同级用原级，比较级用 smaller + than。","wrongFeedback":"把两条结构分开检查。","explanation":"as...as 与 comparative + than 不混用。"},{"id":"CP20","category":"summary","categoryLabel":"判断步骤","type":"single","prompt":"选择最完整的同级比较判断方法。","options":["先看一样还是不一样，再选 as...as 或 not as...as，最后检查中间是原级。","先把形容词变比较级，再加两个 as。","只看形容词长短决定。","所有句子都用 more。"],"answer":"先看一样还是不一样，再选 as...as 或 not as...as，最后检查中间是原级。","answerDisplay":"先看一样还是不一样，再选结构，再检查原级。","correctFeedback":"正确。这三步可以稳定完成同级比较。","wrongFeedback":"先判断关系，再检查固定结构。","explanation":"一样/不一样 → 选结构 → 原级检查。"}]}</script>
+  <script>
+    (() => {
+      "use strict";
+      const config = JSON.parse(document.getElementById("practice-data").textContent);
+      const byId = (id) => document.getElementById(id);
+      const challengeMode = ["challenge-locked", "challenge-adjustable"].includes(config.interactionMode);
+      const lockOnSelect = config.interactionMode === "challenge-locked";
+      const ui = {
+        title: byId("pageTitle"), knowledge: byId("knowledgeStrip"), progress: byId("progressText"),
+        category: byId("categoryText"), prompt: byId("promptText"), source: byId("sourceLine"),
+        answerZone: byId("answerZone"), rule: byId("ruleLine"), options: byId("options"),
+        check: byId("checkButton"), show: byId("showAnswerButton"), next: byId("nextButton"),
+        feedback: byId("feedback"), dialog: byId("completionDialog"), completion: byId("completionText"),
+        completionTitle: byId("completionTitle"), continueButton: byId("continueButton")
+      };
+      const state = {
+        round: [], index: 0, selected: [], assignments: {}, activeOption: null, locked: false, judging: false,
+        solved: [], revealed: [], attempts: [], firstTry: [], wrongEver: []
+      };
+
+      function shuffle(values) {
+        const copy = [...values];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+      function buildRound() {
+        if (config.round.shuffle === false) return config.questions.slice(0, config.round.size);
+        if (Array.isArray(config.round.groups)) {
+          return config.round.groups.flatMap((group) => {
+            const ids = new Set(group.ids || []);
+            let items = config.questions.filter((q) => ids.has(q.id));
+            if (group.shuffle !== false) items = shuffle(items);
+            return items;
+          }).slice(0, config.round.size);
+        }
+        const picked = [];
+        for (const [category, count] of Object.entries(config.round.quotas)) {
+          picked.push(...shuffle(config.questions.filter((q) => q.category === category)).slice(0, count));
+        }
+        return shuffle(picked);
+      }
+      function answerIndices(question) {
+        const answers = Array.isArray(question.answer) ? question.answer : [question.answer];
+        const used = new Set();
+        return answers.map((value) => {
+          if (typeof value === "number") return value;
+          const index = question.options.findIndex((option, optionIndex) => option === value && !used.has(optionIndex));
+          used.add(index); return index;
+        });
+      }
+      function answerValues(question) {
+        return answerIndices(question).map((index) => question.options[index]);
+      }
+      function expectedAssignments(question) {
+        return question.answerMap || {};
+      }
+      function selectedValues(question) {
+        return state.selected.map((index) => question.options[index]);
+      }
+      function isCorrect(question) {
+        if (question.type === "classify") {
+          const expected = expectedAssignments(question);
+          return question.options.every((option) => state.assignments[option] === expected[option]);
+        }
+        const selected = selectedValues(question);
+        const answers = answerValues(question);
+        if (question.type === "order") {
+          const indices = answerIndices(question);
+          return state.selected.length === indices.length && state.selected.every((value, index) => value === indices[index]);
+        }
+        if (question.type === "multi") return selected.length === answers.length && selected.every((value) => answers.includes(value));
+        return selected.length === 1 && selected[0] === answers[0];
+      }
+      function completeAnswer(question) {
+        if (question.type === "classify") {
+          return Object.entries(expectedAssignments(question)).map(([option, target]) => `${option} → ${target}`).join("；");
+        }
+        return question.answerDisplay || answerValues(question).join(question.type === "order" ? " " : "、");
+      }
+      function hasResponse(question) {
+        if (question.type === "classify") return question.options.every((option) => state.assignments[option]);
+        return state.selected.length > 0;
+      }
+      function feedback(type, message) {
+        ui.feedback.className = `feedback ${type || ""}`.trim();
+        ui.feedback.textContent = `${type === "correct" ? "✓" : type === "wrong" ? "×" : "△"} ${message}`;
+      }
+      function updateAnswerZone(question) {
+        if (question.type === "order") {
+          ui.answerZone.textContent = state.selected.length ? selectedValues(question).join(" ") : "按顺序点击词块，句子会在这里组成。";
+          return;
+        }
+        if (question.type !== "classify") return;
+        const zone = document.createElement("div");
+        zone.className = "classify-zone";
+        const hint = document.createElement("div");
+        hint.textContent = state.activeOption === null ? "先点词卡，再点目标区。" : `已选：${question.options[state.activeOption]}，请选择目标区。`;
+        const targets = document.createElement("div");
+        targets.className = "classify-targets";
+        for (const target of question.targets) {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "classify-target"; button.dataset.target = target;
+          const assigned = question.options.filter((option) => state.assignments[option] === target);
+          button.textContent = target;
+          const values = document.createElement("span");
+          values.textContent = assigned.length ? assigned.join(" · ") : "点击放入";
+          button.append(values);
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.activeOption === null) return;
+            const option = question.options[state.activeOption];
+            state.assignments[option] = target;
+            state.activeOption = null;
+            updateAnswerZone(question);
+            renderOptionStates(question);
+            feedback("", hasResponse(question) ? "分类完成，可以检查答案。" : "继续选择词卡并放入目标区。");
+          });
+          targets.append(button);
+        }
+        zone.append(hint, targets);
+        ui.answerZone.replaceChildren(zone);
+      }
+      function renderOptionStates(question) {
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          const index = Number(item.dataset.optionIndex);
+          const picked = state.selected.includes(index) || state.activeOption === index;
+          item.setAttribute("aria-pressed", String(picked));
+          item.classList.toggle("order-picked", question.type === "order" && picked);
+          item.disabled = challengeMode && state.locked;
+        });
+      }
+      function renderQuestion() {
+        const q = state.round[state.index];
+        state.selected = []; state.assignments = {}; state.activeOption = null; state.locked = false; state.judging = false;
+        ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
+        ui.category.textContent = q.categoryLabel || q.category;
+        ui.prompt.textContent = q.prompt;
+        ui.source.hidden = !q.source; ui.source.textContent = q.source || "";
+        ui.rule.hidden = !q.rule; ui.rule.textContent = q.rule || "";
+        ui.answerZone.hidden = !["order", "classify"].includes(q.type); updateAnswerZone(q);
+        ui.options.classList.toggle("order-options", q.type === "order");
+        ui.options.classList.toggle("classify-options", q.type === "classify");
+        ui.options.replaceChildren(...q.options.map((option, index) => {
+          const button = document.createElement("button");
+          button.type = "button"; button.className = "option"; button.dataset.optionIndex = String(index);
+          button.setAttribute("aria-pressed", "false"); button.textContent = option;
+          button.addEventListener("click", () => {
+            if (state.solved[state.index] || state.locked) return;
+            if (q.type === "classify") {
+              state.activeOption = index;
+            } else if (q.type === "multi") {
+              state.selected = state.selected.includes(index) ? state.selected.filter((item) => item !== index) : [...state.selected, index];
+            } else if (q.type === "order") {
+              if (state.selected.includes(index)) state.selected = state.selected.filter((item) => item !== index);
+              else state.selected.push(index);
+            } else state.selected = [index];
+            if (lockOnSelect) state.locked = true;
+            renderOptionStates(q);
+            updateAnswerZone(q);
+            if (challengeMode) {
+              ui.next.disabled = false;
+              feedback("", lockOnSelect ? "答案已锁定，点击“下一题”判分。" : "答案已选择；点击“下一题”前仍可调整。");
+            } else if (q.type === "classify") {
+              feedback("", `已选择 ${option}，请点击目标区。`);
+            } else feedback("", "已选择，点击“检查答案”。");
+          });
+          return button;
+        }));
+        ui.next.disabled = true; ui.next.hidden = false;
+        ui.check.hidden = challengeMode; ui.show.hidden = challengeMode;
+        ui.check.disabled = false; ui.show.disabled = false;
+        feedback("", q.type === "multi" ? "请选择全部正确答案。" : q.type === "order" ? "请按正确语序点击全部词块。" : q.type === "classify" ? "先点词卡，再点目标区。" : "请选择答案。");
+      }
+      function startRound() {
+        state.round = buildRound(); state.index = 0; state.selected = [];
+        state.solved = Array(state.round.length).fill(false); state.revealed = Array(state.round.length).fill(false);
+        state.attempts = Array(state.round.length).fill(0); state.firstTry = Array(state.round.length).fill(false);
+        state.wrongEver = Array(state.round.length).fill(false);
+        ui.dialog.dataset.complete = "false";
+        if (ui.dialog.open) ui.dialog.close();
+        renderQuestion();
+      }
+      function checkAnswer() {
+        if (!hasResponse(state.round[state.index])) return feedback("wrong", "请先完成作答。");
+        if (state.solved[state.index]) return;
+        const q = state.round[state.index];
+        state.attempts[state.index] += 1;
+        if (isCorrect(q)) {
+          state.solved[state.index] = true;
+          state.firstTry[state.index] = state.attempts[state.index] === 1 && !state.revealed[state.index];
+          ui.options.querySelectorAll(".option").forEach((item) => {
+            if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          });
+          feedback("correct", `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim());
+          ui.check.disabled = true; ui.show.disabled = true; ui.next.disabled = false;
+        } else {
+          state.wrongEver[state.index] = true;
+          state.selected.forEach((index) => ui.options.querySelector(`[data-option-index="${index}"]`)?.classList.add("wrong-option"));
+          feedback("wrong", q.wrongFeedback || "再看助动词、主语和动词原形。你可以继续修改。");
+          state.selected = [];
+          ui.options.querySelectorAll(".option").forEach((item) => { item.setAttribute("aria-pressed", "false"); item.classList.remove("order-picked"); });
+          updateAnswerZone(q);
+        }
+      }
+      function showAnswer() {
+        const q = state.round[state.index];
+        state.revealed[state.index] = true; state.solved[state.index] = true;
+        feedback("correct", `答案：${completeAnswer(q)}。${q.explanation || ""}`);
+        if (q.type === "classify") {
+          state.assignments = { ...expectedAssignments(q) };
+          ui.answerZone.hidden = false; updateAnswerZone(q); renderOptionStates(q);
+        } else {
+          ui.answerZone.hidden = false; ui.answerZone.textContent = completeAnswer(q);
+        }
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+        });
+        ui.check.disabled = true; ui.show.disabled = true;
+        ui.next.disabled = false;
+      }
+      function nextQuestion() {
+        if (state.index + 1 < state.round.length) { state.index += 1; renderQuestion(); return; }
+        showCompletion();
+      }
+      function showCompletion() {
+        const first = state.firstTry.filter(Boolean).length;
+        const final = state.solved.filter(Boolean).length;
+        const wrongIds = state.round.filter((_, index) => state.wrongEver[index]).map((question) => question.id);
+        ui.completionTitle.textContent = config.completionTitle || (challengeMode ? "挑战完成" : "本轮完成");
+        ui.completion.textContent = challengeMode
+          ? `${config.completion || "本轮完成。"} 正确 ${first} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`
+          : `${config.completion || "本轮完成。"} 首次正确 ${first} / ${state.round.length}，最终正确 ${final} / ${state.round.length}。错题题号：${wrongIds.length ? wrongIds.join("、") : "无"}。`;
+        ui.dialog.dataset.complete = "true";
+        if (typeof ui.dialog.showModal === "function") ui.dialog.showModal(); else ui.dialog.setAttribute("open", "");
+      }
+      function submitChallenge() {
+        const q = state.round[state.index];
+        if (state.judging || !hasResponse(q)) return;
+        state.judging = true; state.solved[state.index] = true; state.attempts[state.index] = 1;
+        const correct = isCorrect(q);
+        state.firstTry[state.index] = correct;
+        state.wrongEver[state.index] = !correct;
+        ui.options.querySelectorAll(".option").forEach((item) => {
+          if (answerValues(q).includes(item.textContent)) item.classList.add("correct-option");
+          else if (state.selected.includes(Number(item.dataset.optionIndex))) item.classList.add("wrong-option");
+        });
+        const message = correct
+          ? `${q.correctFeedback || "正确。"} ${q.explanation || ""}`.trim()
+          : `${q.wrongFeedback || "这次没有选对。"} 正确答案：${completeAnswer(q)}。${q.explanation || ""}`.trim();
+        feedback(correct ? "correct" : "wrong", message);
+        ui.next.disabled = true;
+        setTimeout(() => {
+          if (state.index + 1 < state.round.length) {
+            state.index += 1; renderQuestion();
+          } else showCompletion();
+        }, Number(config.feedbackDelayMs || 1000));
+      }
+
+      ui.title.textContent = config.title;
+      ui.knowledge.replaceChildren(...config.knowledge.map((text) => {
+        const chip = document.createElement("span"); chip.className = "knowledge-chip"; chip.textContent = text; return chip;
+      }));
+      byId("newRoundButton").hidden = challengeMode;
+      byId("newRoundButton").addEventListener("click", startRound);
+      byId("restartButton").addEventListener("click", startRound);
+      byId("restartButton").textContent = config.restartLabel || (challengeMode ? "重新挑战" : "重新练习");
+      if (config.continueLabel) {
+        ui.continueButton.hidden = false; ui.continueButton.textContent = config.continueLabel;
+        ui.continueButton.addEventListener("click", () => {
+          if (config.continueHref) location.href = config.continueHref;
+          else if (ui.dialog.open) ui.dialog.close();
+        });
+      }
+      ui.check.addEventListener("click", checkAnswer);
+      ui.show.addEventListener("click", showAnswer);
+      ui.next.addEventListener("click", challengeMode ? submitChallenge : nextQuestion);
+      window.__LESSON_PREP_QA__ = {
+        state: () => ({
+          mode: challengeMode ? config.interactionMode : "practice", index: state.index, total: state.round.length,
+          complete: ui.dialog.dataset.complete === "true", id: state.round[state.index]?.id,
+          order: state.round.map((question) => question.id), selected: [...state.selected], locked: state.locked
+        }),
+        selectWrong: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = Object.fromEntries(q.options.map((option) => {
+              const expected = expectedAssignments(q)[option];
+              return [option, q.targets.find((target) => target !== expected) || q.targets[0]];
+            }));
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          const correct = new Set(answerIndices(q));
+          const wrongIndex = q.options.findIndex((_, index) => !correct.has(index));
+          state.selected = wrongIndex >= 0 ? [wrongIndex] : [];
+          if (challengeMode) { state.locked = lockOnSelect; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        solveCurrent: () => {
+          const q = state.round[state.index];
+          if (q.type === "classify") {
+            state.assignments = { ...expectedAssignments(q) };
+            updateAnswerZone(q); renderOptionStates(q); return;
+          }
+          state.selected = answerIndices(q).filter((index) => index >= 0);
+          if (challengeMode) { state.locked = lockOnSelect; ui.next.disabled = false; }
+          renderOptionStates(q); updateAnswerZone(q);
+        },
+        restart: startRound
+      };
+      startRound();
+    })();
+  </script>
+</body>
+</html>
