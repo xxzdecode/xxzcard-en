@@ -100,8 +100,29 @@ function unloadGrammarChallenge() {
 function closeGrammarChallenge() {
   unloadGrammarChallenge();
   showScreen('screenHome');
-  loadHome();
+  window.loadHome?.();
 }
+
+function configureGrammarChallengeHomeButton() {
+  const frame = document.getElementById('grammarChallengeFrame');
+  let doc;
+  try { doc = frame?.contentDocument; } catch (_) { return; }
+  const homeButton = doc?.getElementById('continueButton');
+  if (!homeButton) return;
+  homeButton.hidden = false;
+  homeButton.textContent = '回首页';
+  homeButton.setAttribute('aria-label', '回首页领取语法挑战金币');
+  if (homeButton.dataset.grammarHomeHandlerInstalled === 'true') return;
+  homeButton.dataset.grammarHomeHandlerInstalled = 'true';
+  homeButton.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeGrammarChallenge();
+  }, true);
+}
+
+document.getElementById('grammarChallengeFrame')
+  ?.addEventListener('load', configureGrammarChallengeHomeButton);
 
 function isGrammarChallengeMessageOrigin(origin) {
   if (window.location.protocol === 'file:') return origin === 'null';

@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const currentWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const oldWorker = `
-const CACHE = 'xxzcard-app-shell-v91';
+const CACHE = 'xxzcard-app-shell-v92';
 self.addEventListener('install', event => event.waitUntil(
   caches.open(CACHE).then(cache => cache.add('./index.html')).then(() => self.skipWaiting())
 ));
@@ -88,7 +88,7 @@ async function waitForActiveVersion(page, cacheName) {
           && !registration.installing
           && !registration.waiting
           && keys.includes(expected)
-          && (!/v92$/.test(expected) || !keys.some(key => /v91$/.test(key)))
+          && (!/v93$/.test(expected) || !keys.some(key => /v92$/.test(key)))
       };
     }, cacheName);
     if (latest.ready) return;
@@ -137,26 +137,26 @@ const page = await context.newPage();
 try {
   await page.goto(`${baseUrl}/sw-harness.html`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => navigator.serviceWorker.register('./service-worker.js'));
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v91');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v92');
 
   serveCurrentWorker = true;
   await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v92');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v93');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v92');
+    const shell = await caches.open('xxzcard-app-shell-v93');
     const urls = (await shell.keys()).map(request => decodeURIComponent(new URL(request.url).pathname));
     return { keys, urls };
   });
   assert.ok(
-    !cacheState.keys.some(key => /v91$/.test(key)),
-    `v91 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
+    !cacheState.keys.some(key => /v92$/.test(key)),
+    `v92 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
   );
-  assert.equal(cacheState.urls.length, 24, 'v92 Apple-safe app shell must contain exactly 24 resources');
+  assert.equal(cacheState.urls.length, 24, 'v93 Apple-safe app shell must contain exactly 24 resources');
   assert.ok(cacheState.urls.some(url => /index\.html$/.test(url)));
   assert.ok(!cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
   assert.ok(cacheState.urls.some(url => /dailyLearningRouteOverride\.js$/.test(url)));
@@ -204,7 +204,7 @@ try {
 
   originAvailable = false;
   await context.route('https://**/*', route => route.abort());
-  await page.goto(`${baseUrl}/?cold=v92`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/?cold=v93`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => {
     const current = window.getDailyLearningRoute?.();
     return current?.grammarChallenge?.id === 'grammar-offline-manual'
@@ -214,8 +214,8 @@ try {
   await openOfflineVocabularyGuide(page, { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v92', 'xxzcard-runtime-v92']);
-  console.log(`student runtime v91-to-v92 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v93', 'xxzcard-runtime-v93']);
+  console.log(`student runtime v92-to-v93 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
 } finally {
   originAvailable = true;
   await context.close();

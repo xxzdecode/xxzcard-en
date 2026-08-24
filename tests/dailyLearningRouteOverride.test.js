@@ -98,6 +98,10 @@ assert.match(dailyRouteRuntime, /MANUAL_ROUTE_PENDING/);
 assert.match(dailyRouteRuntime, /return route && route\.manualSelection \? route : null/);
 assert.match(dailyRouteRuntime, /addEventListener\?\.\('pageshow'/);
 assert.match(dailyRouteRuntime, /8 题 \+ 历史 7 题/);
+assert.match(grammarChallenges, /homeButton\.textContent = '回首页'/);
+assert.match(grammarChallenges, /closeGrammarChallenge\(\)/);
+assert.match(grammarChallenges, /stopImmediatePropagation\(\)/);
+assert.match(grammarChallenges, /window\.loadHome\?\.\(\)/);
 
 async function testCachedSelectionRendersBeforeFreshSelectionArrives() {
   const storage = new Map();

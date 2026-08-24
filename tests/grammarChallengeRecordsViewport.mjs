@@ -247,6 +247,17 @@ try {
 
   let frame = await openChallenge('grammar-2026-07-31-parts-of-speech-review');
   setStage('completing sister challenge');
+  await page.waitForFunction(() => typeof window.sbSet === 'function' && typeof window.reconcileStudentRewards === 'function');
+  await page.evaluate(() => {
+    window.__grammarRewardTestOriginalSbSet = window.sbSet;
+    window.sbSet = function failGrammarRewardWhilePlayerIsOpen(key) {
+      const player = document.getElementById('screenGrammarChallengePlayer');
+      if (key === 'student_reward_v1_sister' && player?.classList.contains('active')) {
+        return Promise.reject(new Error('simulated grammar reward write failure'));
+      }
+      return window.__grammarRewardTestOriginalSbSet.apply(this, arguments);
+    };
+  });
   await answerInlineChallengeCorrectly(frame);
   await frame.waitForFunction(() => document.getElementById('completionDialog')?.dataset.complete === 'true');
   await waitFor(() => attempts('sister').find(item => item.status === 'completed'), 'completed sister attempt was not saved');
@@ -261,11 +272,20 @@ try {
   assert.ok(completed.questions.every(item => item.kpIds.length >= 1));
   assert.deepEqual(completed.wrongQuestionIds, []);
   assert.deepEqual(completed.reviewKpIds, []);
-  const rewardRecord = await waitFor(() => {
-    const record = store.get('student_reward_v1_sister');
-    return record?.daily?.[todayKey()]?.claims?.grammarChallenge?.status === 'pending' ? record : null;
-  }, 'completed grammar reward was not saved');
-  assert.equal(rewardRecord.daily[todayKey()].claims.grammarChallenge.amount, 5);
+  store.set('grammar_challenge_daily_v1_sister', {
+    [todayKey()]: {
+      status: 'completed',
+      rewardPending: true,
+      score: completed.score,
+      correctCount: completed.correctQuestions,
+      totalCount: completed.totalQuestions
+    }
+  });
+  assert.notEqual(
+    store.get('student_reward_v1_sister')?.daily?.[todayKey()]?.claims?.grammarChallenge?.status,
+    'pending',
+    'the simulated in-player reward failure must reach home reconciliation'
+  );
 
   setStage('reading completed layout');
   const layout = await page.evaluate(() => {
@@ -277,19 +297,30 @@ try {
       horizontalOverflow: doc.documentElement.scrollWidth > doc.documentElement.clientWidth + 1,
       verticalOverflow: doc.documentElement.scrollHeight > doc.documentElement.clientHeight + 1,
       width: win.innerWidth,
-      height: win.innerHeight
+      height: win.innerHeight,
+      homeButtonText: doc.getElementById('continueButton')?.textContent || '',
+      homeButtonHidden: doc.getElementById('continueButton')?.hidden
     };
   });
   assert.ok(layout);
   assert.equal(layout.horizontalOverflow, false);
   assert.equal(layout.verticalOverflow, false);
   assert.ok(layout.width > layout.height);
+  assert.equal(layout.homeButtonText, '回首页');
+  assert.equal(layout.homeButtonHidden, false);
   await page.waitForTimeout(100);
   assert.equal(attempts('sister').length, 1);
-  setStage('closing completed challenge');
-  await closeChallenge();
+  setStage('returning home from completed challenge');
+  await frame.locator('#continueButton').click();
+  await page.waitForFunction(() => document.getElementById('grammarChallengeFrame')?.getAttribute('src') === 'about:blank');
   assert.equal(attempts('sister').length, 1);
   await page.waitForFunction(() => document.querySelector('[data-reward-source="grammarChallenge"]')?.dataset.rewardState === 'pending');
+  const rewardRecord = store.get('student_reward_v1_sister');
+  assert.equal(rewardRecord.daily[todayKey()].claims.grammarChallenge.amount, 5);
+  await page.evaluate(() => {
+    window.sbSet = window.__grammarRewardTestOriginalSbSet;
+    delete window.__grammarRewardTestOriginalSbSet;
+  });
   await page.locator('.student-reward-chest[data-reward-source="grammarChallenge"]').click();
   await waitFor(() => store.get('student_reward_v1_sister')?.daily?.[todayKey()]?.claims?.grammarChallenge?.status === 'claimed', 'grammar reward chest claim was not saved');
   await page.waitForFunction(() => document.querySelector('[data-reward-source="grammarChallenge"]')?.dataset.rewardState === 'claimed');
