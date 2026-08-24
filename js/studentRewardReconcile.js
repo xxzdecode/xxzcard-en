@@ -36,6 +36,21 @@
     return result && result.ok !== false;
   }
 
+  function grammarRewardAmount(student, record) {
+    let score = typeof record?.score === 'number' && Number.isFinite(record.score)
+      ? record.score
+      : null;
+    const correct = Number(record?.correctCount);
+    const total = Number(record?.totalCount);
+    if (score === null && Number.isFinite(correct) && Number.isFinite(total) && total > 0) {
+      score = (correct / total) * 100;
+    }
+    if (score !== null && typeof root.StudentRewards?.challengeRewardAmount === 'function') {
+      return root.StudentRewards.challengeRewardAmount(student, score, 5);
+    }
+    return 5;
+  }
+
   async function reconcileStudentRewards(user) {
     const getValue = typeof root.sbGetRemote === 'function'
       ? root.sbGetRemote.bind(root)
@@ -45,8 +60,9 @@
     const requestedStudent = root.isTeacher?.() ? '' : currentStudent();
     const today = todayKey();
     try {
-      const [adventure, classroom] = await Promise.all([
+      const [adventure, grammar, classroom] = await Promise.all([
         getValue(`vocab_adventure_v1_${student}`),
+        getValue(`grammar_challenge_daily_v1_${student}`),
         getValue(`classroom_practice_daily_v1_${student}`)
       ]);
       if (requestedStudent && currentStudent() !== requestedStudent) return false;
@@ -58,6 +74,16 @@
 
       const challengeOk = await reconcileVocabularyChallengeReward(student, adventure);
       if (requestedStudent && currentStudent() !== requestedStudent) return false;
+
+      const grammarToday = grammar && grammar[today];
+      if (grammarToday && grammarToday.status === 'completed' && grammarToday.rewardPending === true) {
+        await root.recordStudentRewardSource(
+          student,
+          'grammarChallenge',
+          grammarRewardAmount(student, grammarToday),
+          'set'
+        );
+      }
 
       const classroomToday = classroom && classroom[today];
       if (classroomToday && classroomToday.status === 'completed') {
