@@ -596,7 +596,14 @@
     }
     const selected = Array.isArray(response.selectedIndices) ? response.selectedIndices : [];
     const expected = inlineAnswerIndices(question);
-    if (question.type === 'order') return selected.length === expected.length && selected.every((value, index) => value === expected[index]);
+    if (question.type === 'order') {
+      const options = Array.isArray(question.options) ? question.options : [];
+      return equalStringArrays(
+        selected.map(index => options[index]),
+        expected.map(index => options[index]),
+        false
+      );
+    }
     if (question.type === 'multi') {
       return selected.length === expected.length && selected.every(value => expected.includes(value));
     }

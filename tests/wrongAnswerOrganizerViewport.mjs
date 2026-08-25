@@ -207,11 +207,7 @@ try {
   await page.locator('#screenWrongAnswerDetail .back-btn').click();
   await page.waitForSelector('#screenWrongAnswerDirectory.active');
   assert.equal(await page.locator('#wrongAnswerDirectoryStatus').textContent(), '按学生查看每天、每张卷子的批改记录。');
-  assert.equal(await page.locator('.wrong-answer-roadmap-card').count(), 1);
-  assert.deepEqual(
-    await page.locator('.wrong-answer-roadmap-card h3').allTextContents(),
-    ['整理错题集']
-  );
+  assert.equal(await page.locator('.wrong-answer-roadmap-card').count(), 0);
   assert.equal(await page.locator('.wrong-answer-weakness-donut__segment').count(), 1);
   assert.equal(await page.locator('.wrong-answer-weakness-donut__center strong').textContent(), '3');
   assert.equal(await page.locator('.wrong-answer-weakness-legend__item').textContent(), '句子结构3');
@@ -261,15 +257,13 @@ try {
   await phonePage.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
   await phonePage.waitForSelector('#screenWrongAnswerDirectory.active');
   await phonePage.waitForSelector('.wrong-answer-weakness-donut__segment');
-  assert.equal(await phonePage.locator('.wrong-answer-roadmap-card').count(), 1);
+  assert.equal(await phonePage.locator('.wrong-answer-roadmap-card').count(), 0);
   assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-  assert.deepEqual(
-    await phonePage.locator('.wrong-answer-roadmap-card').evaluateAll(cards => cards.map(card => ({
-      withinViewport: card.getBoundingClientRect().left >= 0 && card.getBoundingClientRect().right <= innerWidth,
-      textFits: card.scrollWidth <= card.clientWidth && card.scrollHeight <= card.clientHeight
-    }))),
-    [{ withinViewport: true, textFits: true }]
-  );
+  assert.equal(await phonePage.locator('.wrong-answer-weakness-panel').evaluate(node => (
+    node.getBoundingClientRect().left >= 0
+      && node.getBoundingClientRect().right <= innerWidth
+      && node.scrollWidth <= node.clientWidth
+  )), true);
   assert.equal(await phonePage.locator('.wrong-answer-weakness-donut__segment').count(), 1);
   await phonePage.screenshot({ path: path.join(resultDir, 'directory-393x852.png'), fullPage: true });
   await phonePage.locator('.wrong-answer-weakness-legend__item').tap();

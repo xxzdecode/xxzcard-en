@@ -92,12 +92,30 @@
     return true;
   }
 
+  function orderAnswerMatches(question, selectedIndices) {
+    if (!question || !Array.isArray(question.options) || !Array.isArray(selectedIndices)) return false;
+    const answers = Array.isArray(question.answer) ? question.answer : [question.answer];
+    const used = new Set();
+    const expectedIndices = answers.map(value => {
+      if (typeof value === 'number') return value;
+      const index = question.options.findIndex((option, optionIndex) => option === value && !used.has(optionIndex));
+      if (index >= 0) used.add(index);
+      return index;
+    });
+    if (selectedIndices.length !== expectedIndices.length || expectedIndices.some(index => index < 0)) return false;
+    return selectedIndices.every((selectedIndex, index) => (
+      validOptionIndex(question, selectedIndex)
+      && String(question.options[selectedIndex]) === String(question.options[expectedIndices[index]])
+    ));
+  }
+
   return Object.freeze({
     createInteractionState,
     isFrozen,
     selectOption,
     assignActiveOption,
     canSubmit,
-    beginSubmit
+    beginSubmit,
+    orderAnswerMatches
   });
 });

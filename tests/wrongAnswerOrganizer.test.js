@@ -283,8 +283,8 @@ const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf
 assert.match(html, /<h2>错题整理<\/h2>/);
 assert.match(html, /id="screenWrongAnswerDirectory"/);
 assert.match(html, /id="screenWrongAnswerDetail"/);
-assert.match(html, /<h2 id="wrongAnswerRoadmapHeading">让登记结果继续发挥作用<\/h2>/);
-assert.match(html, /<h3>整理错题集<\/h3>/);
+assert.match(html, /<h2 id="wrongAnswerRoadmapHeading">薄弱知识点分析<\/h2>/);
+assert.doesNotMatch(html, /整理错题集/);
 assert.match(html, /id="wrongAnswerWeaknessHeading">薄弱知识点<\/h3>/);
 assert.match(html, /wrong-answer-roadmap__status">每天 14:00 更新<\/span>/);
 assert.match(html, /id="wrongAnswerWeaknessChart"/);
@@ -301,7 +301,8 @@ assert.ok(
   'wrong answer organizer must occupy the final dashboard slot after the knowledge library'
 );
 assert.match(styles, /\.wrong-answer-directory-grid\s*\{[^}]*repeat\(2,/s);
-assert.match(styles, /\.wrong-answer-roadmap__grid\s*\{[^}]*minmax\(180px,/s);
+assert.match(styles, /\.wrong-answer-roadmap__grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+assert.doesNotMatch(styles, /\.wrong-answer-roadmap-card/);
 assert.match(styles, /\.wrong-answer-weakness-donut__segment/);
 assert.match(styles, /\.teacher-dashboard-entry-card--wrong-answers\s*\{\s*order:\s*6;/);
 assert.match(styles, /\.wrong-answer-question:has\(input:checked\)/);

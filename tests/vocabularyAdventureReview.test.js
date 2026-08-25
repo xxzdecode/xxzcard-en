@@ -203,6 +203,18 @@ assert.equal(review.gradeVocabularyAdventureReviewQuestion(missing, missing.answ
 const order = review.buildVocabularyAdventureReviewQuestion(context({ taskType: 'sentenceOrder' }));
 assert.equal(review.gradeVocabularyAdventureReviewQuestion(order, order.answer), true);
 assert.equal(review.gradeVocabularyAdventureReviewQuestion(order, [...order.answer].reverse()), false);
+const cleverOrder = {
+  ok: true,
+  interaction: 'order',
+  questionType: 'letterOrder',
+  tokens: [...'clever'].map((label, index) => ({ id: `${index}:${label}`, label })),
+  answer: [...'clever'].map((label, index) => `${index}:${label}`)
+};
+assert.equal(
+  review.gradeVocabularyAdventureReviewQuestion(cleverOrder, ['0:c', '1:l', '4:e', '3:v', '2:e', '5:r']),
+  true,
+  'visually identical repeated letters must be interchangeable'
+);
 
 const confirmation = review.buildVocabularyAdventureMeaningConfirmation(context());
 assert.equal(confirmation.ok, true);
