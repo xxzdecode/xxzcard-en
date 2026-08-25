@@ -501,8 +501,11 @@
     if (question.interaction === 'input') return normalizedAnswer(answer) === normalizedAnswer(question.answer);
     if (question.interaction === 'order') {
       const values = Array.isArray(answer) ? answer : [];
-      return values.length === question.answer.length
-        && values.every((value, index) => value === question.answer[index]);
+      const tokens = new Map((Array.isArray(question.tokens) ? question.tokens : []).map(token => [token.id, token.label]));
+      const visibleAnswer = values.map(id => tokens.get(id));
+      const expectedAnswer = (Array.isArray(question.answer) ? question.answer : []).map(id => tokens.get(id));
+      return visibleAnswer.length === expectedAnswer.length
+        && visibleAnswer.every((value, index) => value != null && value === expectedAnswer[index]);
     }
     return false;
   }

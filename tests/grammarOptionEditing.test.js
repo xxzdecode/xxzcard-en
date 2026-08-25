@@ -55,6 +55,19 @@ function question(type, extras = {}) {
 }
 
 {
+  const repeatedTokenOrder = question('order', {
+    options: ['but', 'plays', 'football', 'the piano', 'her brother', 'She', 'plays', ',', '.'],
+    answer: ['She', 'plays', 'the piano', ',', 'but', 'her brother', 'plays', 'football', '.']
+  });
+  assert.equal(
+    core.orderAnswerMatches(repeatedTokenOrder, [5, 6, 3, 7, 0, 4, 1, 2, 8]),
+    true,
+    'visually identical repeated word blocks must be interchangeable'
+  );
+  assert.equal(core.orderAnswerMatches(repeatedTokenOrder, [5, 6, 3, 7, 0, 4, 2, 1, 8]), false);
+}
+
+{
   const interaction = core.createInteractionState();
   const classify = question('classify');
   core.selectOption(classify, interaction, 0, false);

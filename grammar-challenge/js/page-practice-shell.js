@@ -148,9 +148,7 @@
         return item.options.every(option => state.interaction.assignments[option] === expected[option]);
       }
       if (item.type === 'order') {
-        const expected = answerIndices(item);
-        return state.interaction.selected.length === expected.length
-          && state.interaction.selected.every((value, index) => value === expected[index]);
+        return core.orderAnswerMatches(item, state.interaction.selected);
       }
       const selected = selectedValues(item);
       const expected = answerValues(item);

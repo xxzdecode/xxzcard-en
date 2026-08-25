@@ -234,6 +234,11 @@ assert.deepEqual(buildWeakSummary(legacyDailyOnly, 'sister').weakKpIds, []);
 
 assert.equal(inlineQuestionCorrect({ type: 'single', options: ['a', 'b'], answer: 'b' }, { selectedIndices: [1] }), true);
 assert.equal(inlineQuestionCorrect({ type: 'multi', options: ['a', 'b', 'c'], answer: ['a', 'c'] }, { selectedIndices: [0, 2] }), true);
+assert.equal(inlineQuestionCorrect({
+  type: 'order',
+  options: ['but', 'plays', 'football', 'the piano', 'her brother', 'She', 'plays', ',', '.'],
+  answer: ['She', 'plays', 'the piano', ',', 'but', 'her brother', 'plays', 'football', '.']
+}, { selectedIndices: [5, 6, 3, 7, 0, 4, 1, 2, 8] }), true);
 assert.equal(shellQuestionCorrect({ type: 'choice', mode: 'single', correctAnswer: ['Yes'] }, { answer: ['Yes'] }), true);
 assert.equal(shellQuestionCorrect({ type: 'order', correctAnswer: ['I', 'am', 'ready'] }, { answer: ['I', 'am', 'ready'] }), true);
 

@@ -223,7 +223,7 @@
         for (const [category, count] of Object.entries(config.round.quotas)) {
           picked.push(...shuffle(config.questions.filter((q) => q.category === category)).slice(0, count));
         }
-        return shuffle(picked);
+        return shuffle(picked).slice(0, config.round.size);
       }
       function answerIndices(question) {
         const answers = Array.isArray(question.answer) ? question.answer : [question.answer];

@@ -7,6 +7,19 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'js', 'courseware.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
+const coursewareFiles = fs.readdirSync(path.join(root, 'courseware')).filter(name => name.endsWith('.html'));
+coursewareFiles.forEach(name => {
+  const page = fs.readFileSync(path.join(root, 'courseware', name), 'utf8');
+  const match = page.match(/<script id="practice-data" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!match) return;
+  const config = JSON.parse(match[1]);
+  assert.equal(config.round.size, 15, `${name} should present 15 questions per classroom round`);
+  if (config.round.quotas && config.round.shuffle !== false) {
+    assert.match(page, /return shuffle\(picked\)\.slice\(0, config\.round\.size\);/,
+      `${name} should honor the configured round size after quota selection`);
+  }
+});
+
 const items = [
   { id: 'practice-a', title: '练习 A', description: '第一项', icon: 'book', tone: 'purple', path: 'a.html' },
   { id: 'practice-b', title: '练习 B', description: '第二项', icon: 'screen', tone: 'blue', path: 'b.html' }

@@ -305,8 +305,8 @@ test('adventure load failure shows an in-page retry that can recover', async () 
 });
 
 test('service worker keeps installation lean and leaves adventure modules on demand', () => {
-  assert.match(serviceWorkerSource, /xxzcard-app-shell-v93/);
-  assert.match(serviceWorkerSource, /xxzcard-runtime-v93/);
+  assert.match(serviceWorkerSource, /xxzcard-app-shell-v94/);
+  assert.match(serviceWorkerSource, /xxzcard-runtime-v94/);
   assert.match(serviceWorkerSource, /\.\/js\/vocabularyReview\.js/);
   assert.match(serviceWorkerSource, /\.\/js\/vocabularyLessonTaught\.js/);
   assert.doesNotMatch(serviceWorkerSource, /\.\/js\/vocabularyAdventurePlayer\.js/);

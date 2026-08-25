@@ -117,7 +117,7 @@
       const entry = requestedId ? catalog.find(item => item.id === requestedId) : catalog[0];
 
       if (params.get('adaptive') === '1') {
-        const adaptiveAssetVersion = 'adaptive-v2';
+        const adaptiveAssetVersion = 'adaptive-v3';
         let config = null;
         try { config = window.parent && window.parent.getAdaptiveGrammarFrameConfig?.(); } catch (_) {}
         if (!config || config.interactionMode !== 'challenge-locked' || !Array.isArray(config.questions)) {
