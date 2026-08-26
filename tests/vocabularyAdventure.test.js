@@ -459,6 +459,98 @@ assert.equal(
   'recovery must not replay stale queued states after a newer cursor replaces them'
 );
 
+const rewardPendingStorage = new Map();
+const rewardEvidenceAdapter = createVocabularyAdventureAdapter({
+  getCurrentUser: () => 'brother',
+  isTeacherUser: () => false,
+  visibleBatchesForCurrentUser: () => [],
+  commonBatchesOnly: value => value,
+  getValue: async () => null,
+  setValue: async () => true,
+  readPending: key => rewardPendingStorage.get(key) || null,
+  writePending: (key, value) => { rewardPendingStorage.set(key, value); return true; },
+  removePending: key => rewardPendingStorage.delete(key),
+  schedule: () => {},
+  rewardApi: {
+    challengeRewardAmount(user, score, maxAmount) {
+      const fullScore = user === 'brother' ? 80 : 100;
+      return Math.max(0, Math.min(maxAmount, Math.round((score / fullScore) * maxAmount)));
+    }
+  },
+  warn: () => {}
+});
+const yesterday = '2026-07-27';
+await rewardEvidenceAdapter.loadVocabularyAdventureState('brother', { requireRemote: true });
+await rewardEvidenceAdapter.queueVocabularyAdventureState('brother', {
+  version: 1,
+  words: {},
+  session: null,
+  challengeDaily: {
+    date: yesterday,
+    attempts: 1,
+    bestScore: 80,
+    rewardSettlement: {
+      version: 2,
+      source: 'vocabularyChallenge',
+      date: yesterday,
+      target: 10,
+      status: 'settled',
+      awarded: 10
+    }
+  }
+});
+await rewardEvidenceAdapter.queueVocabularyAdventureState('brother', {
+  version: 1,
+  words: {},
+  session: null,
+  challengeDaily: { date: TODAY, attempts: 0, bestScore: 0 },
+  challengeSession: {
+    date: TODAY,
+    attemptIndex: 1,
+    status: 'active',
+    cursor: 0,
+    correctCount: 0,
+    startedAt: `${TODAY}T08:55:00.000Z`
+  }
+});
+const firstTodayEnvelope = JSON.parse([...rewardPendingStorage.values()][0]);
+assert.equal(firstTodayEnvelope.state.challengeDaily.rewardSettlement, undefined);
+const firstTodayCompletion = {
+  version: 1,
+  words: {},
+  session: null,
+  challengeDaily: { date: TODAY, attempts: 1, bestScore: 80 },
+  challengeSession: {
+    date: TODAY,
+    attemptIndex: 1,
+    status: 'completed',
+    correctCount: 8,
+    completedAt: `${TODAY}T09:00:00.000Z`
+  }
+};
+await rewardEvidenceAdapter.queueVocabularyAdventureState('brother', firstTodayCompletion);
+const secondTodayAttempt = {
+  version: 1,
+  words: {},
+  session: null,
+  challengeDaily: { date: TODAY, attempts: 1, bestScore: 80 },
+  challengeSession: {
+    date: TODAY,
+    attemptIndex: 2,
+    status: 'active',
+    cursor: 0,
+    correctCount: 0,
+    startedAt: `${TODAY}T09:05:00.000Z`
+  }
+};
+await rewardEvidenceAdapter.queueVocabularyAdventureState('brother', secondTodayAttempt);
+const rewardEnvelope = JSON.parse([...rewardPendingStorage.values()][0]);
+assert.equal(rewardEnvelope.state.challengeDaily.rewardSettlement.date, TODAY);
+assert.equal(rewardEnvelope.state.challengeDaily.rewardSettlement.target, 10);
+assert.equal(rewardEnvelope.state.challengeDaily.rewardSettlement.status, 'pending');
+assert.equal(rewardEnvelope.state.challengeDaily.completions.length, 1);
+assert.equal(rewardEnvelope.state.challengeDaily.completions[0].transactionId, `vocabularyChallenge:brother:${TODAY}:attempt-1`);
+
 let prefetchedReads = 0;
 const prefetchedAdapter = createVocabularyAdventureAdapter({
   getCurrentUser: () => 'sister',

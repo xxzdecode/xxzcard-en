@@ -463,6 +463,34 @@ async function saveCompletedAndSettle(storage, user, state, previous) {
     assert.equal(storage.rows.get(settlement.rewardKey('sister')).daily[DATE].claims[SOURCE].amount, 10);
   }
 
+  // A completed marker from another day must never be copied into today's
+  // challengeDaily record. It can otherwise suppress or misdate today's
+  // reward when the first save of a new attempt contains no marker yet.
+  {
+    const yesterday = '2026-07-31';
+    const activeToday = challengeState(0, 'active');
+    const previous = {
+      challengeDaily: {
+        date: yesterday,
+        rewardSettlement: {
+          version: 2,
+          source: SOURCE,
+          date: yesterday,
+          target: 10,
+          status: 'settled',
+          awarded: 10
+        }
+      }
+    };
+    const prepared = settlement.prepareAdventureStateForVocabularyChallengeSave(
+      activeToday,
+      previous,
+      { user: 'brother', rewardApi }
+    );
+    assert.equal(prepared.challengeDaily.date, DATE);
+    assert.equal(prepared.challengeDaily.rewardSettlement, undefined);
+  }
+
   const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'studentVocabularyRewardSettlement.js'), 'utf8');
   const adapterSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'vocabularyAdventure.js'), 'utf8');
   const reconcileSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'studentRewardReconcile.js'), 'utf8');

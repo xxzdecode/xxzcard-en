@@ -161,6 +161,8 @@
     const next = clone(plainObject(nextValue) ? nextValue : {});
     const previousMarker = markerFromState(previousValue);
     const nextMarker = markerFromState(next);
+    const nextDaily = plainObject(next.challengeDaily) ? next.challengeDaily : {};
+    const nextDate = localDate(nextDaily.date) ? nextDaily.date : '';
     const user = normalizeUser(settings.user);
     const challenge = completedChallengeFacts(next, user);
     const previousCompletions = completionFacts(previousValue, user).filter(item => !item.legacy);
@@ -169,7 +171,12 @@
     [...previousCompletions, ...nextCompletions, ...(challenge ? [challenge] : [])].forEach(item => {
       completions.set(item.transactionId, item);
     });
-    let marker = nextMarker || previousMarker;
+    // A settled/blocked marker only describes its own reward day. Carrying it
+    // into a new challenge day makes the new completion look settled already
+    // and can send reconciliation back to yesterday. Same-day markers are
+    // still preserved so a second attempt cannot duplicate or lose a reward.
+    let marker = nextMarker
+      || (previousMarker && previousMarker.date === nextDate ? previousMarker : null);
 
     if (challenge) {
       const rewardApi = rewardApiFrom(settings);
