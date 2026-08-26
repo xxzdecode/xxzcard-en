@@ -77,7 +77,7 @@
         && typeof overrides.getRemoteValue !== 'function') {
       dependencies.getRemoteValue = overrides.getValue;
     }
-    const rewardMarkerCache = new Map();
+    const rewardEvidenceCache = new Map();
     const pendingFlushes = new Map();
 
     function pendingStateKey(user) {
@@ -182,15 +182,51 @@
       return pool.find(candidate => candidate.key === key) || null;
     }
 
-    function cacheRewardMarker(user, value) {
+    function rewardEvidenceState(user, value) {
       const settlement = rewardSettlementApi();
-      if (!settlement || typeof settlement.markerFromState !== 'function') return;
-      rewardMarkerCache.set(user, settlement.markerFromState(value));
+      const daily = value && typeof value.challengeDaily === 'object' && value.challengeDaily
+        ? value.challengeDaily
+        : null;
+      const date = daily && /^\d{4}-\d{2}-\d{2}$/.test(String(daily.date || ''))
+        ? String(daily.date)
+        : '';
+      if (!settlement || !date || typeof settlement.markerFromState !== 'function') return null;
+      const marker = settlement.markerFromState(value);
+      const completions = typeof settlement.completionFacts === 'function'
+        ? settlement.completionFacts(value, user).filter(item => item && item.date === date && item.legacy !== true)
+        : [];
+      return {
+        challengeDaily: {
+          date,
+          ...(marker && marker.date === date ? { rewardSettlement: marker } : {}),
+          ...(completions.length ? { completions: completions.slice(-4) } : {})
+        }
+      };
     }
 
-    function previousRewardState(user) {
-      const marker = rewardMarkerCache.get(user);
-      return marker ? { challengeDaily: { rewardSettlement: marker } } : null;
+    function cacheRewardEvidence(user, value) {
+      const settlement = rewardSettlementApi();
+      let evidence = rewardEvidenceState(user, value);
+      if (!settlement || !evidence) return;
+      const previous = rewardEvidenceCache.get(user);
+      if (previous && previous.challengeDaily?.date === evidence.challengeDaily.date
+          && typeof settlement.prepareAdventureStateForVocabularyChallengeSave === 'function') {
+        evidence = rewardEvidenceState(user, settlement.prepareAdventureStateForVocabularyChallengeSave(
+          evidence,
+          previous,
+          { user, rewardApi: typeof dependencies.rewardApi === 'function'
+            ? dependencies.rewardApi()
+            : dependencies.rewardApi }
+        )) || evidence;
+      }
+      rewardEvidenceCache.set(user, evidence);
+    }
+
+    function previousRewardState(user, value) {
+      const current = rewardEvidenceState(user, value);
+      const previous = rewardEvidenceCache.get(user);
+      if (!current || !previous || previous.challengeDaily?.date !== current.challengeDaily.date) return null;
+      return JSON.parse(JSON.stringify(previous));
     }
 
     async function loadVocabularyAdventureState(user, options) {
@@ -203,7 +239,7 @@
         delete root.__vocabularyAdventurePrefetchedState;
       } else if (!requireRemote && prefetched && prefetched.user === user) {
         delete root.__vocabularyAdventurePrefetchedState;
-        cacheRewardMarker(user, prefetched.state);
+        cacheRewardEvidence(user, prefetched.state);
         return core.normalizeVocabularyAdventureState(prefetched.state);
       }
       const getter = requireRemote
@@ -216,19 +252,19 @@
         if (!pending) throw error;
         setSyncStatus('pending');
         flushPendingVocabularyAdventureState(user).catch(() => {});
-        cacheRewardMarker(user, pending.state);
+        cacheRewardEvidence(user, pending.state);
         return pending.state;
       }
       const remote = core.normalizeVocabularyAdventureState(raw);
       if (pending && pendingStateIsNewer(pending.state, remote)) {
         setSyncStatus('pending');
         flushPendingVocabularyAdventureState(user).catch(() => {});
-        cacheRewardMarker(user, pending.state);
+        cacheRewardEvidence(user, pending.state);
         return pending.state;
       }
       if (pending) removePendingEnvelope(user);
       setSyncStatus('');
-      cacheRewardMarker(user, remote);
+      cacheRewardEvidence(user, remote);
       return remote;
     }
 
@@ -243,10 +279,10 @@
           && typeof settlement.prepareAdventureStateForVocabularyChallengeSave === 'function') {
           normalized = settlement.prepareAdventureStateForVocabularyChallengeSave(
             normalized,
-            previousRewardState(user),
+            previousRewardState(user, normalized),
             { user }
           );
-          cacheRewardMarker(user, normalized);
+          cacheRewardEvidence(user, normalized);
         }
 
         const setter = settings.background ? dependencies.setBackgroundValue : dependencies.setValue;
@@ -267,7 +303,7 @@
             setValue: settings.background ? dependencies.setBackgroundValue : dependencies.setValue,
             reportError: settings.background ? dependencies.warn : dependencies.reportStorageError
           });
-          if (result && result.adventureState) cacheRewardMarker(user, result.adventureState);
+          if (result && result.adventureState) cacheRewardEvidence(user, result.adventureState);
           if (result && result.ok === false) {
             dependencies.warn('Vocabulary challenge reward pending retry', result.code || result.error || result);
           }
@@ -320,11 +356,11 @@
       if (settlement && typeof settlement.prepareAdventureStateForVocabularyChallengeSave === 'function') {
         normalized = settlement.prepareAdventureStateForVocabularyChallengeSave(
           normalized,
-          previousRewardState(user),
+          previousRewardState(user, normalized),
           { user }
         );
       }
-      cacheRewardMarker(user, normalized);
+      cacheRewardEvidence(user, normalized);
       if (!writePendingEnvelope(user, normalized)) {
         return saveVocabularyAdventureState(user, normalized);
       }
