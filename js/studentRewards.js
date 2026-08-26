@@ -562,10 +562,10 @@
         const reward = document.createElement('em');
         reward.id = 'grammarChallengeHomeReward';
         reward.className = 'student-home-card__reward';
-        reward.textContent = '预计 5 金币';
+        reward.textContent = '最高 5 金币';
         grammarCopy.appendChild(reward);
       }
-      grammarEntry?.setAttribute('aria-label', '语法挑战，15题综合复习，近期8题加历史7题，完成可领取5金币');
+      grammarEntry?.setAttribute('aria-label', '语法挑战，15题综合复习，近期8题加历史7题，按成绩最高可领取5金币');
     }
 
     function renderStudentIdentity(user) {
@@ -1072,7 +1072,13 @@
       const wrapped = async function wrappedStudentCoursewareCompleted(...args) {
         const result = await original.apply(this, args);
         const user = currentUserValue();
-        if (['sister', 'brother'].includes(user)) await recordSource(user, 'classroomPractice', SOURCE_MAX.classroomPractice, 'set');
+        if (['sister', 'brother'].includes(user) && result && result.status === 'completed') {
+          const rawScore = Number(result.score);
+          const rewardAmount = Number.isFinite(rawScore)
+            ? challengeRewardAmount(user, rawScore, SOURCE_MAX.classroomPractice)
+            : SOURCE_MAX.classroomPractice;
+          await recordSource(user, 'classroomPractice', rewardAmount, 'max');
+        }
         return result;
       };
       wrapped.__studentRewardWrapped = true;

@@ -175,7 +175,7 @@
           : '今日内容已准备';
     }
     if (classroom.entry) {
-      classroom.entry.setAttribute('aria-label', `随堂练习，${routeLabel(classroomRoute, '今日新课')}，一天一次，完成可领取10金币`);
+      classroom.entry.setAttribute('aria-label', `随堂练习，${routeLabel(classroomRoute, '今日新课')}，一天一次，按成绩最高可领取10金币`);
     }
 
     setEntryState(grammar.entry, 'ready', false);

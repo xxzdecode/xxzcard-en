@@ -14,6 +14,11 @@ coursewareFiles.forEach(name => {
   if (!match) return;
   const config = JSON.parse(match[1]);
   assert.equal(config.round.size, 15, `${name} should present 15 questions per classroom round`);
+  assert.match(
+    page,
+    /首次正确|一次答对|正确 \$\{first\}/,
+    `${name} should expose a first-try result for proportional rewards`
+  );
   if (config.round.quotas && config.round.shuffle !== false) {
     assert.match(page, /return shuffle\(picked\)\.slice\(0, config\.round\.size\);/,
       `${name} should honor the configured round size after quota selection`);
@@ -95,8 +100,30 @@ vm.runInContext(source, context);
   assert.match(alerts.at(-1), /一天只能完成一项/);
   assert.equal(elements.coursewareFrame.src, 'a.html');
 
-  await context.markStudentCoursewareCompleted();
+  const scoredComplete = {
+    getElementById: id => {
+      if (id === 'completionDialog') {
+        return { dataset: { complete: 'true' }, hasAttribute: () => true, textContent: '' };
+      }
+      if (id === 'completionText') {
+        return { textContent: '本轮完成。首次正确 6 / 15，最终正确 15 / 15。' };
+      }
+      return null;
+    },
+    querySelector: () => null
+  };
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(context.coursewareCompletionResult(scoredComplete))),
+    { correctCount: 6, totalCount: 15, score: 40 }
+  );
+
+  const completed = await context.markStudentCoursewareCompleted(scoredComplete);
+  assert.equal(completed.status, 'completed');
+  assert.equal(completed.correctCount, 6);
+  assert.equal(completed.totalCount, 15);
+  assert.equal(completed.score, 40);
   assert.equal(records.classroom_practice_daily_v1_sister['2026-07-30'].status, 'completed');
+  assert.equal(records.classroom_practice_daily_v1_sister['2026-07-30'].score, 40);
 
   await context.openCourseware('practice-a');
   assert.match(alerts.at(-1), /今天的随堂练习已经完成/);
@@ -106,6 +133,19 @@ vm.runInContext(source, context);
     querySelector: () => null
   };
   assert.equal(context.coursewareDocumentIsComplete(standardComplete), true);
+
+  const legacyFirstTry = {
+    getElementById: id => {
+      if (id === 'completionStats') return { textContent: '一次答对 6 题｜需要回顾 8 题' };
+      if (id === 'progressText') return { textContent: '14 / 14' };
+      return null;
+    },
+    querySelector: () => null
+  };
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(context.coursewareCompletionResult(legacyFirstTry))),
+    { correctCount: 6, totalCount: 14, score: 43 }
+  );
 
   context.currentUser = 'teacher';
   const writesBeforeTeacher = JSON.stringify(records);

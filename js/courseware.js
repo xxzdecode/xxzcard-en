@@ -167,19 +167,69 @@ function coursewareDocumentIsComplete(doc) {
   return Boolean(finishTitle && finishTitle.textContent.includes('全部完成'));
 }
 
-async function markStudentCoursewareCompleted() {
-  if (isTeacher() || studentCoursewareCompletionSaving || !activeCoursewareId) return;
+function normalizeCoursewareCompletionResult(correctValue, totalValue) {
+  const correctCount = Math.max(0, Math.round(Number(correctValue) || 0));
+  const totalCount = Math.max(0, Math.round(Number(totalValue) || 0));
+  if (!totalCount) return null;
+  const boundedCorrect = Math.min(correctCount, totalCount);
+  return {
+    correctCount: boundedCorrect,
+    totalCount,
+    score: Math.round((boundedCorrect / totalCount) * 100)
+  };
+}
+
+function coursewareCompletionResult(doc) {
+  if (!doc) return null;
+  const dialog = doc.getElementById?.('completionDialog');
+  const datasetResult = normalizeCoursewareCompletionResult(
+    dialog?.dataset?.rewardCorrect,
+    dialog?.dataset?.rewardTotal
+  );
+  if (datasetResult) return datasetResult;
+
+  const resultNodes = [
+    doc.getElementById?.('completionText'),
+    doc.getElementById?.('completionStats'),
+    doc.getElementById?.('finishSummary'),
+    dialog,
+    doc.querySelector?.('.finish')
+  ].filter(Boolean);
+  const resultText = resultNodes.map(node => String(node.textContent || '')).join(' ');
+  const ratioMatch = resultText.match(/(?:首次正确|一次答对|正确|答对|已完成)\s*(\d+)\s*(?:题\s*)?[\/／]\s*(\d+)/);
+  if (ratioMatch) return normalizeCoursewareCompletionResult(ratioMatch[1], ratioMatch[2]);
+
+  const firstTryMatch = resultText.match(/(?:首次正确|一次答对)\s*(\d+)\s*题/);
+  if (!firstTryMatch) return null;
+  const progressNodes = [
+    doc.getElementById?.('progressText'),
+    doc.getElementById?.('progressPill'),
+    doc.getElementById?.('questionCount')
+  ].filter(Boolean);
+  const progressText = progressNodes.map(node => String(node.textContent || '')).join(' ');
+  const totalMatch = progressText.match(/\d+\s*[\/／]\s*(\d+)/);
+  return totalMatch
+    ? normalizeCoursewareCompletionResult(firstTryMatch[1], totalMatch[1])
+    : null;
+}
+
+async function markStudentCoursewareCompleted(doc) {
+  if (isTeacher() || studentCoursewareCompletionSaving || !activeCoursewareId) return null;
   const completedCoursewareId = activeCoursewareId;
   studentCoursewareCompletionSaving = true;
   try {
     const record = await loadStudentClassroomPracticeRecord();
     if (record && record.practiceId === completedCoursewareId && record.status !== 'completed') {
-      await saveStudentClassroomPracticeRecord({
+      const result = coursewareCompletionResult(doc);
+      const completedRecord = {
         ...record,
         status: 'completed',
-        completedAt: new Date().toISOString()
-      });
+        completedAt: new Date().toISOString(),
+        ...(result || {})
+      };
+      return await saveStudentClassroomPracticeRecord(completedRecord) ? completedRecord : null;
     }
+    return record && record.practiceId === completedCoursewareId ? record : null;
   } finally {
     studentCoursewareCompletionSaving = false;
   }
@@ -203,7 +253,7 @@ function handleCoursewareFrameLoad() {
     if (!coursewareDocumentIsComplete(doc)) return;
     if (coursewareCompletionObserver) coursewareCompletionObserver.disconnect();
     coursewareCompletionObserver = null;
-    markStudentCoursewareCompleted();
+    markStudentCoursewareCompleted(doc);
   };
   check();
   if (typeof MutationObserver === 'function' && !coursewareDocumentIsComplete(doc)) {
