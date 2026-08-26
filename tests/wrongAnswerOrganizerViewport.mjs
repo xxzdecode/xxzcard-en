@@ -86,7 +86,8 @@ const state = new Map([
   ['assessment_catalog_v1', structuredClone(catalog)],
   ['assessment_grading_v1_sister', { schema_version: 1, student_id: 'sister', records: {} }],
   ['assessment_grading_v1_brother', { schema_version: 1, student_id: 'brother', records: {} }],
-  ['assessment_weakness_view_v1', structuredClone(weaknessView)]
+  ['assessment_weakness_view_v1', structuredClone(weaknessView)],
+  ['parent_assessment_media_v1', { schema_version: 1, records: {} }]
 ]);
 const posts = [];
 
@@ -172,6 +173,18 @@ try {
 
   await page.locator('#teacherLatestAssessmentEntry').click();
   await page.waitForSelector('#screenWrongAnswerDetail.active');
+  assert.equal(await page.locator('.wrong-answer-media__upload').isVisible(), true);
+  await page.locator('#wrongAnswerMediaInput').setInputFiles({
+    name: 'gavin-paper.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9WlY4AAAAASUVORK5CYII=', 'base64')
+  });
+  await page.waitForFunction(() => document.getElementById('wrongAnswerMediaStatus')?.textContent === '已上传 1 张');
+  const savedMediaPost = posts.find(post => post.key === 'parent_assessment_media_item_v1_paper-daily-2026-08-06-brother-sentence-parts-01-brother');
+  assert.ok(savedMediaPost, 'paper photo POST was not sent');
+  assert.equal(savedMediaPost.value.student_id, 'brother');
+  assert.equal(savedMediaPost.value.paper_id, 'paper-daily-2026-08-06-brother-sentence-parts-01-brother');
+  assert.equal(savedMediaPost.value.photos.length, 1);
   assert.equal(await page.locator('.wrong-answer-section').count(), 3);
   assert.deepEqual(await page.locator('.wrong-answer-section').evaluateAll(nodes => nodes.map(node => node.open)), [true, true, true]);
   assert.deepEqual(
@@ -256,6 +269,7 @@ try {
   await phonePage.waitForFunction(() => document.body.classList.contains('is-teacher'));
   await phonePage.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
   await phonePage.waitForSelector('#screenWrongAnswerDirectory.active');
+  assert.equal(await phonePage.locator('.wrong-answer-media__upload').isVisible(), false);
   await phonePage.waitForSelector('.wrong-answer-weakness-donut__segment');
   assert.equal(await phonePage.locator('.wrong-answer-roadmap-card').count(), 0);
   assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
@@ -273,6 +287,7 @@ try {
   await phonePage.screenshot({ path: path.join(resultDir, 'directory-tooltip-393x852.png'), fullPage: true });
   await phonePage.locator('#screenWrongAnswerDirectory [data-paper-id="paper-daily-2026-08-06-brother-sentence-parts-01-brother"]').click();
   await phonePage.waitForSelector('#screenWrongAnswerDetail.active');
+  assert.equal(await phonePage.locator('.wrong-answer-media__upload').isVisible(), true);
   assert.ok(await phonePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   assert.deepEqual(
     await phonePage.locator('#wrongAnswerTeacherNote, #wrongAnswerSaveButton').evaluateAll(nodes => nodes.map(node => ({

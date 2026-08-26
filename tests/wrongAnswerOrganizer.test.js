@@ -177,6 +177,19 @@ assert.equal(stale.record, null);
 assert.equal(stale.stale, true);
 assert.equal(api.paperProgressLabel(revisedDaily, stale), '映射已更新 · 共 5 小问');
 
+assert.equal(api.mediaItemKey('paper:sister'), 'parent_assessment_media_item_v1_paper%3Asister');
+const mediaItem = api.normalizeMediaItem({
+  paper_id: daily.paperId,
+  student_id: 'brother',
+  photos: [{ id: 'one', data_url: 'data:image/webp;base64,AAAA' }]
+}, daily);
+assert.equal(mediaItem.photos.length, 1);
+assert.equal(api.normalizeMediaItem({ paper_id: daily.paperId, student_id: 'sister', photos: [] }, daily), null);
+const mediaIndex = api.mergeMediaIndex(null, daily, 1, '2026-08-26T10:00:00.000Z');
+assert.equal(mediaIndex.records[daily.paperId].student_id, 'brother');
+assert.equal(mediaIndex.records[daily.paperId].photo_count, 1);
+assert.equal(api.mergeMediaIndex(mediaIndex, daily, 0).records[daily.paperId], undefined);
+
 const revisedHashDaily = { ...daily, mapHash: 'sha256:daily-map-v2' };
 const staleHash = api.recordForPaper(store, revisedHashDaily);
 assert.equal(staleHash.record, null);
@@ -291,6 +304,9 @@ assert.match(html, /id="wrongAnswerWeaknessChart"/);
 assert.match(html, /data-weakness-student="sister"/);
 assert.match(html, /data-weakness-student="brother"/);
 assert.match(html, /id="wrongAnswerTeacherNote"/);
+assert.match(html, /id="wrongAnswerMediaInput"[^>]*type="file"[^>]*accept="image\/\*"/);
+assert.ok(html.indexOf('id="wrongAnswerMediaInput"') > html.indexOf('id="screenWrongAnswerDetail"'));
+assert.ok(html.indexOf('id="wrongAnswerMediaInput"') < html.indexOf('id="screenWordTaskMenu"'));
 assert.match(html, /补充说明（可选）/);
 assert.match(html, /onclick="markWrongAnswerPaperAllCorrect\(\)"[^>]*>全对<\/button>/);
 assert.match(html, /onclick="clearWrongAnswerSelection\(\)"[^>]*>清空<\/button>/);
