@@ -35,6 +35,8 @@ assert.equal(rewards.challengeRewardAmount('sister', 80, 5), 4);
 assert.equal(rewards.challengeRewardAmount('brother', 80, 5), 5);
 assert.equal(rewards.challengeRewardAmount('brother', 40, 5), 3);
 assert.equal(rewards.challengeRewardAmount('brother', 0, 5), 0);
+assert.equal(rewards.challengeRewardAmount('sister', 40, 10), 4, 'sister 6/15 earns 4 of 10 coins');
+assert.equal(rewards.challengeRewardAmount('brother', 40, 10), 5, 'brother 6/15 earns 5 of 10 coins');
 
 const migrated = rewards.normalizeRewardRecord({
   version: 2,
@@ -233,6 +235,8 @@ assert.doesNotMatch(source, /characterData\s*:\s*true/, 'reward observers must n
 assert.match(source, /vocabularyAdventureBody/);
 assert.match(source, /attributeFilter:\s*\['data-complete'\]/);
 assert.match(source, /challengeRewardAmount\(user, rawScore, SOURCE_MAX\.grammarChallenge\)/);
+assert.match(source, /challengeRewardAmount\(user, rawScore, SOURCE_MAX\.classroomPractice\)/);
+assert.match(source, /recordSource\(user, 'classroomPractice', rewardAmount, 'max'\)/);
 assert.match(source, /grammarChallenge:\s*'grammarChallengeHomeStatus'/);
 assert.match(source, /recordSource\(user, 'grammarChallenge', rewardAmount, 'set', \{ render: false \}\)/);
 assert.match(dailyLearningRouteSource, /StudentRewards\.challengeRewardAmount\(user, result\.score, 5\)/);

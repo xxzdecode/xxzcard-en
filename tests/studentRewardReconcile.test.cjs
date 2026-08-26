@@ -12,17 +12,17 @@ function todayKey() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-async function runScenario(grammarToday) {
+async function runScenario(grammarToday, classroomToday = null, user = 'sister') {
   const calls = [];
   const today = todayKey();
   const rows = {
-    vocab_adventure_v1_sister: null,
-    grammar_challenge_daily_v1_sister: grammarToday ? { [today]: grammarToday } : {},
-    classroom_practice_daily_v1_sister: {}
+    [`vocab_adventure_v1_${user}`]: null,
+    [`grammar_challenge_daily_v1_${user}`]: grammarToday ? { [today]: grammarToday } : {},
+    [`classroom_practice_daily_v1_${user}`]: classroomToday ? { [today]: classroomToday } : {}
   };
   const context = {
     console,
-    currentUser: 'sister',
+    currentUser: user,
     document: {},
     StudentRewards,
     isTeacher: () => false,
@@ -37,7 +37,7 @@ async function runScenario(grammarToday) {
   };
   context.globalThis = context;
   vm.runInNewContext(source, context, { filename: 'studentRewardReconcile.js' });
-  await context.reconcileStudentRewards('sister');
+  await context.reconcileStudentRewards(user);
   return calls;
 }
 
@@ -67,6 +67,25 @@ async function runScenario(grammarToday) {
     totalCount: 10
   });
   assert.deepEqual(alreadySettled, []);
+
+  const sisterClassroom = await runScenario(null, {
+    status: 'completed',
+    score: 40,
+    correctCount: 6,
+    totalCount: 15
+  });
+  assert.deepEqual(sisterClassroom, [['sister', 'classroomPractice', 4, 'max']]);
+
+  const brotherClassroom = await runScenario(null, {
+    status: 'completed',
+    score: 40,
+    correctCount: 6,
+    totalCount: 15
+  }, 'brother');
+  assert.deepEqual(brotherClassroom, [['brother', 'classroomPractice', 5, 'max']]);
+
+  const legacyClassroom = await runScenario(null, { status: 'completed' });
+  assert.deepEqual(legacyClassroom, [['sister', 'classroomPractice', 10, 'max']]);
 
   console.log('student reward reconciliation tests passed');
 })().catch(error => {

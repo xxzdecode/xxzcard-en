@@ -36,7 +36,7 @@
     return result && result.ok !== false;
   }
 
-  function grammarRewardAmount(student, record) {
+  function scoredRewardAmount(student, record, maximum) {
     let score = typeof record?.score === 'number' && Number.isFinite(record.score)
       ? record.score
       : null;
@@ -46,9 +46,9 @@
       score = (correct / total) * 100;
     }
     if (score !== null && typeof root.StudentRewards?.challengeRewardAmount === 'function') {
-      return root.StudentRewards.challengeRewardAmount(student, score, 5);
+      return root.StudentRewards.challengeRewardAmount(student, score, maximum);
     }
-    return 5;
+    return maximum;
   }
 
   async function reconcileStudentRewards(user) {
@@ -80,14 +80,19 @@
         await root.recordStudentRewardSource(
           student,
           'grammarChallenge',
-          grammarRewardAmount(student, grammarToday),
+          scoredRewardAmount(student, grammarToday, 5),
           'set'
         );
       }
 
       const classroomToday = classroom && classroom[today];
       if (classroomToday && classroomToday.status === 'completed') {
-        await root.recordStudentRewardSource(student, 'classroomPractice', 10, 'set');
+        await root.recordStudentRewardSource(
+          student,
+          'classroomPractice',
+          scoredRewardAmount(student, classroomToday, 10),
+          'max'
+        );
       }
       return challengeOk;
     } catch (error) {
