@@ -11,6 +11,11 @@
   const CATALOG_KEY = 'assessment_catalog_v1';
   const GRADING_KEY_PREFIX = 'assessment_grading_v1_';
   const WEAKNESS_VIEW_KEY = 'assessment_weakness_view_v1';
+  const MEDIA_INDEX_KEY = 'parent_assessment_media_v1';
+  const MEDIA_ITEM_KEY_PREFIX = 'parent_assessment_media_item_v1_';
+  const MAX_MEDIA_PHOTOS = 4;
+  const MAX_MEDIA_DIMENSION = 1600;
+  const MAX_MEDIA_BYTES = 420 * 1024;
   const VERSION = 1;
   const WEAKNESS_COLORS = Object.freeze(['#7658ba', '#e78aa9', '#f0a45d', '#5fa7a0', '#6f8fd1', '#9b78b5']);
   const STUDENTS = Object.freeze([
@@ -289,6 +294,84 @@
       : text(item && item.displayLabel);
   }
 
+  function mediaItemKey(paperId) {
+    return MEDIA_ITEM_KEY_PREFIX + encodeURIComponent(text(paperId));
+  }
+
+  function normalizeMediaPhoto(value) {
+    const source = isObject(value) ? value : {};
+    const id = text(source.id);
+    const dataUrl = text(source.dataUrl || source.data_url);
+    if (!id || !/^data:image\/(?:webp|jpeg|png);base64,/i.test(dataUrl)) return null;
+    return {
+      id,
+      dataUrl,
+      name: text(source.name) || '卷子照片',
+      width: Math.max(0, Number(source.width) || 0),
+      height: Math.max(0, Number(source.height) || 0),
+      createdAt: text(source.createdAt || source.created_at)
+    };
+  }
+
+  function normalizeMediaItem(value, paper) {
+    const source = isObject(value) ? value : {};
+    const paperId = text(source.paperId || source.paper_id);
+    const student = studentId(source.studentId || source.student_id);
+    const expectedPaperId = text(paper && paper.paperId);
+    const expectedStudent = studentId(paper && paper.studentId);
+    if (expectedPaperId && paperId && paperId !== expectedPaperId) return null;
+    if (expectedStudent && student && student !== expectedStudent) return null;
+    return {
+      schemaVersion: Number(source.schemaVersion || source.schema_version) || VERSION,
+      paperId: paperId || expectedPaperId,
+      studentId: student || expectedStudent,
+      assessmentId: text(source.assessmentId || source.assessment_id || (paper && paper.assessmentId)),
+      photos: (Array.isArray(source.photos) ? source.photos : []).map(normalizeMediaPhoto).filter(Boolean).slice(0, MAX_MEDIA_PHOTOS),
+      updatedAt: text(source.updatedAt || source.updated_at)
+    };
+  }
+
+  function normalizeMediaIndex(value) {
+    const source = isObject(value) ? value : {};
+    const rawRecords = isObject(source.records) ? source.records : {};
+    const records = {};
+    Object.entries(rawRecords).forEach(([paperId, value]) => {
+      const record = isObject(value) ? value : {};
+      const id = text(record.paperId || record.paper_id || paperId);
+      const student = studentId(record.studentId || record.student_id);
+      const photoCount = Math.max(0, Math.min(MAX_MEDIA_PHOTOS, Number(record.photoCount || record.photo_count) || 0));
+      if (!id || !student || !photoCount) return;
+      records[id] = {
+        paperId: id,
+        studentId: student,
+        photoCount,
+        updatedAt: text(record.updatedAt || record.updated_at)
+      };
+    });
+    return {
+      schemaVersion: Number(source.schemaVersion || source.schema_version) || VERSION,
+      records,
+      updatedAt: text(source.updatedAt || source.updated_at)
+    };
+  }
+
+  function mergeMediaIndex(value, paper, photoCount, nowValue) {
+    const current = normalizeMediaIndex(value);
+    const now = text(nowValue) || new Date().toISOString();
+    const records = { ...current.records };
+    if (photoCount > 0) {
+      records[paper.paperId] = {
+        paper_id: paper.paperId,
+        student_id: paper.studentId,
+        photo_count: Math.min(MAX_MEDIA_PHOTOS, Math.max(0, Number(photoCount) || 0)),
+        updated_at: now
+      };
+    } else {
+      delete records[paper.paperId];
+    }
+    return { schema_version: VERSION, records, updated_at: now };
+  }
+
   function normalizeWeaknessItem(value) {
     const source = isObject(value) ? value : {};
     const weaknessId = text(source.weaknessId || source.weakness_id);
@@ -365,6 +448,8 @@
       catalog: normalizeCatalog(null),
       grading: { sister: normalizeGradingStore(null, 'sister'), brother: normalizeGradingStore(null, 'brother') },
       weaknessView: normalizeWeaknessView(null),
+      mediaIndex: normalizeMediaIndex(null),
+      activeMedia: null,
       activeWeaknessStudent: 'brother',
       topicTitles: new Map(),
       activePaper: null,
@@ -633,6 +718,7 @@
 
     function renderDetail(paper) {
       runtime.activePaper = paper;
+      runtime.activeMedia = null;
       const recordState = paperRecordState(paper);
       const selected = new Set(recordState.record ? recordState.record.wrongQuestionIds : []);
       setText('wrongAnswerPaperStudent', `${studentName(paper.studentId)} · ${paper.assessmentDate || '日期未标注'}`);
@@ -665,6 +751,202 @@
         : recordState.record
           ? `上次保存：错 ${recordState.record.wrongQuestionIds.length} / ${paper.totalQuestions} 小问`
           : '尚未保存');
+      renderMedia('正在读取照片…', true);
+    }
+
+    function setMediaStatus(message) {
+      setText('wrongAnswerMediaStatus', message);
+    }
+
+    function renderMedia(message, busy) {
+      const media = runtime.activeMedia;
+      const photos = media && Array.isArray(media.photos) ? media.photos : [];
+      const target = doc.getElementById('wrongAnswerMediaPhotos');
+      const input = doc.getElementById('wrongAnswerMediaInput');
+      setText('wrongAnswerMediaCount', `${photos.length} / ${MAX_MEDIA_PHOTOS}`);
+      if (target) {
+        target.replaceChildren();
+        if (!photos.length) {
+          const empty = doc.createElement('div');
+          empty.className = 'wrong-answer-media__empty';
+          empty.textContent = busy ? '正在读取…' : '还没有照片';
+          target.append(empty);
+        } else {
+          photos.forEach((photo, index) => {
+            const frame = doc.createElement('div');
+            frame.className = 'wrong-answer-media__photo';
+            const image = doc.createElement('img');
+            image.src = photo.dataUrl;
+            image.alt = `卷子照片 ${index + 1}`;
+            const remove = doc.createElement('button');
+            remove.type = 'button';
+            remove.className = 'wrong-answer-media__remove';
+            remove.setAttribute('aria-label', `删除第 ${index + 1} 张卷子照片`);
+            remove.textContent = '×';
+            remove.disabled = Boolean(busy);
+            remove.addEventListener('click', () => removeMediaPhoto(photo.id));
+            frame.append(image, remove);
+            target.append(frame);
+          });
+        }
+      }
+      if (input) input.disabled = Boolean(busy) || photos.length >= MAX_MEDIA_PHOTOS;
+      setMediaStatus(message != null ? message : photos.length >= MAX_MEDIA_PHOTOS ? '已达到 4 张上限' : `还可上传 ${MAX_MEDIA_PHOTOS - photos.length} 张`);
+    }
+
+    function imageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = root.URL.createObjectURL(file);
+        const image = new root.Image();
+        image.onload = () => {
+          root.URL.revokeObjectURL(url);
+          resolve(image);
+        };
+        image.onerror = () => {
+          root.URL.revokeObjectURL(url);
+          reject(new Error('无法读取这张图片'));
+        };
+        image.src = url;
+      });
+    }
+
+    function canvasBlob(canvas, type, quality) {
+      return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+    }
+
+    function blobDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new root.FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('图片转换失败'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function compressMediaFile(file) {
+      if (!file || !/^image\//i.test(file.type || '')) throw new Error('请选择图片文件');
+      const image = await imageFromFile(file);
+      const sourceWidth = Math.max(1, image.naturalWidth || image.width || 1);
+      const sourceHeight = Math.max(1, image.naturalHeight || image.height || 1);
+      const canvas = doc.createElement('canvas');
+      const context = canvas.getContext('2d', { alpha: false });
+      if (!context) throw new Error('当前浏览器无法处理图片');
+      let chosen = null;
+      for (const maxDimension of [MAX_MEDIA_DIMENSION, 1360, 1120]) {
+        const scale = Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight));
+        canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+        canvas.height = Math.max(1, Math.round(sourceHeight * scale));
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        for (const quality of [0.82, 0.7, 0.58]) {
+          const webp = await canvasBlob(canvas, 'image/webp', quality);
+          const blob = webp && webp.type === 'image/webp' ? webp : await canvasBlob(canvas, 'image/jpeg', quality);
+          if (!blob) continue;
+          chosen = { blob, width: canvas.width, height: canvas.height };
+          if (blob.size <= MAX_MEDIA_BYTES) break;
+        }
+        if (chosen && chosen.blob.size <= MAX_MEDIA_BYTES) break;
+      }
+      if (!chosen) throw new Error('图片压缩失败');
+      return {
+        id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        data_url: await blobDataUrl(chosen.blob),
+        name: text(file.name) || '卷子照片',
+        width: chosen.width,
+        height: chosen.height,
+        created_at: new Date().toISOString()
+      };
+    }
+
+    async function saveMediaItem(paper, photos) {
+      const now = new Date().toISOString();
+      const item = {
+        schema_version: VERSION,
+        paper_id: paper.paperId,
+        student_id: paper.studentId,
+        assessment_id: paper.assessmentId,
+        photos: photos.slice(0, MAX_MEDIA_PHOTOS).map(photo => ({
+          id: photo.id,
+          data_url: photo.dataUrl || photo.data_url,
+          name: photo.name,
+          width: photo.width,
+          height: photo.height,
+          created_at: photo.createdAt || photo.created_at
+        })),
+        updated_at: now
+      };
+      if (typeof root.sbSet !== 'function') throw new Error('照片存储不可用');
+      await root.sbSet(mediaItemKey(paper.paperId), item);
+      const remoteIndex = await readValue(MEDIA_INDEX_KEY, true);
+      const nextIndex = mergeMediaIndex(remoteIndex, paper, item.photos.length, now);
+      await root.sbSet(MEDIA_INDEX_KEY, nextIndex);
+      runtime.mediaIndex = normalizeMediaIndex(nextIndex);
+      runtime.activeMedia = normalizeMediaItem(item, paper);
+      return runtime.activeMedia;
+    }
+
+    async function loadActiveMedia(paper) {
+      try {
+        const value = await readValue(mediaItemKey(paper.paperId), true);
+        if (!runtime.activePaper || runtime.activePaper.paperId !== paper.paperId) return;
+        runtime.activeMedia = normalizeMediaItem(value, paper) || normalizeMediaItem(null, paper);
+        renderMedia();
+      } catch (_) {
+        if (!runtime.activePaper || runtime.activePaper.paperId !== paper.paperId) return;
+        runtime.activeMedia = normalizeMediaItem(null, paper);
+        renderMedia('照片暂时无法读取');
+      }
+    }
+
+    async function uploadMediaFiles(fileList) {
+      const paper = runtime.activePaper;
+      if (!paper || runtime.mediaPromise) return;
+      if (typeof root.canWriteCloudData === 'function' && !root.canWriteCloudData()) {
+        setMediaStatus('当前离线，无法上传照片');
+        return;
+      }
+      const existing = runtime.activeMedia || normalizeMediaItem(null, paper);
+      const available = MAX_MEDIA_PHOTOS - existing.photos.length;
+      const files = [...(fileList || [])].filter(file => /^image\//i.test(file.type || '')).slice(0, available);
+      if (!files.length) {
+        setMediaStatus(available ? '请选择图片文件' : '已达到 4 张上限');
+        return;
+      }
+      renderMedia(`正在处理 1 / ${files.length}…`, true);
+      runtime.mediaPromise = (async () => {
+        const additions = [];
+        for (let index = 0; index < files.length; index += 1) {
+          setMediaStatus(`正在处理 ${index + 1} / ${files.length}…`);
+          additions.push(await compressMediaFile(files[index]));
+        }
+        setMediaStatus('正在保存照片…');
+        const remote = normalizeMediaItem(await readValue(mediaItemKey(paper.paperId), true), paper) || normalizeMediaItem(null, paper);
+        await saveMediaItem(paper, [...remote.photos, ...additions].slice(0, MAX_MEDIA_PHOTOS));
+        renderMedia(`已上传 ${additions.length} 张`);
+      })().catch(error => {
+        console.warn('assessment media upload failed', error && (error.message || error));
+        if (typeof root.showStorageError === 'function' && /存储|offline|HTTP/i.test(String(error && error.message))) root.showStorageError(error);
+        renderMedia(error && error.message ? error.message : '上传失败，请重试');
+      }).finally(() => { runtime.mediaPromise = null; });
+      return runtime.mediaPromise;
+    }
+
+    async function removeMediaPhoto(photoId) {
+      const paper = runtime.activePaper;
+      if (!paper || runtime.mediaPromise) return;
+      if (typeof root.confirm === 'function' && !root.confirm('删除这张卷子照片？')) return;
+      renderMedia('正在删除…', true);
+      runtime.mediaPromise = (async () => {
+        const remote = normalizeMediaItem(await readValue(mediaItemKey(paper.paperId), true), paper) || normalizeMediaItem(null, paper);
+        await saveMediaItem(paper, remote.photos.filter(photo => photo.id !== photoId));
+        renderMedia('照片已删除');
+      })().catch(error => {
+        console.warn('assessment media delete failed', error && (error.message || error));
+        if (typeof root.showStorageError === 'function') root.showStorageError(error);
+        renderMedia('删除失败，请重试');
+      }).finally(() => { runtime.mediaPromise = null; });
+      return runtime.mediaPromise;
     }
 
     function paperById(paperId) {
@@ -685,12 +967,13 @@
       return value;
     }
 
-    function applyLoadedData(catalogValue, gradingValues, weaknessValue) {
+    function applyLoadedData(catalogValue, gradingValues, weaknessValue, mediaIndexValue) {
       runtime.catalog = normalizeCatalog(catalogValue);
       STUDENTS.forEach(student => {
         runtime.grading[student.id] = normalizeGradingStore(gradingValues[student.id], student.id);
       });
       runtime.weaknessView = normalizeWeaknessView(weaknessValue);
+      runtime.mediaIndex = normalizeMediaIndex(mediaIndexValue);
       renderHome();
       renderDirectory();
       renderWeaknessChart();
@@ -717,9 +1000,10 @@
         readValue(gradingKey('sister'), preferRemote),
         readValue(gradingKey('brother'), preferRemote),
         readValue(WEAKNESS_VIEW_KEY, preferRemote),
+        readValue(MEDIA_INDEX_KEY, preferRemote),
         loadTopicTitles()
-      ]).then(([catalog, sister, brother, weakness]) => {
-        applyLoadedData(catalog, { sister, brother }, weakness);
+      ]).then(([catalog, sister, brother, weakness, mediaIndex]) => {
+        applyLoadedData(catalog, { sister, brother }, weakness, mediaIndex);
         return runtime.catalog;
       }).finally(() => { runtime.loadPromise = null; });
       return runtime.loadPromise;
@@ -746,6 +1030,7 @@
       }
       renderDetail(paper);
       if (typeof root.showScreen === 'function') root.showScreen('screenWrongAnswerDetail');
+      loadActiveMedia(paper);
     }
 
     async function openLatest() {
@@ -804,6 +1089,7 @@
 
     function closeToTeacherHome() {
       runtime.activePaper = null;
+      runtime.activeMedia = null;
       if (typeof root.returnToTeacherHome === 'function') root.returnToTeacherHome();
       else if (typeof root.showScreen === 'function') root.showScreen('screenHome');
       loadAll(true);
@@ -811,6 +1097,7 @@
 
     function backToDirectory() {
       runtime.activePaper = null;
+      runtime.activeMedia = null;
       renderDirectory();
       setText(
         'wrongAnswerDirectoryStatus',
@@ -827,6 +1114,15 @@
     root.saveWrongAnswerGrading = () => saveCurrent(false);
     root.markWrongAnswerPaperAllCorrect = () => saveCurrent(true);
     root.refreshWrongAnswerOrganizerHome = () => loadAll(true);
+
+    const mediaInput = doc.getElementById('wrongAnswerMediaInput');
+    if (mediaInput) {
+      mediaInput.addEventListener('change', () => {
+        const files = [...(mediaInput.files || [])];
+        mediaInput.value = '';
+        uploadMediaFiles(files);
+      });
+    }
 
     doc.querySelectorAll('[data-weakness-student]').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -850,6 +1146,9 @@
     CATALOG_KEY,
     GRADING_KEY_PREFIX,
     WEAKNESS_VIEW_KEY,
+    MEDIA_INDEX_KEY,
+    MEDIA_ITEM_KEY_PREFIX,
+    MAX_MEDIA_PHOTOS,
     VERSION,
     normalizeCatalog,
     normalizeGradingStore,
@@ -860,6 +1159,10 @@
     latestPaper,
     paperProgressLabel,
     itemDisplayLabel,
+    mediaItemKey,
+    normalizeMediaItem,
+    normalizeMediaIndex,
+    mergeMediaIndex,
     normalizeWeaknessView,
     weaknessDonutSegments,
     install

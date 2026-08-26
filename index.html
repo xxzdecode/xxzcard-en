@@ -556,6 +556,18 @@
         <div class="wrong-answer-selection-count" aria-live="polite">
           已选 <span id="wrongAnswerSelectedCount">0</span> / <span id="wrongAnswerTotalCount">0</span> 小问
         </div>
+        <section class="wrong-answer-media" aria-labelledby="wrongAnswerMediaHeading">
+          <div class="wrong-answer-media__heading">
+            <h3 id="wrongAnswerMediaHeading">卷子照片</h3>
+            <span id="wrongAnswerMediaCount">0 / 4</span>
+          </div>
+          <div class="wrong-answer-media__photos" id="wrongAnswerMediaPhotos"></div>
+          <label class="wrong-answer-media__upload" for="wrongAnswerMediaInput">
+            <span>上传卷子照片</span>
+            <input id="wrongAnswerMediaInput" type="file" accept="image/*" multiple>
+          </label>
+          <p class="wrong-answer-media__status" id="wrongAnswerMediaStatus" role="status" aria-live="polite">可上传 4 张</p>
+        </section>
         <label class="wrong-answer-teacher-note" for="wrongAnswerTeacherNote">
           <span>补充说明（可选）</span>
           <textarea id="wrongAnswerTeacherNote" rows="5" maxlength="2000" placeholder="例如：大题三第1题——认为每个句子都必须有宾语。后续分析会优先参考这里。"></textarea>
