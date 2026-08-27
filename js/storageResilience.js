@@ -9,7 +9,10 @@
   'use strict';
 
   const DEFAULT_WRITE_TIMEOUT_MS = 12000;
-  const DEFAULT_READ_TIMEOUT_MS = 8000;
+  // The current main record is roughly 600 KB. Real Supabase reads have been
+  // observed just above ten seconds on otherwise-online connections, so an
+  // eight-second cutoff creates a false offline state on Apple WebKit.
+  const DEFAULT_READ_TIMEOUT_MS = 12000;
   const DEFAULT_RETRY_DELAYS_MS = Object.freeze([800, 1600, 3200]);
   const RETRYABLE_HTTP_STATUS = new Set([408, 425, 429]);
 

@@ -90,6 +90,7 @@ const state = new Map([
   ['parent_assessment_media_v1', { schema_version: 1, records: {} }]
 ]);
 const posts = [];
+let fullMirrorReads = 0;
 
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -125,6 +126,7 @@ async function handleStorageRoute(route) {
   }
   const url = new URL(request.url());
   if (url.searchParams.get('select') === 'key,value') {
+    fullMirrorReads += 1;
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -166,6 +168,7 @@ try {
     return entry && !entry.disabled && entry.getAttribute('aria-busy') === 'false';
   });
   await page.waitForFunction(() => document.querySelectorAll('#teacherDashboardGrid > .teacher-dashboard-card').length === 6);
+  assert.equal(fullMirrorReads, 0, 'home startup must not download the whole Supabase table');
   assert.equal(await page.locator('#teacherLatestAssessmentTitle').textContent(), '26/08/06_Gavin日测1');
   assert.equal(await page.locator('#teacherLatestAssessmentStatus').textContent(), '待批改 · 共 10 小问');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
@@ -180,11 +183,21 @@ try {
     buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9WlY4AAAAASUVORK5CYII=', 'base64')
   });
   await page.waitForFunction(() => document.getElementById('wrongAnswerMediaStatus')?.textContent === '已上传 1 张');
-  const savedMediaPost = posts.find(post => post.key === 'parent_assessment_media_item_v1_paper-daily-2026-08-06-brother-sentence-parts-01-brother');
+  await page.evaluate(() => {
+    const bytes = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9WlY4AAAAASUVORK5CYII='), char => char.charCodeAt(0));
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([bytes], 'gavin-paper-dropped.png', { type: 'image/png' }));
+    const zone = document.getElementById('wrongAnswerMediaDropZone');
+    zone.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+    if (!zone.classList.contains('is-dragover')) throw new Error('drop zone did not show its active state');
+    zone.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+  });
+  await page.waitForFunction(() => document.getElementById('wrongAnswerMediaCount')?.textContent === '2 / 4');
+  const savedMediaPost = posts.filter(post => post.key === 'parent_assessment_media_item_v1_paper-daily-2026-08-06-brother-sentence-parts-01-brother').at(-1);
   assert.ok(savedMediaPost, 'paper photo POST was not sent');
   assert.equal(savedMediaPost.value.student_id, 'brother');
   assert.equal(savedMediaPost.value.paper_id, 'paper-daily-2026-08-06-brother-sentence-parts-01-brother');
-  assert.equal(savedMediaPost.value.photos.length, 1);
+  assert.equal(savedMediaPost.value.photos.length, 2);
   assert.equal(await page.locator('.wrong-answer-section').count(), 3);
   assert.deepEqual(await page.locator('.wrong-answer-section').evaluateAll(nodes => nodes.map(node => node.open)), [true, true, true]);
   assert.deepEqual(

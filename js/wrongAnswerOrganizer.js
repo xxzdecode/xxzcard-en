@@ -1124,6 +1124,33 @@
       });
     }
 
+    const mediaDropZone = doc.getElementById('wrongAnswerMediaDropZone');
+    if (mediaDropZone) {
+      const isFileDrag = event => Array.from(event.dataTransfer?.types || []).includes('Files');
+      const clearDragState = () => mediaDropZone.classList.remove('is-dragover');
+      mediaDropZone.addEventListener('dragenter', event => {
+        if (!isFileDrag(event)) return;
+        event.preventDefault();
+        mediaDropZone.classList.add('is-dragover');
+      });
+      mediaDropZone.addEventListener('dragover', event => {
+        if (!isFileDrag(event)) return;
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+        mediaDropZone.classList.add('is-dragover');
+      });
+      mediaDropZone.addEventListener('dragleave', event => {
+        if (!mediaDropZone.contains(event.relatedTarget)) clearDragState();
+      });
+      mediaDropZone.addEventListener('drop', event => {
+        if (!isFileDrag(event)) return;
+        event.preventDefault();
+        clearDragState();
+        uploadMediaFiles(event.dataTransfer?.files || []);
+      });
+      mediaDropZone.addEventListener('dragend', clearDragState);
+    }
+
     doc.querySelectorAll('[data-weakness-student]').forEach(tab => {
       tab.addEventListener('click', () => {
         const selected = studentId(tab.dataset.weaknessStudent);
