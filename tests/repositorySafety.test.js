@@ -6,6 +6,13 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const serviceWorkerSource = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const savedLocalValues = new Map();
+savedLocalValues.set('wc_supabase_mirror', JSON.stringify({
+  source: 'supabase',
+  rows: {
+    main: { batches: [{ id: 'legacy-main' }] },
+    pre_large_backup: { shouldNeverReachStartup: true }
+  }
+}));
 const context = vm.createContext({
   console,
   Date,
@@ -23,7 +30,8 @@ const context = vm.createContext({
   currentUser: 'sister',
   localStorage: {
     getItem: key => savedLocalValues.get(key) || null,
-    setItem: (key, value) => savedLocalValues.set(key, value)
+    setItem: (key, value) => savedLocalValues.set(key, value),
+    removeItem: key => savedLocalValues.delete(key)
   },
   document: {
     getElementById: () => null,
@@ -46,6 +54,8 @@ const context = vm.createContext({
 
 vm.runInContext(fs.readFileSync(path.join(root, 'js/repository.js'), 'utf8'), context);
 
+assert.equal(savedLocalValues.has('wc_supabase_mirror'), false, 'obsolete full-table mirror must be discarded');
+
 function value(expression) {
   return vm.runInContext(expression, context);
 }
@@ -66,12 +76,14 @@ assert.deepEqual(
   'main-data cloning must remove transient category records'
 );
 
-async function verifyMirrorFailureDoesNotDisableKeyStorage() {
-  context.fetch = async () => { throw new TypeError('full mirror request failed'); };
-  value('sbOnline = true');
-  assert.equal(await value('syncSupabaseMirror()'), null);
-  assert.equal(value('sbOnline'), true, 'background mirror failure must not disable small key reads and writes');
-}
+const repositorySource = fs.readFileSync(path.join(root, 'js', 'repository.js'), 'utf8');
+assert.doesNotMatch(
+  repositorySource,
+  /kv_store\?select=key,value/,
+  'browser startup must never download the full kv_store table'
+);
+assert.doesNotMatch(repositorySource, /syncSupabaseMirror|scheduleDailySupabaseMirror/,
+  'browser startup must not schedule a whole-database mirror');
 
 assert.doesNotMatch(serviceWorkerSource, /apiNetworkFirst|isSupabaseApi|\.supabase\.co/,
   'the service worker must not add a second timeout or cache layer to Supabase transport');
@@ -139,8 +151,7 @@ async function verifyMainWriteSafety() {
   );
 }
 
-verifyMirrorFailureDoesNotDisableKeyStorage()
-  .then(verifyMainWriteSafety)
+verifyMainWriteSafety()
   .then(() => console.log('repository safety tests passed'))
   .catch(error => {
     console.error(error);

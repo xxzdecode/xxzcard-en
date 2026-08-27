@@ -1,13 +1,12 @@
 // STORAGE — Supabase (REST) + localStorage fallback
 // Table: kv_store  columns: key (text PK), value (jsonb)
 // ══════════════════════════════════════
-const SB_TIMEOUT = 5000; // 5 秒超时
+const SB_TIMEOUT = 12000; // legacy fallback; resilient reads use the same Apple-safe window
 let sbOnline = true;     // 运行时连通性标志
 
 let mainSnapshot = '';
-const SUPABASE_MIRROR_KEY = 'wc_supabase_mirror';
-const SUPABASE_MIRROR_SYNC_MINUTE = 5;
-const SUPABASE_MIRROR_RETRY_DELAY = 30 * 60 * 1000;
+const LEGACY_SUPABASE_MIRROR_KEY = 'wc_supabase_mirror';
+const SUPABASE_MIRROR_KEY = 'wc_supabase_mirror_meta_v2';
 
 function sbFetchWithTimeout(url, options) {
   // 不用 AbortSignal（手机浏览器 postMessage 不能克隆它）
@@ -26,6 +25,21 @@ function lsGet(key) {
 function lsSet(key, value) {
   try { localStorage.setItem('wc_sb_' + key, JSON.stringify(value)); } catch(e) {}
 }
+
+// Older releases attempted to duplicate the whole kv_store (including every
+// pre_* backup) into one localStorage item. That payload is now tens of MB and
+// can freeze or exhaust WebKit storage before the home screen becomes usable.
+// Per-key wc_sb_* entries remain the offline source; discard only the obsolete
+// aggregate cache and keep a tiny synchronization metadata record instead.
+function discardLegacySupabaseMirror() {
+  try {
+    if (typeof localStorage.removeItem === 'function') {
+      localStorage.removeItem(LEGACY_SUPABASE_MIRROR_KEY);
+    }
+  } catch(e) {}
+}
+
+discardLegacySupabaseMirror();
 
 function readSupabaseMirror() {
   try {
@@ -48,20 +62,15 @@ function localDateKey(date) {
 }
 
 function getMirrorValue(key) {
-  const mirror = readSupabaseMirror();
-  if (mirror && mirror.rows && Object.prototype.hasOwnProperty.call(mirror.rows, key)) {
-    return cloneForStorage(mirror.rows[key]);
-  }
   return lsGet(key);
 }
 
 function updateMirrorValue(key, value) {
-  const mirror = readSupabaseMirror() || { source: 'supabase', syncedAt: '', rows: {} };
-  if (!mirror.rows || typeof mirror.rows !== 'object') mirror.rows = {};
+  const mirror = readSupabaseMirror() || { schemaVersion: 2, source: 'supabase', syncedAt: '' };
+  mirror.schemaVersion = 2;
   mirror.source = 'supabase';
   mirror.syncedAt = new Date().toISOString();
-  mirror.rows[key] = cloneForStorage(value);
-  mirror.rowCount = Object.keys(mirror.rows).length;
+  if (key === 'main') mirror.fullSyncedDate = localDateKey();
   writeSupabaseMirror(mirror);
 }
 
@@ -73,62 +82,6 @@ function mirrorSyncedLabel() {
   } catch(e) {
     return mirror.syncedAt;
   }
-}
-
-async function syncSupabaseMirror() {
-  if (!sbOnline) return null;
-  try {
-    const r = await sbFetchWithTimeout(
-      `${SB_URL}/rest/v1/kv_store?select=key,value`,
-      { headers: SB_HEADERS }
-    );
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const rows = await r.json();
-    const mirrorRows = {};
-    (rows || []).forEach(row => {
-      if (!row || !row.key) return;
-      mirrorRows[row.key] = row.value;
-      lsSet(row.key, row.value);
-    });
-    const mirror = {
-      source: 'supabase',
-      syncedAt: new Date().toISOString(),
-      fullSyncedDate: localDateKey(),
-      rowCount: Object.keys(mirrorRows).length,
-      rows: mirrorRows
-    };
-    writeSupabaseMirror(mirror);
-    return mirror;
-  } catch(e) {
-    // A full mirror refresh is background maintenance. It can exceed the
-    // short legacy timeout even while small key reads and writes still work,
-    // so it must not disable cloud saving for the whole session.
-    console.warn('syncSupabaseMirror failed; keeping key storage available', e.message || e);
-    return null;
-  }
-}
-
-function shouldSyncSupabaseMirrorToday() {
-  const mirror = readSupabaseMirror();
-  return !mirror || mirror.fullSyncedDate !== localDateKey();
-}
-
-async function syncSupabaseMirrorIfDue(force) {
-  if (!force && !shouldSyncSupabaseMirrorToday()) return null;
-  return await syncSupabaseMirror();
-}
-
-function nextSupabaseMirrorDelay() {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, SUPABASE_MIRROR_SYNC_MINUTE, 0, 0);
-  return Math.max(1000, next.getTime() - now.getTime());
-}
-
-function scheduleDailySupabaseMirror(delay) {
-  setTimeout(async () => {
-    const mirror = await syncSupabaseMirrorIfDue(true);
-    scheduleDailySupabaseMirror(mirror ? nextSupabaseMirrorDelay() : SUPABASE_MIRROR_RETRY_DELAY);
-  }, delay || nextSupabaseMirrorDelay());
 }
 
 function isVocabularyLessonTransientBatchRecord(batch) {
@@ -427,7 +380,6 @@ async function initData() {
         // The local mirror is already rendered; background failure must not block it.
       }
     });
-    if (sbOnline) syncSupabaseMirrorIfDue(false);
     return data;
   }
 
@@ -436,14 +388,12 @@ async function initData() {
   if (!data) {
     data = { batches: [], pin: null };
     data.batches.push(makeBatch('六月号复习卷四·选择题', DEFAULT_CARDS));
-    if (sbOnline) await saveData(data);
   }
   if (!data.pin) data.pin = null;
   if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
   if (!Array.isArray(data.taskAssignments)) data.taskAssignments = [];
   normalizePhonemeLibraryIfAvailable(data);
   normalizeAppData(data);
-  if (sbOnline) syncSupabaseMirrorIfDue(false);
   hideLoading();
   // 离线时在标题区显示一个小提示
   if (!sbOnline) showOfflineBanner();
@@ -456,12 +406,16 @@ function showOfflineBanner() {
   el = document.createElement('div');
   el.id = 'offlineBanner';
   el.style.cssText = 'width:100%;background:#FFF8EC;color:#7A5C00;font-size:12px;font-weight:600;text-align:center;padding:6px 16px;border-bottom:1px solid #FFD166;position:sticky;top:0;z-index:50';
-  el.textContent = '📶 离线模式 · 当前只读本机缓存，联网后将重新拉取云端数据';
   const home = document.getElementById('screenHome');
   const synced = mirrorSyncedLabel();
-  el.textContent = synced
-    ? '\u79bb\u7ebf\u6a21\u5f0f - \u5f53\u524d\u53ea\u8bfb\u672c\u5730 Supabase \u955c\u50cf\uff0c\u6700\u540e\u540c\u6b65\uff1a' + synced
-    : '\u79bb\u7ebf\u6a21\u5f0f - \u5f53\u524d\u53ea\u8bfb\u672c\u5730 Supabase \u955c\u50cf';
+  const browserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  el.textContent = browserOffline
+    ? (synced
+      ? '\u7f51\u7edc\u5df2\u65ad\u5f00 - \u5f53\u524d\u53ea\u8bfb\u672c\u673a\u7f13\u5b58\uff0c\u6700\u540e\u540c\u6b65\uff1a' + synced
+      : '\u7f51\u7edc\u5df2\u65ad\u5f00 - \u5f53\u524d\u53ea\u8bfb\u672c\u673a\u7f13\u5b58')
+    : (synced
+      ? '\u4e91\u7aef\u8fde\u63a5\u6682\u65f6\u8f83\u6162 - \u5df2\u5148\u663e\u793a\u672c\u673a\u7f13\u5b58\uff0c\u6700\u540e\u540c\u6b65\uff1a' + synced
+      : '\u4e91\u7aef\u8fde\u63a5\u6682\u65f6\u8f83\u6162 - \u6b63\u5728\u540e\u53f0\u91cd\u8bd5');
   home.insertBefore(el, home.firstChild);
 }
 function makeBatch(name, cards, bookPurpose = 'common') {
@@ -652,7 +606,6 @@ setInterval(async () => {
     normalizeAppData(fresh);
     appData = fresh;
     setMainSnapshot(appData);
-    syncSupabaseMirrorIfDue(false);
     const home = document.getElementById('screenHome');
     if (home && home.classList.contains('active')) {
       loadHome({ background: true, reason: 'cloud-reconnect' });
@@ -679,7 +632,5 @@ setInterval(async () => {
     refreshVocabularyReviewSharedStateFromAppData();
   }
 }, 30000);
-
-scheduleDailySupabaseMirror();
 
 // ══════════════════════════════════════

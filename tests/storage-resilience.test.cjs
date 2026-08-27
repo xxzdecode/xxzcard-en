@@ -6,6 +6,7 @@ const {
   createStorageResilience,
   formatStorageError,
   DEFAULT_RETRY_DELAYS_MS,
+  DEFAULT_READ_TIMEOUT_MS,
   DEFAULT_WRITE_TIMEOUT_MS
 } = require('../js/storageResilience.js');
 const fs = require('node:fs');
@@ -66,8 +67,9 @@ function makeStorage(fetchFn, overrides = {}) {
   });
 }
 
-test('production retry policy uses three waits and a 12 second timeout', () => {
+test('production retry policy covers slow Apple reads and retries writes', () => {
   assert.deepEqual([...DEFAULT_RETRY_DELAYS_MS], [800, 1600, 3200]);
+  assert.equal(DEFAULT_READ_TIMEOUT_MS, 12000);
   assert.equal(DEFAULT_WRITE_TIMEOUT_MS, 12000);
 });
 
