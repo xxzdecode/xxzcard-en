@@ -88,7 +88,7 @@ async function waitForActiveVersion(page, cacheName) {
           && !registration.installing
           && !registration.waiting
           && keys.includes(expected)
-          && (!/v98$/.test(expected) || !keys.some(key => /v97$/.test(key)))
+          && (!/v99$/.test(expected) || !keys.some(key => /v97$|v98$/.test(key)))
       };
     }, cacheName);
     if (latest.ready) return;
@@ -144,19 +144,19 @@ try {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v98');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v99');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v98');
+    const shell = await caches.open('xxzcard-app-shell-v99');
     const urls = (await shell.keys()).map(request => decodeURIComponent(new URL(request.url).pathname));
     return { keys, urls };
   });
   assert.ok(
-    !cacheState.keys.some(key => /v97$/.test(key)),
-    `v97 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
+    !cacheState.keys.some(key => /v97$|v98$/.test(key)),
+    `v97/v98 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
   );
-  assert.equal(cacheState.urls.length, 24, 'v98 Apple-safe app shell must contain exactly 24 resources');
+  assert.equal(cacheState.urls.length, 24, 'v99 Apple-safe app shell must contain exactly 24 resources');
   assert.ok(cacheState.urls.some(url => /index\.html$/.test(url)));
   assert.ok(!cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
   assert.ok(cacheState.urls.some(url => /dailyLearningRouteOverride\.js$/.test(url)));
@@ -166,6 +166,64 @@ try {
   assert.ok(!cacheState.urls.some(url => /grammar-challenge\//.test(url)));
   assert.ok(!cacheState.urls.some(url => /assets\/student-home\//.test(url)));
   assert.ok(!cacheState.urls.some(url => /studentActivityControls\.js$/.test(url)));
+
+  const onlineContext = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+    screen: { width: 393, height: 852 },
+    serviceWorkers: 'block'
+  });
+  const onlinePage = await onlineContext.newPage();
+  const mainRequests = [];
+  const summaryMain = {
+    pin: '0716',
+    mixedAssignments: [],
+    taskAssignments: [],
+    vocabularyReviewState: { version: 1, rememberedWords: [] },
+    schemaVersion: 2,
+    masterLibrary: { version: 1 }
+  };
+  const fullMain = {
+    ...summaryMain,
+    masterCards: { go: { word: 'go', meaning: '去' } },
+    batches: [{
+      id: 'book-1',
+      date: '2026-08-27',
+      name: '按需词库',
+      cardRefs: [{ wordKey: 'go' }],
+      sharedWith: ['sister'],
+      bookPurpose: 'common'
+    }]
+  };
+  await onlineContext.addInitScript(() => {
+    localStorage.setItem('wc_user', 'sister');
+    localStorage.removeItem('wc_sb_main');
+    localStorage.removeItem('wc_sb_main_summary_v1');
+  });
+  await onlinePage.route('https://**/*', async routeHandler => {
+    const requestUrl = new URL(routeHandler.request().url());
+    if (!/\.supabase\.co$/.test(requestUrl.hostname)) return routeHandler.abort();
+    const keyFilter = requestUrl.searchParams.get('key') || '';
+    const select = requestUrl.searchParams.get('select') || '';
+    if (keyFilter === 'eq.main') {
+      mainRequests.push(select);
+      const body = select === 'value' ? [{ value: fullMain }] : [summaryMain];
+      return routeHandler.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(body)
+      });
+    }
+    return routeHandler.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+  await onlinePage.goto(`${baseUrl}/?lazy-main=v99`, { waitUntil: 'domcontentloaded' });
+  await onlinePage.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+  await onlinePage.waitForTimeout(250);
+  assert.ok(mainRequests.some(select => select.includes('pin:value->pin')), 'startup must request the projected main summary');
+  assert.equal(mainRequests.filter(select => select === 'value').length, 0, 'startup must not request the full main record');
+  await onlinePage.locator('[onclick="openWordCards()"]:visible').click();
+  await onlinePage.waitForSelector('#screenWordCards.active');
+  assert.equal(mainRequests.filter(select => select === 'value').length, 1, 'word-card entry should request full main exactly once');
+  await onlineContext.close();
 
   const route = JSON.parse(fs.readFileSync(path.join(root, 'data', 'daily-learning-route.json'), 'utf8'));
   const offlineSelection = {
@@ -204,7 +262,7 @@ try {
 
   originAvailable = false;
   await context.route('https://**/*', route => route.abort());
-  await page.goto(`${baseUrl}/?cold=v98`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/?cold=v99`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => {
     const current = window.getDailyLearningRoute?.();
     return current?.grammarChallenge?.id === 'grammar-offline-manual'
@@ -214,8 +272,8 @@ try {
   await openOfflineVocabularyGuide(page, { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v98', 'xxzcard-runtime-v98']);
-  console.log(`student runtime v97-to-v98 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v99', 'xxzcard-runtime-v99']);
+  console.log(`student runtime v97-to-v99 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
 } finally {
   originAvailable = true;
   await context.close();

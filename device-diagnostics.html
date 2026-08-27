@@ -24,6 +24,7 @@
     <p>只检查网站版本、缓存和公开资源连通性，不读取账号、单词、答题记录或其他私人数据。</p>
     <div class="actions">
       <button id="run" type="button">重新检查</button>
+      <button id="deep" type="button">深度检查词库</button>
       <button id="copy" type="button">复制诊断结果</button>
       <a href="./">返回网站</a>
     </div>
@@ -38,6 +39,7 @@
   const report = document.getElementById('report');
   const status = document.getElementById('status');
   const runButton = document.getElementById('run');
+  const deepButton = document.getElementById('deep');
   const copyButton = document.getElementById('copy');
   const criticalResources = [
     'service-worker.js',
@@ -113,7 +115,7 @@
     }));
   }
 
-  async function cloudProbe() {
+  async function cloudProbe(fullMain = false) {
     const started = performance.now();
     try {
       const configResponse = await fetch(`js/config.js?diag=${Date.now()}`, { cache: 'no-store' });
@@ -124,11 +126,15 @@
       const controller = typeof AbortController === 'function' ? new AbortController() : null;
       const timer = setTimeout(() => controller && controller.abort(), 12000);
       try {
-        const response = await fetch(`${url}/rest/v1/kv_store?select=key&limit=1`, {
+        const select = fullMain
+          ? 'value'
+          : 'pin:value->pin,mixedAssignments:value->mixedAssignments,taskAssignments:value->taskAssignments,vocabularyReviewState:value->vocabularyReviewState,schemaVersion:value->schemaVersion,masterLibrary:value->masterLibrary';
+        const response = await fetch(`${url}/rest/v1/kv_store?key=eq.main&select=${encodeURIComponent(select)}`, {
           headers: { apikey: key, Authorization: `Bearer ${key}` },
           signal: controller ? controller.signal : undefined
         });
-        return { ok: response.ok, status: response.status, ms: elapsed(started) };
+        const body = await response.arrayBuffer();
+        return { kind: fullMain ? 'full-main' : 'startup-summary', ok: response.ok, status: response.status, ms: elapsed(started), bytes: body.byteLength };
       } finally {
         clearTimeout(timer);
       }
@@ -139,6 +145,7 @@
 
   async function run() {
     runButton.disabled = true;
+    deepButton.disabled = true;
     copyButton.disabled = true;
     status.textContent = '正在检查网站版本与缓存……';
     const started = performance.now();
@@ -151,7 +158,16 @@
         online: navigator.onLine,
         viewport: `${innerWidth}x${innerHeight}`,
         pixelRatio: devicePixelRatio
-      }
+      },
+      navigation: (() => {
+        const entry = performance.getEntriesByType?.('navigation')?.[0];
+        return entry ? {
+          responseStartMs: Math.round(entry.responseStart),
+          domInteractiveMs: Math.round(entry.domInteractive),
+          domContentLoadedMs: Math.round(entry.domContentLoadedEventEnd),
+          loadMs: Math.round(entry.loadEventEnd)
+        } : null;
+      })()
     };
     result.serviceWorker = await serviceWorkerState().catch(error => ({ error: errorText(error) }));
     result.caches = await cacheState().catch(error => [{ error: errorText(error) }]);
@@ -163,10 +179,20 @@
     const failed = result.resources.filter(item => !item.ok).length + (result.cloud.ok ? 0 : 1);
     status.textContent = failed ? `检查完成：发现 ${failed} 项失败` : '检查完成：公开资源读取正常';
     runButton.disabled = false;
+    deepButton.disabled = false;
     copyButton.disabled = false;
   }
 
   runButton.addEventListener('click', run);
+  deepButton.addEventListener('click', async () => {
+    deepButton.disabled = true;
+    status.textContent = '正在深度检查完整词库读取……';
+    const result = JSON.parse(report.textContent || '{}');
+    result.fullMain = await cloudProbe(true);
+    report.textContent = JSON.stringify(result, null, 2);
+    status.textContent = result.fullMain.ok ? '深度检查完成，可以复制结果' : '深度检查失败，请复制结果';
+    deepButton.disabled = false;
+  });
   copyButton.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(report.textContent);

@@ -1,5 +1,5 @@
-const APP_SHELL_CACHE = 'xxzcard-app-shell-v98';
-const RUNTIME_CACHE = 'xxzcard-runtime-v98';
+const APP_SHELL_CACHE = 'xxzcard-app-shell-v99';
+const RUNTIME_CACHE = 'xxzcard-runtime-v99';
 const CACHE_PREFIXES = ['xxzcard-', 'vocabulary-review-'];
 const APP_SHELL_FETCH_CONCURRENCY = 3;
 const APP_SHELL = [

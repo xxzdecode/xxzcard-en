@@ -62,9 +62,12 @@ assert.match(
 assert.match(adventureStyles, /\.vav2-guide-bubble\s*\{[\s\S]*color:#4f3b05/);
 assert.match(adventureStyles, /\.vav2-guide-bubble\s*\{[\s\S]*text-shadow:0 1px 0 rgba\(255,255,255,\.92\)/);
 
-assert.match(repository, /const local = getMirrorValue\('main'\)/);
-assert.match(repository, /Promise\.resolve\(\)\.then\(async \(\) =>/);
-assert.match(repository, /background failure must not block/);
+assert.match(repository, /const cachedSummary = getMirrorValue\(MAIN_SUMMARY_CACHE_KEY\)/);
+assert.doesNotMatch(repository, /async function initData\(\) \{\s*const local = getMirrorValue\('main'\)/);
+assert.match(repository, /MAIN_SUMMARY_SELECT/);
+assert.match(repository, /value->\$\{field\}/);
+assert.match(repository, /refreshMainSummaryInBackground\(\)/);
+assert.match(repository, /async function ensureFullMainData\(\)/);
 
 assert.match(lazy, /adventurePlayer:/);
 assert.match(lazy, /adventureChallenge:/);
@@ -74,11 +77,13 @@ assert.match(lazy, /featureGroupPromises\.delete\(group\)/);
 assert.match(lazy, /teacherTools:/);
 assert.match(lazy, /courseware:/);
 assert.match(lazy, /vocabularyReview:/);
+assert.match(lazy, /FULL_MAIN_FEATURE_GROUPS/);
+assert.match(lazy, /ensureFullMainData\(\)/);
 assert.doesNotMatch(lazy, /warmAdventure|warmWrongAnswerOrganizer|adventure-preload/);
 assert.doesNotMatch(lazy, /requestIdleCallback|setTimeout\(warm/);
 assert.match(runtimeHomeStability, /const background = settings\.background === true/);
 assert.match(runtimeHomeStability, /const loadingTimer = background \? 0 : root\.setTimeout/);
-for (const reason of ['initial-cloud-refresh', 'cloud-reconnect', 'cloud-poll']) {
+for (const reason of ['initial-cloud-refresh', 'cloud-reconnect']) {
   assert.match(
     repository,
     new RegExp(`loadHome\\(\\{ background: true, reason: '${reason}' \\}\\)`),
@@ -92,8 +97,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v98/);
-assert.match(serviceWorker, /xxzcard-runtime-v98/);
+assert.match(serviceWorker, /xxzcard-app-shell-v99/);
+assert.match(serviceWorker, /xxzcard-runtime-v99/);
 assert.equal(appShellEntries.length, 24, `Apple-safe install shell must contain exactly 24 resources, found ${appShellEntries.length}`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(

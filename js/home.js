@@ -34,7 +34,7 @@ function loadStudentRewardSummary() {
   applyStudentRewardRecord(getMirrorValue(key));
   Promise.resolve().then(async () => {
     try {
-      const remote = await sbGetRemote(key);
+      const remote = await sbGetRemote(key, { silent: true });
       if (remote && typeof remote === 'object') applyStudentRewardRecord(remote);
     } catch (error) {
       // The mirrored reward is already visible; refresh failures stay non-blocking.
@@ -143,7 +143,7 @@ function refreshStudentClassroomPracticeHome() {
   );
   Promise.resolve().then(async () => {
     try {
-      const remote = await sbGetRemote(key);
+      const remote = await sbGetRemote(key, { silent: true });
       const record = remote && typeof remote === 'object' ? remote[todayISO()] : null;
       applyStudentClassroomPracticeHomeRecord(record);
     } catch (error) {

@@ -174,7 +174,7 @@
         if (teacherIsActive()) renderKnowledge(buildKnowledgeSummary(topics, mirrored, initialProgress));
         if (typeof root.sbGetRemote === 'function') {
           try {
-            const remote = await root.sbGetRemote('grammar_progress');
+            const remote = await root.sbGetRemote('grammar_progress', { silent: true });
             if (teacherIsActive() && remote && typeof remote === 'object') {
               renderKnowledge(buildKnowledgeSummary(topics, remote, initialProgress));
             }
