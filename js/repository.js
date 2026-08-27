@@ -5,8 +5,23 @@ const SB_TIMEOUT = 12000; // legacy fallback; resilient reads use the same Apple
 let sbOnline = true;     // 运行时连通性标志
 
 let mainSnapshot = '';
+let mainDataLevel = 'empty';
+let mainSummaryPromise = null;
+let mainFullLoadPromise = null;
 const LEGACY_SUPABASE_MIRROR_KEY = 'wc_supabase_mirror';
 const SUPABASE_MIRROR_KEY = 'wc_supabase_mirror_meta_v2';
+const MAIN_SUMMARY_CACHE_KEY = 'main_summary_v1';
+const MAIN_SUMMARY_FIELDS = Object.freeze([
+  'pin',
+  'mixedAssignments',
+  'taskAssignments',
+  'vocabularyReviewState',
+  'schemaVersion',
+  'masterLibrary'
+]);
+const MAIN_SUMMARY_SELECT = MAIN_SUMMARY_FIELDS
+  .map(field => `${field}:value->${field}`)
+  .join(',');
 
 function sbFetchWithTimeout(url, options) {
   // 不用 AbortSignal（手机浏览器 postMessage 不能克隆它）
@@ -160,8 +175,9 @@ function canWriteCloudData() {
   return false;
 }
 
-async function sbGetRemote(key) {
-  if (!sbOnline) throw storageError('OFFLINE_READONLY', 'offline');
+async function sbGetRemote(key, options) {
+  const settings = options && typeof options === 'object' ? options : {};
+  if (!sbOnline && !settings.force) throw storageError('OFFLINE_READONLY', 'offline');
   try {
     const r = await sbFetchWithTimeout(
       `${SB_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}&select=value`,
@@ -176,10 +192,17 @@ async function sbGetRemote(key) {
     }
     return val;
   } catch(e) {
-    console.warn('sbGet failed; switching to offline mode', e.message || e);
-    sbOnline = false;
-    showOfflineBanner();
-    throw storageError('OFFLINE_READONLY', 'offline');
+    const browserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    console.warn('sbGet failed', e.message || e);
+    if (browserOffline) {
+      sbOnline = false;
+      showOfflineBanner();
+      throw storageError('OFFLINE_READONLY', 'offline');
+    }
+    // A slow background GET must not put the whole app into offline mode.
+    // Reads still fall back to their per-key mirror; writes keep their own
+    // explicit failure handling and never silently become local-only writes.
+    throw storageError('CLOUD_READ_UNAVAILABLE', 'cloud read unavailable');
   }
 }
 
@@ -188,10 +211,10 @@ async function loadUserBatch(batchId) {
   return r || { known:[], unknown:[] };
 }
 // Loading overlay
-async function sbGet(key) {
+async function sbGet(key, options) {
   if (!sbOnline) return getMirrorValue(key);
   try {
-    return await sbGetRemote(key);
+    return await sbGetRemote(key, options);
   } catch(e) {
     return getMirrorValue(key);
   }
@@ -221,6 +244,102 @@ async function loadData() {
   const data = await sbGet('main');
   if (data && sbOnline) setMainSnapshot(data);
   return data;
+}
+
+function normalizeMainSummary(summary) {
+  const source = summary && typeof summary === 'object' ? summary : {};
+  return {
+    pin: typeof source.pin === 'string' && source.pin ? source.pin : null,
+    batches: [],
+    mixedAssignments: Array.isArray(source.mixedAssignments) ? cloneForStorage(source.mixedAssignments) : [],
+    taskAssignments: Array.isArray(source.taskAssignments) ? cloneForStorage(source.taskAssignments) : [],
+    vocabularyReviewState: source.vocabularyReviewState && typeof source.vocabularyReviewState === 'object'
+      ? cloneForStorage(source.vocabularyReviewState)
+      : undefined,
+    schemaVersion: Math.max(2, Number(source.schemaVersion) || 0),
+    masterLibrary: source.masterLibrary && typeof source.masterLibrary === 'object'
+      ? cloneForStorage(source.masterLibrary)
+      : undefined
+  };
+}
+
+function mergeMainSummary(target, summary) {
+  const data = target && typeof target === 'object' ? target : { batches: [] };
+  const normalized = normalizeMainSummary(summary);
+  MAIN_SUMMARY_FIELDS.forEach(field => {
+    if (normalized[field] === undefined) return;
+    data[field] = cloneForStorage(normalized[field]);
+  });
+  if (!Array.isArray(data.batches)) data.batches = [];
+  return data;
+}
+
+async function sbGetMainSummaryRemote() {
+  const response = await sbFetchWithTimeout(
+    `${SB_URL}/rest/v1/kv_store?key=eq.main&select=${encodeURIComponent(MAIN_SUMMARY_SELECT)}`,
+    { headers: SB_HEADERS }
+  );
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const rows = await response.json();
+  const summary = normalizeMainSummary(rows.length ? rows[0] : null);
+  lsSet(MAIN_SUMMARY_CACHE_KEY, summary);
+  return summary;
+}
+
+function refreshMainSummaryInBackground() {
+  if (mainSummaryPromise) return mainSummaryPromise;
+  mainSummaryPromise = Promise.resolve()
+    .then(() => sbGetMainSummaryRemote())
+    .then(summary => {
+      if (typeof appData === 'object' && appData) {
+        mergeMainSummary(appData, summary);
+        if (typeof window !== 'undefined') window.appData = appData;
+      }
+      const home = document.getElementById('screenHome');
+      if (home && home.classList.contains('active')) {
+        return Promise.resolve(loadHome({ background: true, reason: 'initial-cloud-refresh' }))
+          .then(() => summary);
+      }
+      return summary;
+    })
+    .catch(error => {
+      console.warn('main summary refresh skipped', error && (error.message || error));
+      return null;
+    })
+    .finally(() => { mainSummaryPromise = null; });
+  return mainSummaryPromise;
+}
+
+async function ensureFullMainData() {
+  if (mainDataLevel === 'remote-full' && appData && typeof appData === 'object') return appData;
+  if (mainFullLoadPromise) return mainFullLoadPromise;
+
+  mainFullLoadPromise = (async () => {
+    try {
+      const remote = await sbGetRemote('main', { force: true });
+      if (!remote || typeof remote !== 'object') throw new Error('main is unavailable');
+      normalizePhonemeLibraryIfAvailable(remote);
+      normalizeAppData(remote);
+      appData = remote;
+      if (typeof window !== 'undefined') window.appData = appData;
+      setMainSnapshot(appData);
+      mainDataLevel = 'remote-full';
+      return appData;
+    } catch (error) {
+      const cached = getMirrorValue('main');
+      if (cached && typeof cached === 'object') {
+        normalizePhonemeLibraryIfAvailable(cached);
+        normalizeAppData(cached);
+        appData = cached;
+        if (typeof window !== 'undefined') window.appData = appData;
+        mainDataLevel = 'cached-full';
+        console.warn('using cached full main data', error && (error.message || error));
+        return appData;
+      }
+      throw error;
+    }
+  })().finally(() => { mainFullLoadPromise = null; });
+  return mainFullLoadPromise;
 }
 
 async function ensureMainCanSave(data) {
@@ -356,47 +475,15 @@ function normalizePhonemeLibraryIfAvailable(data) {
 }
 
 async function initData() {
-  const local = getMirrorValue('main');
-  if (local && typeof local === 'object') {
-    const data = cloneForStorage(local);
-    if (!data.pin) data.pin = null;
-    if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
-    if (!Array.isArray(data.taskAssignments)) data.taskAssignments = [];
-    normalizePhonemeLibraryIfAvailable(data);
-    normalizeAppData(data);
-    Promise.resolve().then(async () => {
-      try {
-        const remote = await sbGetRemote('main');
-        if (!remote || typeof remote !== 'object') return;
-        normalizePhonemeLibraryIfAvailable(remote);
-        normalizeAppData(remote);
-        setMainSnapshot(remote);
-        appData = remote;
-        const home = document.getElementById('screenHome');
-        if (home && home.classList.contains('active')) {
-          await loadHome({ background: true, reason: 'initial-cloud-refresh' });
-        }
-      } catch(e) {
-        // The local mirror is already rendered; background failure must not block it.
-      }
-    });
-    return data;
-  }
-
-  showLoading('正在准备首页…');
-  let data = await loadData();
-  if (!data) {
-    data = { batches: [], pin: null };
-    data.batches.push(makeBatch('六月号复习卷四·选择题', DEFAULT_CARDS));
-  }
-  if (!data.pin) data.pin = null;
-  if (!Array.isArray(data.mixedAssignments)) data.mixedAssignments = [];
-  if (!Array.isArray(data.taskAssignments)) data.taskAssignments = [];
+  // A first visit should not wait for the 593 KB vocabulary library. Render a
+  // 2-3 KB summary (or safe defaults) now. Even an existing 593 KB local mirror
+  // is left untouched until the user opens a vocabulary feature.
+  const cachedSummary = getMirrorValue(MAIN_SUMMARY_CACHE_KEY);
+  const data = normalizeMainSummary(cachedSummary);
+  mainDataLevel = 'summary';
   normalizePhonemeLibraryIfAvailable(data);
   normalizeAppData(data);
-  hideLoading();
-  // 离线时在标题区显示一个小提示
-  if (!sbOnline) showOfflineBanner();
+  refreshMainSummaryInBackground();
   return data;
 }
 
@@ -598,39 +685,26 @@ setInterval(async () => {
   if (!sbOnline) {
     // 尝试重连：探测一次
     sbOnline = true; // 临时乐观设回 true，让 sbGet 真的发请求
-    const fresh = await sbGet('main');
-    if (!sbOnline || !fresh) return; // 还是失败，继续等
+    let summary = null;
+    try { summary = await sbGetMainSummaryRemote(); }
+    catch (_) { sbOnline = false; return; }
+    if (!summary) return;
     // 重连成功：隐藏离线横幅，使用云端最新数据刷新本机状态。
     const banner = document.getElementById('offlineBanner');
     if (banner) banner.remove();
-    normalizeAppData(fresh);
-    appData = fresh;
-    setMainSnapshot(appData);
+    mergeMainSummary(appData, summary);
     const home = document.getElementById('screenHome');
     if (home && home.classList.contains('active')) {
       loadHome({ background: true, reason: 'cloud-reconnect' });
     }
-    const teacherCards = document.getElementById('screenTeacherWordCards');
-    if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
-    if (typeof refreshVocabularyReviewSharedStateFromAppData === 'function') {
-      refreshVocabularyReviewSharedStateFromAppData();
-    }
     return;
   }
-  const fresh = await loadData();
-  if (!fresh || !sbOnline) return;
-  normalizeAppData(fresh);
-  appData = fresh;
-  setMainSnapshot(appData);
   const home = document.getElementById('screenHome');
   if (home && home.classList.contains('active')) {
-    loadHome({ background: true, reason: 'cloud-poll' });
+    refreshMainSummaryInBackground();
+    return;
   }
-  const teacherCards = document.getElementById('screenTeacherWordCards');
-  if (teacherCards && teacherCards.classList.contains('active')) refreshTeacherWordCards();
-  if (typeof refreshVocabularyReviewSharedStateFromAppData === 'function') {
-    refreshVocabularyReviewSharedStateFromAppData();
-  }
+  if (mainDataLevel === 'remote-full') return;
 }, 30000);
 
 // ══════════════════════════════════════

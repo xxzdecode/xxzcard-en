@@ -48,6 +48,13 @@ const loadedFeatureScripts = new Set();
 const featureScriptPromises = new Map();
 const independentFeatureScriptPromises = new Map();
 const featureGroupPromises = new Map();
+const FULL_MAIN_FEATURE_GROUPS = new Set([
+  'adventurePlayer',
+  'adventureChallenge',
+  'teacherTools',
+  'vocabularyReview',
+  'vocabularyScreening'
+]);
 
 const VOCABULARY_COPY_LIST_STUDENTS = Object.freeze([
   { user: 'sister', name: '姐姐', stateKey: 'vocab_adventure_v1_sister' },
@@ -324,10 +331,13 @@ function loadIndependentFeatureScript(src) {
 function loadFeatureGroup(group) {
   if (featureGroupPromises.has(group)) return featureGroupPromises.get(group);
   const sources = FEATURE_GROUPS[group] || [];
-  const promise = sources.reduce(
+  const dataReady = FULL_MAIN_FEATURE_GROUPS.has(group) && typeof ensureFullMainData === 'function'
+    ? ensureFullMainData()
+    : Promise.resolve();
+  const promise = dataReady.then(() => sources.reduce(
     (chain, src) => chain.then(() => loadFeatureScript(src)),
     Promise.resolve()
-  ).catch(error => {
+  )).catch(error => {
     featureGroupPromises.delete(group);
     throw error;
   });

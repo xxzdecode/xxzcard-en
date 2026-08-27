@@ -1,7 +1,14 @@
 // USER SWITCHING + PIN
 // ══════════════════════════════════════
-function switchUser(user) {
+async function switchUser(user) {
   if (user === 'teacher') {
+    if (typeof ensureFullMainData === 'function') {
+      try { await ensureFullMainData(); }
+      catch (error) {
+        alert('老师模式暂时无法读取云端数据，请检查网络后重试。');
+        return;
+      }
+    }
     if (currentUser === 'teacher') return;
     if (!appData.pin) {
       pinMode = 'set1'; pinBuffer = ''; pinTemp = '';

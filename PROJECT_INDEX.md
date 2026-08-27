@@ -78,11 +78,11 @@
 - `js/config.js`：定义 Supabase `SB_URL`、`SB_KEY`、`SB_HEADERS`，以及默认数据。
 - `js/state.js`：保存运行时全局状态。
 - `js/repository.js`：核心数据流文件。
-  - `loadData()` / `saveData()` 读写主数据 `main`。
+  - `initData()` 首屏只读取 `main` 的轻量 JSONB 摘要；`ensureFullMainData()` 在词汇功能首次打开时才读取完整 `main`，`saveData()` 仍写完整主数据。
   - `loadUserBatch()` / `saveUserBatch()` 读写学生个人批次记录。
   - `sbGet()` / `sbSet()` 负责 Supabase 和 `localStorage` 镜像。
   - `normalizeAppData()` / `normalizeBatch()` / `normalizeEnglishCard()` 负责数据规范化。
-  - 定时轮询会定期拉取云端数据并刷新首页。
+  - 首页定时刷新只拉取轻量摘要；完整词库在词汇功能入口按需加载并在会话内复用。
 - `js/import.js`：把老师输入的文本解析为 cards 并写入 appData。
 - `js/batch.js`：修改单词本、编辑单词、推送可见学生、清空学生记录。
 - `js/tasks.js`：读写每日任务、挑战次数、混合词库设置。

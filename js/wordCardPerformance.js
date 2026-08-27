@@ -30,7 +30,7 @@
     const id = String(batchId);
     const key = recordKey(id);
     return Promise.resolve()
-      .then(() => sbGetRemote(key))
+      .then(() => sbGetRemote(key, { silent: true }))
       .then(remote => {
         if (!remote || typeof remote !== 'object') return null;
         const record = normalizeRecord(remote);
@@ -49,7 +49,7 @@
     if (typeof sbGetRemote !== 'function') return Promise.resolve(null);
     if (!mainRefreshPromise) {
       mainRefreshPromise = Promise.resolve()
-        .then(() => sbGetRemote('main'))
+        .then(() => typeof ensureFullMainData === 'function' ? ensureFullMainData() : sbGetRemote('main'))
         .then(remote => {
           if (!remote || typeof remote !== 'object') return null;
           if (typeof normalizeAppData === 'function') normalizeAppData(remote);

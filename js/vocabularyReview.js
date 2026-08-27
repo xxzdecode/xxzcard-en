@@ -168,7 +168,9 @@ async function initializeVocabularyReviewSharedState(options) {
   const settings = options && typeof options === 'object' ? options : {};
   applyVocabularyReviewState(appData);
   try {
-    const remote = await sbGetRemote('main');
+    const remote = typeof ensureFullMainData === 'function'
+      ? await ensureFullMainData()
+      : await sbGetRemote('main');
     if (remote) {
       normalizeAppData(remote);
       appData = remote;

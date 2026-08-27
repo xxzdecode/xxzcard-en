@@ -254,7 +254,7 @@
     if (!isCurrent(user, id) || typeof renderReward !== 'function') return;
     const key = studentRewardKey(user);
     try {
-      const remote = await sbGetRemote(key);
+      const remote = await sbGetRemote(key, { silent: true });
       if (isCurrent(user, id) && remote && typeof remote === 'object') {
         renderReward(remote);
       }
@@ -274,7 +274,7 @@
     if (!isCurrent(user, id) || typeof renderClassroom !== 'function') return;
     const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + user;
     try {
-      const remote = await sbGetRemote(key);
+      const remote = await sbGetRemote(key, { silent: true });
       if (!isCurrent(user, id)) return;
       const record = remote && typeof remote === 'object' ? remote[todayISO()] : null;
       renderClassroom(record);
