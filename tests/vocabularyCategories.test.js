@@ -26,6 +26,28 @@ const categories = registry.groups.flatMap(group => group.categories || []);
 assert.ok(categories.length >= 25);
 assert.equal(new Set(categories.map(category => category.id)).size, categories.length, 'category ids must be unique');
 
+const classroomGrammarTerms = categories.find(category => category.id === 'classroom-grammar-terms');
+assert.equal(classroomGrammarTerms.name, '课堂英语与语法术语');
+assert.deepEqual(classroomGrammarTerms.words, [
+  'word', 'phrase', 'sentence', 'question', 'answer', 'example', 'rule', 'noun', 'verb',
+  'adjective', 'adverb', 'pronoun', 'preposition', 'conjunction', 'subject', 'object',
+  'singular', 'plural', 'tense'
+]);
+
+const classroomGrammarPackage = JSON.parse(fs.readFileSync(
+  path.join(root, 'data/imports/book-classroom-grammar-terms.reference.json'),
+  'utf8'
+));
+assert.equal(classroomGrammarPackage.schemaVersion, 2);
+assert.equal(classroomGrammarPackage.wordbook.id, 'book-classroom-grammar-terms');
+assert.equal(classroomGrammarPackage.wordbook.name, classroomGrammarTerms.name);
+assert.equal(classroomGrammarPackage.wordbook.bookType, 'reference');
+assert.equal(classroomGrammarPackage.wordbook.bookPurpose, 'common');
+assert.deepEqual(
+  classroomGrammarPackage.wordbook.cardRefs.map(ref => ref.wordKey),
+  classroomGrammarTerms.words
+);
+
 categories.forEach(category => {
   assert.ok(category.name);
   assert.ok(Array.isArray(category.words) && category.words.length > 0);
@@ -45,8 +67,8 @@ categories.forEach(category => {
 
 const allWords = categories.flatMap(category => category.words);
 const normalizedAllWords = new Set(allWords.map(word => String(word).toLowerCase().replace(/[^a-z0-9]+/g, '')));
-assert.equal(allWords.length, 996, 'the source skeleton and approved formal-library additions should be fully represented');
-assert.equal(normalizedAllWords.size, 990, 'cross-category repeats should remain intentional');
+assert.equal(allWords.length, 1015, 'the source skeleton and approved formal-library additions should be fully represented');
+assert.equal(normalizedAllWords.size, 1008, 'cross-category repeats should remain intentional');
 [
   'pencil-case',
   'TV reporter',
