@@ -149,8 +149,8 @@ assert.doesNotMatch(mainSource, /await loadRewardFor|await loadClassroomFor/);
 assert.doesNotMatch(lazySource, /warmAdventure|warmWrongAnswerOrganizer|adventure-preload/);
 
 const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
-assert.match(serviceWorker, /xxzcard-app-shell-v100/);
-assert.match(serviceWorker, /xxzcard-runtime-v100/);
+assert.match(serviceWorker, /xxzcard-app-shell-v101/);
+assert.match(serviceWorker, /xxzcard-runtime-v101/);
 assert.doesNotMatch(serviceWorker, /Promise\.allSettled\(urls/);
 assert.match(serviceWorker, /installAppShellAtomically/);
 assert.match(serviceWorker, /match\(request, \{ ignoreSearch: true \}\)/);

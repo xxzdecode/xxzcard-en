@@ -88,7 +88,7 @@ async function waitForActiveVersion(page, cacheName) {
           && !registration.installing
           && !registration.waiting
           && keys.includes(expected)
-          && (!/v100$/.test(expected) || !keys.some(key => /v97$|v98$|v99$/.test(key)))
+          && (!/v101$/.test(expected) || !keys.some(key => /v97$|v98$|v99$|v100$/.test(key)))
       };
     }, cacheName);
     if (latest.ready) return;
@@ -144,19 +144,19 @@ try {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await waitForActiveVersion(page, 'xxzcard-app-shell-v100');
+  await waitForActiveVersion(page, 'xxzcard-app-shell-v101');
 
   const cacheState = await page.evaluate(async () => {
     const keys = await caches.keys();
-    const shell = await caches.open('xxzcard-app-shell-v100');
+    const shell = await caches.open('xxzcard-app-shell-v101');
     const urls = (await shell.keys()).map(request => decodeURIComponent(new URL(request.url).pathname));
     return { keys, urls };
   });
   assert.ok(
-    !cacheState.keys.some(key => /v97$|v98$|v99$/.test(key)),
-    `v97/v98/v99 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
+    !cacheState.keys.some(key => /v97$|v98$|v99$|v100$/.test(key)),
+    `v97/v98/v99/v100 caches removed after activation: ${JSON.stringify(cacheState.keys)}`
   );
-  assert.equal(cacheState.urls.length, 24, 'v100 Apple-safe app shell must contain exactly 24 resources');
+  assert.equal(cacheState.urls.length, 24, 'v101 Apple-safe app shell must contain exactly 24 resources');
   assert.ok(cacheState.urls.some(url => /index\.html$/.test(url)));
   assert.ok(!cacheState.urls.some(url => /daily-learning-route\.json$/.test(url)));
   assert.ok(cacheState.urls.some(url => /dailyLearningRouteOverride\.js$/.test(url)));
@@ -215,7 +215,7 @@ try {
     }
     return routeHandler.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
   });
-  await onlinePage.goto(`${baseUrl}/?lazy-main=v100`, { waitUntil: 'domcontentloaded' });
+  await onlinePage.goto(`${baseUrl}/?lazy-main=v101`, { waitUntil: 'domcontentloaded' });
   await onlinePage.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
   await onlinePage.waitForTimeout(250);
   assert.ok(mainRequests.some(select => select.includes('pin:value->pin')), 'startup must request the projected main summary');
@@ -262,7 +262,7 @@ try {
 
   originAvailable = false;
   await context.route('https://**/*', route => route.abort());
-  await page.goto(`${baseUrl}/?cold=v100`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/?cold=v101`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => {
     const current = window.getDailyLearningRoute?.();
     return current?.grammarChallenge?.id === 'grammar-offline-manual'
@@ -272,8 +272,8 @@ try {
   await openOfflineVocabularyGuide(page, { width: 393, height: 852 });
 
   const finalCaches = await page.evaluate(() => caches.keys());
-  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v100', 'xxzcard-runtime-v100']);
-  console.log(`student runtime v97-to-v100 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
+  assert.deepEqual(finalCaches.sort(), ['xxzcard-app-shell-v101', 'xxzcard-runtime-v101']);
+  console.log(`student runtime v97-to-v101 cold-start viewport tests passed (${process.env.PW_BROWSER === 'webkit' ? 'WebKit' : 'Chromium'})`);
 } finally {
   originAvailable = true;
   await context.close();

@@ -97,8 +97,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v100/);
-assert.match(serviceWorker, /xxzcard-runtime-v100/);
+assert.match(serviceWorker, /xxzcard-app-shell-v101/);
+assert.match(serviceWorker, /xxzcard-runtime-v101/);
 assert.equal(appShellEntries.length, 24, `Apple-safe install shell must contain exactly 24 resources, found ${appShellEntries.length}`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
