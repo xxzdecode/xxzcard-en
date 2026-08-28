@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const MasterVocabularyLibrary = require('../js/masterVocabularyLibrary.js');
 const ReferenceWordbookImport = require('../js/referenceWordbookImport.js');
 const VocabularyJsonImport = require('../js/vocabularyJsonImport.js');
@@ -78,5 +80,49 @@ test('reference override keeps the master homograph unchanged', () => {
   assert.equal(data.batches[0].cards[0].word, 'Miss');
   assert.equal(data.batches[0].cards[0].meaning, '小姐；女士（用于女子姓氏或姓名前）');
   assert.equal(data.masterCards.miss.meaning, '错过');
+  assert.equal(Object.prototype.propertyIsEnumerable.call(data.batches[0], 'cards'), false);
+});
+
+test('classroom grammar terms reuse object without overwriting its everyday meaning', () => {
+  const input = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '../data/imports/book-classroom-grammar-terms.reference.json'),
+    'utf8'
+  ));
+  const data = {
+    schemaVersion: 2,
+    masterCards: {
+      object: {
+        ...card('object', '物体；物品'),
+        phonetic: '/ˈɒbdʒɪkt/',
+        emoji: '📦',
+        collocations: [{
+          phrase: 'a heavy object',
+          example: 'The crane lifted a heavy object. / 起重机吊起了一个重物。'
+        }],
+        synonyms: [{ word: 'thing', meaning: '东西；物品' }],
+        tip: '作名词“物体”时重音在第一个音节。'
+      }
+    },
+    batches: []
+  };
+
+  MasterVocabularyLibrary.normalizeAppData(data);
+  const plan = ReferenceWordbookImport.auditReferenceImport(data, input);
+  assert.deepEqual(plan.errors, []);
+  assert.equal(plan.summary.directReuse, 1);
+  assert.equal(plan.summary.create, 18);
+  assert.equal(plan.summary.conflicts, 0);
+
+  const result = ReferenceWordbookImport.applyReferenceImport(data, plan, { date: '2026-08-28' });
+  const objectRef = result.batch.cardRefs.find(ref => ref.wordKey === 'object');
+  assert.equal(data.masterCards.object.meaning, '物体；物品');
+  assert.equal(data.masterCards.object.emoji, '📦');
+  assert.equal(objectRef.overrides.meaning, '宾语');
+  assert.equal(objectRef.overrides.emoji, '🎯');
+
+  MasterVocabularyLibrary.normalizeAppData(data);
+  const hydratedObject = data.batches[0].cards.find(item => item.word === 'object');
+  assert.equal(hydratedObject.meaning, '宾语');
+  assert.equal(data.masterCards.object.meaning, '物体；物品');
   assert.equal(Object.prototype.propertyIsEnumerable.call(data.batches[0], 'cards'), false);
 });

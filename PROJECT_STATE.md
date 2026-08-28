@@ -48,6 +48,20 @@
 
 已在正式网站分别以姐姐和弟弟视角确认新增分类列表、词数和代表性 `south` 卡片内容；GitHub Pages 已发布本轮分类索引。
 
+### 课堂英语与语法术语引用式单词本
+
+已完成正式分类、导入包、Supabase 原子同步和双学生共享验收：
+
+- 分类骨架：`data/vocabularyCategories.json` 中 `classroom-grammar-terms / 课堂英语与语法术语`；
+- 正式导入包：`data/imports/book-classroom-grammar-terms.reference.json`；
+- 单词本稳定 ID：`book-classroom-grammar-terms`，共 19 个有序 `cardRefs`；
+- 首次生产审计：直接复用 `object` 1 词，新建 18 词，补空 0，追加 0，冲突 0，缺失引用 0；
+- `object` 总库释义保持“物体；物品”，当前分类仅通过引用层最小覆盖显示“宾语”；
+- 正式写入前快照：Supabase `kv_store.pre_classroom_grammar_terms_reference_import_2026_08_28_1547`；
+- 写后重复 dry-run 为 `already_applied`，直接复用 19 词、新建 0、冲突 0；
+- 正式总库由 971 增至 989 个唯一词，单词本由 64 增至 65，总引用由 1516 增至 1535；全库缺失引用 0，词本内持久化完整卡片 0；
+- `sharedWith` 为 `["sister", "brother"]`，姐姐与弟弟各自可见 19 词。
+
 ### 颜色引用式单词本
 
 已完成生成、预览、重复导入验证、正式写入、学生共享和真实页面显示核对：
