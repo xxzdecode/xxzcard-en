@@ -89,7 +89,7 @@ assert.match(overrideRuntime, /refreshDailyLearningRouteOverride/);
 assert.doesNotMatch(overrideRuntime, /const \[routeResult, freshResult\] = await Promise\.all/);
 assert.match(overrideRuntime, /schemaVersion:\s*2/);
 assert.match(overrideRuntime, /manualSelection:/);
-assert.equal((coursewareData.match(/"grammarCompatible": true/g) || []).length, 24);
+assert.equal((coursewareData.match(/"grammarCompatible": true/g) || []).length, 25);
 assert.equal((coursewareData.match(/"grammarCompatible": false/g) || []).length, 5);
 assert.doesNotMatch(overrideRuntime, /ensurePinnedSlot/);
 assert.doesNotMatch(overrideRuntime, /daily_learning_route_assignment_v1_/);

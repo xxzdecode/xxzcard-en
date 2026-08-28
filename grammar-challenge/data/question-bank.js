@@ -5,7 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createGrammarQuestionBank() {
   return Object.freeze({
   "schemaVersion": 1,
-  "version": "sha256:def87e4af6383387caa19e39d6fa01cbd467abcbb9d675639827c96e5fe6ba9d",
+  "version": "sha256:e1a960fd1dddd4872b613fe86d1b8a9be91b2526f0c0ddd3f6aeb9180c6a96e9",
   "sourceCatalog": "grammar-challenge/data/catalog.js",
   "skippedChallengeIds": [
     "grammar-2026-08-01-adjective-review",
@@ -16,6 +16,439 @@
     "grammar-2026-07-15-sentence-skeleton"
   ],
   "items": [
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC01",
+      "category": "core_review",
+      "categoryLabel": "Two maps",
+      "type": "single",
+      "prompt": "Which group names parts of speech?",
+      "options": [
+        "noun, verb, adjective, adverb",
+        "subject, verb, object",
+        "question, answer, example",
+        "singular, plural, tense"
+      ],
+      "answer": "noun, verb, adjective, adverb",
+      "answerDisplay": "noun, verb, adjective, adverb",
+      "correctFeedback": "Exactly. These words name parts of speech.",
+      "wrongFeedback": "Think about the type of each word.",
+      "explanation": "A part of speech tells us what kind of word it is.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC01",
+      "sourceQuestionId": "GC01",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "parts-of-speech-map"
+      ],
+      "primaryKpId": "parts-of-speech-map",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:2aa35c34154c62398a91c8cdea7fe35030dcb13bd27bc642ac48a2a89a988ab5",
+      "variantGroupId": "parts-of-speech-map::core_review"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC02",
+      "category": "core_review",
+      "categoryLabel": "Adjective",
+      "type": "single",
+      "source": "The young teacher smiles.",
+      "prompt": "What part of speech is young?",
+      "options": [
+        "adjective",
+        "noun",
+        "verb",
+        "adverb"
+      ],
+      "answer": "adjective",
+      "answerDisplay": "young = adjective",
+      "correctFeedback": "Right. Young describes the noun teacher.",
+      "wrongFeedback": "Which word describes teacher?",
+      "explanation": "An adjective describes a noun.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC02",
+      "sourceQuestionId": "GC02",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "adjective-basics-suffixes"
+      ],
+      "primaryKpId": "adjective-basics-suffixes",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:4fcf2f7d7032b7a43b50afe3327e61a0f4dc62d3e0da4af66c83dbe3c2de76c6",
+      "variantGroupId": "adjective-basics-suffixes::core_review"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC03",
+      "category": "weakness_review",
+      "categoryLabel": "Weakness review | verb phrase",
+      "type": "single",
+      "source": "Mia can read a story.",
+      "prompt": "Which words make the verb phrase?",
+      "options": [
+        "can read",
+        "Mia",
+        "a story",
+        "read a story"
+      ],
+      "answer": "can read",
+      "answerDisplay": "can read",
+      "correctFeedback": "Correct. Can and read work together in the verb phrase.",
+      "wrongFeedback": "Keep the modal verb and the main verb together.",
+      "explanation": "A modal verb and the base verb form a verb phrase here.",
+      "kpId": "sentence-be-action-aux",
+      "primaryWeaknessId": "sister.sentence-be-action-aux.modal-can-predicate",
+      "weaknessIds": [
+        "sister.sentence-be-action-aux.modal-can-predicate"
+      ],
+      "diagnosticTargets": [
+        "modal-can-predicate",
+        "modal-plus-base-verb"
+      ],
+      "contentHash": "sha256:c5e124d26e23d167d267b3ada616f1e70805eb973d36579ab75c39f7ea176210",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC03",
+      "sourceQuestionId": "GC03",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "sentence-be-action-aux"
+      ],
+      "primaryKpId": "sentence-be-action-aux",
+      "variantGroupId": "sister.sentence-be-action-aux.modal-can-predicate"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC04",
+      "category": "weakness_review",
+      "categoryLabel": "Weakness review | subject and object",
+      "type": "single",
+      "source": "The little rabbit sleeps.",
+      "prompt": "Which answer is correct?",
+      "options": [
+        "The little rabbit is the subject; there is no object.",
+        "rabbit is the object.",
+        "sleeps is the subject.",
+        "Every sentence must have an object."
+      ],
+      "answer": "The little rabbit is the subject; there is no object.",
+      "answerDisplay": "Subject: The little rabbit; object: none.",
+      "correctFeedback": "Correct. The whole noun phrase is the subject, and sleeps needs no object here.",
+      "wrongFeedback": "Find who sleeps, then decide whether the action needs an object.",
+      "explanation": "A sentence can have a complete subject and no object.",
+      "kpId": "sentence-parts",
+      "primaryWeaknessId": "brother.sentence-parts.subject-boundary-no-object-discrimination",
+      "weaknessIds": [
+        "brother.sentence-parts.subject-boundary-no-object-discrimination"
+      ],
+      "diagnosticTargets": [
+        "complete-subject-boundary",
+        "no-object-discrimination"
+      ],
+      "contentHash": "sha256:02a1c94a39b5e972116b5e443986064837c43e4d498f1958eb2f5e0b5f8b51e9",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC04",
+      "sourceQuestionId": "GC04",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "variantGroupId": "brother.sentence-parts.subject-boundary-no-object-discrimination"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC05",
+      "category": "core_review",
+      "categoryLabel": "Adverb",
+      "type": "single",
+      "source": "The girl speaks slowly.",
+      "prompt": "What does slowly describe?",
+      "options": [
+        "the verb speaks",
+        "the noun girl",
+        "the article the",
+        "the whole subject"
+      ],
+      "answer": "the verb speaks",
+      "answerDisplay": "slowly describes speaks",
+      "correctFeedback": "Yes. Slowly tells us how she speaks.",
+      "wrongFeedback": "Ask: How does she speak?",
+      "explanation": "An adverb can describe how an action happens.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC05",
+      "sourceQuestionId": "GC05",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "adverb-basics-ly"
+      ],
+      "primaryKpId": "adverb-basics-ly",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:157280bb2350f6a9ff7403cb5c870f85a9533bef5c2dc027be9d46869ba4688c",
+      "variantGroupId": "adverb-basics-ly::core_review"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC06",
+      "category": "core_review",
+      "categoryLabel": "Noun and object",
+      "type": "single",
+      "source": "Tom reads books.",
+      "prompt": "What are the two labels for books?",
+      "options": [
+        "noun and object",
+        "verb and subject",
+        "adjective and object",
+        "adverb and object"
+      ],
+      "answer": "noun and object",
+      "answerDisplay": "books = noun + object",
+      "correctFeedback": "Correct. Books is a noun and works as the object.",
+      "wrongFeedback": "Ask what kind of word books is and what job it does.",
+      "explanation": "Part of speech and sentence job are two different labels.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC06",
+      "sourceQuestionId": "GC06",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "parts-of-speech-map",
+        "noun-types",
+        "sentence-parts"
+      ],
+      "primaryKpId": "parts-of-speech-map",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:e2f4942f5ae16949665019ca59882b58d379d6337b7f610e8ae88831d09e2a84",
+      "variantGroupId": "parts-of-speech-map::core_review"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC07",
+      "category": "core_review",
+      "categoryLabel": "Noun and subject",
+      "type": "single",
+      "source": "Birds fly.",
+      "prompt": "What are the two labels for Birds?",
+      "options": [
+        "noun and subject",
+        "noun and object",
+        "verb and object",
+        "adjective and subject"
+      ],
+      "answer": "noun and subject",
+      "answerDisplay": "Birds = noun + subject",
+      "correctFeedback": "Correct. Birds is a noun and works as the subject.",
+      "wrongFeedback": "Who flies?",
+      "explanation": "A noun or noun phrase can work as the subject.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC07",
+      "sourceQuestionId": "GC07",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "parts-of-speech-map",
+        "noun-types",
+        "sentence-parts"
+      ],
+      "primaryKpId": "parts-of-speech-map",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:c6d6a89d53ccb86b1876a15453a43fcf9b322838b152c866cad9a47f56d8c305",
+      "variantGroupId": "parts-of-speech-map::core_review"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC08",
+      "category": "core_review",
+      "categoryLabel": "Verb",
+      "type": "single",
+      "source": "The soup is hot.",
+      "prompt": "Which word is the verb?",
+      "options": [
+        "is",
+        "soup",
+        "hot",
+        "the"
+      ],
+      "answer": "is",
+      "answerDisplay": "is = verb",
+      "correctFeedback": "Correct. Is is the verb in this sentence.",
+      "wrongFeedback": "Find the word that links the subject to its state.",
+      "explanation": "Be is a verb, even when there is no action.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC08",
+      "sourceQuestionId": "GC08",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "sentence-be-action-aux"
+      ],
+      "primaryKpId": "sentence-be-action-aux",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:b0b257d50117cbbb8af88b036b2cbd086eb85d1f2c737b558a910af0ae7579de",
+      "variantGroupId": "sentence-be-action-aux::core_review"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC09",
+      "category": "core_review",
+      "categoryLabel": "Two labels",
+      "type": "single",
+      "prompt": "Why can boy be both a noun and a subject?",
+      "options": [
+        "Noun is its type; subject is its job in the sentence.",
+        "Every noun is always a subject.",
+        "Subject is another name for noun.",
+        "The word changes its spelling."
+      ],
+      "answer": "Noun is its type; subject is its job in the sentence.",
+      "answerDisplay": "type: noun; job: subject",
+      "correctFeedback": "Exactly. One label tells the type; the other tells the job.",
+      "wrongFeedback": "Keep the two maps separate.",
+      "explanation": "A word can have a part-of-speech label and a sentence-job label at the same time.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC09",
+      "sourceQuestionId": "GC09",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "parts-of-speech-map"
+      ],
+      "primaryKpId": "parts-of-speech-map",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:e0c8dc71187fa69c07c0d1dd2849ca4bb62a29c0ebca763c0f4dbfc083646e5d",
+      "variantGroupId": "parts-of-speech-map::core_review"
+    },
+    {
+      "id": "grammar-2026-08-28-parts-of-speech-review::GC10",
+      "category": "core_review",
+      "categoryLabel": "Sentence jobs",
+      "type": "single",
+      "prompt": "Which group gives the everyday SVO map?",
+      "options": [
+        "subject, verb, object",
+        "noun, adjective, adverb",
+        "singular, plural, tense",
+        "word, phrase, sentence"
+      ],
+      "answer": "subject, verb, object",
+      "answerDisplay": "subject, verb, object",
+      "correctFeedback": "Correct. This is the everyday SVO map.",
+      "wrongFeedback": "Look for subject, verb and object.",
+      "explanation": "SVO means subject, verb and object.",
+      "bankItemId": "grammar-2026-08-28-parts-of-speech-review::GC10",
+      "sourceQuestionId": "GC10",
+      "sourceChallengeId": "grammar-2026-08-28-parts-of-speech-review",
+      "sourceChallengeDate": "2026-08-28",
+      "sourceChallengeTitle": "词性与句子成分英语标签复习挑战",
+      "sourceLessonKey": "parts-of-speech-map",
+      "sourceLessonKpIds": [
+        "parts-of-speech-map",
+        "sentence-parts",
+        "sentence-be-action-aux",
+        "noun-types",
+        "adjective-basics-suffixes",
+        "adverb-basics-ly"
+      ],
+      "kpIds": [
+        "sentence-parts"
+      ],
+      "primaryKpId": "sentence-parts",
+      "weaknessIds": [],
+      "primaryWeaknessId": "",
+      "diagnosticTargets": [],
+      "contentHash": "sha256:73aeb2802a934be3dc61c444d1a678c52bf3b6f59117b4f102a85561f17b40ec",
+      "variantGroupId": "sentence-parts::core_review"
+    },
     {
       "id": "grammar-2026-08-27-cardinal-ordinal-review::GC01",
       "category": "cardinal",

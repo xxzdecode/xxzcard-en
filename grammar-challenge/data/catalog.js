@@ -5,6 +5,42 @@
   // 缺少这些精确字段的旧题只参与普通练习统计，不作为 mastered 判定证据。
   window.GRAMMAR_CHALLENGE_CATALOG = [
     {
+      id: 'grammar-2026-08-28-parts-of-speech-review',
+      date: '2026-08-28',
+      title: '词性与句子成分英语标签复习挑战',
+      lessonKey: 'parts-of-speech-map',
+      kpIds: ['parts-of-speech-map', 'sentence-parts', 'sentence-be-action-aux', 'noun-types', 'adjective-basics-suffixes', 'adverb-basics-ly'],
+      questionKpIds: {
+        GC01: ['parts-of-speech-map'],
+        GC02: ['adjective-basics-suffixes'],
+        GC03: ['sentence-be-action-aux'],
+        GC04: ['sentence-parts'],
+        GC05: ['adverb-basics-ly'],
+        GC06: ['parts-of-speech-map', 'noun-types', 'sentence-parts'],
+        GC07: ['parts-of-speech-map', 'noun-types', 'sentence-parts'],
+        GC08: ['sentence-be-action-aux'],
+        GC09: ['parts-of-speech-map'],
+        GC10: ['sentence-parts']
+      },
+      questionWeaknessIds: {
+        GC03: ['sister.sentence-be-action-aux.modal-can-predicate'],
+        GC04: ['brother.sentence-parts.subject-boundary-no-object-discrimination']
+      },
+      questionPrimaryWeaknessIds: {
+        GC03: 'sister.sentence-be-action-aux.modal-can-predicate',
+        GC04: 'brother.sentence-parts.subject-boundary-no-object-discrimination'
+      },
+      questionDiagnosticTargets: {
+        GC03: ['modal-can-predicate', 'modal-plus-base-verb'],
+        GC04: ['complete-subject-boundary', 'no-object-discrimination']
+      },
+      questionContentHashes: {
+        GC03: 'sha256:c5e124d26e23d167d267b3ada616f1e70805eb973d36579ab75c39f7ea176210',
+        GC04: 'sha256:02a1c94a39b5e972116b5e443986064837c43e4d498f1958eb2f5e0b5f8b51e9'
+      },
+      pagePath: './practices/2026-08-28.html'
+    },
+    {
       id: 'grammar-2026-08-27-cardinal-ordinal-review',
       date: '2026-08-27',
       title: '基数词与序数词基础复习挑战',
