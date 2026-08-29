@@ -53,15 +53,27 @@ async function checkViewport(browser, baseUrl, viewport, filename) {
   try {
     await page.addInitScript(config => {
       let cursor = 0;
+      let pendingCorrection = null;
       window.getAdaptiveGrammarFrameConfig = () => structuredClone({
         ...config,
-        adaptiveSession: { ...config.adaptiveSession, cursor }
+        adaptiveSession: { ...config.adaptiveSession, cursor, correction: pendingCorrection }
       });
-      window.recordAdaptiveGrammarAnswer = async () => {
-        cursor += 1;
+      window.recordAdaptiveGrammarAnswer = async answer => {
+        if (answer.correction === true) pendingCorrection = null;
+        else {
+          cursor += 1;
+          pendingCorrection = answer.correct ? null : {
+            ...config.questions[14],
+            id: `${config.questions[14].id}::correction`,
+            correctionId: `correction:${cursor - 1}:${answer.questionId}`,
+            correctionOf: answer.questionId,
+            correctionMode: 'variant',
+            isCorrection: true
+          };
+        }
         return {
           session: { cursor, items: config.questions.map((_, index) => ({ firstTryCorrect: index < cursor ? true : null })) },
-          replacement: null,
+          nextCorrection: structuredClone(pendingCorrection),
           questions: structuredClone(config.questions)
         };
       };
@@ -72,7 +84,7 @@ async function checkViewport(browser, baseUrl, viewport, filename) {
       completionTitle: '今日语法挑战完成',
       completion: '最近课程与已学知识点都完成了复习。',
       feedbackDelayMs: 10,
-      knowledge: ['最近课程 8 题', '历史知识 7 题', '错题稍后再练'],
+      knowledge: ['当前课程 8 题', '正式薄弱项 4 题', '历史复习 3 题', '答错立即重刷'],
       round: { size: 15, shuffle: false },
       adaptiveSession: { enabled: true, cursor: 0, results: Array(15).fill(null) },
       questions
@@ -107,6 +119,12 @@ async function checkViewport(browser, baseUrl, viewport, filename) {
     await new Promise(resolve => setTimeout(resolve, 40));
     assert.equal((await frame.evaluate(() => window.__LESSON_PREP_QA__.state().index)), 0, '答错后应留在当前题');
     assert.equal(await frame.locator('#nextButton').isEnabled(), true);
+    await frame.locator('#nextButton').click();
+    await frame.waitForFunction(() => window.__LESSON_PREP_QA__?.state?.().isCorrection === true);
+    assert.match(await frame.locator('#progressText').textContent(), /即时纠错/);
+    await frame.evaluate(() => window.__LESSON_PREP_QA__.solveCurrent());
+    await frame.locator('#nextButton').click();
+    await frame.waitForFunction(() => window.__LESSON_PREP_QA__?.state?.().isCorrection === true && document.getElementById('nextButton')?.disabled === false);
     await frame.locator('#nextButton').click();
     await frame.waitForFunction(() => window.__LESSON_PREP_QA__?.state?.().index === 1);
     assert.match(await frame.locator('#progressText').textContent(), /2\s*\/\s*15/);

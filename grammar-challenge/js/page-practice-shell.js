@@ -31,6 +31,9 @@
       wrongEver: [],
       saving: false,
       pendingAdaptive: null,
+      correction: null,
+      nextCorrection: null,
+      correctionSolved: false,
       awaitingAdvance: false
     };
     let transitionTimer = null;
@@ -112,11 +115,11 @@
     }
 
     function question() {
-      return state.round[state.index];
+      return state.correction || state.round[state.index];
     }
 
     function solved() {
-      return Boolean(state.solved[state.index]);
+      return state.correction ? state.correctionSolved : Boolean(state.solved[state.index]);
     }
 
     function answerIndices(item) {
@@ -270,7 +273,9 @@
       state.interaction = core.createInteractionState();
       state.awaitingAdvance = false;
       removePracticeData(Boolean(notifyRecordWatcher));
-      ui.progress.textContent = `第 ${state.index + 1} / ${state.round.length} 题`;
+      ui.progress.textContent = state.correction
+        ? `即时纠错 · 计分题 ${Math.min(Number(settings.adaptiveSession?.cursor) || 0, state.round.length)} / ${state.round.length}`
+        : `第 ${state.index + 1} / ${state.round.length} 题`;
       ui.category.textContent = item.categoryLabel || item.category || '';
       ui.prompt.textContent = item.prompt || '';
       ui.source.hidden = !item.source;
@@ -320,6 +325,21 @@
 
     function advanceNow() {
       window.clearTimeout(transitionTimer);
+      if (state.nextCorrection) {
+        state.correction = state.nextCorrection;
+        state.nextCorrection = null;
+        state.correctionSolved = false;
+        renderQuestion(false);
+        return;
+      }
+      if (state.correction) {
+        state.correction = null;
+        state.correctionSolved = false;
+        state.index = Math.max(0, Math.min(state.round.length, Number(settings.adaptiveSession?.cursor) || state.index));
+        if (state.index >= state.round.length) showCompletion();
+        else renderQuestion(false);
+        return;
+      }
       if (state.index + 1 >= state.round.length) {
         showCompletion();
         return;
@@ -329,7 +349,20 @@
       renderQuestion(false);
     }
 
-    function continueAfterFeedback(correct) {
+    function continueAfterFeedback(correct, correctionQuestion, wasCorrection) {
+      if (correctionQuestion) {
+        state.nextCorrection = correctionQuestion;
+        state.awaitingAdvance = true;
+        ui.next.textContent = '立即重刷';
+        ui.next.disabled = false;
+        return;
+      }
+      if (wasCorrection) {
+        state.awaitingAdvance = true;
+        ui.next.textContent = Number(settings.adaptiveSession?.cursor) >= state.round.length ? '查看结果' : '继续挑战';
+        ui.next.disabled = false;
+        return;
+      }
       if (correct) {
         transitionTimer = window.setTimeout(advanceNow, Number(settings.feedbackDelayMs || 1000));
         return;
@@ -362,7 +395,9 @@
         const result = await bridge({
           questionId: pending.questionId,
           correct: pending.correct,
-          answeredAt: pending.answeredAt
+          answeredAt: pending.answeredAt,
+          correction: pending.correction === true,
+          correctionId: pending.correctionId || ''
         });
         if (result && Array.isArray(result.questions) && result.questions.length === state.round.length) {
           result.questions.forEach((question, index) => {
@@ -376,7 +411,7 @@
         }
         state.pendingAdaptive = null;
         ui.next.textContent = '下一题';
-        continueAfterFeedback(pending.correct);
+        continueAfterFeedback(pending.correct, result && result.nextCorrection, pending.correction === true);
       } catch (error) {
         console.warn('Unable to save adaptive grammar answer', error);
         feedback('wrong', '本题尚未保存，请检查网络后点击“重试保存”。');
@@ -406,8 +441,12 @@
       renderAnswerZone(item);
 
       const correct = isCorrect(item);
-      state.firstTry[state.index] = correct;
-      state.wrongEver[state.index] = !correct;
+      const isCorrection = Boolean(state.correction);
+      if (isCorrection) state.correctionSolved = true;
+      else {
+        state.firstTry[state.index] = correct;
+        state.wrongEver[state.index] = !correct;
+      }
 
       if (item.type !== 'classify') {
         ui.options.querySelectorAll('.option').forEach(button => {
@@ -422,12 +461,14 @@
         : `${item.wrongFeedback || '这次没有选对。'} 正确答案：${completeAnswer(item)}。${item.explanation || ''}`.trim();
       feedback(correct ? 'correct' : 'wrong', message);
 
-      // 锁定、判分和最终界面状态完成后，才允许历史监听器读取一次最终答案。
-      armRecordCapture();
+      // 锁定、判分和最终界面状态完成后再通知正式历史记录器；即时纠错不属于原始计分或首次作答证据。
+      if (!isCorrection) armRecordCapture();
       state.pendingAdaptive = {
         questionId: item.id,
         correct,
-        answeredAt: new Date().toISOString()
+        answeredAt: new Date().toISOString(),
+        correction: isCorrection,
+        correctionId: isCorrection ? item.correctionId : ''
       };
       await persistAdaptiveResult();
     }
@@ -445,10 +486,13 @@
       state.wrongEver = state.round.map((_, index) => index < cursor && results[index] === false);
       state.saving = false;
       state.pendingAdaptive = null;
+      state.correction = adaptiveSession && adaptiveSession.correction || null;
+      state.nextCorrection = null;
+      state.correctionSolved = false;
       state.awaitingAdvance = false;
       ui.dialog.dataset.complete = 'false';
       if (ui.dialog.open) ui.dialog.close();
-      if (cursor >= state.round.length) showCompletion();
+      if (cursor >= state.round.length && !state.correction) showCompletion();
       else renderQuestion(false);
     }
 
@@ -483,6 +527,7 @@
           complete: ui.dialog.dataset.complete === 'true',
           id: item && item.id,
           type: item && item.type,
+          isCorrection: Boolean(state.correction),
           order: state.round.map(entry => entry.id),
           selected: [...state.interaction.selected],
           assignments: { ...state.interaction.assignments },

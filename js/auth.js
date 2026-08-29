@@ -30,6 +30,7 @@ async function switchUser(user) {
     if (typeof clearVocabularyLessonTransientState === 'function') clearVocabularyLessonTransientState();
     currentUser = user;
     globalThis.currentUser = currentUser;
+    if (typeof resetStudentHomeAccountView === 'function') resetStudentHomeAccountView(user);
     localStorage.setItem('wc_user', user);
     document.body.classList.remove('is-teacher');
     updateUserBar();

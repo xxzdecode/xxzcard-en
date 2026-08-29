@@ -35,7 +35,10 @@
       reviewCount: Math.max(0, Math.trunc(Number(source.reviewCount)) || 0),
       lastTaskType: typeof source.lastTaskType === 'string' ? source.lastTaskType : '',
       challengeFlagAt: typeof source.challengeFlagAt === 'string' ? source.challengeFlagAt : '',
-      lessonChallengeAt: typeof source.lessonChallengeAt === 'string' ? source.lessonChallengeAt : ''
+      lessonChallengeAt: typeof source.lessonChallengeAt === 'string' ? source.lessonChallengeAt : '',
+      ...(typeof source.rapidConfirmAt === 'string' && source.rapidConfirmAt
+        ? { rapidConfirmAt: source.rapidConfirmAt }
+        : {})
     };
   }
 
@@ -150,14 +153,25 @@
       original.challengeDaily = clone(challenge.challengeDaily);
     }
     const completed = challenge.challengeSession && challenge.challengeSession.status === 'completed';
-    if (completed && plainObject(challenge.words)) {
+    // A rapid confirmation takes effect immediately; it must not be offered
+    // again after reload. Challenge errors stay isolated while an unfinished
+    // session can still be resumed, but are promoted if the attempt ends.
+    const persistChallengeFlags = completed || challenge.challengeSession?.status === 'abandoned';
+    if (plainObject(challenge.words)) {
       Object.entries(challenge.words).forEach(([rawKey, value]) => {
         const key = lessonGroups.wordKey(rawKey);
         const flag = value && typeof value.challengeFlagAt === 'string' ? value.challengeFlagAt : '';
-        if (!key || !flag) return;
+        const rapidConfirmAt = value && typeof value.rapidConfirmAt === 'string' ? value.rapidConfirmAt : '';
+        if (!key || (!(persistChallengeFlags && flag) && !rapidConfirmAt)) return;
         const previous = plainObject(original.words[key]) ? original.words[key] : {};
-        original.words[key] = { ...previous, challengeFlagAt: flag };
+        original.words[key] = {
+          ...previous,
+          ...(persistChallengeFlags && flag ? { challengeFlagAt: flag } : {}),
+          ...(rapidConfirmAt ? { rapidConfirmAt } : {})
+        };
       });
+    }
+    if (completed && plainObject(challenge.words)) {
       (Array.isArray(challenge.challengeSession.items) ? challenge.challengeSession.items : []).forEach(item => {
         const key = lessonGroups.wordKey(item && item.wordKey);
         const answeredAt = item && typeof item.answeredAt === 'string' ? item.answeredAt : '';

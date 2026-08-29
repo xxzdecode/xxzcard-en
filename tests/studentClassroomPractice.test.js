@@ -88,6 +88,7 @@ vm.runInContext(source, context);
   const daily = records.classroom_practice_daily_v1_sister['2026-07-30'];
   assert.equal(daily.practiceId, 'practice-a');
   assert.equal(daily.status, 'started');
+  assert.equal(daily.owner, 'sister');
   assert.equal(elements.coursewareFrame.src, 'a.html');
   assert.equal(screens.at(-1), 'screenCoursewarePlayer');
 
@@ -124,6 +125,9 @@ vm.runInContext(source, context);
   assert.equal(completed.score, 40);
   assert.equal(records.classroom_practice_daily_v1_sister['2026-07-30'].status, 'completed');
   assert.equal(records.classroom_practice_daily_v1_sister['2026-07-30'].score, 40);
+  records.classroom_practice_daily_v1_sister['2026-07-30'].owner = 'brother';
+  assert.equal(await context.loadStudentClassroomPracticeRecord('sister', '2026-07-30'), null);
+  records.classroom_practice_daily_v1_sister['2026-07-30'].owner = 'sister';
 
   await context.openCourseware('practice-a');
   assert.match(alerts.at(-1), /今天的随堂练习已经完成/);

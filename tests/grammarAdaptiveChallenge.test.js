@@ -3,6 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const adaptive = require('../js/grammarAdaptiveChallenge.js');
 const generatedBank = require('../grammar-challenge/data/question-bank.js');
+const sharedCourseBank = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'grammar-challenge', 'data', 'course-question-banks.json'),
+  'utf8'
+));
 
 function question(lesson, lessonDate, index, options = {}) {
   const group = Math.floor(index / 4);
@@ -63,9 +67,9 @@ const settings = {
   bank,
   progress,
   weaknessView,
-  grammarWeakSummary: { weakKpIds: ['history-kp-b'] },
   student: 'brother',
   date: '2026-08-21',
+  currentLessonKey: 'recent-kp',
   startedAt: '2026-08-21T08:00:00.000Z'
 };
 const first = adaptive.buildSession(settings);
@@ -73,23 +77,29 @@ const repeated = adaptive.buildSession(settings);
 assert.equal(first.ok, true);
 assert.deepEqual(repeated, first, 'same student and date must receive the same frozen plan');
 assert.equal(first.session.items.length, 15);
-assert.equal(first.session.items.filter(item => item.bucket === 'recent').length, 8);
-assert.equal(first.session.items.filter(item => item.bucket === 'history').length, 7);
-assert.equal(first.session.items.filter(item => item.reason === 'priority').length, 6);
+assert.equal(first.session.items.filter(item => item.reason === 'current').length, 8);
+assert.equal(first.session.items.filter(item => item.reason === 'formal-weakness').length, 4);
+assert.equal(first.session.items.filter(item => item.reason === 'history').length, 3);
 assert.equal(new Set(first.session.items.map(item => item.bankItemId)).size, 15);
-assert.equal(first.session.recentLessonDate, '2026-08-20');
-assert.equal(first.session.recentLessonKey, 'recent-kp');
+assert.equal(first.session.currentLessonKey, 'recent-kp');
+
+const missingManualCourse = adaptive.buildSession({
+  ...settings,
+  currentLessonKey: ''
+});
+assert.equal(missingManualCourse.ok, false);
+assert.equal(missingManualCourse.code, 'MANUAL_CURRENT_COURSE_REQUIRED');
 
 const manuallySelected = adaptive.buildSession({
   ...settings,
-  recentLessonKey: 'history-kp'
+  currentLessonKey: 'history-kp'
 });
 assert.equal(manuallySelected.ok, true);
-assert.equal(manuallySelected.session.recentLessonKey, 'history-kp');
-assert.equal(manuallySelected.session.items.filter(item => item.bucket === 'recent').length, 8);
+assert.equal(manuallySelected.session.currentLessonKey, 'history-kp');
+assert.equal(manuallySelected.session.items.filter(item => item.reason === 'current').length, 8);
 assert.ok(
   manuallySelected.session.items
-    .filter(item => item.bucket === 'recent')
+    .filter(item => item.reason === 'current')
     .every(item => item.bankItemId.startsWith('history-kp::')),
   'the teacher-selected grammar lesson must be the recent half of the challenge'
 );
@@ -115,8 +125,7 @@ const sisterWeaknessView = {
 const sisterTargeted = adaptive.buildSession({
   ...settings,
   student: 'sister',
-  weaknessView: sisterWeaknessView,
-  grammarWeakSummary: null
+  weaknessView: sisterWeaknessView
 });
 assert.equal(sisterTargeted.ok, true);
 const sisterQuestions = adaptive.questionsForSession(sisterTargeted.session, bank);
@@ -133,12 +142,52 @@ const wrong = adaptive.applyAnswer(first.session, {
 });
 assert.equal(wrong.session.items.length, 15);
 assert.equal(wrong.session.cursor, 1);
-assert.ok(wrong.replacement, 'an early wrong answer should schedule a parallel question');
-assert.ok(wrong.replacement.slot >= adaptive.RECHECK_GAP);
-assert.equal(wrong.session.items[wrong.replacement.slot].bucket, current.bucket);
-assert.equal(wrong.session.items[wrong.replacement.slot].reason, 'recheck');
-assert.equal(wrong.session.items[wrong.replacement.slot].recheckOf, current.bankItemId);
-assert.notEqual(wrong.session.items[wrong.replacement.slot].bankItemId, beforeIds[wrong.replacement.slot]);
+assert.deepEqual(wrong.session.items.map(item => item.bankItemId), beforeIds, 'correction must not replace scored slots');
+assert.ok(wrong.correction, 'a wrong scored answer should enqueue immediate correction');
+assert.equal(wrong.session.correctionQueue.length, 1);
+const correctionQuestion = adaptive.nextCorrectionQuestion(wrong.session, bank);
+assert.ok(correctionQuestion);
+assert.equal(correctionQuestion.isCorrection, true);
+assert.equal(correctionQuestion.correctionOf, current.bankItemId);
+assert.equal(correctionQuestion.variantGroupId, adaptive.questionsForSession(first.session, bank)[0].variantGroupId);
+const corrected = adaptive.applyCorrectionAnswer(wrong.session, {
+  bank,
+  correction: true,
+  correctionId: correctionQuestion.correctionId,
+  questionId: correctionQuestion.bankItemId,
+  correct: true,
+  answeredAt: '2026-08-21T08:02:00.000Z'
+});
+assert.equal(corrected.session.cursor, 1, 'correction must not advance scored-question cursor');
+assert.equal(corrected.session.items[0].firstTryCorrect, false, 'correction must not alter first-try evidence');
+assert.equal(adaptive.nextCorrectionQuestion(corrected.session, bank), null);
+
+// An in-progress 15-question session from the earlier adaptive algorithm keeps
+// its frozen slots and can resume with the new immediate-correction state.
+const legacySession = {
+  ...first.session,
+  schemaVersion: 1,
+  algorithmVersion: 1,
+  currentLessonKey: undefined,
+  recentLessonKey: 'recent-kp',
+  items: first.session.items.map(item => ({
+    ...item,
+    bucket: item.bucket === 'current' ? 'recent' : item.bucket
+  })),
+  candidateIds: {
+    recent: first.session.candidateIds.current,
+    history: first.session.candidateIds.history
+  }
+};
+const resumedLegacy = adaptive.normalizeSession(legacySession, bank);
+assert.ok(resumedLegacy, 'an existing 15-question session must remain resumable');
+assert.equal(resumedLegacy.items.length, 15);
+assert.equal(resumedLegacy.items.filter(item => item.bucket === 'current').length, 8);
+assert.deepEqual(
+  resumedLegacy.items.map(item => item.bankItemId),
+  first.session.items.map(item => item.bankItemId),
+  'migration must not redraw an in-progress legacy session'
+);
 
 const late = adaptive.normalizeSession(first.session, bank);
 late.items.forEach((item, index) => {
@@ -155,8 +204,98 @@ const lateWrong = adaptive.applyAnswer(late, {
   correct: false,
   answeredAt: '2026-08-21T08:19:00.000Z'
 });
-assert.equal(lateWrong.replacement, null, 'late errors must roll into later challenge history instead of exceeding 15 questions');
+assert.ok(lateWrong.correction, 'the last scored questions still receive an unscored correction');
 assert.equal(lateWrong.session.items.length, 15);
+assert.equal(lateWrong.session.status, 'active');
+
+const untaughtItems = Array.from({ length: 8 }, (_, index) => question('untaught-kp', '2026-08-21', index));
+const eligibilityBank = { ...bank, items: [...bank.items, ...untaughtItems] };
+const priorUntaughtId = untaughtItems[3].bankItemId;
+const eligibility = adaptive.buildSession({
+  ...settings,
+  bank: eligibilityBank,
+  history: { attempts: { old: { questions: [{ questionId: priorUntaughtId }] } } }
+});
+assert.equal(eligibility.ok, true);
+assert.ok(eligibility.session.candidateIds.eligible.includes(priorUntaughtId));
+assert.ok(
+  untaughtItems.filter(item => item.bankItemId !== priorUntaughtId)
+    .every(item => !eligibility.session.candidateIds.eligible.includes(item.bankItemId)),
+  'selecting or teaching a later course must not unlock unrelated untaught questions'
+);
+
+const sharedKpUntaught = Array.from({ length: 8 }, (_, index) => question('untaught-shared-course', '2026-08-22', index, {
+  kpId: 'history-kp-a'
+}));
+const sharedKpEligibility = adaptive.buildSession({
+  ...settings,
+  bank: { ...bank, items: [...bank.items, ...sharedKpUntaught] }
+});
+assert.equal(sharedKpEligibility.ok, true);
+assert.ok(
+  sharedKpUntaught.every(item => !sharedKpEligibility.session.candidateIds.eligible.includes(item.bankItemId)),
+  'a completed knowledge point must not unlock a different untaught course that happens to share it'
+);
+
+const tooSmallCurrent = adaptive.buildSession({
+  ...settings,
+  bank: {
+    schemaVersion: 1,
+    version: 'small-current',
+    items: [
+      ...Array.from({ length: 10 }, (_, index) => question('small-current', '2026-08-21', index)),
+      ...Array.from({ length: 20 }, (_, index) => question('eligible-history', '2026-08-01', index))
+    ]
+  },
+  progress: {
+    topics: {
+      'eligible-history': { status: 'confirmed_complete', last_lesson_date: '2026-08-01' }
+    }
+  },
+  weaknessView: null,
+  currentLessonKey: 'small-current'
+});
+assert.equal(tooSmallCurrent.ok, false, 'history must not replace a missing current-course fill');
+assert.equal(tooSmallCurrent.code, 'INSUFFICIENT_ELIGIBLE_QUESTIONS');
+
+const sharedCatalog = adaptive.normalizeBank({
+  schemaVersion: 1,
+  version: 'shared-v1',
+  courses: [{
+    lessonKey: 'comparatives',
+    displayTitle: '比较级',
+    lessonDate: '2026-08-22',
+    classroomPracticeId: 'courseware-comparatives',
+    selectable: true,
+    questions: Array.from({ length: 20 }, (_, index) => question('comparatives', '2026-08-22', index))
+  }]
+});
+assert.equal(sharedCatalog.items.length, 20);
+assert.deepEqual(adaptive.courseCatalog(sharedCatalog)[0], {
+  lessonKey: 'comparatives',
+  courseKey: 'comparatives',
+  questionBankKey: 'comparatives',
+  lessonDate: '2026-08-22',
+  displayName: '比较级',
+  displayTitle: '比较级',
+  questionCount: 20,
+  classroomPracticeId: 'courseware-comparatives',
+  classroomPracticePath: '',
+  source: {}
+});
+
+const mergedSharedBank = adaptive.mergeBanks(sharedCourseBank, generatedBank);
+assert.equal(adaptive.courseCatalog(mergedSharedBank).length, 24);
+assert.ok(mergedSharedBank.items.length > 480, 'legacy exact weakness questions remain available as compatibility items');
+const generatedSingle = mergedSharedBank.items.find(item => item.bankItemId === 'comparatives::CP03');
+assert.equal(generatedSingle.primaryWeaknessId, 'sister.comparatives.short_er');
+assert.deepEqual(generatedSingle.diagnosticTargets, ['short_er']);
+assert.equal(generatedSingle.formalWeaknessEligible, true);
+const generatedComposite = mergedSharedBank.items.find(item => item.bankItemId === 'noun-possessive::CP19');
+assert.equal(generatedComposite.primaryKpId, '');
+assert.equal(generatedComposite.primaryWeaknessId, '');
+assert.deepEqual(generatedComposite.weaknessIds, []);
+assert.equal(generatedComposite.formalWeaknessEligible, false);
 
 assert.ok(generatedBank.items.length >= 100, 'compiled bank should contain the existing reusable challenge questions');
 assert.equal(new Set(generatedBank.items.map(item => item.bankItemId)).size, generatedBank.items.length);
@@ -166,12 +305,14 @@ const root = path.join(__dirname, '..');
 const lazySource = fs.readFileSync(path.join(root, 'js', 'lazyFeatures.js'), 'utf8');
 const dailySource = fs.readFileSync(path.join(root, 'js', 'dailyLearningRoute.js'), 'utf8');
 const shellSource = fs.readFileSync(path.join(root, 'grammar-challenge', 'js', 'page-practice-shell.js'), 'utf8');
+const indexSource = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.match(lazySource, /grammarChallenge:[\s\S]*grammarChallenges\.js/);
 assert.match(lazySource, /grammarAdaptive:[\s\S]*question-bank\.js[\s\S]*grammarAdaptiveChallenge\.js/);
 assert.match(dailySource, /prepareAdaptiveGrammarChallenge/);
 assert.match(dailySource, /saveDailyGrammarRecord = saveGrammarRecord/);
 assert.match(shellSource, /recordAdaptiveGrammarAnswer/);
 assert.match(shellSource, /重试保存/);
+assert.match(indexSource, /当前课 8 \+ 薄弱 4 \+ 历史 3/);
 
 (async () => {
   let saveCount = 0;
@@ -203,6 +344,29 @@ assert.match(shellSource, /重试保存/);
   assert.equal(completed.completed, true, 'a completed record from another device must not be overwritten');
   assert.equal(completed.record.score, 100);
   assert.equal(saveCount, 0);
+
+  const sharedCourses = Array.from({ length: 24 }, (_, courseIndex) => ({
+    lessonKey: `prepared-${courseIndex + 1}`,
+    displayTitle: `已备课 ${courseIndex + 1}`,
+    lessonDate: `2026-08-${String(courseIndex + 1).padStart(2, '0')}`,
+    classroomPracticeId: `courseware-${courseIndex + 1}`,
+    selectable: true,
+    questions: Array.from({ length: 20 }, (_, questionIndex) => question(`prepared-${courseIndex + 1}`, '2026-08-01', questionIndex))
+  }));
+  let fetchedPath = '';
+  const courseRoot = {
+    async fetch(path) {
+      fetchedPath = path;
+      return new Response(JSON.stringify({ schemaVersion: 1, version: 'hub-v1', courses: sharedCourses }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  };
+  adaptive.install(courseRoot);
+  const loaded = await courseRoot.loadGrammarCourseQuestionBank();
+  assert.equal(fetchedPath, 'grammar-challenge/data/course-question-banks.json');
+  assert.equal(adaptive.courseCatalog(loaded).length, 24);
   console.log('grammarAdaptiveChallenge tests passed');
 })().catch(error => {
   console.error(error);

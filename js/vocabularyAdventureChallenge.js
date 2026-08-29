@@ -18,6 +18,9 @@
   'use strict';
 
   const CHALLENGE_LIMIT = 10;
+  const RAPID_FLIP_LIMIT = 4;
+  const STANDARD_CHALLENGE_LIMIT = CHALLENGE_LIMIT - RAPID_FLIP_LIMIT;
+  const RAPID_FLIP_RECENCY_DAYS = 7;
   const DAILY_LIMIT = 2;
   const REWARD_SOURCE = 'vocabularyChallenge';
   const REWARD_MARKER_VERSION = 2;
@@ -111,7 +114,7 @@
       attemptIndex,
       correctCount,
       score: correctCount * 10,
-      completedAt: String(session && session.completedAt || ''),
+      completedAt: String(session && (session.scoringCompletedAt || session.completedAt) || ''),
       transactionId: `vocabularyChallenge:${user || 'student'}:${date}:${attemptIndex ? `attempt-${attemptIndex}` : 'completion'}`,
       legacy: false
     };
@@ -146,11 +149,56 @@
     const question = plainObject(value.question) ? clone(value.question) : null;
     if (!wordKey || !question || !question.ok) return null;
     const answered = value.status === 'answered';
+    const correctionQuestion = plainObject(value.correctionQuestion) && value.correctionQuestion.ok
+      ? clone(value.correctionQuestion)
+      : clone(question);
+    const correctionMode = value.correctionMode === 'variant' ? 'variant' : 'retry';
     return {
       wordKey,
+      kind: value.kind === 'rapidFlip' ? 'rapidFlip' : 'standard',
       taskType: typeof value.taskType === 'string'
         ? value.taskType
         : String(question.questionType || question.taskType || ''),
+      question,
+      correctionQuestion,
+      correctionMode,
+      correctionExplanation: typeof value.correctionExplanation === 'string'
+        ? value.correctionExplanation
+        : correctionMode === 'variant'
+          ? '换一种问法，再确认一次这个词。'
+          : '当前没有安全的变式，先看清正确答案，再重做原题。',
+      status: answered ? 'answered' : 'pending',
+      userAnswer: answered ? clone(value.userAnswer) : null,
+      correct: answered ? value.correct === true : null,
+      answeredAt: answered && typeof value.answeredAt === 'string' ? value.answeredAt : ''
+    };
+  }
+
+  function daysBetweenLocalDates(earlier, later) {
+    if (!localDate(earlier) || !localDate(later)) return -1;
+    const [earlierYear, earlierMonth, earlierDay] = earlier.split('-').map(Number);
+    const [laterYear, laterMonth, laterDay] = later.split('-').map(Number);
+    return Math.floor((
+      Date.UTC(laterYear, laterMonth - 1, laterDay)
+      - Date.UTC(earlierYear, earlierMonth - 1, earlierDay)
+    ) / 86400000);
+  }
+
+  function normalizeImmediateCorrection(value, items) {
+    if (!plainObject(value)) return null;
+    const originalIndex = Number(value.originalIndex);
+    const original = Number.isInteger(originalIndex) ? items[originalIndex] : null;
+    const wordKey = core.adventureWordKey(value.wordKey);
+    const question = plainObject(value.question) && value.question.ok ? clone(value.question) : null;
+    if (!original || !wordKey || wordKey !== original.wordKey || !question) return null;
+    const answered = value.status === 'answered';
+    return {
+      originalIndex,
+      wordKey,
+      originalTaskType: String(value.originalTaskType || original.taskType || ''),
+      taskType: String(value.taskType || question.questionType || ''),
+      mode: value.mode === 'variant' ? 'variant' : 'retry',
+      explanation: String(value.explanation || ''),
       question,
       status: answered ? 'answered' : 'pending',
       userAnswer: answered ? clone(value.userAnswer) : null,
@@ -201,7 +249,10 @@
       ? 'completed'
       : value.status === 'abandoned'
         ? 'abandoned'
+        : value.status === 'correction'
+          ? 'correction'
         : 'active';
+    const correction = normalizeImmediateCorrection(value.correction, items);
 
     return {
       date: value.date,
@@ -209,7 +260,7 @@
       seed: String(value.seed || ''),
       status,
       items,
-      cursor: status === 'completed' ? items.length : cursor,
+      cursor: ['completed', 'correction'].includes(status) ? items.length : cursor,
       correctCount: items.filter(item => item.correct === true).length,
       wrongCount: items.filter(item => item.correct === false).length,
       wrongItems: items.filter(item => item.correct === false).map(item => ({
@@ -218,7 +269,9 @@
         userAnswer: userAnswerText(item.question, item.userAnswer),
         correctAnswer: correctAnswerText(item.question)
       })),
+      correction,
       startedAt: typeof value.startedAt === 'string' ? value.startedAt : '',
+      scoringCompletedAt: typeof value.scoringCompletedAt === 'string' ? value.scoringCompletedAt : '',
       updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : '',
       completedAt: typeof value.completedAt === 'string' ? value.completedAt : ''
     };
@@ -262,6 +315,33 @@
       }));
   }
 
+  function isRecentDirectAdventureResult(wordState, today) {
+    if (!wordState || wordState.lastResult !== 'D' || !wordState.lastReviewedAt) return false;
+    const reviewedDate = core.localDateKey(wordState.lastReviewedAt);
+    const age = daysBetweenLocalDates(reviewedDate, today);
+    return age >= 0 && age < RAPID_FLIP_RECENCY_DAYS;
+  }
+
+  function collectRapidFlipCandidates(candidates, stateValue, today) {
+    const state = core.normalizeVocabularyAdventureState(stateValue);
+    return (Array.isArray(candidates) ? candidates : [])
+      .filter(candidate => {
+        const key = core.adventureWordKey(candidate && candidate.key);
+        const wordState = state.words[key];
+        return candidate
+          && candidate.card
+          && wordState
+          && !wordState.challengeFlagAt
+          && !wordState.rapidConfirmAt
+          && isRecentDirectAdventureResult(wordState, today);
+      })
+      .map(candidate => ({ ...candidate, rapidFlipPriority: challengeCandidatePriority(
+        candidate,
+        state.words[core.adventureWordKey(candidate.key)],
+        today
+      ) }));
+  }
+
   function serializeQuestion(value) {
     const question = clone(value);
     delete question.card;
@@ -290,14 +370,54 @@
     return null;
   }
 
+  function buildRapidFlipQuestion(context) {
+    const question = buildQuestionForCandidate(context, 'meaningToWord');
+    if (!question) return null;
+    const target = (Array.isArray(context.allCards) ? context.allCards : [])
+      .find(candidate => candidate && candidate.key === context.planItem.wordKey);
+    const meaning = String(target?.card?.meaning || question.prompt || '').trim();
+    if (!meaning) return null;
+    return {
+      ...question,
+      questionType: 'rapidFlip',
+      taskType: 'rapidFlip',
+      rapidFlip: true,
+      flipFront: '点击翻开中文提示',
+      flipBack: meaning,
+      prompt: '翻开后，选出对应的英文单词'
+    };
+  }
+
+  function buildCorrectionQuestion(context, originalQuestion) {
+    const originalType = String(originalQuestion && originalQuestion.questionType || '');
+    const ordered = CHALLENGE_TYPES.filter(type => type !== originalType);
+    for (const taskType of ordered) {
+      const question = buildQuestionForCandidate({
+        ...context,
+        planIndex: Number(context.planIndex || 0) + CHALLENGE_LIMIT,
+        userKey: `${context.userKey || ''}|correction`
+      }, taskType);
+      if (question) return { question, mode: 'variant' };
+    }
+    return { question: serializeQuestion(originalQuestion), mode: 'retry' };
+  }
+
   function buildChallengeSession(options) {
     const settings = plainObject(options) ? options : {};
     const today = String(settings.today || '');
     const userKey = String(settings.userKey || '');
     const attemptIndex = Math.max(1, count(settings.attemptIndex) || 1);
     const candidates = collectChallengeCandidates(settings.candidates, settings.state, today);
-    if (candidates.length < CHALLENGE_LIMIT) {
-      return { ok: false, code: 'INSUFFICIENT_CHALLENGE_WORDS', available: candidates.length };
+    const rapidCandidates = collectRapidFlipCandidates(settings.candidates, settings.state, today);
+    if (rapidCandidates.length < RAPID_FLIP_LIMIT || candidates.length < CHALLENGE_LIMIT) {
+      return {
+        ok: false,
+        code: rapidCandidates.length < RAPID_FLIP_LIMIT
+          ? 'INSUFFICIENT_RAPID_FLIP_WORDS'
+          : 'INSUFFICIENT_CHALLENGE_WORDS',
+        available: candidates.length,
+        rapidAvailable: rapidCandidates.length
+      };
     }
 
     const seed = `${today}|${userKey}|challenge|${attemptIndex}`;
@@ -312,14 +432,34 @@
         ));
       });
 
-    const targets = ordered.slice(0, CHALLENGE_LIMIT);
+    const rapidTargets = core.deterministicAdventureShuffle(
+      rapidCandidates,
+      `${seed}|rapid-flip`,
+      candidate => candidate.key
+    ).slice(0, RAPID_FLIP_LIMIT);
+    const rapidKeys = new Set(rapidTargets.map(candidate => candidate.key));
+    const standardTargets = ordered
+      .filter(candidate => !rapidKeys.has(candidate.key))
+      .slice(0, STANDARD_CHALLENGE_LIMIT);
+    if (standardTargets.length < STANDARD_CHALLENGE_LIMIT) {
+      return {
+        ok: false,
+        code: 'INSUFFICIENT_STANDARD_CHALLENGE_WORDS',
+        available: candidates.length,
+        rapidAvailable: rapidCandidates.length
+      };
+    }
+    const targets = [
+      ...rapidTargets.map(candidate => ({ candidate, kind: 'rapidFlip' })),
+      ...standardTargets.map(candidate => ({ candidate, kind: 'standard' }))
+    ];
     const items = [];
     const normalizedState = core.normalizeVocabularyAdventureState(settings.state);
     for (let index = 0; index < targets.length; index += 1) {
-      const candidate = targets[index];
+      const { candidate, kind } = targets[index];
       const desiredOffset = (core.stableAdventureHash(`${seed}|types`) + index) % CHALLENGE_TYPES.length;
       const desiredType = CHALLENGE_TYPES[desiredOffset];
-      const question = buildQuestionForCandidate({
+      const context = {
         session: { date: today },
         planItem: { wordKey: candidate.key, taskType: desiredType },
         planIndex: index,
@@ -327,14 +467,24 @@
         allCards: candidates,
         userKey: `${userKey}|attempt:${attemptIndex}`,
         reason: 'due'
-      }, desiredType);
+      };
+      const question = kind === 'rapidFlip'
+        ? buildRapidFlipQuestion(context)
+        : buildQuestionForCandidate(context, desiredType);
       if (!question) {
         return { ok: false, code: 'NO_SAFE_CHALLENGE_QUESTION', wordKey: candidate.key };
       }
+      const correction = buildCorrectionQuestion(context, question);
       items.push({
         wordKey: candidate.key,
+        kind,
         taskType: question.questionType,
         question,
+        correctionQuestion: correction.question,
+        correctionMode: correction.mode,
+        correctionExplanation: correction.mode === 'variant'
+          ? '换一种问法，再确认一次这个词。'
+          : '当前没有安全的变式，先看清正确答案，再重做原题。',
         status: 'pending',
         userAnswer: null,
         correct: null,
@@ -355,6 +505,7 @@
         correctCount: 0,
         wrongCount: 0,
         wrongItems: [],
+        correction: null,
         startedAt,
         updatedAt: startedAt,
         completedAt: ''
@@ -362,12 +513,33 @@
     };
   }
 
+  function finalizeFormalChallenge(next, completedAt, userKey) {
+    const nextSession = next.challengeSession;
+    nextSession.scoringCompletedAt = completedAt;
+    next.challengeDaily.attempts = Math.min(DAILY_LIMIT, next.challengeDaily.attempts + 1);
+    const score = Math.round((nextSession.correctCount / CHALLENGE_LIMIT) * 100);
+    next.challengeDaily.bestScore = Math.max(next.challengeDaily.bestScore, score);
+    next.challengeDaily.rewardSettlement = createCompletedChallengeRewardMarker(
+      next.challengeDaily,
+      nextSession,
+      completedAt,
+      userKey
+    );
+    const completion = createChallengeCompletion(nextSession, userKey);
+    const completions = new Map(
+      (Array.isArray(next.challengeDaily.completions) ? next.challengeDaily.completions : [])
+        .map(item => [item.transactionId, item])
+    );
+    completions.set(completion.transactionId, completion);
+    next.challengeDaily.completions = [...completions.values()].slice(-4);
+  }
+
   function prepareChallengeAnswer(stateValue, submission) {
     const input = plainObject(submission) ? submission : {};
     const today = String(input.today || '');
     const state = normalizeChallengeState(stateValue, today);
     const session = state.challengeSession;
-    if (!session || session.status !== 'active') throw new Error('CHALLENGE_NOT_ACTIVE');
+    if (!session || session.status !== 'active' || session.correction) throw new Error('CHALLENGE_NOT_ACTIVE');
     if (session.cursor !== Number(input.expectedCursor)) throw new Error('CHALLENGE_CURSOR_MISMATCH');
 
     const item = session.items[session.cursor];
@@ -399,36 +571,85 @@
         userAnswer: userAnswerText(nextItem.question, input.answer),
         correctAnswer: correctAnswerText(nextItem.question)
       });
+      nextSession.correction = {
+        originalIndex: nextSession.cursor - 1,
+        wordKey: nextItem.wordKey,
+        originalTaskType: nextItem.taskType,
+        taskType: nextItem.correctionQuestion.questionType,
+        mode: nextItem.correctionMode,
+        explanation: nextItem.correctionExplanation,
+        question: clone(nextItem.correctionQuestion),
+        status: 'pending',
+        userAnswer: null,
+        correct: null,
+        answeredAt: ''
+      };
+    } else if (nextItem.kind === 'rapidFlip') {
+      const previousWordState = next.words[nextItem.wordKey] || {};
+      next.words[nextItem.wordKey] = {
+        ...previousWordState,
+        rapidConfirmAt: nextItem.answeredAt
+      };
     }
 
-    const completed = nextSession.cursor >= nextSession.items.length;
-    if (completed) {
-      nextSession.status = 'completed';
-      nextSession.completedAt = nextItem.answeredAt;
-      next.challengeDaily.attempts = Math.min(DAILY_LIMIT, next.challengeDaily.attempts + 1);
-      const score = Math.round((nextSession.correctCount / CHALLENGE_LIMIT) * 100);
-      next.challengeDaily.bestScore = Math.max(next.challengeDaily.bestScore, score);
-      next.challengeDaily.rewardSettlement = createCompletedChallengeRewardMarker(
-        next.challengeDaily,
-        nextSession,
-        nextItem.answeredAt,
-        input.userKey
-      );
-      const completion = createChallengeCompletion(nextSession, input.userKey);
-      const completions = new Map(
-        (Array.isArray(next.challengeDaily.completions) ? next.challengeDaily.completions : [])
-          .map(item => [item.transactionId, item])
-      );
-      completions.set(completion.transactionId, completion);
-      next.challengeDaily.completions = [...completions.values()].slice(-4);
+    const formalCompleted = nextSession.cursor >= nextSession.items.length;
+    if (formalCompleted) {
+      finalizeFormalChallenge(next, nextItem.answeredAt, input.userKey);
+      nextSession.status = nextSession.correction ? 'correction' : 'completed';
+      nextSession.completedAt = nextSession.correction ? '' : nextItem.answeredAt;
     }
 
     return {
       state: normalizeChallengeState(next, today),
       correct,
-      completed,
+      completed: formalCompleted && !nextSession.correction,
+      formalCompleted,
+      needsImmediateCorrection: !correct,
       correctAnswer: correctAnswerText(nextItem.question),
       userAnswer: userAnswerText(nextItem.question, input.answer)
+    };
+  }
+
+  function prepareChallengeCorrectionAnswer(stateValue, submission) {
+    const input = plainObject(submission) ? submission : {};
+    const today = String(input.today || '');
+    const state = normalizeChallengeState(stateValue, today);
+    const session = state.challengeSession;
+    const correction = session && session.correction;
+    if (!session || !correction || !['active', 'correction'].includes(session.status)) {
+      throw new Error('CHALLENGE_CORRECTION_NOT_ACTIVE');
+    }
+    if (session.cursor !== Number(input.expectedCursor)) {
+      throw new Error('CHALLENGE_CORRECTION_CURSOR_MISMATCH');
+    }
+    if (correction.wordKey !== core.adventureWordKey(input.wordKey)) {
+      throw new Error('CHALLENGE_CORRECTION_WORD_MISMATCH');
+    }
+
+    const correct = review.gradeVocabularyAdventureReviewQuestion(correction.question, input.answer);
+    const next = clone(state);
+    const nextSession = next.challengeSession;
+    const nextCorrection = nextSession.correction;
+    nextCorrection.status = 'answered';
+    nextCorrection.userAnswer = clone(input.answer);
+    nextCorrection.correct = correct;
+    nextCorrection.answeredAt = String(input.answeredAt || new Date().toISOString());
+    nextSession.updatedAt = nextCorrection.answeredAt;
+    nextSession.correction = null;
+    const completed = nextSession.cursor >= nextSession.items.length;
+    if (completed) {
+      nextSession.status = 'completed';
+      nextSession.completedAt = nextCorrection.answeredAt;
+    }
+    return {
+      state: normalizeChallengeState(next, today),
+      kind: 'correction',
+      correct,
+      completed,
+      correctionMode: nextCorrection.mode,
+      explanation: nextCorrection.explanation,
+      correctAnswer: correctAnswerText(nextCorrection.question),
+      userAnswer: userAnswerText(nextCorrection.question, input.answer)
     };
   }
 
@@ -436,16 +657,19 @@
     const input = plainObject(options) ? options : {};
     const today = String(input.today || '');
     const state = normalizeChallengeState(stateValue, today);
-    if (!state.challengeSession || state.challengeSession.status !== 'active') {
+    if (!state.challengeSession || !['active', 'correction'].includes(state.challengeSession.status)) {
       throw new Error('CHALLENGE_NOT_ACTIVE');
     }
 
     const next = clone(state);
     const exitedAt = String(input.exitedAt || new Date().toISOString());
-    next.challengeSession.status = 'abandoned';
+    const scoringFinished = next.challengeSession.status === 'correction';
+    next.challengeSession.status = scoringFinished ? 'completed' : 'abandoned';
     next.challengeSession.updatedAt = exitedAt;
     next.challengeSession.completedAt = exitedAt;
-    next.challengeDaily.attempts = Math.min(DAILY_LIMIT, next.challengeDaily.attempts + 1);
+    if (!scoringFinished) {
+      next.challengeDaily.attempts = Math.min(DAILY_LIMIT, next.challengeDaily.attempts + 1);
+    }
 
     // Keep the existing challenge rule: exiting consumes one attempt and records
     // the score achieved so far against the fixed ten-question denominator.
@@ -463,14 +687,16 @@
     const bestScore = Math.max(count(settings.legacyBestScore), state.challengeDaily.bestScore);
     const active = state.challengeSession
       && state.challengeSession.date === today
-      && state.challengeSession.status === 'active';
+      && ['active', 'correction'].includes(state.challengeSession.status);
 
     if (active) {
       return {
         state: 'continue',
         attempts,
         bestScore,
-        text: `继续挑战 · ${state.challengeSession.cursor}/${CHALLENGE_LIMIT}`
+        text: state.challengeSession.correction
+          ? `继续重刷 · ${state.challengeSession.cursor}/${CHALLENGE_LIMIT}`
+          : `继续挑战 · ${state.challengeSession.cursor}/${CHALLENGE_LIMIT}`
       };
     }
     if (attempts >= DAILY_LIMIT) {
@@ -478,13 +704,17 @@
     }
 
     const available = collectChallengeCandidates(settings.candidates, state, today).length;
-    if (available < CHALLENGE_LIMIT) {
+    const rapidAvailable = collectRapidFlipCandidates(settings.candidates, state, today).length;
+    if (available < CHALLENGE_LIMIT || rapidAvailable < RAPID_FLIP_LIMIT) {
       return {
         state: 'insufficient',
         attempts,
         bestScore,
         available,
-        text: `已摸底且无待复查 ${available}/10 个词`
+        rapidAvailable,
+        text: rapidAvailable < RAPID_FLIP_LIMIT
+          ? `近7天速刷词 ${rapidAvailable}/${RAPID_FLIP_LIMIT} 个`
+          : `已摸底且无待复查 ${available}/10 个词`
       };
     }
     if (attempts > 0) {
@@ -495,7 +725,7 @@
         text: `最高 ${bestScore} 分 · 还可 ${DAILY_LIMIT - attempts} 次`
       };
     }
-    return { state: 'ready', attempts, bestScore, text: '10 题综合挑战 · 今日可挑战' };
+    return { state: 'ready', attempts, bestScore, text: '4题翻翻乐＋6题综合挑战 · 今日可挑战' };
   }
 
   function escapeHtml(value) {
@@ -663,7 +893,9 @@
 
     function currentItem() {
       const session = currentSession();
-      return session && session.status === 'active' ? session.items[session.cursor] : null;
+      if (!session || !['active', 'correction'].includes(session.status)) return null;
+      if (session.correction) return session.correction;
+      return session.status === 'active' ? session.items[session.cursor] || null : null;
     }
 
     function targetCard(wordKey) {
@@ -676,6 +908,11 @@
       const countNode = element('vocabularyAdventureChallengeCount');
       const fill = element('vocabularyAdventureChallengeFill');
       if (!session) return;
+      if (session.correction) {
+        if (countNode) countNode.textContent = `重刷 ${Math.min(session.cursor, CHALLENGE_LIMIT)}/${CHALLENGE_LIMIT}`;
+        if (fill) fill.style.width = `${(session.cursor / CHALLENGE_LIMIT) * 100}%`;
+        return;
+      }
       if (countNode) {
         countNode.textContent = `${Math.min(session.cursor + 1, CHALLENGE_LIMIT)}/${CHALLENGE_LIMIT}`;
       }
@@ -693,7 +930,8 @@
         audioSpelling: '听音拼写',
         phoneticToWord: '根据音标选择单词',
         collocationCloze: '补全固定搭配',
-        sentenceOrder: '排列句子'
+        sentenceOrder: '排列句子',
+        rapidFlip: '翻翻乐速刷'
       };
       return labels[question.questionType] || '完成这道题';
     }
@@ -704,6 +942,8 @@
       if (!item || !body) return;
 
       const question = item.question;
+      const session = currentSession();
+      const correction = !!session?.correction;
       runtime.order = [];
       const audio = ['audioToWord', 'audioSpelling'].includes(question.questionType)
         ? '<button type="button" class="vocabulary-adventure-audio-prompt" onclick="speakVocabularyAdventureChallengeWord()">🔊 再听一次</button>'
@@ -711,9 +951,15 @@
       let interaction = '';
 
       if (question.interaction === 'choice') {
-        interaction = `<div class="vocabulary-adventure-options">${question.options.map((option, index) => `
+        const options = `<div class="vocabulary-adventure-options">${question.options.map((option, index) => `
           <button type="button" onclick="answerVocabularyAdventureChallengeChoice(${index})">${escapeHtml(option.label)}</button>
         `).join('')}</div>`;
+        interaction = question.rapidFlip
+          ? `<button type="button" class="vocabulary-adventure-rapid-flip" aria-expanded="false" onclick="toggleVocabularyAdventureChallengeFlip(this)">
+              <span class="vocabulary-adventure-rapid-flip__front">${escapeHtml(question.flipFront || '点击翻开提示')}</span>
+              <span class="vocabulary-adventure-rapid-flip__back" hidden>${escapeHtml(question.flipBack || '')}</span>
+            </button><div class="vocabulary-adventure-rapid-flip__options" hidden>${options}</div>`
+          : options;
       } else if (question.interaction === 'input') {
         interaction = `<div class="vocabulary-adventure-review-input">
           <input id="vocabularyAdventureChallengeInput" autocomplete="off" autocapitalize="none" aria-label="输入答案">
@@ -732,14 +978,22 @@
         </div>`;
       }
 
-      body.innerHTML = `<div class="vocabulary-adventure-question">
-        <div class="vocabulary-adventure-instruction">挑战 · 无提示</div>
+      body.innerHTML = `<div class="vocabulary-adventure-question${correction ? ' is-correction' : ''}">
+        <div class="vocabulary-adventure-instruction">${correction ? '错题即时重刷 · 不计分' : question.rapidFlip ? '翻翻乐速刷 · 正式计分' : '挑战 · 无提示'}</div>
+        ${correction ? `<p class="vocabulary-adventure-confirmation-note">${escapeHtml(item.explanation || '换一种问法，再确认一次这个词。')}</p>` : ''}
         <h2>${escapeHtml(questionPrompt(question))}</h2>
         ${audio}
         ${question.prompt ? `<div class="vocabulary-adventure-prompt-text">${escapeHtml(question.prompt)}</div>` : ''}
         ${interaction}
       </div>`;
-      setFeedback('确认后会立即保存本题结果', '', '', '');
+      setFeedback(
+        correction
+          ? '本次重刷只帮助巩固，不改变原始分数、金币或首次错题记录。'
+          : question.rapidFlip
+            ? '翻开提示后完成一次快速确认。'
+            : '确认后会立即保存本题结果。',
+        '', '', ''
+      );
       renderProgress();
       if (audio) window.setTimeout(() => speakVocabularyAdventureChallengeWord(), 100);
     }
@@ -794,7 +1048,7 @@
       const session = currentSession();
       if (!session) return;
       if (session.status === 'completed') renderResult();
-      else if (session.status === 'active') renderQuestion();
+      else if (['active', 'correction'].includes(session.status)) renderQuestion();
       else renderUnavailable('这次挑战已退出，请返回首页重新开始。');
     }
 
@@ -860,8 +1114,10 @@
         if (status.attempts >= DAILY_LIMIT) {
           return renderUnavailable('今天的 2 次挑战已经完成，明天再来。');
         }
-        if (status.available < CHALLENGE_LIMIT) {
-          return renderUnavailable('可挑战词不足 10 个，请先完成探险待复查。');
+        if (status.available < CHALLENGE_LIMIT || status.rapidAvailable < RAPID_FLIP_LIMIT) {
+          return renderUnavailable(status.rapidAvailable < RAPID_FLIP_LIMIT
+            ? `近7天内可速刷的直接答对词不足 ${RAPID_FLIP_LIMIT} 个，请先完成探险。`
+            : '可挑战词不足 10 个，请先完成探险待复查。');
         }
 
         const built = buildChallengeSession({
@@ -908,14 +1164,23 @@
         });
 
       try {
-        const prepared = prepareChallengeAnswer(runtime.state, {
-          today: session.date,
-          userKey: runtime.user,
-          expectedCursor: session.cursor,
-          wordKey: item.wordKey,
-          answer,
-          answeredAt: new Date().toISOString()
-        });
+        const correction = !!session.correction;
+        const prepared = correction
+          ? prepareChallengeCorrectionAnswer(runtime.state, {
+              today: session.date,
+              expectedCursor: session.cursor,
+              wordKey: item.wordKey,
+              answer,
+              answeredAt: new Date().toISOString()
+            })
+          : prepareChallengeAnswer(runtime.state, {
+              today: session.date,
+              userKey: runtime.user,
+              expectedCursor: session.cursor,
+              wordKey: item.wordKey,
+              answer,
+              answeredAt: new Date().toISOString()
+            });
         runtime.prepared = prepared.state;
         runtime.preparedMeta = prepared;
         runtime.saving = true;
@@ -934,15 +1199,17 @@
         runtime.state = runtime.prepared;
         runtime.prepared = null;
         runtime.preparedMeta = null;
-        if (window.VocabularyFeedbackSaveCoordinator?.ownsFeedback?.()) return;
+        if (!correction && window.VocabularyFeedbackSaveCoordinator?.ownsFeedback?.()) return;
         const card = targetCard(item.wordKey) || {};
         const detail = prepared.correct
-          ? '回答正确'
-          : `回答错误。${card.word || item.wordKey}：${card.meaning || ''}；正确答案：${prepared.correctAnswer}`;
+          ? correction ? '重刷完成，本题不计分。' : '回答正确'
+          : `${correction ? '这次重刷仍需加强。' : '回答错误。'}${card.word || item.wordKey}：${card.meaning || ''}；正确答案：${prepared.correctAnswer}`;
         setFeedback(
           detail,
           prepared.correct ? 'direct' : 'failed',
-          prepared.completed ? '查看结果' : '下一题',
+          prepared.needsImmediateCorrection ? '马上重刷'
+            : prepared.completed ? '查看结果'
+              : correction ? '下一题' : '下一题',
           'nextVocabularyAdventureChallenge'
         );
       } catch (error) {
@@ -975,21 +1242,38 @@
         renderCurrent();
         return;
       }
+      const correction = meta && meta.kind === 'correction';
       setFeedback(
-        meta && meta.correct ? '回答正确' : `回答错误。正确答案：${meta && meta.correctAnswer || ''}`,
+        meta && meta.correct
+          ? correction ? '重刷完成，本题不计分。' : '回答正确'
+          : `${correction ? '这次重刷仍需加强。' : '回答错误。'}正确答案：${meta && meta.correctAnswer || ''}`,
         meta && meta.correct ? 'direct' : 'failed',
-        meta && meta.completed ? '查看结果' : '下一题',
+        meta && meta.needsImmediateCorrection ? '马上重刷'
+          : meta && meta.completed ? '查看结果' : '下一题',
         'nextVocabularyAdventureChallenge'
       );
     }
 
     function answerVocabularyAdventureChallengeChoice(index) {
-      submitAnswer(Number(index));
+      return submitAnswer(Number(index));
     }
 
     function submitVocabularyAdventureChallengeInput() {
       const input = element('vocabularyAdventureChallengeInput');
-      if (input) submitAnswer(input.value);
+      if (input) return submitAnswer(input.value);
+      return undefined;
+    }
+
+    function toggleVocabularyAdventureChallengeFlip(button) {
+      if (!button || button.getAttribute('aria-expanded') === 'true') return;
+      button.setAttribute('aria-expanded', 'true');
+      button.classList.add('is-flipped');
+      const front = button.querySelector('.vocabulary-adventure-rapid-flip__front');
+      const back = button.querySelector('.vocabulary-adventure-rapid-flip__back');
+      if (front) front.hidden = true;
+      if (back) back.hidden = false;
+      const options = button.parentElement?.querySelector('.vocabulary-adventure-rapid-flip__options');
+      if (options) options.hidden = false;
     }
 
     function renderOrder() {
@@ -1018,8 +1302,9 @@
     function submitVocabularyAdventureChallengeOrder() {
       const item = currentItem();
       if (item && runtime.order.length === item.question.answer.length) {
-        submitAnswer([...runtime.order]);
+        return submitAnswer([...runtime.order]);
       }
+      return undefined;
     }
 
     function nextVocabularyAdventureChallenge() {
@@ -1034,8 +1319,11 @@
 
     async function closeVocabularyAdventureChallenge() {
       const session = currentSession();
-      if (session && session.status === 'active') {
-        if (!window.confirm('确定要退出吗，退出默认此次挑战机会作废哦~')) return;
+      if (session && ['active', 'correction'].includes(session.status)) {
+        const correction = !!session.correction;
+        if (!window.confirm(correction
+          ? '当前错题还没有重刷完，确定返回吗？原始作答记录会保留。'
+          : '确定要退出吗，退出默认此次挑战机会作废哦~')) return;
         try {
           const prepared = prepareChallengeExit(runtime.state, {
             today: session.date,
@@ -1068,6 +1356,7 @@
       retryOpenVocabularyAdventureChallenge,
       answerVocabularyAdventureChallengeChoice,
       submitVocabularyAdventureChallengeInput,
+      toggleVocabularyAdventureChallengeFlip,
       selectVocabularyAdventureChallengeToken,
       clearVocabularyAdventureChallengeOrder,
       submitVocabularyAdventureChallengeOrder,
@@ -1079,6 +1368,9 @@
 
   return Object.freeze({
     CHALLENGE_LIMIT,
+    RAPID_FLIP_LIMIT,
+    STANDARD_CHALLENGE_LIMIT,
+    RAPID_FLIP_RECENCY_DAYS,
     DAILY_LIMIT,
     CHALLENGE_TYPES,
     normalizeChallengeDaily,
@@ -1088,8 +1380,10 @@
     normalizeChallengeSession,
     normalizeChallengeState,
     collectChallengeCandidates,
+    collectRapidFlipCandidates,
     buildChallengeSession,
     prepareChallengeAnswer,
+    prepareChallengeCorrectionAnswer,
     prepareChallengeExit,
     challengeHomeStatus,
     correctAnswerText,

@@ -17,6 +17,7 @@ const {
   calculateKpStats,
   buildWeakSummary,
   buildWeaknessEvidence,
+  buildFormalWeaknessCandidates,
   normalizeRules,
   inlineQuestionCorrect,
   shellQuestionCorrect
@@ -126,6 +127,7 @@ targeted = updateAttemptProgress(targeted, {
       weaknessIds: ['brother.sentence-parts.time-adjunct'],
       primaryWeaknessId: 'brother.sentence-parts.time-adjunct',
       diagnosticTargets: ['time-adjunct'], contentHash: 'sha256:pass-1',
+      formalWeaknessEligible: true,
       answered: true, correct: true, firstTryCorrect: true, viewedAnswer: false
     },
     {
@@ -133,6 +135,7 @@ targeted = updateAttemptProgress(targeted, {
       weaknessIds: ['brother.sentence-parts.time-adjunct'],
       primaryWeaknessId: 'brother.sentence-parts.time-adjunct',
       diagnosticTargets: ['time-adjunct'], contentHash: 'sha256:fail-1',
+      formalWeaknessEligible: true,
       answered: true, correct: true, firstTryCorrect: false, viewedAnswer: true
     },
     {
@@ -140,6 +143,7 @@ targeted = updateAttemptProgress(targeted, {
       weaknessIds: ['brother.sentence-parts.time-adjunct'],
       primaryWeaknessId: 'brother.sentence-parts.time-adjunct',
       diagnosticTargets: ['time-adjunct'], contentHash: 'sha256:practice-1',
+      formalWeaknessEligible: true,
       answered: true, correct: true, firstTryCorrect: true, viewedAnswer: true
     },
     {
@@ -157,6 +161,55 @@ assert.equal(targetedEvidence[0].weaknessId, 'brother.sentence-parts.time-adjunc
 assert.equal(targetedEvidence[1].validForMastery, false);
 assert.equal(targetedEvidence[2].validForMastery, false);
 assert.equal(targetedEvidence[0].evidenceId, 'grammar:brother:targeted-a1:pass-1');
+assert.deepEqual(
+  buildFormalWeaknessCandidates(upsertAttempt(normalizeHistory(null, 'brother'), targeted).history),
+  [],
+  'one first-try error must not create a formal weakness candidate'
+);
+let targetedSecond = createAttempt({
+  challengeId: 'grammar-targeted', challengeTitle: '薄弱项复测', challengeDate: '2026-07-09',
+  lessonKey: 'sentence-parts', kpIds: ['sentence-parts'], totalQuestions: 1
+}, { student: 'brother', attemptId: 'targeted-a2', now: '2026-07-09T08:00:00.000Z' });
+targetedSecond = updateAttemptProgress(targetedSecond, {
+  totalQuestions: 1,
+  questions: [{
+    questionId: 'fail-2', kpIds: ['sentence-parts'],
+    weaknessIds: ['brother.sentence-parts.time-adjunct'],
+    primaryWeaknessId: 'brother.sentence-parts.time-adjunct',
+    diagnosticTargets: ['time-adjunct'], contentHash: 'sha256:fail-2',
+    formalWeaknessEligible: true,
+    answered: true, correct: false, firstTryCorrect: false, viewedAnswer: true
+  }]
+}, '2026-07-09T08:01:00.000Z');
+targetedSecond = finalizeAttempt(targetedSecond, STATUS.COMPLETED, '2026-07-09T08:02:00.000Z');
+let candidateHistory = upsertAttempt(normalizeHistory(null, 'brother'), targeted).history;
+candidateHistory = upsertAttempt(candidateHistory, targetedSecond).history;
+const formalCandidates = buildFormalWeaknessCandidates(candidateHistory);
+assert.equal(formalCandidates.length, 1);
+assert.equal(formalCandidates[0].distinctContentCount, 2);
+assert.deepEqual(formalCandidates[0].contentHashes, ['sha256:fail-1', 'sha256:fail-2']);
+
+let compositeAttempt = createAttempt({
+  challengeId: 'grammar-composite', challengeTitle: '综合题保护', challengeDate: '2026-07-10',
+  lessonKey: 'mixed', kpIds: ['noun-possessive', 'whose'], totalQuestions: 1
+}, { student: 'brother', attemptId: 'composite-a1', now: '2026-07-10T08:00:00.000Z' });
+compositeAttempt = updateAttemptProgress(compositeAttempt, {
+  totalQuestions: 1,
+  questions: [{
+    questionId: 'mixed-1', kpIds: ['noun-possessive', 'whose'],
+    weaknessIds: ['brother.noun-possessive.mixed'],
+    primaryWeaknessId: 'brother.noun-possessive.mixed',
+    diagnosticTargets: ['mixed'], contentHash: 'sha256:mixed-1',
+    formalWeaknessEligible: true,
+    answered: true, correct: false, firstTryCorrect: false, viewedAnswer: true
+  }]
+}, '2026-07-10T08:01:00.000Z');
+compositeAttempt = finalizeAttempt(compositeAttempt, STATUS.COMPLETED, '2026-07-10T08:02:00.000Z');
+assert.deepEqual(
+  buildWeaknessEvidence(upsertAttempt(normalizeHistory(null, 'brother'), compositeAttempt).history),
+  [],
+  'multi-knowledge questions must never become formal weakness evidence'
+);
 
 // Interrupted attempts can resume with the same attempt ID after a refresh.
 const inProgress = createAttempt({
@@ -262,6 +315,7 @@ assert.match(moduleSource, /questionWeaknessMetadata/);
 assert.match(moduleSource, /buildWeaknessEvidence/);
 assert.match(moduleSource, /root\.loadGrammarChallengeWeakSummary/);
 assert.match(moduleSource, /root\.setGrammarChallengeWeakRules/);
+assert.match(moduleSource, /qaState\.isCorrection === true/);
 assert.match(catalogSource, /lessonKey:/);
 assert.match(catalogSource, /kpIds:/);
 assert.match(catalogSource, /questionPrimaryWeaknessIds/);

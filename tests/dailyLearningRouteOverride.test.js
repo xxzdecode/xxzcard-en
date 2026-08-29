@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const api = require(path.join(root, 'js/dailyLearningRouteOverride.js'));
+const adaptive = require(path.join(root, 'js/grammarAdaptiveChallenge.js'));
 
 const automatic = {
   grammarChallenge: { id: 'grammar-auto', title: '自动语法' },
@@ -48,8 +49,73 @@ const migrated = api.normalize({
     '2026-08-02': { grammarChallenge: practice, updatedAt: '2026-08-02T01:00:00.000Z' }
   }
 });
-assert.equal(migrated.schemaVersion, 2);
+assert.equal(migrated.schemaVersion, 3);
 assert.equal(migrated.current.grammarChallenge.practiceId, 'courseware-1');
+assert.equal(migrated.current.currentCourse, undefined);
+
+const preparedCourses = Array.from({ length: 24 }, (_, index) => ({
+  lessonKey: `lesson-${index + 1}`,
+  displayTitle: `课程 ${index + 1}`,
+  lessonDate: `2026-08-${String(index + 1).padStart(2, '0')}`,
+  classroomPracticeId: `courseware-${index + 1}`,
+  selectable: true
+}));
+const preparedPractices = [...preparedCourses].reverse().map(course => ({
+  id: course.classroomPracticeId,
+  title: `随堂目录 ${course.lessonKey}`,
+  path: `courseware/${course.lessonKey}.html`
+}));
+const courseOptions = api.buildCourseOptions(preparedCourses, preparedPractices);
+assert.equal(courseOptions.length, 24, 'all 24 prepared selectable courses must reach the single selector');
+assert.equal(courseOptions[0].lessonDate, '2026-08-24');
+assert.equal(courseOptions[0].classroomPracticePath, 'courseware/lesson-24.html');
+assert.equal(courseOptions[0].displayTitle, '随堂目录 lesson-24', 'teacher selector must use the classroom catalog name');
+
+globalThis.GrammarAdaptiveChallenge = { courseCatalog: () => preparedCourses };
+globalThis.GRAMMAR_COURSE_QUESTION_BANKS = { courses: preparedCourses };
+globalThis.CLASSROOM_PRACTICE_ITEMS = preparedPractices;
+const normalizedObjectCourse = api.normalize({
+  current: {
+    currentCourse: {
+      lessonKey: 'lesson-22',
+      displayTitle: '不可信旧标题',
+      classroomPracticeId: 'wrong-practice',
+      classroomPracticePath: 'wrong-path.html'
+    }
+  }
+});
+assert.equal(normalizedObjectCourse.current.currentCourse, 'lesson-22', 'cached currentCourse must persist only lessonKey');
+const unified = api.mergeRoute(automatic, {
+  current: { currentCourse: 'lesson-22', updatedAt: '2026-08-22T01:00:00.000Z' }
+});
+assert.equal(unified.currentCourse.lessonKey, 'lesson-22');
+assert.equal(unified.grammarChallenge.lessonKey, 'lesson-22');
+assert.equal(unified.classroomPractice.id, 'courseware-22');
+assert.equal(unified.grammarChallenge.displayTitle, '随堂目录 lesson-22');
+assert.equal(unified.classroomPractice.title, '随堂目录 lesson-22');
+const rejectedMismatch = api.mergeRoute(automatic, {
+  current: { currentCourse: 'missing-lesson', updatedAt: '2026-08-22T01:00:00.000Z' }
+});
+assert.equal(rejectedMismatch, automatic, 'unknown legacy course keys must not be trusted as unified routes');
+
+const coursewareContext = { window: {} };
+vm.runInNewContext(fs.readFileSync(path.join(root, 'js/courseware-data.js'), 'utf8'), coursewareContext);
+const livePractices = coursewareContext.window.CLASSROOM_PRACTICE_ITEMS;
+const liveSharedBank = JSON.parse(fs.readFileSync(
+  path.join(root, 'grammar-challenge/data/course-question-banks.json'),
+  'utf8'
+));
+const liveCourseOptions = api.buildCourseOptions(adaptive.courseCatalog(liveSharedBank), livePractices);
+assert.equal(liveCourseOptions.length, 24);
+assert.equal(
+  JSON.stringify(liveCourseOptions.map(item => item.classroomPracticeId)),
+  JSON.stringify(livePractices.filter(practiceItem => liveCourseOptions.some(item => item.classroomPracticeId === practiceItem.id)).map(item => item.id)),
+  'grammar course order must follow the classroom-practice directory'
+);
+liveCourseOptions.forEach(item => {
+  const practiceItem = livePractices.find(candidate => candidate.id === item.classroomPracticeId);
+  assert.equal(item.displayTitle, practiceItem.title, `grammar title must match classroom practice: ${item.lessonKey}`);
+});
 
 const deployedRoute = JSON.parse(fs.readFileSync(path.join(root, 'data/daily-learning-route.json'), 'utf8'));
 assert.equal(deployedRoute.grammarChallenge.id, 'manual-courseware::courseware-2026-08-04');
@@ -80,6 +146,7 @@ assert.match(grammarChallenges, /openManualGrammarChallenge/);
 assert.match(grammarChallenges, /activeGrammarChallengeId = id/);
 
 const overrideRuntime = fs.readFileSync(path.join(root, 'js/dailyLearningRouteOverride.js'), 'utf8');
+const adaptiveRuntime = fs.readFileSync(path.join(root, 'js/grammarAdaptiveChallenge.js'), 'utf8');
 const coursewareData = fs.readFileSync(path.join(root, 'js/courseware-data.js'), 'utf8');
 assert.match(overrideRuntime, /root\.openManualGrammarChallenge = openManualGrammar/);
 assert.match(overrideRuntime, /Promise\.race/);
@@ -87,7 +154,7 @@ assert.match(overrideRuntime, /AbortController/);
 assert.match(overrideRuntime, /REMOTE_REFRESH_TIMEOUT_MS = 5000/);
 assert.match(overrideRuntime, /refreshDailyLearningRouteOverride/);
 assert.doesNotMatch(overrideRuntime, /const \[routeResult, freshResult\] = await Promise\.all/);
-assert.match(overrideRuntime, /schemaVersion:\s*2/);
+assert.match(overrideRuntime, /schemaVersion:\s*3/);
 assert.match(overrideRuntime, /manualSelection:/);
 assert.equal((coursewareData.match(/"grammarCompatible": true/g) || []).length, 25);
 assert.equal((coursewareData.match(/"grammarCompatible": false/g) || []).length, 5);
@@ -97,7 +164,11 @@ assert.doesNotMatch(overrideRuntime, /patchGrammarLoader/);
 assert.match(dailyRouteRuntime, /MANUAL_ROUTE_PENDING/);
 assert.match(dailyRouteRuntime, /return route && route\.manualSelection \? route : null/);
 assert.match(dailyRouteRuntime, /addEventListener\?\.\('pageshow'/);
-assert.match(dailyRouteRuntime, /8 题 \+ 历史 7 题/);
+assert.match(dailyRouteRuntime, /8 题 \+ 薄弱 4 题 \+ 历史 3 题/);
+assert.match(overrideRuntime, /id="teacherCurrentCourse"/);
+assert.doesNotMatch(overrideRuntime, /id="teacherGrammarOverride"|id="teacherClassroomOverride"/);
+assert.match(overrideRuntime, /currentCourse:\s*course\.lessonKey/);
+assert.match(adaptiveRuntime, /grammar-challenge\/data\/course-question-banks\.json/);
 assert.match(grammarChallenges, /homeButton\.textContent = '回首页'/);
 assert.match(grammarChallenges, /closeGrammarChallenge\(\)/);
 assert.match(grammarChallenges, /stopImmediatePropagation\(\)/);

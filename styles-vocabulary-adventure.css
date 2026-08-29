@@ -246,6 +246,31 @@ body:has(#screenVocabularyAdventureChallenge.active) { padding-bottom: 0; overfl
 .vocabulary-adventure-options button.is-correct:disabled,
 .vocabulary-adventure-options button.is-wrong:disabled { opacity: 1; }
 
+.vocabulary-adventure-rapid-flip {
+  width: min(440px, 100%);
+  min-height: 112px;
+  margin: 0 auto 14px;
+  padding: 16px 20px;
+  border: 2px solid #b6d8ea;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #e9f7ff, #f7fbff);
+  color: #285c87;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-size: clamp(19px, 3vw, 28px);
+  font-weight: 900;
+  line-height: 1.3;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 160ms ease, background 160ms ease;
+}
+.vocabulary-adventure-rapid-flip:active { transform: scale(.98); }
+.vocabulary-adventure-rapid-flip.is-flipped { background: linear-gradient(135deg, #fff4cc, #fffaf0); color: #75571a; }
+.vocabulary-adventure-rapid-flip__front { font-size: 18px; }
+.vocabulary-adventure-rapid-flip__back { overflow-wrap: anywhere; }
+.vocabulary-adventure-rapid-flip__options[hidden] { display: none; }
+
 .vocabulary-adventure-hint {
   min-height: 48px;
   margin: 0 0 12px;

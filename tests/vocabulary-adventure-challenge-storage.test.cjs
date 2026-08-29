@@ -57,12 +57,13 @@ function createCandidates() {
 }
 
 function createState(candidates) {
+  const recentDirectAt = new Date().toISOString();
   return {
     version: 1,
     words: Object.fromEntries(candidates.map(candidate => [candidate.key, {
       lastResult: 'D',
       intervalIndex: 1,
-      lastReviewedAt: '2026-08-01T00:00:00.000Z',
+      lastReviewedAt: recentDirectAt,
       nextReviewAt: '2026-08-04',
       reviewCount: 1,
       lastTaskType: '',
@@ -153,4 +154,17 @@ test('challenge waits for a remote read and durable plan save before rendering q
   assert.equal(durableState.challengeSession.status, 'active');
   assert.equal(durableState.challengeSession.cursor, 0);
   assert.match(elements.get('vocabularyAdventureChallengeBody').innerHTML, /vocabulary-adventure-question/);
+
+  const firstItem = durableState.challengeSession.items[0];
+  const wrongChoice = (firstItem.question.correctIndex + 1) % firstItem.question.options.length;
+  await api.answerVocabularyAdventureChallengeChoice(wrongChoice);
+  assert.equal(durableState.challengeSession.cursor, 1, 'the first formal error is saved immediately');
+  assert.equal(durableState.challengeSession.correction.wordKey, firstItem.wordKey);
+  assert.equal(elements.get('vocabularyAdventureChallengeAction').textContent, '马上重刷');
+  api.nextVocabularyAdventureChallenge();
+  assert.match(
+    elements.get('vocabularyAdventureChallengeBody').innerHTML,
+    /错题即时重刷 · 不计分/,
+    'the retry appears before the second formal item, not after all ten items'
+  );
 });

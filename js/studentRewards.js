@@ -584,10 +584,11 @@
       return 'idle';
     }
 
-    function renderHomeClaimStates(recordValue, ownerValue) {
+    function renderHomeClaimStates(recordValue, ownerValue, context) {
       const record = normalizeRewardRecord(recordValue);
       const owner = rewardOwner(record, ownerValue);
-      if (!shouldRenderRewardOwner(owner, currentUserValue())) return record;
+      if (!shouldRenderRewardOwner(owner, currentUserValue())
+          || (context && !root.isStudentHomeRenderContextCurrent?.(context))) return record;
       const day = normalizeDay(record.daily[dateKey()]);
       const completionStatusIds = {
         adventure: 'vocabularyAdventureHomeStatus',
@@ -599,6 +600,7 @@
         const card = document.querySelector(`.student-home-card[data-reward-source="${source}"]`);
         if (!card) return;
         card.dataset.rewardUser = owner;
+        if (context) card.dataset.homeContext = context.key;
         const claim = normalizeClaim(day.claims[source], source, day.sources[source]);
         const state = homeClaimState(claim);
         const completed = claim.status !== 'idle';
@@ -614,6 +616,7 @@
         const image = chest?.querySelector('img');
         if (!chest || !image) return;
         chest.dataset.rewardUser = owner;
+        if (context) chest.dataset.homeContext = context.key;
         chest.dataset.state = state;
         chest.disabled = state !== 'pending';
         image.src = state === 'pending'
@@ -674,7 +677,11 @@
       const renderedStudent = studentKey(
         button?.dataset.rewardUser || button?.closest?.('.student-home-card')?.dataset.rewardUser
       ) || activeStudent;
-      if (!shouldRenderRewardOwner(renderedStudent, activeStudent)) {
+      const context = root.getStudentHomeRenderContext?.();
+      const expectedContext = context?.key || '';
+      if (!shouldRenderRewardOwner(renderedStudent, activeStudent)
+          || (expectedContext && button?.dataset.homeContext !== expectedContext)
+          || (context && !root.isStudentHomeRenderContextCurrent?.(context))) {
         showHomeNotice('账号已切换，请刷新后再领取');
         return;
       }
@@ -753,15 +760,19 @@
       });
     }
 
-    function renderEnhancedReward(recordValue, ownerValue) {
+    function renderEnhancedReward(recordValue, ownerValue, context) {
       prepareSummaryMarkup();
       prepareHomeRewardCopy();
       const record = normalizeRewardRecord(recordValue);
       const owner = rewardOwner(record, ownerValue);
-      if (!shouldRenderRewardOwner(owner, currentUserValue()) || root.isTeacher?.()) return null;
+      if (!shouldRenderRewardOwner(owner, currentUserValue()) || root.isTeacher?.()
+          || (context && !root.isStudentHomeRenderContextCurrent?.(context))) return null;
       record.owner = owner;
       const dashboard = document.getElementById('studentDashboard');
-      if (dashboard) dashboard.dataset.rewardUser = owner;
+      if (dashboard) {
+        dashboard.dataset.rewardUser = owner;
+        if (context) dashboard.dataset.homeContext = context.key;
+      }
       const day = normalizeDay(record.daily[dateKey()]);
       root.renderStudentRewardSummary?.({
         available: true,
@@ -771,23 +782,27 @@
         todayMaxCoins: REGULAR_DAILY_MAX
       });
       renderStudentIdentity(owner);
-      renderHomeClaimStates(record, owner);
+      renderHomeClaimStates(record, owner, context);
       return record;
     }
 
     async function loadEnhancedStudentRewardSummary() {
       if (root.isTeacher?.()) return;
       const user = currentUserValue() === 'brother' ? 'brother' : 'sister';
+      const context = root.getStudentHomeRenderContext?.()
+        || root.beginStudentHomeRenderContext?.(user);
+      const current = () => shouldRenderRewardOwner(user, currentUserValue())
+        && (!context || root.isStudentHomeRenderContextCurrent?.(context));
       await ensureInitialBreakthrough();
-      if (!shouldRenderRewardOwner(user, currentUserValue())) return;
+      if (!current()) return;
       const local = root.getMirrorValue?.(rewardKey(user));
       studentTagsCache = normalizedStudentTags(root.getMirrorValue?.(STUDENT_TAG_KEY));
-      if (local) renderEnhancedReward(local, user);
+      if (local) renderEnhancedReward(local, user, context);
       const [record] = await Promise.all([
         loadReward(user, { requireRemote: true }).catch(() => loadReward(user)),
         loadStudentTags()
       ]);
-      if (shouldRenderRewardOwner(user, currentUserValue())) renderEnhancedReward(record, user);
+      if (current()) renderEnhancedReward(record, user, context);
     }
 
     async function recordSource(user, source, amount, mode, options) {

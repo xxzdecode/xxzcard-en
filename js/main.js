@@ -144,16 +144,19 @@
     }
     if (root.updateVocabularyAdventurePreviewEntry?.__latestRequestGuarded) return true;
 
-    const guarded = async function updateVocabularyAdventurePreviewEntryLatest() {
+    const guarded = async function updateVocabularyAdventurePreviewEntryLatest(context) {
       const requestId = ++previewRequestId;
       const wrapper = root.document.getElementById('studentDashboard');
       const adventureButton = root.document.getElementById('vocabularyAdventurePreviewEntry');
       const user = studentUser();
+      const contextCurrent = () => !context
+        || (typeof root.isStudentHomeRenderContextCurrent === 'function'
+          && root.isStudentHomeRenderContextCurrent(context));
       const enabled = !!user;
       if (wrapper) wrapper.hidden = !enabled;
       if (adventureButton) adventureButton.hidden = !enabled;
       setLegacyHomeHidden(enabled);
-      if (!enabled) return;
+      if (!enabled || !contextCurrent() || (context && context.user !== user)) return;
 
       const [state, legacy] = await Promise.all([
         root.loadVocabularyAdventureState(user, { mode: 'challenge' }),
@@ -161,7 +164,7 @@
           ? root.getVocabularyAdventureLegacyChallengeUsage()
           : Promise.resolve({ attempts: 0, bestScore: 0 })
       ]);
-      if (requestId !== previewRequestId || user !== studentUser()) return;
+      if (requestId !== previewRequestId || user !== studentUser() || !contextCurrent()) return;
 
       let candidates = [];
       root.__vocabularyChallengeCandidateExpansion = true;
@@ -173,7 +176,7 @@
       } finally {
         root.__vocabularyChallengeCandidateExpansion = false;
       }
-      if (requestId !== previewRequestId || user !== studentUser()) return;
+      if (requestId !== previewRequestId || user !== studentUser() || !contextCurrent()) return;
 
       const session = state && state.session;
       const adventureTitle = root.document.getElementById('vocabularyAdventureHomeTitle');
@@ -244,57 +247,65 @@
       && !(typeof isTeacher === 'function' && isTeacher());
   }
 
-  function renderCachedReward(user, id) {
-    if (!isCurrent(user, id) || typeof renderReward !== 'function') return;
-    const key = studentRewardKey(user);
-    renderReward(getMirrorValue(key));
+  function requestCurrent(user, id, context) {
+    return isCurrent(user, id)
+      && (!context || typeof root.isStudentHomeRenderContextCurrent !== 'function'
+        || root.isStudentHomeRenderContextCurrent(context));
   }
 
-  async function refreshRewardFromCloud(user, id) {
-    if (!isCurrent(user, id) || typeof renderReward !== 'function') return;
+  function renderCachedReward(user, id, context) {
+    if (!requestCurrent(user, id, context) || typeof renderReward !== 'function') return;
+    const key = studentRewardKey(user);
+    renderReward(getMirrorValue(key), context);
+  }
+
+  async function refreshRewardFromCloud(user, id, context) {
+    if (!requestCurrent(user, id, context) || typeof renderReward !== 'function') return;
     const key = studentRewardKey(user);
     try {
       const remote = await sbGetRemote(key, { silent: true });
-      if (isCurrent(user, id) && remote && typeof remote === 'object') {
-        renderReward(remote);
+      if (requestCurrent(user, id, context) && remote && typeof remote === 'object') {
+        renderReward(remote, context);
       }
     } catch (_) {
       // The mirrored value remains visible when the remote refresh fails.
     }
   }
 
-  function renderCachedClassroom(user, id) {
-    if (!isCurrent(user, id) || typeof renderClassroom !== 'function') return;
+  function renderCachedClassroom(user, id, context) {
+    if (!requestCurrent(user, id, context) || typeof renderClassroom !== 'function') return;
     const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + user;
     const local = getMirrorValue(key);
-    renderClassroom(local && typeof local === 'object' ? local[todayISO()] : null);
+    const hasCachedRecord = Boolean(local && typeof local === 'object'
+      && Object.prototype.hasOwnProperty.call(local, context.date));
+    renderClassroom(hasCachedRecord ? local[context.date] : null, context, hasCachedRecord);
   }
 
-  async function refreshClassroomFromCloud(user, id) {
-    if (!isCurrent(user, id) || typeof renderClassroom !== 'function') return;
+  async function refreshClassroomFromCloud(user, id, context) {
+    if (!requestCurrent(user, id, context) || typeof renderClassroom !== 'function') return;
     const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + user;
     try {
       const remote = await sbGetRemote(key, { silent: true });
-      if (!isCurrent(user, id)) return;
-      const record = remote && typeof remote === 'object' ? remote[todayISO()] : null;
-      renderClassroom(record);
+      if (!requestCurrent(user, id, context)) return;
+      const record = remote && typeof remote === 'object' ? remote[context.date] : null;
+      renderClassroom(record, context, true);
     } catch (_) {
       // The mirrored daily state remains visible when the remote refresh fails.
     }
   }
 
-  function refreshHomeFromCloud(user, id) {
+  function refreshHomeFromCloud(user, id, context) {
     const jobs = [
-      refreshRewardFromCloud(user, id),
-      refreshClassroomFromCloud(user, id)
+      refreshRewardFromCloud(user, id, context),
+      refreshClassroomFromCloud(user, id, context)
     ];
     if (typeof root.updateVocabularyAdventurePreviewEntry === 'function') {
-      jobs.push(root.updateVocabularyAdventurePreviewEntry());
+      jobs.push(root.updateVocabularyAdventurePreviewEntry(context));
     }
     return Promise.allSettled(jobs);
   }
 
-  function performHomeLoad(user, id) {
+  function performHomeLoad(user, id, context) {
     updateUserBar();
     if (currentUser === 'teacher') document.body.classList.add('is-teacher');
     else document.body.classList.remove('is-teacher');
@@ -303,8 +314,8 @@
       return Promise.resolve();
     }
 
-    renderCachedReward(user, id);
-    renderCachedClassroom(user, id);
+    renderCachedReward(user, id, context);
+    renderCachedClassroom(user, id, context);
 
     const notice = document.getElementById('studentHomeNotice');
     if (notice) {
@@ -313,7 +324,7 @@
     }
 
     Promise.resolve()
-      .then(() => refreshHomeFromCloud(user, id))
+      .then(() => refreshHomeFromCloud(user, id, context))
       .catch(error => console.warn('home background refresh unavailable', error && (error.message || error)));
     return Promise.resolve();
   }
@@ -328,7 +339,10 @@
         rerunRequested = false;
         const id = requestId;
         const user = studentUser();
-        await performHomeLoad(user, id);
+        const context = user && typeof root.beginStudentHomeRenderContext === 'function'
+          ? root.beginStudentHomeRenderContext(user)
+          : null;
+        await performHomeLoad(user, id, context);
       }
     })().finally(() => {
       activePromise = null;

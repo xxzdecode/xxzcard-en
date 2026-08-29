@@ -7,15 +7,120 @@ function todayISO() {
 
 const STUDENT_REWARD_KEY_PREFIX = 'student_reward_v1_';
 const STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX = 'classroom_practice_daily_v1_';
+let studentHomeRenderRequestId = 0;
+let activeStudentHomeRenderContext = null;
+
+function studentHomeUser(user) {
+  return user === 'brother' ? 'brother' : user === 'sister' ? 'sister' : '';
+}
+
+// Every student-home renderer receives the same immutable identity.  A DOM
+// update is valid only while this exact request, account and date are current.
+function beginStudentHomeRenderContext(user, date) {
+  const student = studentHomeUser(user);
+  if (!student) return null;
+  const context = Object.freeze({
+    requestId: ++studentHomeRenderRequestId,
+    user: student,
+    date: date || todayISO(),
+    key: `${student}|${date || todayISO()}`
+  });
+  activeStudentHomeRenderContext = context;
+  return context;
+}
+
+function getStudentHomeRenderContext() {
+  return activeStudentHomeRenderContext;
+}
+
+function isStudentHomeRenderContextCurrent(context) {
+  return Boolean(context
+    && activeStudentHomeRenderContext
+    && context.requestId === activeStudentHomeRenderContext.requestId
+    && context.key === activeStudentHomeRenderContext.key
+    && context.user === studentHomeUser(currentUser)
+    && context.date === todayISO()
+    && !isTeacher());
+}
+
+function recordOwnerMatches(record, user) {
+  if (!record || typeof record !== 'object') return false;
+  return studentHomeUser(record.owner || record.student || record.user) === studentHomeUser(user);
+}
+
+function resetStudentHomeAccountView(user) {
+  const student = studentHomeUser(user);
+  if (!student) return;
+  beginStudentHomeRenderContext(student);
+
+  const dashboard = document.getElementById('studentDashboard');
+  if (dashboard) {
+    dashboard.dataset.homeOwner = student;
+    dashboard.dataset.homeContext = `${student}|${todayISO()}`;
+  }
+  const name = document.getElementById('studentSummaryName');
+  const avatar = document.getElementById('studentSummaryAvatarImage');
+  if (name) name.textContent = student === 'brother' ? '弟弟' : '姐姐';
+  if (avatar) avatar.src = `assets/student-home/card6/ui/profile/${student}-avatar.png`;
+
+  const unavailable = document.getElementById('studentRewardUnavailable');
+  const values = document.getElementById('studentRewardValues');
+  if (unavailable) unavailable.hidden = false;
+  if (values) values.hidden = true;
+
+  const statusDefaults = {
+    adventure: ['vocabularyAdventureHomeStatus', '正在读取'],
+    vocabularyChallenge: ['vocabularyAdventureChallengeHomeSub', '正在读取'],
+    grammarChallenge: ['grammarChallengeHomeStatus', '正在读取'],
+    classroomPractice: ['studentClassroomPracticeStatus', '正在读取']
+  };
+  document.querySelectorAll('.student-home-card[data-reward-source]').forEach(card => {
+    const source = String(card.dataset.rewardSource || '');
+    card.dataset.rewardUser = student;
+    card.dataset.homeContext = `${student}|${todayISO()}`;
+    card.dataset.rewardState = 'idle';
+    card.dataset.completed = 'false';
+    const stamp = card.querySelector('.student-home-card__stamp');
+    if (stamp) stamp.hidden = true;
+    const chest = card.querySelector('.student-reward-chest');
+    const image = chest?.querySelector('img');
+    if (chest) {
+      chest.dataset.rewardUser = student;
+      chest.dataset.homeContext = `${student}|${todayISO()}`;
+      chest.dataset.state = 'idle';
+      chest.disabled = true;
+      const label = source === 'adventure' ? '词汇探险'
+        : source === 'vocabularyChallenge' ? '单词挑战'
+          : source === 'grammarChallenge' ? '语法挑战' : '随堂练习';
+      chest.setAttribute('aria-label', `${label}宝箱，状态读取中`);
+    }
+    if (image) image.src = 'assets/student-home/home-v4/ui/chest-idle.png';
+    const status = statusDefaults[source];
+    const statusNode = status && document.getElementById(status[0]);
+    if (statusNode) statusNode.textContent = status[1];
+  });
+  [
+    'vocabularyAdventurePreviewEntry',
+    'vocabularyAdventureChallengeEntry',
+    'grammarChallengeHomeEntry',
+    'studentClassroomPracticeEntry'
+  ].forEach(id => {
+    const entry = document.getElementById(id);
+    if (!entry) return;
+    entry.disabled = true;
+    entry.dataset.homeContext = `${student}|${todayISO()}`;
+  });
+}
 
 function studentRewardKey(user) {
   return STUDENT_REWARD_KEY_PREFIX + (user === 'brother' ? 'brother' : 'sister');
 }
 
-function applyStudentRewardRecord(reward) {
-  if (isTeacher()) return;
+function applyStudentRewardRecord(reward, context) {
+  if (isTeacher() || (context && !isStudentHomeRenderContextCurrent(context))) return false;
+  if (context && !recordOwnerMatches(reward, context.user)) return false;
   const day = reward && reward.daily && typeof reward.daily === 'object'
-    ? reward.daily[todayISO()]
+    ? reward.daily[context ? context.date : todayISO()]
     : null;
   renderStudentRewardSummary({
     available: Boolean(reward && Number.isFinite(Number(reward.totalCoins))),
@@ -26,16 +131,19 @@ function applyStudentRewardRecord(reward) {
     todayCoins: day && Number.isFinite(Number(day.coins)) ? Number(day.coins) : 0,
     todayMaxCoins: 30
   });
+  return true;
 }
 
-function loadStudentRewardSummary() {
+function loadStudentRewardSummary(context) {
   if (isTeacher()) return;
-  const key = studentRewardKey(currentUser);
-  applyStudentRewardRecord(getMirrorValue(key));
-  Promise.resolve().then(async () => {
+  const request = context || beginStudentHomeRenderContext(currentUser);
+  if (!request || !isStudentHomeRenderContextCurrent(request)) return Promise.resolve();
+  const key = studentRewardKey(request.user);
+  applyStudentRewardRecord(getMirrorValue(key), request);
+  return Promise.resolve().then(async () => {
     try {
       const remote = await sbGetRemote(key, { silent: true });
-      if (remote && typeof remote === 'object') applyStudentRewardRecord(remote);
+      if (remote && typeof remote === 'object') applyStudentRewardRecord(remote, request);
     } catch (error) {
       // The mirrored reward is already visible; refresh failures stay non-blocking.
     }
@@ -118,34 +226,42 @@ async function openStudentClassroomPractice() {
   if (typeof openCoursewareList === 'function') await openCoursewareList();
 }
 
-function applyStudentClassroomPracticeHomeRecord(record) {
-  if (isTeacher()) return;
+function applyStudentClassroomPracticeHomeRecord(record, context, readable) {
+  if (isTeacher() || (context && !isStudentHomeRenderContextCurrent(context))) return false;
+  if (record && context && !recordOwnerMatches(record, context.user)) return false;
   const status = document.getElementById('studentClassroomPracticeStatus');
   const entry = document.getElementById('studentClassroomPracticeEntry');
-  const statusText = record && record.status === 'completed'
+  const unavailable = readable !== true;
+  const statusText = unavailable
+    ? '状态暂不可用'
+    : record && record.status === 'completed'
     ? '今日已完成'
     : record
       ? '继续今日练习'
       : '今天可选 1 项';
   if (status) status.textContent = statusText;
   if (entry) {
-    entry.setAttribute('aria-label', `随堂练习，${statusText}，一天一次`);
-    entry.dataset.dailyStatus = record ? record.status : 'available';
+    entry.setAttribute('aria-label', unavailable ? '随堂练习，状态暂不可用' : `随堂练习，${statusText}，一天一次`);
+    entry.dataset.dailyStatus = unavailable ? 'unavailable' : record ? record.status : 'available';
+    if (unavailable) entry.disabled = true;
   }
+  return true;
 }
 
-function refreshStudentClassroomPracticeHome() {
+function refreshStudentClassroomPracticeHome(context) {
   if (isTeacher()) return;
-  const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + currentUser;
+  const request = context || beginStudentHomeRenderContext(currentUser);
+  if (!request || !isStudentHomeRenderContextCurrent(request)) return Promise.resolve();
+  const key = STUDENT_CLASSROOM_PRACTICE_HOME_KEY_PREFIX + request.user;
   const local = getMirrorValue(key);
-  applyStudentClassroomPracticeHomeRecord(
-    local && typeof local === 'object' ? local[todayISO()] : null
-  );
-  Promise.resolve().then(async () => {
+  const hasCachedRecord = Boolean(local && typeof local === 'object'
+    && Object.prototype.hasOwnProperty.call(local, request.date));
+  applyStudentClassroomPracticeHomeRecord(hasCachedRecord ? local[request.date] : null, request, hasCachedRecord);
+  return Promise.resolve().then(async () => {
     try {
       const remote = await sbGetRemote(key, { silent: true });
-      const record = remote && typeof remote === 'object' ? remote[todayISO()] : null;
-      applyStudentClassroomPracticeHomeRecord(record);
+      const record = remote && typeof remote === 'object' ? remote[request.date] : null;
+      applyStudentClassroomPracticeHomeRecord(record, request, true);
     } catch (error) {
       // The mirrored daily status is already visible; refresh failures stay non-blocking.
     }
@@ -161,15 +277,16 @@ async function loadHome() {
     return;
   }
 
-  await loadStudentRewardSummary();
+  const context = beginStudentHomeRenderContext(currentUser);
+  await loadStudentRewardSummary(context);
   const notice = document.getElementById('studentHomeNotice');
   if (notice) {
     notice.hidden = true;
     notice.textContent = '';
   }
-  await refreshStudentClassroomPracticeHome();
+  await refreshStudentClassroomPracticeHome(context);
   if (typeof window.updateVocabularyAdventurePreviewEntry === 'function') {
-    await window.updateVocabularyAdventurePreviewEntry();
+    await window.updateVocabularyAdventurePreviewEntry(context);
   }
 }
 

@@ -136,8 +136,9 @@ assert.equal(coursewareListOpened, 1, 'teacher must not enter through the studen
 
 assert.match(homeSource, /student_reward_v1_/);
 assert.match(homeSource, /\$\{user\}-avatar\.png/);
-assert.match(homeSource, /await loadStudentRewardSummary\(\)/);
-assert.match(homeSource, /await refreshStudentClassroomPracticeHome\(\)/);
+assert.match(homeSource, /const context = beginStudentHomeRenderContext\(currentUser\);/);
+assert.match(homeSource, /await loadStudentRewardSummary\(context\)/);
+assert.match(homeSource, /await refreshStudentClassroomPracticeHome\(context\)/);
 const rewardRendererSource = homeSource.match(/function renderStudentRewardSummary\(summary\) \{[\s\S]*?\n\}/)?.[0] || '';
 const classroomAdapterSource = homeSource.match(/function openStudentClassroomPractice\(\) \{[\s\S]*?\n\}/)?.[0] || '';
 assert.doesNotMatch(rewardRendererSource, /sbSet\(|saveData\(/);

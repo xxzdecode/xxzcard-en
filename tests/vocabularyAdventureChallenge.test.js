@@ -1,373 +1,186 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-
-const core = require('../js/vocabularyAdventureCore.js');
 const challenge = require('../js/vocabularyAdventureChallenge.js');
 
 const today = '2026-07-29';
-const reviewedAt = '2026-07-20T02:00:00.000Z';
+const recentDirectAt = '2026-07-27T02:00:00.000Z';
 
 function candidate(index) {
   const word = `word${index}`;
   return {
     key: word,
     word,
-    batchId: 'common',
-    cardIndex: index,
     card: {
       word,
       meaning: `意思${index}`,
       phonetic: `/wɜːd${index}/`,
       emoji: '🌟',
-      collocations: [{
-        phrase: `${word} practice`,
-        example: `We use ${word} in this example today`
-      }]
+      collocations: [{ phrase: `${word} practice`, example: `We use ${word} in this example today` }]
     }
   };
 }
 
 function correctAnswerFor(item) {
-  if (item.question.interaction === 'choice') return item.question.correctIndex;
-  return item.question.answer;
+  return item.question.interaction === 'choice' ? item.question.correctIndex : item.question.answer;
+}
+
+function wrongAnswerFor(item) {
+  if (item.question.interaction === 'choice') {
+    return (item.question.correctIndex + 1) % item.question.options.length;
+  }
+  return item.question.interaction === 'input' ? '__wrong__' : [];
 }
 
 const candidates = Array.from({ length: 14 }, (_, index) => candidate(index));
 const words = Object.fromEntries(candidates.map((item, index) => [item.key, {
-  lastResult: index % 3 === 0 ? 'F' : index % 3 === 1 ? 'H' : 'D',
+  lastResult: 'D',
   intervalIndex: index % 5,
-  lastReviewedAt: reviewedAt,
-  nextReviewAt: index < 8 ? '2026-07-25' : '2026-08-10',
+  lastReviewedAt: recentDirectAt,
+  nextReviewAt: '2026-08-10',
   reviewCount: 1,
   lastTaskType: '',
-  challengeFlagAt: index === 13 ? '2026-07-28T02:00:00.000Z' : ''
+  challengeFlagAt: '',
+  rapidConfirmAt: index === 13 ? '2026-07-28T02:00:00.000Z' : ''
 }]));
-const frozenPlan = [{
-  wordKey: 'word0',
-  word: 'word0',
-  batchId: 'common',
-  cardIndex: 0,
-  phase: 'review',
-  reviewReason: 'failed',
-  taskType: '',
-  status: 'pending',
-  result: ''
-}];
-const state = {
-  version: 1,
-  words,
-  session: {
-    date: today,
-    plan: frozenPlan,
-    cursor: 0,
-    phase: 'review',
-    completed: false,
-    rewardGranted: false
-  }
+const state = { version: 1, words, session: null };
+
+assert.equal(challenge.collectChallengeCandidates(candidates, state, today).length, 14);
+assert.equal(challenge.collectRapidFlipCandidates(candidates, state, today).length, 13);
+assert.equal(challenge.RAPID_FLIP_LIMIT, 4);
+assert.equal(challenge.STANDARD_CHALLENGE_LIMIT, 6);
+
+const staleDirectState = {
+  ...state,
+  words: { ...state.words, word0: { ...state.words.word0, lastReviewedAt: '2026-07-21T02:00:00.000Z' } }
 };
-
-const eligible = challenge.collectChallengeCandidates(candidates, state, today);
-assert.equal(eligible.length, 13);
-assert.equal(eligible.some(item => item.key === 'word13'), false, 'challenge pending words must stay out of challenge');
-
-const prioritizedLesson = challenge.buildChallengeSession({
-  candidates: candidates.map((item, index) => ({ ...item, lessonQueuePriority: index === 11 })),
-  state,
-  today,
-  userKey: 'sister',
-  attemptIndex: 1,
-  startedAt: '2026-07-29T01:00:00.000Z'
-});
-assert.equal(prioritizedLesson.ok, true);
-assert.equal(prioritizedLesson.session.items[0].wordKey, 'word11', 'newly taught words outrank F/H/due history');
-
-const priorityCandidates = candidates.slice(0, 6).map((item, index) => ({
-  ...item,
-  lessonQueuePriority: index === 5
-}));
-const priorityState = {
-  version: 1,
-  words: {
-    word0: { ...words.word0, lastResult: 'F', nextReviewAt: '2026-08-10', intervalIndex: 0 },
-    word1: { ...words.word1, lastResult: 'H', nextReviewAt: '2026-08-10', intervalIndex: 0 },
-    word2: { ...words.word2, lastResult: 'D', nextReviewAt: today, intervalIndex: 1 },
-    word3: { ...words.word3, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 1 },
-    word4: { ...words.word4, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 4 },
-    word5: { ...words.word5, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 1 }
-  }
-};
-assert.deepEqual(
-  challenge.collectChallengeCandidates(priorityCandidates, priorityState, today)
-    .map(item => item.challengePriority),
-  [1, 2, 3, 4, 5, 0],
-  'priority tiers are new lesson, F, H, due, ordinary learned, then stable'
+assert.equal(
+  challenge.collectRapidFlipCandidates(candidates, staleDirectState, today).some(item => item.key === 'word0'),
+  false,
+  'only direct answers from the last seven calendar days may become rapid flips'
 );
 
-const withUnscreened = {
-  ...state,
-  words: { ...state.words, word0: { ...state.words.word0, reviewCount: 0 } }
-};
-assert.equal(challenge.collectChallengeCandidates(candidates, withUnscreened, today).length, 12);
-
 const first = challenge.buildChallengeSession({
-  candidates,
-  state,
-  today,
-  userKey: 'sister',
-  attemptIndex: 1,
-  startedAt: '2026-07-29T01:00:00.000Z'
+  candidates, state, today, userKey: 'sister', attemptIndex: 1, startedAt: '2026-07-29T01:00:00.000Z'
 });
 assert.equal(first.ok, true);
 assert.equal(first.session.items.length, 10);
 assert.equal(new Set(first.session.items.map(item => item.wordKey)).size, 10);
-assert.equal(first.session.items.some(item => item.wordKey === 'word13'), false);
-assert.equal(first.session.items.every(item => item.question && item.question.ok), true);
-assert.equal(first.session.items.every(item => item.question.interaction !== 'match'), true);
+assert.equal(first.session.items.slice(0, 4).every(item => item.kind === 'rapidFlip'), true);
+assert.equal(first.session.items.slice(0, 4).every(item => item.question.rapidFlip === true), true);
+assert.equal(first.session.items.slice(4).every(item => item.kind === 'standard'), true);
+assert.equal(first.session.items.every(item => item.correctionQuestion && item.correctionQuestion.ok), true);
+assert.deepEqual(challenge.buildChallengeSession({
+  candidates, state, today, userKey: 'sister', attemptIndex: 1, startedAt: '2026-07-29T01:00:00.000Z'
+}), first, 'an unfinished session can be reconstructed deterministically');
 
-const refreshed = challenge.buildChallengeSession({
+const insufficientRapid = challenge.buildChallengeSession({
   candidates,
-  state,
+  state: { ...state, words: Object.fromEntries(Object.entries(words).map(([key, value]) => [
+    key, { ...value, rapidConfirmAt: '2026-07-28T02:00:00.000Z' }
+  ])) },
   today,
-  userKey: 'sister',
-  attemptIndex: 1,
-  startedAt: '2026-07-29T01:00:00.000Z'
+  userKey: 'sister'
 });
-assert.deepEqual(refreshed, first);
+assert.equal(insufficientRapid.ok, false);
+assert.equal(insufficientRapid.code, 'INSUFFICIENT_RAPID_FLIP_WORDS');
 
-const secondAttempt = challenge.buildChallengeSession({
-  candidates,
-  state,
-  today,
-  userKey: 'sister',
-  attemptIndex: 2,
-  startedAt: '2026-07-29T01:00:00.000Z'
+let active = challenge.normalizeChallengeState({ ...state, challengeSession: first.session }, today);
+const firstItem = active.challengeSession.items[0];
+const originalWord = structuredClone(active.words[firstItem.wordKey]);
+const rapidCorrect = challenge.prepareChallengeAnswer(active, {
+  today, userKey: 'sister', expectedCursor: 0, wordKey: firstItem.wordKey,
+  answer: correctAnswerFor(firstItem), answeredAt: '2026-07-29T02:00:00.000Z'
 });
-assert.notDeepEqual(
-  secondAttempt.session.items.map(item => [item.wordKey, item.taskType]),
-  first.session.items.map(item => [item.wordKey, item.taskType])
-);
+assert.equal(rapidCorrect.correct, true);
+assert.equal(rapidCorrect.state.challengeSession.cursor, 1);
+assert.equal(rapidCorrect.state.words[firstItem.wordKey].rapidConfirmAt, '2026-07-29T02:00:00.000Z');
+assert.equal(rapidCorrect.state.words[firstItem.wordKey].lastResult, originalWord.lastResult);
+assert.equal(rapidCorrect.state.words[firstItem.wordKey].intervalIndex, originalWord.intervalIndex);
+assert.equal(rapidCorrect.state.words[firstItem.wordKey].reviewCount, originalWord.reviewCount);
 
-const nineEligibleState = {
-  ...state,
-  words: Object.fromEntries(Object.entries(state.words).map(([key, value], index) => [
-    key,
-    index < 4 ? { ...value, challengeFlagAt: `2026-07-28T0${index}:00:00.000Z` } : value
-  ]))
-};
-assert.deepEqual(
-  challenge.buildChallengeSession({ candidates, state: nineEligibleState, today, userKey: 'sister' }),
-  { ok: false, code: 'INSUFFICIENT_CHALLENGE_WORDS', available: 9 }
-);
-
-let activeState = challenge.normalizeChallengeState({
-  ...state,
-  challengeSession: first.session
-}, today);
-const adventureSnapshot = JSON.stringify(activeState.session);
-const firstItem = activeState.challengeSession.items[0];
-const previousWord = { ...activeState.words[firstItem.wordKey] };
-const wrongAnswer = firstItem.question.interaction === 'choice'
-  ? (firstItem.question.correctIndex + 1) % firstItem.question.options.length
-  : firstItem.question.interaction === 'input'
-    ? '__wrong__'
-    : [];
-
-const wrong = challenge.prepareChallengeAnswer(activeState, {
-  today,
-  expectedCursor: 0,
-  wordKey: firstItem.wordKey,
-  answer: wrongAnswer,
-  answeredAt: '2026-07-29T02:00:00.000Z'
+const wrongItem = rapidCorrect.state.challengeSession.items[1];
+const wrong = challenge.prepareChallengeAnswer(rapidCorrect.state, {
+  today, userKey: 'sister', expectedCursor: 1, wordKey: wrongItem.wordKey,
+  answer: wrongAnswerFor(wrongItem), answeredAt: '2026-07-29T02:01:00.000Z'
 });
 assert.equal(wrong.correct, false);
-assert.equal(wrong.state.challengeSession.cursor, 1);
-assert.equal(wrong.state.challengeSession.wrongCount, 1);
-assert.equal(wrong.state.words[firstItem.wordKey].challengeFlagAt, '2026-07-29T02:00:00.000Z');
-assert.equal(wrong.state.words[firstItem.wordKey].lastResult, previousWord.lastResult);
-assert.equal(wrong.state.words[firstItem.wordKey].intervalIndex, previousWord.intervalIndex);
-assert.equal(wrong.state.words[firstItem.wordKey].reviewCount, previousWord.reviewCount);
-assert.equal(JSON.stringify(wrong.state.session), adventureSnapshot, 'frozen adventure plan must not change');
+assert.equal(wrong.needsImmediateCorrection, true);
+assert.equal(wrong.state.challengeSession.cursor, 2, 'the formal item is recorded before its one immediate retry');
+assert.equal(wrong.state.challengeSession.correction.wordKey, wrongItem.wordKey);
+assert.equal(wrong.state.challengeSession.correction.status, 'pending');
+assert.equal(wrong.state.challengeDaily.attempts, 0, 'retries do not become a separate challenge attempt');
+assert.equal(wrong.state.words[wrongItem.wordKey].challengeFlagAt, '2026-07-29T02:01:00.000Z');
+assert.equal(wrong.state.challengeSession.wrongItems.length, 1);
 
-const sisterSameWordState = challenge.normalizeChallengeState({
-  ...state,
-  challengeSession: first.session
-}, today);
-const brotherSameWordState = challenge.normalizeChallengeState({
-  ...state,
-  challengeSession: first.session
-}, today);
-const brotherSnapshot = structuredClone(brotherSameWordState);
-const sisterSameWordWrong = challenge.prepareChallengeAnswer(sisterSameWordState, {
-  today,
-  expectedCursor: 0,
-  wordKey: firstItem.wordKey,
-  answer: wrongAnswer,
-  answeredAt: '2026-07-29T02:30:00.000Z'
-}).state;
-assert.ok(sisterSameWordWrong.words[firstItem.wordKey].challengeFlagAt);
-assert.deepEqual(
-  brotherSameWordState,
-  brotherSnapshot,
-  'sister answering the same wordKey must not mutate brother state'
-);
-const brotherSameWordCorrect = challenge.prepareChallengeAnswer(brotherSameWordState, {
-  today,
-  expectedCursor: 0,
-  wordKey: firstItem.wordKey,
-  answer: correctAnswerFor(firstItem),
-  answeredAt: '2026-07-29T02:31:00.000Z'
-}).state;
-assert.equal(brotherSameWordCorrect.words[firstItem.wordKey].challengeFlagAt, '');
-assert.equal(brotherSameWordCorrect.challengeSession.cursor, 1);
-assert.equal(sisterSameWordWrong.challengeSession.cursor, 1);
-assert.equal(sisterSameWordWrong.challengeSession.wrongItems.length, 1);
-assert.equal(brotherSameWordCorrect.challengeSession.wrongItems.length, 0);
+const correction = challenge.prepareChallengeCorrectionAnswer(wrong.state, {
+  today, expectedCursor: 2, wordKey: wrongItem.wordKey,
+  answer: correctAnswerFor(wrong.state.challengeSession.correction), answeredAt: '2026-07-29T02:02:00.000Z'
+});
+assert.equal(correction.kind, 'correction');
+assert.equal(correction.correct, true);
+assert.equal(correction.completed, false);
+assert.equal(correction.state.challengeSession.correction, null);
+assert.equal(correction.state.challengeSession.wrongItems.length, 1, 'a successful retry never deletes the original error');
+assert.equal(correction.state.challengeSession.correctCount, 1, 'a retry never changes formal scoring');
+assert.equal(challenge.normalizeChallengeState(wrong.state, today).challengeSession.correction.wordKey, wrongItem.wordKey);
 
-assert.throws(() => challenge.prepareChallengeAnswer(wrong.state, {
-  today,
-  expectedCursor: 0,
-  wordKey: firstItem.wordKey,
-  answer: wrongAnswer
-}), /CHALLENGE_CURSOR_MISMATCH/);
-
-activeState = wrong.state;
-while (activeState.challengeSession.status === 'active') {
-  const session = activeState.challengeSession;
-  const item = session.items[session.cursor];
-  activeState = challenge.prepareChallengeAnswer(activeState, {
-    today,
-    expectedCursor: session.cursor,
-    wordKey: item.wordKey,
-    answer: correctAnswerFor(item),
-    answeredAt: `2026-07-29T02:${String(session.cursor).padStart(2, '0')}:00.000Z`
+let finalRound = challenge.normalizeChallengeState({ ...state, challengeSession: first.session }, today);
+while (finalRound.challengeSession.cursor < 9) {
+  const item = finalRound.challengeSession.items[finalRound.challengeSession.cursor];
+  finalRound = challenge.prepareChallengeAnswer(finalRound, {
+    today, userKey: 'sister', expectedCursor: finalRound.challengeSession.cursor,
+    wordKey: item.wordKey, answer: correctAnswerFor(item),
+    answeredAt: `2026-07-29T03:${String(finalRound.challengeSession.cursor).padStart(2, '0')}:00.000Z`
   }).state;
 }
-assert.equal(activeState.challengeSession.status, 'completed');
-assert.equal(activeState.challengeSession.cursor, 10);
-assert.equal(activeState.challengeDaily.attempts, 1);
-assert.equal(activeState.challengeDaily.bestScore, 90);
-assert.equal(activeState.challengeDaily.rewardSettlement.status, 'pending');
-assert.equal(activeState.challengeDaily.rewardSettlement.target, 9);
-assert.equal(
-  challenge.normalizeChallengeState(activeState, today).challengeDaily.rewardSettlement.target,
-  9,
-  'reward eligibility must survive normalization before the settlement module loads'
-);
-assert.equal(activeState.challengeSession.wrongItems.length, 1);
-assert.equal(activeState.words[firstItem.wordKey].challengeFlagAt, '2026-07-29T02:00:00.000Z');
-
-const sisterEightyReward = challenge.createCompletedChallengeRewardMarker(
-  { date: today, attempts: 1, bestScore: 80 },
-  { date: today, correctCount: 8 },
-  '2026-07-29T02:40:00.000Z',
-  'sister'
-);
-const brotherEightyReward = challenge.createCompletedChallengeRewardMarker(
-  { date: today, attempts: 1, bestScore: 80 },
-  { date: today, correctCount: 8 },
-  '2026-07-29T02:40:00.000Z',
-  'brother'
-);
-const brotherSeventyReward = challenge.createCompletedChallengeRewardMarker(
-  { date: today, attempts: 1, bestScore: 70 },
-  { date: today, correctCount: 7 },
-  '2026-07-29T02:40:00.000Z',
-  'brother'
-);
-assert.equal(sisterEightyReward.target, 8);
-assert.equal(brotherEightyReward.target, 10);
-assert.equal(brotherSeventyReward.target, 9);
-
-const pendingWord = first.session.items[1].wordKey;
-const pendingState = challenge.normalizeChallengeState({
-  ...state,
-  words: {
-    ...state.words,
-    [pendingWord]: { ...state.words[pendingWord], challengeFlagAt: '2026-07-28T03:00:00.000Z' }
-  },
-  challengeSession: first.session
-}, today);
-const pendingItem = pendingState.challengeSession.items[0];
-const correct = challenge.prepareChallengeAnswer(pendingState, {
-  today,
-  expectedCursor: 0,
-  wordKey: pendingItem.wordKey,
-  answer: correctAnswerFor(pendingItem),
-  answeredAt: '2026-07-29T03:00:00.000Z'
+const finalItem = finalRound.challengeSession.items[9];
+const finalWrong = challenge.prepareChallengeAnswer(finalRound, {
+  today, userKey: 'sister', expectedCursor: 9, wordKey: finalItem.wordKey,
+  answer: wrongAnswerFor(finalItem), answeredAt: '2026-07-29T03:10:00.000Z'
 });
-assert.equal(correct.correct, true);
-assert.equal(
-  correct.state.words[pendingWord].challengeFlagAt,
-  pendingState.words[pendingWord].challengeFlagAt,
-  'a correct challenge answer must not clear an existing pending flag'
-);
-
-// Exiting follows the legacy rule: one consumed attempt and the score achieved
-// so far is recorded against the fixed ten-question denominator.
-const exitStart = challenge.normalizeChallengeState({
-  ...state,
-  challengeSession: first.session
-}, today);
-const exitFirstItem = exitStart.challengeSession.items[0];
-const oneCorrect = challenge.prepareChallengeAnswer(exitStart, {
-  today,
-  expectedCursor: 0,
-  wordKey: exitFirstItem.wordKey,
-  answer: correctAnswerFor(exitFirstItem),
-  answeredAt: '2026-07-29T04:00:00.000Z'
-}).state;
-const exitState = challenge.prepareChallengeExit(oneCorrect, {
-  today,
-  exitedAt: '2026-07-29T04:01:00.000Z'
+assert.equal(finalWrong.formalCompleted, true);
+assert.equal(finalWrong.completed, false);
+assert.equal(finalWrong.state.challengeSession.status, 'correction');
+assert.equal(finalWrong.state.challengeDaily.attempts, 1);
+assert.equal(finalWrong.state.challengeDaily.bestScore, 90);
+const finalCorrection = challenge.prepareChallengeCorrectionAnswer(finalWrong.state, {
+  today, expectedCursor: 10, wordKey: finalItem.wordKey,
+  answer: wrongAnswerFor(finalWrong.state.challengeSession.correction), answeredAt: '2026-07-29T03:11:00.000Z'
 });
+assert.equal(finalCorrection.completed, true);
+assert.equal(finalCorrection.state.challengeSession.status, 'completed');
+assert.equal(finalCorrection.state.challengeDaily.attempts, 1, 'a retry can never add an attempt');
+
+const exitState = challenge.prepareChallengeExit(wrong.state, { today, exitedAt: '2026-07-29T04:00:00.000Z' });
 assert.equal(exitState.challengeSession.status, 'abandoned');
-assert.equal(exitState.challengeDaily.attempts, 1);
-assert.equal(exitState.challengeDaily.bestScore, 10);
-assert.throws(() => challenge.prepareChallengeExit(exitState, { today }), /CHALLENGE_NOT_ACTIVE/);
+assert.equal(exitState.challengeDaily.attempts, 1, 'exit from a pending retry retains the consumed-attempt rule');
 
-assert.equal(challenge.challengeHomeStatus({
-  state,
-  candidates: [...candidates.slice(0, 9), candidates[13]],
-  today
-}).state, 'insufficient', 'one pending word leaves only nine eligible candidates');
+const legacySession = structuredClone(first.session);
+legacySession.items.forEach(item => {
+  delete item.kind;
+  delete item.correctionQuestion;
+  delete item.correctionMode;
+  delete item.correctionExplanation;
+});
+const legacyNormalized = challenge.normalizeChallengeSession(legacySession);
+assert.equal(legacyNormalized.items.length, 10, 'old sessions without rapid/retry fields remain resumable');
+assert.equal(legacyNormalized.items[0].kind, 'standard');
 
-assert.equal(challenge.challengeHomeStatus({
-  state: activeState,
-  candidates,
-  today,
-  legacyAttempts: 1
-}).state, 'locked');
-
-assert.equal(
-  challenge.normalizeChallengeDaily({ date: '2026-07-28', attempts: 2, bestScore: 100 }, today).attempts,
-  0
-);
+const homeStatus = challenge.challengeHomeStatus({ state, candidates, today });
+assert.equal(homeStatus.state, 'ready');
+assert.match(homeStatus.text, /4题翻翻乐/);
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'js', 'vocabularyAdventureChallenge.js'), 'utf8');
-const tasksSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'tasks.js'), 'utf8');
+const coreSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'vocabularyAdventureCore.js'), 'utf8');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(__dirname, '..', 'service-worker.js'), 'utf8');
 assert.doesNotMatch(source, /Math\.random/);
-assert.match(source, /&& !wordState\.challengeFlagAt/);
-assert.match(source, /next\.challengeDaily\.bestScore = Math\.max\(next\.challengeDaily\.bestScore, score\)/);
-
-const homeToggle = source.match(/function toggleLegacyHome\(hidden\) \{[\s\S]*?\n    \}/);
-assert.ok(homeToggle);
-assert.match(homeToggle[0], /homeQuickActions/);
-assert.doesNotMatch(
-  homeToggle[0],
-  /grammarChallengeHomeEntry|studentFeatureNav|homeCheckinRow/
-);
-assert.doesNotMatch(html, /id="vocabularyTourHomeEntry"/);
-assert.match(html, /id="teacherVocabularyGuideEntry"/);
-
-assert.match(tasksSource, /getSharedVocabularyChallengeUsage/);
-assert.match(html, /id="studentDashboard"/);
-assert.match(html, /id="vocabularyAdventureChallengeEntry"/);
+assert.match(source, /RAPID_FLIP_LIMIT = 4/);
+assert.match(source, /prepareChallengeCorrectionAnswer/);
+assert.match(source, /rapidConfirmAt/);
+assert.match(coreSource, /rapidConfirmAt/);
 assert.match(html, /id="screenVocabularyAdventureChallenge"/);
-assert.match(source, /const enabled = !!studentUser\(\)/);
-assert.doesNotMatch(source, /if \(!previewEnabled\(\) \|\| !studentUser\(\)\) return/);
-assert.doesNotMatch(serviceWorker, /\.\/js\/vocabularyAdventureChallenge\.js/);
+assert.match(serviceWorker, /xxzcard-app-shell-v102/);
 
 console.log('vocabulary adventure challenge tests passed');

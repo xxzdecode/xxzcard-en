@@ -9,15 +9,14 @@
   'use strict';
 
   const CHALLENGE_ID = 'grammar-adaptive-daily-v1';
-  const ALGORITHM_VERSION = 1;
+  const ALGORITHM_VERSION = 2;
   const QUESTION_LIMIT = 15;
-  const RECENT_LIMIT = 8;
-  const HISTORY_LIMIT = 7;
-  const PRIORITY_HISTORY_LIMIT = 6;
-  const RECHECK_GAP = 3;
+  const CURRENT_LIMIT = 8;
+  const WEAKNESS_LIMIT = 4;
+  const HISTORY_LIMIT = 3;
   const PROGRESS_KEY = 'grammar_progress';
   const WEAKNESS_VIEW_KEY = 'assessment_weakness_view_v1';
-  const GRAMMAR_WEAK_SUMMARY_PREFIX = 'grammar_challenge_weak_summary_v2_';
+  const HISTORY_KEY_PREFIX = 'grammar_challenge_history_v2_';
 
   function plainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -59,26 +58,120 @@
 
   function normalizeBank(value) {
     const source = plainObject(value) ? value : {};
-    const items = (Array.isArray(source.items) ? source.items : [])
+    const rawCourses = (Array.isArray(source.courses) ? source.courses : [])
+      .filter(course => plainObject(course) && text(course.lessonKey || course.courseKey || course.questionBankKey))
+      .map(course => {
+        const lessonKey = text(course.lessonKey || course.courseKey || course.questionBankKey);
+        return {
+          ...clone(course),
+          lessonKey,
+          courseKey: lessonKey,
+          questionBankKey: lessonKey,
+          lessonDate: text(course.lessonDate || course.date),
+          displayName: text(course.displayTitle || course.displayName || course.title || lessonKey),
+          displayTitle: text(course.displayTitle || course.displayName || course.title || lessonKey),
+          classroomPracticeId: text(course.classroomPracticeId || course.source && course.source.classroomPracticeId),
+          classroomPracticePath: text(course.classroomPracticePath || course.source && course.source.classroomPracticePath),
+          knowledgePointIds: unique(course.knowledgePointIds || course.kpIds),
+          selectable: course.selectable !== false,
+          questions: Array.isArray(course.questions) ? course.questions : []
+        };
+      });
+    const courseItems = rawCourses.flatMap(course => course.questions.map(item => ({
+          ...item,
+          sourceLessonKey: text(item && item.sourceLessonKey) || course.lessonKey,
+          sourceLessonKpIds: unique(item && item.sourceLessonKpIds || course.knowledgePointIds),
+          sourceChallengeDate: text(item && item.sourceChallengeDate) || course.lessonDate,
+          sourceChallengeTitle: text(item && item.sourceChallengeTitle) || course.displayName
+        })));
+    const sourceItems = [
+      ...courseItems,
+      ...(Array.isArray(source.items) ? source.items : [])
+    ];
+    const items = sourceItems
       .filter(item => plainObject(item) && text(item.bankItemId || item.id))
-      .map(item => ({
-        ...clone(item),
-        id: text(item.bankItemId || item.id),
-        bankItemId: text(item.bankItemId || item.id),
-        sourceLessonKey: text(item.sourceLessonKey),
-        sourceLessonKpIds: unique(item.sourceLessonKpIds),
-        kpIds: unique(item.kpIds),
-        primaryKpId: text(item.primaryKpId) || unique(item.kpIds)[0] || text(item.sourceLessonKey),
-        weaknessIds: unique(item.weaknessIds),
-        primaryWeaknessId: text(item.primaryWeaknessId),
-        contentHash: text(item.contentHash),
-        variantGroupId: text(item.variantGroupId)
-      }));
+      .map(item => {
+        const kpIds = unique(item.kpIds);
+        const explicitPrimaryKpId = text(item.primaryKpId);
+        const primaryKpId = explicitPrimaryKpId || (kpIds.length === 1 ? kpIds[0] : '');
+        const category = text(item.category);
+        const explicitPrimaryWeaknessId = text(item.primaryWeaknessId);
+        const formalWeaknessEligible = Boolean(
+          kpIds.length === 1
+          && primaryKpId
+          && kpIds.includes(primaryKpId)
+          && category
+          && item.formalWeaknessEligible !== false
+          && (item.formalWeaknessEligible === true || explicitPrimaryWeaknessId)
+        );
+        const primaryWeaknessId = formalWeaknessEligible
+          ? explicitPrimaryWeaknessId || `sister.${primaryKpId}.${category}`
+          : '';
+        const weaknessIds = formalWeaknessEligible
+          ? unique([...(item.weaknessIds || []), primaryWeaknessId])
+          : [];
+        const diagnosticTargets = formalWeaknessEligible
+          ? unique(item.diagnosticTargets && item.diagnosticTargets.length ? item.diagnosticTargets : [category])
+          : [];
+        return {
+          ...clone(item),
+          id: text(item.bankItemId || item.id),
+          bankItemId: text(item.bankItemId || item.id),
+          sourceLessonKey: text(item.sourceLessonKey),
+          sourceLessonKpIds: unique(item.sourceLessonKpIds),
+          kpIds,
+          primaryKpId,
+          formalWeaknessEligible,
+          category,
+          weaknessIds,
+          primaryWeaknessId,
+          diagnosticTargets,
+          contentHash: text(item.contentHash),
+          variantGroupId: text(item.variantGroupId)
+        };
+      });
+    const courses = rawCourses.length ? rawCourses : [...items.reduce((groups, item) => {
+      if (!item.sourceLessonKey) return groups;
+      if (!groups.has(item.sourceLessonKey)) {
+        groups.set(item.sourceLessonKey, {
+          lessonKey: item.sourceLessonKey,
+          courseKey: item.sourceLessonKey,
+          questionBankKey: item.sourceLessonKey,
+          lessonDate: text(item.sourceChallengeDate),
+          displayName: text(item.sourceChallengeTitle) || item.sourceLessonKey,
+          displayTitle: text(item.sourceChallengeTitle) || item.sourceLessonKey,
+          knowledgePointIds: unique(item.sourceLessonKpIds),
+          selectable: true,
+          questions: []
+        });
+      }
+      groups.get(item.sourceLessonKey).questions.push(item);
+      return groups;
+    }, new Map()).values()];
     return {
       schemaVersion: Number(source.schemaVersion) || 1,
       version: text(source.version),
+      courses,
       items
     };
+  }
+
+  function mergeBanks(primaryValue, fallbackValue) {
+    const primary = normalizeBank(primaryValue);
+    const fallback = normalizeBank(fallbackValue);
+    if (!primary.courses.length || !primary.items.length) return fallback;
+    const primaryIds = new Set(primary.items.map(item => item.bankItemId));
+    const primaryHashes = new Set(primary.items.map(item => item.contentHash).filter(Boolean));
+    const legacyItems = fallback.items.filter(item => (
+      !primaryIds.has(item.bankItemId)
+      && (!item.contentHash || !primaryHashes.has(item.contentHash))
+    ));
+    return normalizeBank({
+      schemaVersion: Math.max(primary.schemaVersion, fallback.schemaVersion),
+      version: `${primary.version}|legacy:${fallback.version}`,
+      courses: primary.courses,
+      items: legacyItems
+    });
   }
 
   function normalizeProgress(value) {
@@ -115,9 +208,24 @@
     return result;
   }
 
-  function normalizeGrammarWeakKpIds(value) {
-    const source = plainObject(value) ? value : {};
-    return unique(source.weakKpIds || source.weak_kp_ids);
+  function normalizePreviouslyDrawnIds(value) {
+    const ids = [];
+    const visit = node => {
+      if (!node) return;
+      if (Array.isArray(node)) {
+        node.forEach(visit);
+        return;
+      }
+      if (!plainObject(node)) return;
+      const direct = text(node.bankItemId || node.bank_item_id || node.questionId || node.question_id);
+      if (direct && direct.includes('::')) ids.push(direct);
+      if (Array.isArray(node.questions)) visit(node.questions);
+      if (Array.isArray(node.items)) visit(node.items);
+      if (plainObject(node.attempts)) visit(Object.values(node.attempts));
+      if (plainObject(node.adaptiveSession)) visit(node.adaptiveSession);
+    };
+    visit(value);
+    return unique(ids);
   }
 
   function weaknessIdForStudent(value, studentValue) {
@@ -127,12 +235,7 @@
 
   function lessonDateForItem(item, progress) {
     const direct = progress[item.sourceLessonKey];
-    if (direct) return direct.lastLessonDate;
-    const candidates = unique([...(item.sourceLessonKpIds || []), ...(item.kpIds || [])])
-      .map(kpId => progress[kpId] && progress[kpId].lastLessonDate)
-      .filter(Boolean)
-      .sort();
-    return candidates[candidates.length - 1] || '';
+    return direct ? direct.lastLessonDate : '';
   }
 
   function uniqueByContentHash(values) {
@@ -180,18 +283,21 @@
     };
   }
 
-  function interleave(recent, history, seed) {
-    const recentQueue = deterministicShuffle(recent, `${seed}|recent-order`, item => item.bankItemId);
-    const historyQueue = deterministicShuffle(history, `${seed}|history-order`, item => item.bankItemId);
-    const result = [];
-    for (let index = 0; index < Math.max(recentQueue.length, historyQueue.length); index += 1) {
-      const historyFirst = stableHash(`${seed}|pair|${index}`) % 2 === 1;
-      const pair = historyFirst
-        ? [historyQueue[index], recentQueue[index]]
-        : [recentQueue[index], historyQueue[index]];
-      pair.filter(Boolean).forEach(item => result.push(item));
-    }
-    return result;
+  function courseCatalog(value) {
+    return normalizeBank(value).courses
+      .filter(course => course.selectable !== false)
+      .map(course => ({
+        lessonKey: course.lessonKey,
+        courseKey: course.lessonKey,
+        questionBankKey: course.lessonKey,
+        lessonDate: course.lessonDate,
+        displayName: course.displayName,
+        displayTitle: course.displayTitle || course.displayName,
+        questionCount: course.questions.length,
+        classroomPracticeId: course.classroomPracticeId,
+        classroomPracticePath: course.classroomPracticePath,
+        source: clone(course.source || {})
+      }));
   }
 
   function buildSession(options) {
@@ -200,41 +306,43 @@
     const progress = normalizeProgress(settings.progress);
     const student = settings.student === 'brother' ? 'brother' : 'sister';
     const date = text(settings.date);
-    const requestedRecentLessonKey = text(settings.recentLessonKey);
+    const requestedCurrentLessonKey = text(settings.currentLessonKey || settings.recentLessonKey);
     const formalWeaknesses = normalizeFormalWeaknesses(settings.weaknessView, student);
-    const grammarWeakKpIds = new Set(normalizeGrammarWeakKpIds(settings.grammarWeakSummary));
-    const eligible = uniqueByContentHash(bank.items.map(item => ({
+    const previouslyDrawnIds = new Set(unique([
+      ...normalizePreviouslyDrawnIds(settings.history),
+      ...normalizePreviouslyDrawnIds(settings.previouslyDrawnIds)
+    ]));
+    const enriched = uniqueByContentHash(bank.items.map(item => ({
       ...item,
       learnedAt: lessonDateForItem(item, progress)
-    })).filter(item => item.learnedAt || (requestedRecentLessonKey && item.sourceLessonKey === requestedRecentLessonKey)));
-    const recentLessonKey = requestedRecentLessonKey || '';
-    const recentLessonDate = recentLessonKey
-      ? progress[recentLessonKey]?.lastLessonDate || text(settings.recentLessonDate) || date
-      : eligible.map(item => item.learnedAt).sort().at(-1) || '';
-    const recentCandidates = recentLessonKey
-      ? eligible.filter(item => item.sourceLessonKey === recentLessonKey)
-      : eligible.filter(item => item.learnedAt === recentLessonDate);
-    const effectiveRecentLessonKey = recentLessonKey || recentCandidates[0]?.sourceLessonKey || '';
-    const historyCandidates = eligible.filter(item => (
-      item.sourceLessonKey !== effectiveRecentLessonKey
-      && item.learnedAt
-    ));
-
-    if (recentCandidates.length < RECENT_LIMIT) {
-      return { ok: false, code: 'INSUFFICIENT_RECENT_QUESTIONS', available: recentCandidates.length, recentLessonDate };
+    })));
+    // 当前课程只能由老师的当日手动路线指定。不能在路线缺失时悄悄回退到题库第一课，
+    // 否则会把非当日课程的题和随堂练习混在同一轮挑战中。
+    const inferredCurrentLessonKey = requestedCurrentLessonKey;
+    if (!inferredCurrentLessonKey) {
+      return { ok: false, code: 'MANUAL_CURRENT_COURSE_REQUIRED', available: 0, currentLessonKey: '' };
     }
-    if (historyCandidates.length < HISTORY_LIMIT) {
-      return { ok: false, code: 'INSUFFICIENT_HISTORY_QUESTIONS', available: historyCandidates.length, recentLessonDate };
+    const currentCandidates = enriched.filter(item => item.sourceLessonKey === inferredCurrentLessonKey);
+    const eligible = enriched.filter(item => (
+      item.sourceLessonKey === inferredCurrentLessonKey
+      || Boolean(item.learnedAt)
+      || previouslyDrawnIds.has(item.bankItemId)
+    ));
+    const historyCandidates = eligible.filter(item => item.sourceLessonKey !== inferredCurrentLessonKey);
+
+    if (currentCandidates.length < CURRENT_LIMIT) {
+      return { ok: false, code: 'INSUFFICIENT_CURRENT_QUESTIONS', available: currentCandidates.length, currentLessonKey: inferredCurrentLessonKey };
     }
 
     const seed = `${date}|${student}|grammar-adaptive|${ALGORITHM_VERSION}|${bank.version}`;
-    const recentOrdered = deterministicShuffle(recentCandidates, `${seed}|recent`, item => item.bankItemId);
-    const recentSelected = recentOrdered.slice(0, RECENT_LIMIT);
+    const currentOrdered = deterministicShuffle(currentCandidates, `${seed}|current`, item => item.bankItemId);
+    const currentSelected = currentOrdered.slice(0, CURRENT_LIMIT);
+    const selectedIds = new Set(currentSelected.map(item => item.bankItemId));
     const historyOrdered = deterministicShuffle(historyCandidates, `${seed}|history`, item => item.bankItemId);
-    const formalPriority = historyOrdered
+    const formalOrdered = deterministicShuffle(eligible, `${seed}|formal-weakness`, item => item.bankItemId)
       .filter(item => {
         const weaknessId = weaknessIdForStudent(item.primaryWeaknessId, student);
-        return weaknessId && formalWeaknesses.has(weaknessId);
+        return weaknessId && formalWeaknesses.has(weaknessId) && !selectedIds.has(item.bankItemId);
       })
       .sort((left, right) => {
         const leftId = weaknessIdForStudent(left.primaryWeaknessId, student);
@@ -243,43 +351,55 @@
         const rightRank = formalWeaknesses.get(rightId) === 'active' ? 0 : 1;
         return leftRank - rightRank;
       });
-    const grammarPriority = historyOrdered.filter(item => grammarWeakKpIds.has(item.primaryKpId));
-    const priority = uniqueByContentHash([...formalPriority, ...grammarPriority]).slice(0, PRIORITY_HISTORY_LIMIT);
-    const priorityIds = new Set(priority.map(item => item.bankItemId));
-    const remaining = takeDiverse(
-      historyOrdered.filter(item => !priorityIds.has(item.bankItemId)),
-      HISTORY_LIMIT - priority.length
+    const weaknessSelected = uniqueByContentHash(formalOrdered).slice(0, WEAKNESS_LIMIT);
+    weaknessSelected.forEach(item => selectedIds.add(item.bankItemId));
+    const historySelected = takeDiverse(
+      historyOrdered.filter(item => !selectedIds.has(item.bankItemId)),
+      HISTORY_LIMIT
     );
-    const historySelected = [...priority, ...remaining].slice(0, HISTORY_LIMIT);
-    const selected = interleave(
-      recentSelected.map(item => ({ item, bucket: 'recent', reason: 'recent' })),
-      historySelected.map(item => ({
-        item,
-        bucket: 'history',
-        reason: priorityIds.has(item.bankItemId) ? 'priority' : 'history'
-      })),
-      seed
-    );
+    historySelected.forEach(item => selectedIds.add(item.bankItemId));
+    const missing = QUESTION_LIMIT - currentSelected.length - weaknessSelected.length - historySelected.length;
+    const currentFill = currentOrdered.filter(item => !selectedIds.has(item.bankItemId)).slice(0, missing);
+    currentFill.forEach(item => selectedIds.add(item.bankItemId));
+    const selected = deterministicShuffle([
+      ...currentSelected.map(item => ({ item, bucket: 'current', reason: 'current' })),
+      ...weaknessSelected.map(item => ({ item, bucket: 'weakness', reason: 'formal-weakness' })),
+      ...historySelected.map(item => ({ item, bucket: 'history', reason: 'history' })),
+      ...currentFill.map(item => ({ item, bucket: 'current', reason: 'current-fill' }))
+    ], `${seed}|final-order`, entry => entry.item.bankItemId);
+    if (selected.length < QUESTION_LIMIT) {
+      return {
+        ok: false,
+        code: 'INSUFFICIENT_ELIGIBLE_QUESTIONS',
+        available: selected.length,
+        currentLessonKey: inferredCurrentLessonKey
+      };
+    }
     const items = selected.map((entry, index) => planItem(entry.item, index, entry.bucket, entry.reason));
     const now = text(settings.startedAt) || new Date().toISOString();
     return {
       ok: true,
       session: {
-        schemaVersion: 1,
+        schemaVersion: 2,
         algorithmVersion: ALGORITHM_VERSION,
         bankVersion: bank.version,
         date,
         student,
         seed,
-        recentLessonKey: effectiveRecentLessonKey,
-        recentLessonDate,
+        currentLessonKey: inferredCurrentLessonKey,
+        recentLessonKey: inferredCurrentLessonKey,
+        currentLessonDate: bank.courses.find(course => course.lessonKey === inferredCurrentLessonKey)?.lessonDate || '',
+        recentLessonDate: bank.courses.find(course => course.lessonKey === inferredCurrentLessonKey)?.lessonDate || '',
         status: 'active',
         cursor: 0,
         items,
         candidateIds: {
-          recent: recentCandidates.map(item => item.bankItemId),
-          history: historyCandidates.map(item => item.bankItemId)
+          current: currentCandidates.map(item => item.bankItemId),
+          recent: currentCandidates.map(item => item.bankItemId),
+          history: historyCandidates.map(item => item.bankItemId),
+          eligible: eligible.map(item => item.bankItemId)
         },
+        correctionQueue: [],
         startedAt: now,
         updatedAt: now,
         completedAt: ''
@@ -296,7 +416,9 @@
     const items = source.items.map((item, index) => ({
       slot: index,
       bankItemId: text(item.bankItemId),
-      bucket: item.bucket === 'history' ? 'history' : 'recent',
+      bucket: ['current', 'weakness', 'history'].includes(item.bucket)
+        ? item.bucket
+        : item.bucket === 'recent' ? 'current' : 'history',
       reason: text(item.reason) || 'history',
       recheckOf: text(item.recheckOf),
       status: item.status === 'answered' ? 'answered' : 'pending',
@@ -304,36 +426,56 @@
       answeredAt: text(item.answeredAt)
     }));
     const answered = items.filter(item => item.status === 'answered').length;
+    const correctionQueue = (Array.isArray(source.correctionQueue) ? source.correctionQueue : [])
+      .filter(item => plainObject(item) && text(item.correctionId) && bankIds.has(text(item.bankItemId)))
+      .map(item => ({
+        correctionId: text(item.correctionId),
+        originalBankItemId: text(item.originalBankItemId),
+        bankItemId: text(item.bankItemId),
+        mode: item.mode === 'variant' ? 'variant' : 'repeat-original',
+        status: item.status === 'answered' ? 'answered' : 'pending',
+        correct: typeof item.correct === 'boolean' ? item.correct : null,
+        answeredAt: text(item.answeredAt)
+      }));
+    const hasPendingCorrection = correctionQueue.some(item => item.status === 'pending');
     return {
       ...source,
-      schemaVersion: 1,
+      schemaVersion: Number(source.schemaVersion) || 1,
       algorithmVersion: Number(source.algorithmVersion) || ALGORITHM_VERSION,
       bankVersion: text(source.bankVersion),
       student: source.student === 'brother' ? 'brother' : 'sister',
-      status: answered >= QUESTION_LIMIT || source.status === 'completed' ? 'completed' : 'active',
+      status: answered >= QUESTION_LIMIT && !hasPendingCorrection ? 'completed' : 'active',
       cursor: Math.max(answered, Math.min(QUESTION_LIMIT, Number(source.cursor) || 0)),
       items,
       candidateIds: {
+        current: unique(source.candidateIds && (source.candidateIds.current || source.candidateIds.recent)).filter(id => bankIds.has(id)),
         recent: unique(source.candidateIds && source.candidateIds.recent).filter(id => bankIds.has(id)),
-        history: unique(source.candidateIds && source.candidateIds.history).filter(id => bankIds.has(id))
-      }
+        history: unique(source.candidateIds && source.candidateIds.history).filter(id => bankIds.has(id)),
+        eligible: unique(source.candidateIds && source.candidateIds.eligible).filter(id => bankIds.has(id))
+      },
+      correctionQueue
     };
   }
 
-  function replacementCandidates(session, current, bankById) {
-    const used = new Set(session.items.map(item => item.bankItemId));
-    return (session.candidateIds[current.bucket] || [])
+  function correctionCandidates(session, currentQuestion, bankById) {
+    const used = new Set([
+      ...session.items.map(item => item.bankItemId),
+      ...session.correctionQueue.map(item => item.bankItemId)
+    ]);
+    const eligibleIds = session.candidateIds.eligible.length
+      ? session.candidateIds.eligible
+      : unique([
+          ...session.candidateIds.current,
+          ...session.candidateIds.recent,
+          ...session.candidateIds.history
+        ]);
+    return eligibleIds
       .map(id => bankById.get(id))
-      .filter(item => item && !used.has(item.bankItemId));
-  }
-
-  function sameRecheckTarget(candidate, currentQuestion, student) {
-    if (candidate.contentHash && candidate.contentHash === currentQuestion.contentHash) return false;
-    const currentWeaknessId = weaknessIdForStudent(currentQuestion.primaryWeaknessId, student);
-    const candidateWeaknessId = weaknessIdForStudent(candidate.primaryWeaknessId, student);
-    if (currentWeaknessId && candidateWeaknessId === currentWeaknessId) return true;
-    if (currentQuestion.variantGroupId && candidate.variantGroupId === currentQuestion.variantGroupId) return true;
-    return Boolean(currentQuestion.primaryKpId && candidate.primaryKpId === currentQuestion.primaryKpId);
+      .filter(item => item
+        && !used.has(item.bankItemId)
+        && item.contentHash !== currentQuestion.contentHash
+        && currentQuestion.variantGroupId
+        && item.variantGroupId === currentQuestion.variantGroupId);
   }
 
   function applyAnswer(sessionValue, options) {
@@ -354,39 +496,78 @@
     current.firstTryCorrect = correct;
     current.answeredAt = answeredAt;
 
-    let replacement = null;
+    let correction = null;
     if (!correct) {
-      const futureSlot = session.items.findIndex((item, index) => (
-        index >= currentIndex + RECHECK_GAP
-        && item.status === 'pending'
-        && item.bucket === current.bucket
-        && item.reason !== 'recheck'
-      ));
-      if (futureSlot >= 0) {
-        const candidates = deterministicShuffle(
-          replacementCandidates(session, current, bankById).filter(item => sameRecheckTarget(item, currentQuestion, session.student)),
-          `${session.seed}|recheck|${current.bankItemId}|${currentIndex}`,
-          item => item.bankItemId
-        );
-        if (candidates[0]) {
-          const previous = session.items[futureSlot];
-          session.items[futureSlot] = {
-            ...planItem(candidates[0], futureSlot, current.bucket, 'recheck'),
-            recheckOf: current.bankItemId,
-            replacedBankItemId: previous.bankItemId
-          };
-          replacement = { slot: futureSlot, bankItemId: candidates[0].bankItemId };
-        }
-      }
+      const candidates = deterministicShuffle(
+        correctionCandidates(session, currentQuestion, bankById),
+        `${session.seed}|correction|${current.bankItemId}|${currentIndex}`,
+        item => item.bankItemId
+      );
+      const correctionQuestion = candidates[0] || currentQuestion;
+      correction = {
+        correctionId: `correction:${currentIndex}:${current.bankItemId}`,
+        originalBankItemId: current.bankItemId,
+        bankItemId: correctionQuestion.bankItemId,
+        mode: candidates[0] ? 'variant' : 'repeat-original',
+        status: 'pending',
+        correct: null,
+        answeredAt: ''
+      };
+      session.correctionQueue.push(correction);
     }
 
     session.cursor += 1;
     session.updatedAt = answeredAt;
-    if (session.cursor >= QUESTION_LIMIT) {
+    if (session.cursor >= QUESTION_LIMIT && !session.correctionQueue.some(item => item.status === 'pending')) {
       session.status = 'completed';
       session.completedAt = answeredAt;
     }
-    return { session, replacement };
+    return { session, correction };
+  }
+
+  function applyCorrectionAnswer(sessionValue, options) {
+    const settings = plainObject(options) ? options : {};
+    const bank = normalizeBank(settings.bank);
+    const session = normalizeSession(sessionValue, bank);
+    if (!session || session.status !== 'active') throw new Error('ADAPTIVE_SESSION_NOT_ACTIVE');
+    const correction = session.correctionQueue.find(item => item.status === 'pending');
+    if (!correction) throw new Error('ADAPTIVE_CORRECTION_NOT_PENDING');
+    if (text(settings.correctionId) !== correction.correctionId
+      || text(settings.questionId) !== correction.bankItemId) {
+      throw new Error('ADAPTIVE_CORRECTION_MISMATCH');
+    }
+    const answeredAt = text(settings.answeredAt) || new Date().toISOString();
+    correction.status = 'answered';
+    correction.correct = settings.correct === true;
+    correction.answeredAt = answeredAt;
+    session.updatedAt = answeredAt;
+    if (session.cursor >= QUESTION_LIMIT && !session.correctionQueue.some(item => item.status === 'pending')) {
+      session.status = 'completed';
+      session.completedAt = answeredAt;
+    }
+    return { session, correction };
+  }
+
+  function nextCorrectionQuestion(sessionValue, bankValue) {
+    const bank = normalizeBank(bankValue);
+    const session = normalizeSession(sessionValue, bank);
+    if (!session) return null;
+    const correction = session.correctionQueue.find(item => item.status === 'pending');
+    if (!correction) return null;
+    const question = clone(bank.items.find(item => item.bankItemId === correction.bankItemId));
+    if (!question) return null;
+    const primaryWeaknessId = weaknessIdForStudent(question.primaryWeaknessId, session.student);
+    const weaknessIds = unique((question.weaknessIds || []).map(id => weaknessIdForStudent(id, session.student)));
+    if (primaryWeaknessId && !weaknessIds.includes(primaryWeaknessId)) weaknessIds.unshift(primaryWeaknessId);
+    return {
+      ...question,
+      primaryWeaknessId,
+      weaknessIds,
+      correctionId: correction.correctionId,
+      correctionMode: correction.mode,
+      correctionOf: correction.originalBankItemId,
+      isCorrection: true
+    };
   }
 
   function questionsForSession(sessionValue, bankValue) {
@@ -416,8 +597,45 @@
     root.__grammarAdaptiveChallengeInstalled = true;
     const runtime = { user: '', record: null, session: null, writeQueue: Promise.resolve() };
 
+    let loadedBank = null;
+    let bankPromise = null;
+
     function bank() {
-      return normalizeBank(root.GRAMMAR_QUESTION_BANK);
+      return loadedBank || mergeBanks(root.GRAMMAR_COURSE_QUESTION_BANKS, root.GRAMMAR_QUESTION_BANK);
+    }
+
+    async function loadCourseBank() {
+      if (loadedBank) return loadedBank;
+      const embedded = normalizeBank(root.GRAMMAR_COURSE_QUESTION_BANKS);
+      if (embedded.courses.length && embedded.items.length) {
+        loadedBank = mergeBanks(root.GRAMMAR_COURSE_QUESTION_BANKS, root.GRAMMAR_QUESTION_BANK);
+        return loadedBank;
+      }
+      if (!bankPromise) {
+        bankPromise = (async () => {
+          if (typeof root.fetch === 'function') {
+            try {
+              const response = await root.fetch('grammar-challenge/data/course-question-banks.json', {
+                cache: 'no-cache',
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' }
+              });
+              if (response && response.ok) {
+                const payload = await response.json();
+                const shared = normalizeBank(payload);
+                if (shared.courses.length && shared.items.length) {
+                  root.GRAMMAR_COURSE_QUESTION_BANKS = clone(payload);
+                  loadedBank = mergeBanks(payload, root.GRAMMAR_QUESTION_BANK);
+                  return loadedBank;
+                }
+              }
+            } catch (_) {}
+          }
+          loadedBank = normalizeBank(root.GRAMMAR_QUESTION_BANK);
+          return loadedBank;
+        })().finally(() => { bankPromise = null; });
+      }
+      return bankPromise;
     }
 
     async function readValue(key) {
@@ -469,11 +687,17 @@
     async function prepareDaily(options) {
       const settings = plainObject(options) ? options : {};
       const user = settings.user === 'brother' ? 'brother' : 'sister';
-      const currentBank = bank();
+      const currentBank = await loadCourseBank();
       const selectedGrammar = plainObject(settings.route && settings.route.grammarChallenge)
         ? settings.route.grammarChallenge
         : {};
-      const selectedLessonKey = text(selectedGrammar.lessonKey || selectedGrammar.reviewLessonKey)
+      const selectedCourse = plainObject(settings.route && settings.route.currentCourse)
+        ? settings.route.currentCourse
+        : {};
+      const selectedLessonKey = text(
+        selectedCourse.lessonKey || selectedCourse.courseKey || selectedCourse.questionBankKey
+        || selectedGrammar.lessonKey || selectedGrammar.reviewLessonKey
+      )
         .replace(/^manual-courseware:/, '');
       const routeRevision = text(settings.route && (
         settings.route.manualSelection && settings.route.manualSelection.updatedAt
@@ -499,19 +723,19 @@
         session = null;
       }
       if (!session) {
-        const [progress, weaknessView, grammarWeakSummary] = await Promise.all([
+        const [progress, weaknessView, history] = await Promise.all([
           readValue(PROGRESS_KEY),
           readValue(WEAKNESS_VIEW_KEY),
-          readValue(`${GRAMMAR_WEAK_SUMMARY_PREFIX}${user}`)
+          readValue(`${HISTORY_KEY_PREFIX}${user}`)
         ]);
         const built = buildSession({
           bank: currentBank,
           progress,
           weaknessView,
-          grammarWeakSummary,
+          history,
           student: user,
           date: settings.date,
-          recentLessonKey: selectedLessonKey,
+          currentLessonKey: selectedLessonKey,
           startedAt: record.startedAt
         });
         if (!built.ok) {
@@ -526,7 +750,7 @@
         ...record,
         challengeId: CHALLENGE_ID,
         routeUpdatedAt: routeRevision,
-        reviewLessonKey: `adaptive:${session.recentLessonKey || session.recentLessonDate}`,
+        reviewLessonKey: `adaptive:${session.currentLessonKey || session.recentLessonKey}`,
         title: '15题综合语法挑战',
         status: 'started',
         startedAt: text(record.startedAt) || now,
@@ -556,12 +780,13 @@
         completionTitle: '今日语法挑战完成',
         completion: '最近课程与已学知识点都完成了复习。',
         feedbackDelayMs: 900,
-        knowledge: ['最近课程 8 题', '历史知识 7 题', '错题稍后再练'],
+        knowledge: ['当前课程 8 题', '正式薄弱项 4 题', '历史复习 3 题', '答错立即重刷'],
         round: { size: QUESTION_LIMIT, shuffle: false },
         adaptiveSession: {
           enabled: true,
           cursor: runtime.session.cursor,
-          results: runtime.session.items.map(item => item.firstTryCorrect)
+          results: runtime.session.items.map(item => item.firstTryCorrect),
+          correction: nextCorrectionQuestion(runtime.session, bank())
         },
         questions: questionsForSession(runtime.session, bank())
       };
@@ -569,19 +794,23 @@
 
     async function recordAnswer(options) {
       if (!runtime.session || !runtime.record) throw new Error('ADAPTIVE_RUNTIME_NOT_READY');
-      const result = applyAnswer(runtime.session, { ...options, bank: bank() });
+      const result = options && options.correction === true
+        ? applyCorrectionAnswer(runtime.session, { ...options, bank: bank() })
+        : applyAnswer(runtime.session, { ...options, bank: bank() });
       const nextRecord = { ...runtime.record, adaptiveSession: result.session };
       await saveRecord(runtime.user, nextRecord);
       runtime.session = result.session;
       runtime.record = nextRecord;
       return {
         session: clone(result.session),
-        replacement: clone(result.replacement),
+        correction: clone(result.correction),
+        nextCorrection: nextCorrectionQuestion(result.session, bank()),
         questions: questionsForSession(result.session, bank())
       };
     }
 
     root.prepareAdaptiveGrammarChallenge = prepareDaily;
+    root.loadGrammarCourseQuestionBank = loadCourseBank;
     root.getAdaptiveGrammarFrameConfig = getFrameConfig;
     root.recordAdaptiveGrammarAnswer = recordAnswer;
     root.getAdaptiveGrammarChallengeMeta = challengeId => challengeId === CHALLENGE_ID && runtime.session
@@ -589,7 +818,7 @@
           challengeId: CHALLENGE_ID,
           challengeTitle: '15题综合语法挑战',
           challengeContentDate: runtime.session.date,
-          lessonKey: `adaptive:${runtime.session.recentLessonKey || runtime.session.recentLessonDate}`,
+          lessonKey: `adaptive:${runtime.session.currentLessonKey || runtime.session.recentLessonKey}`,
           kpIds: unique(getFrameConfig()?.questions.flatMap(item => item.kpIds || []))
         }
       : null;
@@ -599,19 +828,23 @@
     CHALLENGE_ID,
     ALGORITHM_VERSION,
     QUESTION_LIMIT,
-    RECENT_LIMIT,
+    CURRENT_LIMIT,
+    WEAKNESS_LIMIT,
     HISTORY_LIMIT,
-    PRIORITY_HISTORY_LIMIT,
-    RECHECK_GAP,
     stableHash,
     deterministicShuffle,
     normalizeBank,
+    mergeBanks,
+    courseCatalog,
     normalizeProgress,
     normalizeFormalWeaknesses,
+    normalizePreviouslyDrawnIds,
     weaknessIdForStudent,
     buildSession,
     normalizeSession,
     applyAnswer,
+    applyCorrectionAnswer,
+    nextCorrectionQuestion,
     questionsForSession,
     install
   });

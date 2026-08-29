@@ -110,9 +110,10 @@
       questionId,
       kpIds: uniqueStrings(source.kpIds || source.kp_ids || fallbackKpIds),
       weaknessIds,
-      primaryWeaknessId: explicitPrimary || (weaknessIds.length === 1 ? weaknessIds[0] : ''),
+      primaryWeaknessId: explicitPrimary,
       diagnosticTargets: uniqueStrings(source.diagnosticTargets || source.diagnostic_targets),
       contentHash: String(source.contentHash || source.content_hash || '').trim(),
+      formalWeaknessEligible: source.formalWeaknessEligible === true,
       answered: source.answered === true || hasCorrect || hasFirst,
       correct: hasCorrect ? source.correct : false,
       firstTryCorrect: hasFirst ? source.firstTryCorrect : false,
@@ -227,6 +228,7 @@
       primaryWeaknessId: next.primaryWeaknessId || existing.primaryWeaknessId,
       diagnosticTargets: uniqueStrings([...(existing.diagnosticTargets || []), ...(next.diagnosticTargets || [])]),
       contentHash: next.contentHash || existing.contentHash,
+      formalWeaknessEligible: existing.formalWeaknessEligible || next.formalWeaknessEligible,
       answered: existing.answered || next.answered,
       correct: nextIsNewer ? next.correct : existing.correct,
       firstTryCorrect: existing.answered ? existing.firstTryCorrect : next.firstTryCorrect,
@@ -397,7 +399,8 @@
   function buildWeaknessEvidence(historyValue) {
     const history = normalizeHistory(historyValue, historyValue && historyValue.student);
     return completedAttempts(history).flatMap(attempt => attempt.questions.flatMap(question => {
-      if (!question.answered || !question.primaryWeaknessId) return [];
+      if (!question.answered || question.formalWeaknessEligible !== true || !question.primaryWeaknessId) return [];
+      if (question.kpIds.length !== 1 || !question.diagnosticTargets.length || !question.contentHash) return [];
       if (!question.weaknessIds.includes(question.primaryWeaknessId)) return [];
       const validPass = Boolean(
         question.correct
@@ -428,6 +431,30 @@
         validForMastery: validPass
       }];
     }));
+  }
+
+  function buildFormalWeaknessCandidates(historyValue) {
+    const grouped = new Map();
+    buildWeaknessEvidence(historyValue)
+      .filter(item => item.outcome === 'fail' && item.contentHash)
+      .forEach(item => {
+        const current = grouped.get(item.weaknessId) || {
+          weaknessId: item.weaknessId,
+          contentHashes: [],
+          evidenceIds: [],
+          firstEvidenceDate: item.evidenceDate,
+          latestEvidenceDate: item.evidenceDate
+        };
+        if (!current.contentHashes.includes(item.contentHash)) current.contentHashes.push(item.contentHash);
+        if (!current.evidenceIds.includes(item.evidenceId)) current.evidenceIds.push(item.evidenceId);
+        if (String(item.evidenceDate || '') < String(current.firstEvidenceDate || '')) current.firstEvidenceDate = item.evidenceDate;
+        if (String(item.evidenceDate || '') > String(current.latestEvidenceDate || '')) current.latestEvidenceDate = item.evidenceDate;
+        grouped.set(item.weaknessId, current);
+      });
+    return [...grouped.values()]
+      .filter(item => item.contentHashes.length >= 2)
+      .map(item => ({ ...item, distinctContentCount: item.contentHashes.length }))
+      .sort((left, right) => String(left.weaknessId).localeCompare(String(right.weaknessId)));
   }
 
   function attemptKpResult(attempt, kpId) {
@@ -538,6 +565,7 @@
       generatedAt: isoNow(nowValue),
       historyKey: historyKey(student),
       completedAttemptCount: completedAttempts(historyValue).length,
+      formalWeaknessCandidates: buildFormalWeaknessCandidates(historyValue),
       weakKpIds: items.map(item => item.kpId),
       items: items.map(item => ({
         kpId: item.kpId,
@@ -904,6 +932,7 @@
     }
 
     function questionWeaknessMetadata(question, questionId) {
+      const kpIds = questionKpIds(question, questionId);
       const mappedWeaknessIds = runtime.activeMeta && runtime.activeMeta.questionWeaknessIds
         ? runtime.activeMeta.questionWeaknessIds[questionId]
         : null;
@@ -926,11 +955,20 @@
         ? runtime.activeMeta.questionContentHashes[questionId]
         : '';
       const contentHash = String(question && (question.contentHash || question.content_hash) || mappedHash || '').trim();
+      const formalWeaknessEligible = Boolean(
+        question && question.formalWeaknessEligible !== false
+        && kpIds.length === 1
+        && explicitPrimary
+        && weaknessIds.includes(explicitPrimary)
+        && diagnosticTargets.length
+        && contentHash
+      );
       return {
-        weaknessIds,
-        primaryWeaknessId: explicitPrimary || (weaknessIds.length === 1 ? weaknessIds[0] : ''),
-        diagnosticTargets,
-        contentHash
+        weaknessIds: formalWeaknessEligible ? weaknessIds : [],
+        primaryWeaknessId: formalWeaknessEligible ? explicitPrimary : '',
+        diagnosticTargets: formalWeaknessEligible ? diagnosticTargets : [],
+        contentHash,
+        formalWeaknessEligible
       };
     }
 
@@ -1122,6 +1160,9 @@
 
       function captureCurrent() {
         if (!runtime.activeAttempt || runtime.activeAttempt.status !== STATUS.IN_PROGRESS) return;
+        let qaState = null;
+        try { qaState = win.__LESSON_PREP_QA__?.state?.() || null; } catch (_) {}
+        if (qaState && qaState.isCorrection === true) return;
         const id = currentQuestionId(win, doc, model);
         const index = Math.max(0, model.order.indexOf(id) >= 0 ? model.order.indexOf(id) : currentIndex(win, doc, model));
         const question = model.byId.get(id) || model.questions[index] || {};
@@ -1393,6 +1434,7 @@
     finalizeAttempt,
     completedAttempts,
     buildWeaknessEvidence,
+    buildFormalWeaknessCandidates,
     normalizeRules,
     calculateKpStats,
     buildWeakSummary,

@@ -1064,17 +1064,22 @@
       }
     }
 
-    async function refreshStudentAttemptIndicators() {
+    async function refreshStudentAttemptIndicators(context) {
       if (isTeacherMode()) return;
+      const renderContext = context || root.getStudentHomeRenderContext?.();
+      const stillCurrent = () => !renderContext || root.isStudentHomeRenderContextCurrent?.(renderContext);
+      if (!stillCurrent()) return;
       installStudentEntryHandlers();
       const user = currentStudent();
       const today = dateKey();
       const control = await loadControl(user);
+      if (!stillCurrent() || user !== currentStudent()) return;
 
       const grammarRecords = typeof root.sbGet === 'function'
         ? await root.sbGet(`grammar_challenge_daily_v1_${user}`).catch?.(() => null) || null
         : null;
       const grammarRecord = isPlainObject(grammarRecords) ? grammarRecords[today] : null;
+      if (!stillCurrent() || user !== currentStudent()) return;
       const grammarInferred = grammarRecord && grammarRecord.status === 'completed' ? 1 : 0;
       const grammarUsage = Math.max(projectAttemptUsage(control, today, 'grammarChallenge'), grammarInferred);
       const grammarTotal = projectAttemptTotal(control, today, 'grammarChallenge');
@@ -1088,6 +1093,7 @@
       const classroomRecord = typeof root.loadStudentClassroomPracticeRecord === 'function'
         ? await root.loadStudentClassroomPracticeRecord(user, today).catch?.(() => null) || null
         : null;
+      if (!stillCurrent() || user !== currentStudent()) return;
       const classroomInferred = classroomRecord && classroomRecord.status === 'completed' ? 1 : 0;
       const classroomUsage = Math.max(projectAttemptUsage(control, today, 'classroomPractice'), classroomInferred);
       const classroomTotal = projectAttemptTotal(control, today, 'classroomPractice');
@@ -1100,6 +1106,7 @@
 
       if (runtime.rawLoadAdventureState) {
         const state = await runtime.rawLoadAdventureState(user).catch(() => null);
+        if (!stillCurrent() || user !== currentStudent()) return;
         const adventureInferred = adventureCompletedToday(state, today) ? 1 : 0;
         const adventureUsage = Math.max(projectAttemptUsage(control, today, 'adventure'), adventureInferred);
         const adventureTotal = projectAttemptTotal(control, today, 'adventure');
@@ -1114,7 +1121,7 @@
 
     function installFeatureHooks(group) {
       if (['adventure', 'adventurePlayer', 'adventureChallenge', 'teacherTools'].includes(group)) {
-        installAdventureHooks().then(refreshStudentAttemptIndicators);
+        installAdventureHooks().then(() => refreshStudentAttemptIndicators(root.getStudentHomeRenderContext?.()));
       }
       if (group === 'courseware') installCoursewareCompletionHook();
       installStudentEntryHandlers();
@@ -1140,10 +1147,11 @@
         if (isTeacherMode()) installTeacherPanel();
         else {
           installStudentEntryHandlers();
-          refreshStudentAttemptIndicators();
+          const context = root.getStudentHomeRenderContext?.();
+          refreshStudentAttemptIndicators(context);
           root.setTimeout?.(() => {
             installStudentEntryHandlers();
-            refreshStudentAttemptIndicators();
+            refreshStudentAttemptIndicators(context);
           }, 0);
         }
         return result;

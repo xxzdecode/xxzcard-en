@@ -97,8 +97,8 @@ assert.match(adventureVisual, /ensureLayoutStylesheet\(\);\s*refresh\(\);/);
 assert.match(adventureVisual, /const scheduleMicrotask = typeof queueMicrotask === 'function'/);
 assert.match(adventureVisual, /function replaceChildrenCompat\(node, \.\.\.children\)/);
 
-assert.match(serviceWorker, /xxzcard-app-shell-v101/);
-assert.match(serviceWorker, /xxzcard-runtime-v101/);
+assert.match(serviceWorker, /xxzcard-app-shell-v102/);
+assert.match(serviceWorker, /xxzcard-runtime-v102/);
 assert.equal(appShellEntries.length, 24, `Apple-safe install shell must contain exactly 24 resources, found ${appShellEntries.length}`);
 assert.match(main, /loadFeatureScript\('js\/dailyLearningRoute\.js'\)/);
 assert.ok(
@@ -135,7 +135,8 @@ assert.ok(
 assert.match(main, /installHomeRefreshCoordinator/);
 assert.match(main, /id === requestId/);
 assert.match(main, /while \(rerunRequested\)/);
-assert.match(main, /renderCachedReward\(user, id\);\s*renderCachedClassroom\(user, id\);/);
+assert.match(main, /beginStudentHomeRenderContext\(user\)/);
+assert.match(main, /renderCachedReward\(user, id, context\);\s*renderCachedClassroom\(user, id, context\);/);
 assert.match(main, /Promise\.allSettled\(jobs\)/);
 assert.doesNotMatch(main, /await loadRewardFor|await loadClassroomFor/);
 assert.match(dailyRoute, /ROUTE_TIMEOUT_MS = 2800/);

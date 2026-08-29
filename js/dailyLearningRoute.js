@@ -151,7 +151,7 @@
     const classroomRoute = state.route.classroomPractice;
 
     if (grammar.title) grammar.title.textContent = '语法挑战';
-    if (grammar.subtitle) grammar.subtitle.textContent = `${routeLabel(grammarRoute, '近期知识')} 8 题 + 历史 7 题`;
+    if (grammar.subtitle) grammar.subtitle.textContent = `${routeLabel(grammarRoute, '当前课程')} 8 题 + 薄弱 4 题 + 历史 3 题`;
     if (grammar.status) {
       const grammarRecord = state.grammarRecordStudent === currentStudent() ? state.grammarRecord : null;
       grammar.status.textContent = grammarRecord && grammarRecord.status === 'completed'
@@ -161,7 +161,7 @@
           : '今日挑战已准备';
     }
     if (grammar.entry) {
-      grammar.entry.setAttribute('aria-label', `语法挑战，${routeLabel(grammarRoute, '近期知识')}8题加历史知识7题，一天一次，完成可领取5金币`);
+      grammar.entry.setAttribute('aria-label', `语法挑战，${routeLabel(grammarRoute, '当前课程')}8题加正式薄弱项4题加历史复习3题，一天一次，完成可领取5金币`);
     }
 
     if (classroom.title) classroom.title.textContent = '随堂练习';
@@ -203,6 +203,9 @@
       grammarChallenge: { ...grammar, id: String(grammar.id) },
       classroomPractice: { ...classroom, id: String(classroom.id) }
     };
+    if (value.currentCourse && typeof value.currentCourse === 'object') {
+      route.currentCourse = { ...value.currentCourse };
+    }
     if (value.manualSelection && typeof value.manualSelection === 'object') {
       route.manualSelection = { ...value.manualSelection };
     }

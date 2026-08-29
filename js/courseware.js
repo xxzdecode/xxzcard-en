@@ -33,15 +33,19 @@ async function loadStudentClassroomPracticeRecord(user, date) {
   const record = records && typeof records === 'object'
     ? records[date || studentClassroomPracticeDate()]
     : null;
-  return record && typeof record === 'object' ? record : null;
+  // A key is per student, but the payload is also self-identifying.  Do not
+  // surface old/misfiled mirrored data on a shared device.
+  return record && typeof record === 'object' && record.owner === student ? record : null;
 }
 
 async function saveStudentClassroomPracticeRecord(record) {
   if (isTeacher() || !canWriteCloudData()) return false;
-  const key = studentClassroomPracticeKey(currentUser);
+  const student = currentUser === 'brother' ? 'brother' : 'sister';
+  if (record && record.owner && record.owner !== student) return false;
+  const key = studentClassroomPracticeKey(student);
   const records = await sbGet(key);
   const next = records && typeof records === 'object' ? records : {};
-  next[studentClassroomPracticeDate()] = record;
+  next[studentClassroomPracticeDate()] = { ...(record || {}), owner: student };
   try {
     await sbSet(key, next);
     return true;

@@ -7,6 +7,8 @@
 
   const VERSION = 1;
   const INTERVAL_DAYS = Object.freeze([1, 3, 7, 14, 30, 60]);
+  const MAX_VOCABULARY_ADVENTURE_ITEMS = 15;
+  const MAX_FIRST_SESSION_TARGET = MAX_VOCABULARY_ADVENTURE_ITEMS;
   const RESULTS = new Set(['D', 'H', 'F']);
   const REVIEW_PRIORITY = Object.freeze({
     challenge: 1,
@@ -90,7 +92,10 @@
       reviewCount: safeCount(source.reviewCount),
       lastTaskType: typeof source.lastTaskType === 'string' ? source.lastTaskType : '',
       challengeFlagAt: isDateTime(source.challengeFlagAt) ? source.challengeFlagAt : '',
-      lessonChallengeAt: isDateTime(source.lessonChallengeAt) ? source.lessonChallengeAt : ''
+      lessonChallengeAt: isDateTime(source.lessonChallengeAt) ? source.lessonChallengeAt : '',
+      // A rapid flip confirmation is intentionally separate from the adventure
+      // result.  It must never advance the spaced-review interval.
+      ...(isDateTime(source.rapidConfirmAt) ? { rapidConfirmAt: source.rapidConfirmAt } : {})
     };
   }
 
@@ -117,7 +122,13 @@
 
   function normalizeSession(value) {
     if (!isPlainObject(value) || !isLocalDate(value.date)) return null;
-    const plan = Array.isArray(value.plan) ? value.plan.map(normalizePlanItem).filter(Boolean) : [];
+    // Historic sessions can contain the former 20-question plan. Keep the
+    // answered prefix, never surface item 16+, and let a cursor past the cap
+    // finish the migrated session instead of reopening more questions.
+    const plan = (Array.isArray(value.plan) ? value.plan : [])
+      .map(normalizePlanItem)
+      .filter(Boolean)
+      .slice(0, MAX_VOCABULARY_ADVENTURE_ITEMS);
     let cursor = Number.isFinite(Number(value.cursor)) ? Math.floor(Number(value.cursor)) : 0;
     cursor = Math.max(0, Math.min(plan.length, cursor));
     const completed = value.completed === true || cursor >= plan.length;
@@ -295,20 +306,27 @@
     const candidates = Array.isArray(settings.candidates) ? settings.candidates : [];
     const state = normalizeVocabularyAdventureState(settings.state);
     const today = isLocalDate(settings.today) ? settings.today : localDateKey(new Date());
-    const screeningTarget = positiveTarget(settings.screeningTarget, 12);
-    const reviewTarget = positiveTarget(settings.reviewTarget, 8);
-    const firstSessionTarget = positiveTarget(settings.firstSessionTarget, 20);
+    const screeningTarget = positiveTarget(settings.screeningTarget, 9);
+    const reviewTarget = positiveTarget(settings.reviewTarget, 6);
+    // Website practice is capped at fifteen questions. Keep this at the
+    // planning boundary as callers can pass an arbitrary first-session target.
+    const firstSessionTarget = Math.min(
+      MAX_FIRST_SESSION_TARGET,
+      positiveTarget(settings.firstSessionTarget, MAX_FIRST_SESSION_TARGET)
+    );
     const pools = classifyVocabularyAdventureCandidates(candidates, state, today);
     const firstSession = !Object.values(state.words).some(wordState => wordState.reviewCount > 0);
 
     if (firstSession) {
-      const selected = pools.screening.slice(0, firstSessionTarget).map(candidate => planItem(candidate, 'screening'));
+      const selected = pools.screening
+        .slice(0, firstSessionTarget)
+        .map(candidate => planItem(candidate, 'screening'));
       return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey);
     }
 
-    const totalTarget = screeningTarget + reviewTarget;
-    let screeningCount = Math.min(screeningTarget, pools.screening.length);
-    let urgentReviewCount = Math.min(reviewTarget, pools.urgentReview.length);
+    const totalTarget = Math.min(MAX_VOCABULARY_ADVENTURE_ITEMS, screeningTarget + reviewTarget);
+    let screeningCount = Math.min(screeningTarget, pools.screening.length, totalTarget);
+    let urgentReviewCount = Math.min(reviewTarget, pools.urgentReview.length, totalTarget - screeningCount);
     let remaining = Math.max(0, totalTarget - screeningCount - urgentReviewCount);
     const extraScreening = Math.min(remaining, pools.screening.length - screeningCount);
     screeningCount += extraScreening;
@@ -323,7 +341,8 @@
       ...pools.urgentReview.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason)),
       ...pools.stableReview.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason))
     ];
-    return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey);
+    return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey)
+      .slice(0, MAX_VOCABULARY_ADVENTURE_ITEMS);
   }
 
   function stableAdventureHash(value) {
@@ -487,7 +506,8 @@
       reviewCount: previous.reviewCount + 1,
       lastTaskType: previous.lastTaskType,
       challengeFlagAt: '',
-      lessonChallengeAt: previous.lessonChallengeAt
+      lessonChallengeAt: previous.lessonChallengeAt,
+      ...(previous.rapidConfirmAt ? { rapidConfirmAt: previous.rapidConfirmAt } : {})
     };
   }
 
@@ -630,6 +650,8 @@
   return Object.freeze({
     VERSION,
     INTERVAL_DAYS,
+    MAX_VOCABULARY_ADVENTURE_ITEMS,
+    MAX_FIRST_SESSION_TARGET,
     REVIEW_PRIORITY,
     SCREENING_TASK_TYPES,
     normalizeAdventureWord,

@@ -73,9 +73,22 @@ const firstPlan = core.buildVocabularyAdventurePlan({
   state: core.defaultVocabularyAdventureState(),
   today: TODAY
 });
-assert.equal(firstPlan.length, 20);
+assert.equal(firstPlan.length, 15);
 assert.ok(firstPlan.every(item => item.phase === 'screening'));
-assert.equal(new Set(firstPlan.map(item => item.wordKey)).size, 20);
+assert.equal(new Set(firstPlan.map(item => item.wordKey)).size, 15);
+assert.equal(core.MAX_FIRST_SESSION_TARGET, 15);
+assert.equal(core.buildVocabularyAdventurePlan({
+  candidates: firstCandidates,
+  state: core.defaultVocabularyAdventureState(),
+  today: TODAY,
+  firstSessionTarget: 99
+}).length, 15, 'a caller cannot bypass the website-wide 15-question cap');
+assert.equal(core.buildVocabularyAdventurePlan({
+  candidates: firstCandidates,
+  state: core.defaultVocabularyAdventureState(),
+  today: TODAY,
+  firstSessionTarget: 10
+}).length, 10, 'a smaller teacher-supplied first-session target remains valid');
 const sisterFirstPlan = core.buildVocabularyAdventurePlan({
   candidates: firstCandidates,
   state: core.defaultVocabularyAdventureState(),
@@ -114,14 +127,52 @@ assert.equal(core.buildVocabularyAdventurePlan({
   today: TODAY
 }).length, 7);
 
+const legacyTwentyPlan = firstCandidates.slice(0, 20).map((candidate, index) => ({
+  wordKey: candidate.key,
+  word: candidate.word,
+  batchId: candidate.batchId,
+  batchName: candidate.batchName,
+  cardIndex: candidate.cardIndex,
+  phase: 'screening',
+  reviewReason: '',
+  taskType: 'wordToMeaning',
+  confirmationTaskType: '',
+  outcomeDetail: '',
+  status: index < 18 ? 'completed' : 'pending',
+  result: index < 18 ? 'D' : ''
+}));
+const migratedLegacySession = core.normalizeVocabularyAdventureState({
+  version: 1,
+  words: {},
+  session: { date: TODAY, plan: legacyTwentyPlan, cursor: 18, completed: false }
+}).session;
+assert.equal(migratedLegacySession.plan.length, 15, 'old 20-question sessions are trimmed at the safe cap');
+assert.equal(migratedLegacySession.cursor, 15, 'a migrated cursor never reaches question sixteen');
+assert.equal(migratedLegacySession.completed, true, 'a past-cap cursor completes the migrated session');
+assert.equal(migratedLegacySession.plan[14].status, 'completed', 'answered information in the retained prefix survives');
+assert.equal(core.resolveVocabularyAdventureSession({
+  candidates: firstCandidates,
+  state: { version: 1, words: {}, session: { date: TODAY, plan: legacyTwentyPlan, cursor: 18, completed: false } },
+  today: TODAY
+}).action, 'completed', 'resuming a migrated legacy session never creates question sixteen');
+
 const screeningPool = candidates(30, 'screen');
 const reviewPool = candidates(20, 'review');
 const normalCandidates = [...screeningPool, ...reviewPool].map((item, index) => ({ ...item, sourceIndex: index }));
 const normalState = reviewedState(reviewPool);
 const normalPlan = core.buildVocabularyAdventurePlan({ candidates: normalCandidates, state: normalState, today: TODAY });
-assert.equal(normalPlan.filter(item => item.phase === 'screening').length, 12);
-assert.equal(normalPlan.filter(item => item.phase === 'review').length, 8);
-assert.deepEqual(normalPlan.map(item => item.phase), [...Array(12).fill('screening'), ...Array(8).fill('review')]);
+assert.equal(normalPlan.length, 15);
+assert.equal(normalPlan.filter(item => item.phase === 'screening').length, 9);
+assert.equal(normalPlan.filter(item => item.phase === 'review').length, 6);
+assert.deepEqual(normalPlan.map(item => item.phase), [...Array(9).fill('screening'), ...Array(6).fill('review')]);
+assert.equal(core.MAX_VOCABULARY_ADVENTURE_ITEMS, 15);
+assert.equal(core.buildVocabularyAdventurePlan({
+  candidates: normalCandidates,
+  state: normalState,
+  today: TODAY,
+  screeningTarget: 99,
+  reviewTarget: 99
+}).length, 15, 'caller-supplied normal targets cannot exceed the website-wide cap');
 
 const fourReviews = reviewPool.slice(0, 4);
 const plan16And4 = core.buildVocabularyAdventurePlan({
@@ -129,7 +180,8 @@ const plan16And4 = core.buildVocabularyAdventurePlan({
   state: reviewedState(fourReviews),
   today: TODAY
 });
-assert.equal(plan16And4.filter(item => item.phase === 'screening').length, 16);
+assert.equal(plan16And4.length, 15);
+assert.equal(plan16And4.filter(item => item.phase === 'screening').length, 11);
 assert.equal(plan16And4.filter(item => item.phase === 'review').length, 4);
 
 const sevenScreening = screeningPool.slice(0, 7);
@@ -140,7 +192,8 @@ const plan7And23 = core.buildVocabularyAdventurePlan({
   today: TODAY
 });
 assert.equal(plan7And23.filter(item => item.phase === 'screening').length, 7);
-assert.equal(plan7And23.filter(item => item.phase === 'review').length, 13);
+assert.equal(plan7And23.length, 15);
+assert.equal(plan7And23.filter(item => item.phase === 'review').length, 8);
 
 const smallScreen = candidates(3, 'small-screen');
 const smallReview = candidates(5, 'small-review');
@@ -214,7 +267,8 @@ const urgentBeforeStablePlan = core.buildVocabularyAdventurePlan({
   )),
   today: TODAY
 });
-assert.equal(urgentBeforeStablePlan.filter(item => item.phase === 'screening').length, 16);
+assert.equal(urgentBeforeStablePlan.length, 15);
+assert.equal(urgentBeforeStablePlan.filter(item => item.phase === 'screening').length, 11);
 assert.equal(urgentBeforeStablePlan.filter(item => item.wordKey.startsWith('urgent-four')).length, 4);
 assert.equal(urgentBeforeStablePlan.filter(item => item.wordKey.startsWith('stable-twenty')).length, 0);
 
@@ -231,10 +285,10 @@ const stableLastPlan = core.buildVocabularyAdventurePlan({
   )),
   today: TODAY
 });
-assert.equal(stableLastPlan.length, 20);
+assert.equal(stableLastPlan.length, 15);
 assert.equal(stableLastPlan.filter(item => item.phase === 'screening').length, 3);
 assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('five-urgent')).length, 5);
-assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('thirty-stable')).length, 12);
+assert.equal(stableLastPlan.filter(item => item.wordKey.startsWith('thirty-stable')).length, 7);
 
 const sameDayState = {
   ...normalState,
