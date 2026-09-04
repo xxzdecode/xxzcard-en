@@ -18,6 +18,7 @@
   'use strict';
 
   const CHALLENGE_LIMIT = 10;
+  const MIN_CHALLENGE_CANDIDATES = 2;
   const DAILY_LIMIT = 2;
   const REWARD_SOURCE = 'vocabularyChallenge';
   const REWARD_MARKER_VERSION = 2;
@@ -236,8 +237,9 @@
     if (wordState.lastResult === 'F') return 1;
     if (wordState.lastResult === 'H') return 2;
     if (wordState.nextReviewAt && wordState.nextReviewAt <= today) return 3;
-    if (wordState.intervalIndex >= 4) return 5;
-    return 4;
+    if (!wordState.challengeFlagAt) return 4;
+    if (wordState.intervalIndex <= 1) return 5;
+    return 6;
   }
 
   function collectChallengeCandidates(candidates, stateValue, today) {
@@ -249,11 +251,12 @@
         return candidate
           && candidate.card
           && wordState
-          && wordState.reviewCount > 0
-          && !wordState.challengeFlagAt;
+          && wordState.reviewCount > 0;
       })
       .map(candidate => ({
         ...candidate,
+        challengeLastAt: state.words[core.adventureWordKey(candidate.key)].challengeFlagAt,
+        challengeLastReviewedAt: state.words[core.adventureWordKey(candidate.key)].lastReviewedAt,
         challengePriority: challengeCandidatePriority(
           candidate,
           state.words[core.adventureWordKey(candidate.key)],
@@ -296,7 +299,7 @@
     const userKey = String(settings.userKey || '');
     const attemptIndex = Math.max(1, count(settings.attemptIndex) || 1);
     const candidates = collectChallengeCandidates(settings.candidates, settings.state, today);
-    if (candidates.length < CHALLENGE_LIMIT) {
+    if (candidates.length < MIN_CHALLENGE_CANDIDATES) {
       return { ok: false, code: 'INSUFFICIENT_CHALLENGE_WORDS', available: candidates.length };
     }
 
@@ -309,10 +312,16 @@
           candidates.filter(candidate => candidate.challengePriority === priority),
           `${seed}|priority:${priority}`,
           candidate => candidate.key
-        ));
+        ).sort((left, right) => (
+          String(left.challengeLastAt || '').localeCompare(String(right.challengeLastAt || ''))
+          || String(left.challengeLastReviewedAt || '').localeCompare(String(right.challengeLastReviewedAt || ''))
+        )));
       });
 
-    const targets = ordered.slice(0, CHALLENGE_LIMIT);
+    const targets = Array.from(
+      { length: CHALLENGE_LIMIT },
+      (_, index) => ordered[index % ordered.length]
+    );
     const items = [];
     const normalizedState = core.normalizeVocabularyAdventureState(settings.state);
     for (let index = 0; index < targets.length; index += 1) {
@@ -478,13 +487,13 @@
     }
 
     const available = collectChallengeCandidates(settings.candidates, state, today).length;
-    if (available < CHALLENGE_LIMIT) {
+    if (available < MIN_CHALLENGE_CANDIDATES) {
       return {
         state: 'insufficient',
         attempts,
         bestScore,
         available,
-        text: `已摸底且无待复查 ${available}/10 个词`
+        text: available === 0 ? '当前没有已完成探险的词' : `题型候选不足 ${available}/${MIN_CHALLENGE_CANDIDATES} 个词`
       };
     }
     if (attempts > 0) {
@@ -860,8 +869,10 @@
         if (status.attempts >= DAILY_LIMIT) {
           return renderUnavailable('今天的 2 次挑战已经完成，明天再来。');
         }
-        if (status.available < CHALLENGE_LIMIT) {
-          return renderUnavailable('可挑战词不足 10 个，请先完成探险待复查。');
+        if (status.available < MIN_CHALLENGE_CANDIDATES) {
+          return renderUnavailable(status.available === 0
+            ? '当前导览里还没有完成过探险的词。'
+            : `当前只有 ${status.available} 个有效词，无法满足题型最小候选数。`);
         }
 
         const built = buildChallengeSession({
@@ -873,7 +884,9 @@
           startedAt: new Date().toISOString()
         });
         if (!built.ok) {
-          return renderUnavailable('当前词卡暂时无法生成完整的 10 题挑战。');
+          return renderUnavailable(built.code === 'INSUFFICIENT_CHALLENGE_WORDS'
+            ? '当前有效词不足，无法生成安全题型。'
+            : '当前词卡暂时无法生成完整的 10 题挑战。');
         }
 
         runtime.prepared = normalizeChallengeState({
@@ -1079,6 +1092,7 @@
 
   return Object.freeze({
     CHALLENGE_LIMIT,
+    MIN_CHALLENGE_CANDIDATES,
     DAILY_LIMIT,
     CHALLENGE_TYPES,
     normalizeChallengeDaily,
