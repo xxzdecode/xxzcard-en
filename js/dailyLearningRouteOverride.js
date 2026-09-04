@@ -2,6 +2,8 @@
   'use strict';
   const KEY = 'daily_learning_route_override_v1';
   const PREFIX = 'manual-courseware::';
+  const RANDOM_GRAMMAR_ID = 'grammar-adaptive-random';
+  const NO_CLASSROOM_ID = 'classroom-none';
   const OVERRIDE_CACHE_KEY = 'daily_learning_route_override_cache_v1';
   const ROUTE_CACHE_KEY = 'daily_learning_route_cache_v1';
   const READ_TIMEOUT_MS = 1800;
@@ -192,6 +194,15 @@
   }
 
   function manualClassroomRoute(value) {
+    if (value && value.practiceId === NO_CLASSROOM_ID) {
+      return {
+        id: NO_CLASSROOM_ID,
+        title: '今日无练习',
+        displayTitle: '今日无练习',
+        source: 'no-classroom-practice',
+        disabled: true
+      };
+    }
     const practice = snapshot(value);
     if (!practice) return null;
     return {
@@ -215,7 +226,11 @@
     const next = {
       ...route,
       updatedAt: current.updatedAt || route.updatedAt || '',
-      manualSelection: { updatedAt: current.updatedAt || '' }
+      manualSelection: {
+        updatedAt: current.updatedAt || '',
+        grammarUpdatedAt: current.grammarUpdatedAt || current.updatedAt || '',
+        classroomUpdatedAt: current.classroomUpdatedAt || current.updatedAt || ''
+      }
     };
     if (grammar) next.grammarChallenge = grammar;
     if (classroom) next.classroomPractice = classroom;
@@ -229,6 +244,8 @@
   const api = {
     KEY,
     PREFIX,
+    RANDOM_GRAMMAR_ID,
+    NO_CLASSROOM_ID,
     READ_TIMEOUT_MS,
     REMOTE_REFRESH_TIMEOUT_MS,
     VERIFY_TIMEOUT_MS,
@@ -365,8 +382,14 @@
   const findItem = id => items().find(item => String(item.id) === String(id));
   const grammarItems = () => {
     const bankIds = new Set((root.GRAMMAR_QUESTION_BANK?.items || []).map(item => String(item.sourceChallengeId || '')));
-    return (Array.isArray(root.GRAMMAR_CHALLENGE_CATALOG) ? root.GRAMMAR_CHALLENGE_CATALOG : [])
+    const historical = (Array.isArray(root.GRAMMAR_CHALLENGE_CATALOG) ? root.GRAMMAR_CHALLENGE_CATALOG : [])
       .filter(item => item && item.id && item.lessonKey && bankIds.has(String(item.id)));
+    return [...historical, {
+      id: RANDOM_GRAMMAR_ID,
+      title: '日常随机',
+      lessonKey: 'daily-random',
+      virtual: true
+    }];
   };
 
   async function loadCoursewareData() {
@@ -479,8 +502,8 @@
     panel.innerHTML = `
       <h2>当前学习安排</h2><p>这里只使用你手动保存的选择；不按日期自动切换。下次修改前会一直保持不变。</p>
       <div class="daily-route-grid">
-        <div class="daily-route-field"><label for="teacherGrammarOverride">语法挑战近期知识</label><select id="teacherGrammarOverride"></select><small>固定 15 题：所选近期知识 8 题 + 历史知识 7 题。</small></div>
-        <div class="daily-route-field"><label for="teacherClassroomOverride">随堂练习</label><select id="teacherClassroomOverride"></select><small>学生首页始终进入最后一次保存的练习。</small></div>
+        <div class="daily-route-field"><label for="teacherGrammarOverride">语法练习</label><select id="teacherGrammarOverride"></select><small>“日常随机”从全部正式已授课课程中抽取 15 题；原有课程仍可独立选择。</small></div>
+        <div class="daily-route-field"><label for="teacherClassroomOverride">随堂练习</label><select id="teacherClassroomOverride"></select><small>可单独选择“今日无练习”，不会影响语法练习。</small></div>
       </div>
       <div class="daily-route-actions"><span id="teacherDailyRouteStatus"></span><button class="daily-route-refresh" id="teacherDailyRouteRefresh">重新读取</button><button class="daily-route-save" id="teacherDailyRouteSave">保存当前安排</button></div>`;
     const grid = document.getElementById('teacherDashboardGrid');
@@ -498,6 +521,7 @@
   };
 
   const classroomOption = item => new Option(item.title, item.id);
+  const noClassroomOption = () => new Option('今日无练习', NO_CLASSROOM_ID);
 
   function grammarSelection(value) {
     if (!value || typeof value !== 'object') return null;
@@ -534,7 +558,7 @@
       const classroom = document.getElementById('teacherClassroomOverride');
       const availableGrammar = grammarItems();
       grammar.replaceChildren(...availableGrammar.map(item => new Option(item.title, item.id)));
-      classroom.replaceChildren(...items().map(classroomOption));
+      classroom.replaceChildren(noClassroomOption(), ...items().map(classroomOption));
 
       const selectedGrammar = grammarSelection(current.grammarChallenge);
       const selectedGrammarId = selectedGrammar && selectedGrammar.id;
@@ -542,9 +566,9 @@
         ? selectedGrammarId
         : availableGrammar[0]?.id || '';
       const selectedClassroomId = current.classroomPractice && current.classroomPractice.practiceId;
-      classroom.value = items().some(item => item.id === selectedClassroomId)
+      classroom.value = selectedClassroomId === NO_CLASSROOM_ID || items().some(item => item.id === selectedClassroomId)
         ? selectedClassroomId
-        : items()[0]?.id || '';
+        : NO_CLASSROOM_ID;
       status(current.grammarChallenge && current.classroomPractice
         ? '已读取最后一次保存的安排。'
         : '请选择两项内容并保存。');
@@ -554,6 +578,9 @@
   }
 
   const snap = id => {
+    if (id === NO_CLASSROOM_ID) {
+      return { practiceId: NO_CLASSROOM_ID, title: '今日无练习', path: '' };
+    }
     const item = findItem(id);
     return item ? { practiceId: item.id, title: item.title, path: item.path } : null;
   };
@@ -574,6 +601,12 @@
         current: {
           grammarChallenge: grammar,
           classroomPractice: classroom,
+          grammarUpdatedAt: JSON.stringify(grammar) === JSON.stringify(grammarSelection(current.grammarChallenge))
+            ? current.grammarUpdatedAt || current.updatedAt || new Date().toISOString()
+            : new Date().toISOString(),
+          classroomUpdatedAt: JSON.stringify(classroom) === JSON.stringify(current.classroomPractice)
+            ? current.classroomUpdatedAt || current.updatedAt || new Date().toISOString()
+            : new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }
       };

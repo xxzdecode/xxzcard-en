@@ -149,9 +149,13 @@
     const classroom = classroomCopy();
     const grammarRoute = state.route.grammarChallenge;
     const classroomRoute = state.route.classroomPractice;
+    const randomGrammar = grammarRoute && grammarRoute.lessonKey === 'daily-random';
+    const noClassroom = classroomRoute && (classroomRoute.disabled === true || classroomRoute.id === 'classroom-none');
 
     if (grammar.title) grammar.title.textContent = '语法挑战';
-    if (grammar.subtitle) grammar.subtitle.textContent = `${routeLabel(grammarRoute, '近期知识')} 8 题 + 历史 7 题`;
+    if (grammar.subtitle) grammar.subtitle.textContent = randomGrammar
+      ? '日常随机 · 已授课题库 15 题'
+      : `${routeLabel(grammarRoute, '近期知识')} 8 题 + 历史 7 题`;
     if (grammar.status) {
       const grammarRecord = state.grammarRecordStudent === currentStudent() ? state.grammarRecord : null;
       grammar.status.textContent = grammarRecord && grammarRecord.status === 'completed'
@@ -161,25 +165,33 @@
           : '今日挑战已准备';
     }
     if (grammar.entry) {
-      grammar.entry.setAttribute('aria-label', `语法挑战，${routeLabel(grammarRoute, '近期知识')}8题加历史知识7题，一天一次，完成可领取5金币`);
+      grammar.entry.setAttribute('aria-label', randomGrammar
+        ? '语法挑战，日常随机，从全部正式已授课课程抽取15题，一天一次，完成可领取5金币'
+        : `语法挑战，${routeLabel(grammarRoute, '近期知识')}8题加历史知识7题，一天一次，完成可领取5金币`);
     }
 
     if (classroom.title) classroom.title.textContent = '随堂练习';
-    if (classroom.subtitle) classroom.subtitle.textContent = `今日：${routeLabel(classroomRoute, '新课练习')}`;
+    if (classroom.subtitle) classroom.subtitle.textContent = noClassroom
+      ? '今日无练习'
+      : `今日：${routeLabel(classroomRoute, '新课练习')}`;
     if (classroom.status) {
       const classroomRecord = state.classroomRecordStudent === currentStudent() ? state.classroomRecord : null;
-      classroom.status.textContent = classroomRecord && classroomRecord.status === 'completed'
+      classroom.status.textContent = noClassroom
+        ? '播放器已停用'
+        : classroomRecord && classroomRecord.status === 'completed'
         ? '今日已完成'
         : classroomRecord
           ? '继续今日练习'
           : '今日内容已准备';
     }
     if (classroom.entry) {
-      classroom.entry.setAttribute('aria-label', `随堂练习，${routeLabel(classroomRoute, '今日新课')}，一天一次，按成绩最高可领取10金币`);
+      classroom.entry.setAttribute('aria-label', noClassroom
+        ? '随堂练习，今日无练习，播放器已停用'
+        : `随堂练习，${routeLabel(classroomRoute, '今日新课')}，一天一次，按成绩最高可领取10金币`);
     }
 
     setEntryState(grammar.entry, 'ready', false);
-    setEntryState(classroom.entry, 'ready', false);
+    setEntryState(classroom.entry, noClassroom ? 'disabled' : 'ready', noClassroom);
   }
 
   function validateRoute(value) {
@@ -653,6 +665,10 @@
     const route = await ensureRouteForAction();
     if (!route) {
       showHomeNotice('今日随堂练习暂时无法读取，请检查网络后再点一次。');
+      return;
+    }
+    if (route.classroomPractice && (route.classroomPractice.disabled === true || route.classroomPractice.id === 'classroom-none')) {
+      showHomeNotice('今天没有随堂练习，播放器已停用。');
       return;
     }
     try {

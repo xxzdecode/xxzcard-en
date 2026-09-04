@@ -17,6 +17,28 @@ const practice = {
 
 assert.equal(api.KEY, 'daily_learning_route_override_v1');
 assert.equal(api.PREFIX, 'manual-courseware::');
+assert.equal(api.RANDOM_GRAMMAR_ID, 'grammar-adaptive-random');
+assert.equal(api.NO_CLASSROOM_ID, 'classroom-none');
+
+const independent = api.mergeRoute(automatic, {
+  current: {
+    grammarChallenge: {
+      id: 'grammar-adaptive-random',
+      title: '日常随机',
+      lessonKey: 'daily-random'
+    },
+    classroomPractice: { practiceId: 'classroom-none', title: '今日无练习', path: '' },
+    grammarUpdatedAt: '2026-08-21T01:00:00.000Z',
+    classroomUpdatedAt: '2026-08-22T01:00:00.000Z',
+    updatedAt: '2026-08-22T01:00:00.000Z'
+  }
+});
+assert.equal(independent.grammarChallenge.id, 'grammar-adaptive-random');
+assert.equal(independent.grammarChallenge.lessonKey, 'daily-random');
+assert.equal(independent.classroomPractice.id, 'classroom-none');
+assert.equal(independent.classroomPractice.disabled, true);
+assert.equal(independent.manualSelection.grammarUpdatedAt, '2026-08-21T01:00:00.000Z');
+assert.equal(independent.manualSelection.classroomUpdatedAt, '2026-08-22T01:00:00.000Z');
 assert.equal(api.mergeRoute(automatic, { dates: {} }, '2026-08-01'), automatic);
 
 const grammar = api.mergeRoute(automatic, {
@@ -98,6 +120,10 @@ assert.match(dailyRouteRuntime, /MANUAL_ROUTE_PENDING/);
 assert.match(dailyRouteRuntime, /return route && route\.manualSelection \? route : null/);
 assert.match(dailyRouteRuntime, /addEventListener\?\.\('pageshow'/);
 assert.match(dailyRouteRuntime, /8 题 \+ 历史 7 题/);
+assert.match(dailyRouteRuntime, /日常随机 · 已授课题库 15 题/);
+assert.match(dailyRouteRuntime, /播放器已停用/);
+assert.match(overrideRuntime, /今日无练习/);
+assert.match(overrideRuntime, /grammarUpdatedAt/);
 assert.match(grammarChallenges, /homeButton\.textContent = '回首页'/);
 assert.match(grammarChallenges, /closeGrammarChallenge\(\)/);
 assert.match(grammarChallenges, /stopImmediatePropagation\(\)/);

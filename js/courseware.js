@@ -111,6 +111,7 @@ async function openCoursewareList() {
 }
 
 async function openCourseware(id) {
+  if (id === 'classroom-none') return;
   const item = COURSEWARE_ITEMS.find(entry => entry.id === id);
   if (!item) return;
   if (!isTeacher()) {
