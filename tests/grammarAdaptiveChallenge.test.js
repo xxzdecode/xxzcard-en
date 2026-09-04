@@ -100,7 +100,20 @@ assert.ok(random.session.items.some(item => item.bankItemId.startsWith('recent-k
 assert.ok(random.session.items.some(item => item.bankItemId.startsWith('history-kp::')));
 
 const unifiedBank = adaptive.normalizeUnifiedBank(unifiedCatalog);
-assert.equal(unifiedBank.items.length, 340, 'random pool must match the unified formalTeachingAudit contract');
+const auditedBankItemIds = new Set(
+  unifiedCatalog.formalTeachingAudit
+    .filter(item => item.auditStatus === 'unified_bank_ready')
+    .flatMap(item => item.bankItemIds)
+);
+assert.equal(
+  unifiedBank.items.length,
+  auditedBankItemIds.size,
+  'random pool must match the unified formalTeachingAudit contract'
+);
+assert.ok(
+  unifiedBank.items.every(item => auditedBankItemIds.has(item.bankItemId)),
+  'random pool must exclude every item outside the formalTeachingAudit allowlist'
+);
 assert.ok(unifiedBank.items.every(item => item.formalTaughtAt));
 const unifiedRandom = adaptive.buildSession({
   bank: unifiedBank,
