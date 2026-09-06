@@ -420,6 +420,9 @@ try {
   await teacher.page.waitForSelector('.teacher-dashboard-entry-card--wrong-answers:visible');
   await teacher.page.waitForFunction(() => document.querySelector('#teacherGrammarOverride option[value="grammar-adaptive-random"]'));
   assert.equal(await teacher.page.locator('#teacherGrammarOverride option[value="grammar-adaptive-random"]').textContent(), '日常随机');
+  const datedGrammarLabels = await teacher.page.locator('#teacherGrammarOverride option:not([value="grammar-adaptive-random"])').allTextContents();
+  assert.ok(datedGrammarLabels.length > 0, 'teacher grammar selector should include dated course options');
+  assert.ok(datedGrammarLabels.every(label => /^\d{2}\.\d{2}\.\d{2}｜/.test(label)), 'every grammar course option should start with the same compact date format as classroom practice');
   assert.equal(await teacher.page.locator('#teacherClassroomOverride option[value="classroom-none"]').textContent(), '今日无练习');
   await teacher.page.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
   await teacher.page.waitForSelector('#screenWrongAnswerDirectory.active');

@@ -241,6 +241,38 @@
     return /\bid\s*=\s*["']practice-data["']/i.test(String(html || ''));
   }
 
+  function compactDateLabel(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+    return match ? `${match[1].slice(2)}.${match[2]}.${match[3]}` : '';
+  }
+
+  function grammarOptionLabel(item) {
+    if (!item || item.id === RANDOM_GRAMMAR_ID) return '日常随机';
+    const date = compactDateLabel(item.date);
+    return `${date ? `${date}｜` : ''}${String(item.title || '').trim()}`;
+  }
+
+  function buildGrammarItems(catalog, bankItems) {
+    const bankIds = new Set((Array.isArray(bankItems) ? bankItems : [])
+      .map(item => String(item && item.sourceChallengeId || ''))
+      .filter(Boolean));
+    const unique = new Map();
+    (Array.isArray(catalog) ? catalog : []).forEach(item => {
+      if (!item || !item.id || !item.lessonKey || !bankIds.has(String(item.id))) return;
+      if (!unique.has(String(item.id))) unique.set(String(item.id), item);
+    });
+    const historical = [...unique.values()].sort((left, right) =>
+      String(right.date || '').localeCompare(String(left.date || ''))
+        || String(right.id).localeCompare(String(left.id))
+    );
+    return [{
+      id: RANDOM_GRAMMAR_ID,
+      title: '日常随机',
+      lessonKey: 'daily-random',
+      virtual: true
+    }, ...historical];
+  }
+
   const api = {
     KEY,
     PREFIX,
@@ -253,7 +285,10 @@
     normalize,
     routeSnapshot,
     hasPracticeData,
-    latestLegacySelection
+    latestLegacySelection,
+    compactDateLabel,
+    grammarOptionLabel,
+    buildGrammarItems
   };
   root.DailyLearningRouteOverride = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -380,17 +415,10 @@
     ? root.CLASSROOM_PRACTICE_ITEMS
     : Array.isArray(root.COURSEWARE_ITEMS) ? root.COURSEWARE_ITEMS : [];
   const findItem = id => items().find(item => String(item.id) === String(id));
-  const grammarItems = () => {
-    const bankIds = new Set((root.GRAMMAR_QUESTION_BANK?.items || []).map(item => String(item.sourceChallengeId || '')));
-    const historical = (Array.isArray(root.GRAMMAR_CHALLENGE_CATALOG) ? root.GRAMMAR_CHALLENGE_CATALOG : [])
-      .filter(item => item && item.id && item.lessonKey && bankIds.has(String(item.id)));
-    return [...historical, {
-      id: RANDOM_GRAMMAR_ID,
-      title: '日常随机',
-      lessonKey: 'daily-random',
-      virtual: true
-    }];
-  };
+  const grammarItems = () => buildGrammarItems(
+    root.GRAMMAR_CHALLENGE_CATALOG,
+    root.GRAMMAR_QUESTION_BANK?.items
+  );
 
   async function loadCoursewareData() {
     if (items().length) return;
@@ -557,7 +585,7 @@
       const grammar = document.getElementById('teacherGrammarOverride');
       const classroom = document.getElementById('teacherClassroomOverride');
       const availableGrammar = grammarItems();
-      grammar.replaceChildren(...availableGrammar.map(item => new Option(item.title, item.id)));
+      grammar.replaceChildren(...availableGrammar.map(item => new Option(grammarOptionLabel(item), item.id)));
       classroom.replaceChildren(noClassroomOption(), ...items().map(classroomOption));
 
       const selectedGrammar = grammarSelection(current.grammarChallenge);
