@@ -11,6 +11,13 @@
       .then(() => root.loadFeatureScript('js/vocabularyLessonGroups.js'))
       .then(() => root.loadFeatureScript('js/vocabularyLessonTaught.js'))
       .then(() => root.VocabularyQuestionTypesRepeatPatch.loadFeatureGroup(group, originalLoadFeatureGroup))
+      .then(async result => {
+        await originalLoadFeatureGroup('vocabularyReview');
+        if (typeof root.loadVocabularyLessonCategories === 'function') {
+          await root.loadVocabularyLessonCategories();
+        }
+        return result;
+      })
       .then(result => root.loadFeatureScript('js/vocabularyAdventureLessonQueue.js').then(() => result))
       .then(async result => {
         if (group !== 'adventureChallenge') return result;

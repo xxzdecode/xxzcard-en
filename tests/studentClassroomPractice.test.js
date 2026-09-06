@@ -89,6 +89,8 @@ vm.runInContext(source, context);
   assert.equal(daily.practiceId, 'practice-a');
   assert.equal(daily.status, 'started');
   assert.equal(elements.coursewareFrame.src, 'a.html');
+  await context.openCourseware('classroom-none');
+  assert.equal(elements.coursewareFrame.src, 'a.html', 'no-practice sentinel must never open or replace the player');
   assert.equal(screens.at(-1), 'screenCoursewarePlayer');
 
   await context.openCoursewareList();

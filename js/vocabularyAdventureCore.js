@@ -180,8 +180,50 @@
     return result;
   }
 
+  function collectVocabularyGuideCandidates(options) {
+    const settings = isPlainObject(options) ? options : {};
+    const masterCards = isPlainObject(settings.masterCards) ? settings.masterCards : {};
+    const result = [];
+    const seen = new Set();
+
+    const resolveRef = ref => {
+      const source = isPlainObject(ref) ? ref : { wordKey: ref };
+      const key = adventureWordKey(source.wordKey || source.key || source.word);
+      const master = masterCards[key];
+      if (!key || !isPlainObject(master)) return null;
+      return isPlainObject(source.overrides) ? { ...master, ...source.overrides } : master;
+    };
+    const append = (card, source) => {
+      const key = adventureWordKey(card && card.word);
+      const meaning = String(card && card.meaning || '').trim();
+      if (!key || !meaning || seen.has(key)) return;
+      seen.add(key);
+      result.push({
+        key,
+        word: String(card.word).trim(),
+        batchId: String(source && (source.sourceBatchId || source.id) || ''),
+        batchName: String(source && source.name || ''),
+        cardIndex: result.length,
+        sourceIndex: result.length,
+        card
+      });
+    };
+    const appendSource = source => {
+      (Array.isArray(source && source.cards) ? source.cards : []).forEach(card => append(card, source));
+      (Array.isArray(source && source.cardRefs) ? source.cardRefs : [])
+        .map(resolveRef)
+        .filter(Boolean)
+        .forEach(card => append(card, source));
+    };
+
+    (Array.isArray(settings.groups) ? settings.groups : []).forEach(group => {
+      appendSource(group);
+      (Array.isArray(group && group.categories) ? group.categories : []).forEach(appendSource);
+    });
+    return result;
+  }
+
   function reviewClassification(wordState, today) {
-    if (wordState.challengeFlagAt) return { reason: 'challenge', priority: REVIEW_PRIORITY.challenge };
     if (wordState.lastResult === 'F') return { reason: 'failed', priority: REVIEW_PRIORITY.failed };
     if (wordState.lastResult === 'H') return { reason: 'hinted', priority: REVIEW_PRIORITY.hinted };
     const overdueDays = wordState.nextReviewAt ? daysBetweenLocalDates(wordState.nextReviewAt, today) : 0;
@@ -444,6 +486,7 @@
 
   function resolveVocabularyAdventureSession(options) {
     const settings = isPlainObject(options) ? options : {};
+    const candidates = Array.isArray(settings.candidates) ? settings.candidates : [];
     const today = isLocalDate(settings.today) ? settings.today : localDateKey(new Date());
     const state = normalizeVocabularyAdventureState(settings.state);
     if (state.session) {
@@ -458,6 +501,13 @@
     }
 
     const plan = buildVocabularyAdventurePlan({ ...settings, state, today });
+    if (plan.length === 0) {
+      return {
+        action: candidates.length === 0 ? 'empty_guide' : 'no_due_words',
+        state,
+        session: null
+      };
+    }
     const session = normalizeSession({
       date: today,
       plan,
@@ -639,6 +689,7 @@
     defaultVocabularyAdventureState,
     normalizeVocabularyAdventureState,
     collectVocabularyAdventureCandidates,
+    collectVocabularyGuideCandidates,
     classifyVocabularyAdventureCandidates,
     buildVocabularyAdventurePlan,
     orderVocabularyAdventurePlanForUser,

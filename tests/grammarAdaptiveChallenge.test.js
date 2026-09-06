@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const adaptive = require('../js/grammarAdaptiveChallenge.js');
 const generatedBank = require('../grammar-challenge/data/question-bank.js');
+const unifiedCatalog = require('../grammar-challenge/data/course-question-banks.json');
 
 function question(lesson, lessonDate, index, options = {}) {
   const group = Math.floor(index / 4);
@@ -79,6 +80,71 @@ assert.equal(first.session.items.filter(item => item.reason === 'priority').leng
 assert.equal(new Set(first.session.items.map(item => item.bankItemId)).size, 15);
 assert.equal(first.session.recentLessonDate, '2026-08-20');
 assert.equal(first.session.recentLessonKey, 'recent-kp');
+
+const random = adaptive.buildSession({
+  ...settings,
+  recentLessonKey: adaptive.RANDOM_LESSON_KEY
+});
+const repeatedRandom = adaptive.buildSession({
+  ...settings,
+  recentLessonKey: adaptive.RANDOM_LESSON_KEY
+});
+assert.equal(random.ok, true);
+assert.equal(random.session.items.length, 15);
+assert.equal(random.session.recentLessonKey, 'daily-random');
+assert.ok(random.session.items.every(item => item.bucket === 'all-taught'));
+assert.ok(random.session.items.some(item => item.reason === 'formal-weakness'));
+assert.ok(random.session.items.some(item => item.reason === 'needs-review'));
+assert.deepEqual(repeatedRandom.session.items, random.session.items, 'daily random IDs must stay stable for resume');
+assert.ok(random.session.items.some(item => item.bankItemId.startsWith('recent-kp::')));
+assert.ok(random.session.items.some(item => item.bankItemId.startsWith('history-kp::')));
+
+const unifiedBank = adaptive.normalizeUnifiedBank(unifiedCatalog);
+const auditedBankItemIds = new Set(
+  unifiedCatalog.formalTeachingAudit
+    .filter(item => item.auditStatus === 'unified_bank_ready')
+    .flatMap(item => item.bankItemIds)
+);
+assert.equal(
+  unifiedBank.items.length,
+  auditedBankItemIds.size,
+  'random pool must match the unified formalTeachingAudit contract'
+);
+assert.ok(
+  unifiedBank.items.every(item => auditedBankItemIds.has(item.bankItemId)),
+  'random pool must exclude every item outside the formalTeachingAudit allowlist'
+);
+assert.ok(unifiedBank.items.every(item => item.formalTaughtAt));
+const unifiedRandom = adaptive.buildSession({
+  bank: unifiedBank,
+  progress: { topics: {} },
+  weaknessView: { students: { brother: { groups: [] } } },
+  grammarWeakSummary: null,
+  grammarHistory: null,
+  student: 'brother',
+  date: '2026-09-04',
+  recentLessonKey: adaptive.RANDOM_LESSON_KEY
+});
+assert.equal(unifiedRandom.ok, true);
+assert.equal(unifiedRandom.session.items.length, 15);
+assert.ok(unifiedRandom.session.items.every(item => unifiedBank.items.some(bankItem => bankItem.bankItemId === item.bankItemId)));
+const targetKp = unifiedBank.items.find(item => item.primaryKpId).primaryKpId;
+const unifiedTargeted = adaptive.buildSession({
+  bank: unifiedBank,
+  progress: { topics: {} },
+  weaknessView: {
+    students: {
+      brother: { groups: [{ items: [{ weaknessId: `brother.${targetKp}.target`, status: 'active' }] }] }
+    }
+  },
+  student: 'brother',
+  date: '2026-09-04',
+  recentLessonKey: adaptive.RANDOM_LESSON_KEY
+});
+const targetedIds = new Set(unifiedTargeted.session.items
+  .filter(item => item.reason === 'formal-weakness')
+  .map(item => item.bankItemId));
+assert.ok([...targetedIds].some(id => unifiedBank.items.find(item => item.bankItemId === id)?.kpIds.includes(targetKp)));
 
 const manuallySelected = adaptive.buildSession({
   ...settings,

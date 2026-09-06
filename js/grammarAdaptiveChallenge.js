@@ -14,10 +14,14 @@
   const RECENT_LIMIT = 8;
   const HISTORY_LIMIT = 7;
   const PRIORITY_HISTORY_LIMIT = 6;
+  const RANDOM_LESSON_KEY = 'daily-random';
   const RECHECK_GAP = 3;
+  const LONG_UNSEEN_DAYS = 30;
   const PROGRESS_KEY = 'grammar_progress';
   const WEAKNESS_VIEW_KEY = 'assessment_weakness_view_v1';
   const GRAMMAR_WEAK_SUMMARY_PREFIX = 'grammar_challenge_weak_summary_v2_';
+  const GRAMMAR_HISTORY_PREFIX = 'grammar_challenge_history_v2_';
+  const UNIFIED_BANK_URL = 'grammar-challenge/data/course-question-banks.json';
 
   function plainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -120,9 +124,91 @@
     return unique(source.weakKpIds || source.weak_kp_ids);
   }
 
+  function normalizeUnifiedBank(value) {
+    const source = plainObject(value) ? value : {};
+    const readyItems = new Map();
+    (Array.isArray(source.formalTeachingAudit) ? source.formalTeachingAudit : [])
+      .filter(item => item && item.auditStatus === 'unified_bank_ready')
+      .forEach(item => (Array.isArray(item.bankItemIds) ? item.bankItemIds : []).forEach(id => {
+        const key = text(id);
+        if (key && !readyItems.has(key)) readyItems.set(key, text(item.actualTaughtDate));
+      }));
+    const items = (Array.isArray(source.courses) ? source.courses : []).flatMap(course => (
+      Array.isArray(course && course.questions) ? course.questions.map(question => ({
+        ...question,
+        id: text(question.bankItemId || question.id),
+        bankItemId: text(question.bankItemId || question.id),
+        sourceLessonKey: text(question.sourceLessonKey || course.lessonKey),
+        sourceLessonKpIds: unique(course.knowledgePointIds),
+        kpIds: unique(question.kpIds),
+        primaryKpId: text(question.primaryKpId)
+          || (question.formalWeaknessEligible === false ? '' : unique(question.kpIds)[0] || text(course.lessonKey)),
+        weaknessIds: unique(question.weaknessIds),
+        primaryWeaknessId: text(question.primaryWeaknessId),
+        contentHash: text(question.contentHash),
+        variantGroupId: text(question.variantGroupId),
+        formalTaughtAt: readyItems.get(text(question.bankItemId || question.id)) || ''
+      })) : []
+    )).filter(item => readyItems.has(item.bankItemId));
+    return {
+      schemaVersion: Number(source.schemaVersion) || 1,
+      version: text(source.version),
+      items
+    };
+  }
+
+  function normalizeGrammarStats(value) {
+    const source = plainObject(value) ? value : {};
+    const result = new Map();
+    (Array.isArray(source.items) ? source.items : []).forEach(item => {
+      const kpId = text(item && item.kpId);
+      if (!kpId) return;
+      result.set(kpId, {
+        accuracy: Number.isFinite(Number(item.accuracy)) ? Number(item.accuracy) : null,
+        latestAt: text(item.latestWrongAt || item.lastSeenAt || item.updatedAt)
+      });
+    });
+    return result;
+  }
+
+  function questionLastSeen(value) {
+    const source = plainObject(value) ? value : {};
+    const result = new Map();
+    Object.values(plainObject(source.attempts) ? source.attempts : {}).forEach(attempt => {
+      (Array.isArray(attempt && attempt.questions) ? attempt.questions : []).forEach(question => {
+        const id = text(question && question.questionId);
+        if (!id || question.answered !== true) return;
+        const at = text(question.answeredAt || question.updatedAt || attempt.endedAt || attempt.startedAt);
+        if (at && at > (result.get(id) || '')) result.set(id, at);
+      });
+    });
+    return result;
+  }
+
+  function isLongUnseen(lastSeenAt, dateValue) {
+    if (!lastSeenAt) return true;
+    const seen = new Date(lastSeenAt);
+    const now = new Date(dateValue);
+    if (!Number.isFinite(seen.getTime()) || !Number.isFinite(now.getTime())) return true;
+    return now.getTime() - seen.getTime() >= LONG_UNSEEN_DAYS * 86400000;
+  }
+
   function weaknessIdForStudent(value, studentValue) {
     const student = studentValue === 'brother' ? 'brother' : 'sister';
     return text(value).replace(/^(?:brother|sister)\./, `${student}.`);
+  }
+
+  function formalWeaknessStatus(item, formalWeaknesses, student) {
+    const direct = weaknessIdForStudent(item.primaryWeaknessId, student);
+    if (direct && formalWeaknesses.has(direct)) return formalWeaknesses.get(direct);
+    const kpIds = unique([item.primaryKpId, ...(item.kpIds || [])]);
+    let best = '';
+    formalWeaknesses.forEach((status, weaknessId) => {
+      const localId = text(weaknessId).replace(/^(?:brother|sister)\./, '');
+      if (!kpIds.some(kpId => localId === kpId || localId.startsWith(`${kpId}.`))) return;
+      if (status === 'active' || !best) best = status;
+    });
+    return best;
   }
 
   function lessonDateForItem(item, progress) {
@@ -203,15 +289,18 @@
     const requestedRecentLessonKey = text(settings.recentLessonKey);
     const formalWeaknesses = normalizeFormalWeaknesses(settings.weaknessView, student);
     const grammarWeakKpIds = new Set(normalizeGrammarWeakKpIds(settings.grammarWeakSummary));
+    const grammarStats = normalizeGrammarStats(settings.grammarWeakSummary);
+    const lastSeen = questionLastSeen(settings.grammarHistory);
     const eligible = uniqueByContentHash(bank.items.map(item => ({
       ...item,
-      learnedAt: lessonDateForItem(item, progress)
+      learnedAt: text(item.formalTaughtAt) || lessonDateForItem(item, progress)
     })).filter(item => item.learnedAt || (requestedRecentLessonKey && item.sourceLessonKey === requestedRecentLessonKey)));
-    const recentLessonKey = requestedRecentLessonKey || '';
+    const randomMode = requestedRecentLessonKey === RANDOM_LESSON_KEY;
+    const recentLessonKey = randomMode ? RANDOM_LESSON_KEY : requestedRecentLessonKey;
     const recentLessonDate = recentLessonKey
       ? progress[recentLessonKey]?.lastLessonDate || text(settings.recentLessonDate) || date
       : eligible.map(item => item.learnedAt).sort().at(-1) || '';
-    const recentCandidates = recentLessonKey
+    const recentCandidates = recentLessonKey && !randomMode
       ? eligible.filter(item => item.sourceLessonKey === recentLessonKey)
       : eligible.filter(item => item.learnedAt === recentLessonDate);
     const effectiveRecentLessonKey = recentLessonKey || recentCandidates[0]?.sourceLessonKey || '';
@@ -219,6 +308,62 @@
       item.sourceLessonKey !== effectiveRecentLessonKey
       && item.learnedAt
     ));
+
+    if (randomMode) {
+      if (eligible.length < QUESTION_LIMIT) {
+        return { ok: false, code: 'INSUFFICIENT_TAUGHT_QUESTIONS', available: eligible.length };
+      }
+      const seed = `${date}|${student}|grammar-random|${ALGORITHM_VERSION}|${bank.version}`;
+      const shuffled = deterministicShuffle(eligible, seed, item => item.bankItemId);
+      const formal = shuffled.filter(item => formalWeaknessStatus(item, formalWeaknesses, student)).sort((left, right) => {
+        const leftStatus = formalWeaknessStatus(left, formalWeaknesses, student);
+        const rightStatus = formalWeaknessStatus(right, formalWeaknesses, student);
+        return (leftStatus === 'active' ? 0 : 1) - (rightStatus === 'active' ? 0 : 1);
+      });
+      const formalIds = new Set(formal.map(item => item.bankItemId));
+      const needsReview = shuffled.filter(item => !formalIds.has(item.bankItemId) && (
+        grammarWeakKpIds.has(item.primaryKpId)
+        || isLongUnseen(lastSeen.get(item.bankItemId), date)
+      ))
+        .sort((left, right) => {
+          const leftStats = grammarStats.get(left.primaryKpId) || {};
+          const rightStats = grammarStats.get(right.primaryKpId) || {};
+          const leftWeak = grammarWeakKpIds.has(left.primaryKpId) ? 0 : 1;
+          const rightWeak = grammarWeakKpIds.has(right.primaryKpId) ? 0 : 1;
+          return leftWeak - rightWeak
+            || (leftStats.accuracy ?? 101) - (rightStats.accuracy ?? 101)
+            || String(lastSeen.get(left.bankItemId) || '').localeCompare(String(lastSeen.get(right.bankItemId) || ''));
+        });
+      const reviewIds = new Set(needsReview.map(item => item.bankItemId));
+      const remaining = shuffled.filter(item => !formalIds.has(item.bankItemId) && !reviewIds.has(item.bankItemId));
+      const selected = takeDiverse([...formal, ...needsReview, ...remaining], QUESTION_LIMIT);
+      const items = selected.map((item, index) => planItem(
+        item,
+        index,
+        'all-taught',
+        formalIds.has(item.bankItemId) ? 'formal-weakness'
+          : reviewIds.has(item.bankItemId) ? 'needs-review'
+            : 'random'
+      ));
+      const now = text(settings.startedAt) || new Date().toISOString();
+      return { ok: true, session: {
+        schemaVersion: 1,
+        algorithmVersion: ALGORITHM_VERSION,
+        bankVersion: bank.version,
+        date,
+        student,
+        seed,
+        recentLessonKey: RANDOM_LESSON_KEY,
+        recentLessonDate: '',
+        status: 'active',
+        cursor: 0,
+        items,
+        candidateIds: { 'all-taught': eligible.map(item => item.bankItemId) },
+        startedAt: now,
+        updatedAt: now,
+        completedAt: ''
+      }};
+    }
 
     if (recentCandidates.length < RECENT_LIMIT) {
       return { ok: false, code: 'INSUFFICIENT_RECENT_QUESTIONS', available: recentCandidates.length, recentLessonDate };
@@ -296,7 +441,7 @@
     const items = source.items.map((item, index) => ({
       slot: index,
       bankItemId: text(item.bankItemId),
-      bucket: item.bucket === 'history' ? 'history' : 'recent',
+      bucket: ['history', 'all-taught'].includes(item.bucket) ? item.bucket : 'recent',
       reason: text(item.reason) || 'history',
       recheckOf: text(item.recheckOf),
       status: item.status === 'answered' ? 'answered' : 'pending',
@@ -315,7 +460,8 @@
       items,
       candidateIds: {
         recent: unique(source.candidateIds && source.candidateIds.recent).filter(id => bankIds.has(id)),
-        history: unique(source.candidateIds && source.candidateIds.history).filter(id => bankIds.has(id))
+        history: unique(source.candidateIds && source.candidateIds.history).filter(id => bankIds.has(id)),
+        'all-taught': unique(source.candidateIds && source.candidateIds['all-taught']).filter(id => bankIds.has(id))
       }
     };
   }
@@ -414,10 +560,29 @@
   function install(root) {
     if (!root || root.__grammarAdaptiveChallengeInstalled) return;
     root.__grammarAdaptiveChallengeInstalled = true;
-    const runtime = { user: '', record: null, session: null, writeQueue: Promise.resolve() };
+    const runtime = { user: '', record: null, session: null, activeBank: null, unifiedBankPromise: null, writeQueue: Promise.resolve() };
 
     function bank() {
-      return normalizeBank(root.GRAMMAR_QUESTION_BANK);
+      return runtime.activeBank || normalizeBank(root.GRAMMAR_QUESTION_BANK);
+    }
+
+    async function loadUnifiedBank() {
+      if (!runtime.unifiedBankPromise) {
+        runtime.unifiedBankPromise = Promise.resolve()
+          .then(async () => {
+            if (typeof root.fetch !== 'function') throw new Error('UNIFIED_GRAMMAR_BANK_FETCH_UNAVAILABLE');
+            const response = await root.fetch(UNIFIED_BANK_URL, { cache: 'no-cache' });
+            if (!response || !response.ok) throw new Error(`UNIFIED_GRAMMAR_BANK_HTTP_${response && response.status}`);
+            const normalized = normalizeUnifiedBank(await response.json());
+            if (normalized.items.length < QUESTION_LIMIT) throw new Error('UNIFIED_GRAMMAR_BANK_INSUFFICIENT');
+            return normalized;
+          })
+          .catch(error => {
+            runtime.unifiedBankPromise = null;
+            throw error;
+          });
+      }
+      return runtime.unifiedBankPromise;
     }
 
     async function readValue(key) {
@@ -469,14 +634,17 @@
     async function prepareDaily(options) {
       const settings = plainObject(options) ? options : {};
       const user = settings.user === 'brother' ? 'brother' : 'sister';
-      const currentBank = bank();
       const selectedGrammar = plainObject(settings.route && settings.route.grammarChallenge)
         ? settings.route.grammarChallenge
         : {};
       const selectedLessonKey = text(selectedGrammar.lessonKey || selectedGrammar.reviewLessonKey)
         .replace(/^manual-courseware:/, '');
+      runtime.activeBank = selectedLessonKey === RANDOM_LESSON_KEY
+        ? await loadUnifiedBank()
+        : normalizeBank(root.GRAMMAR_QUESTION_BANK);
+      const currentBank = bank();
       const routeRevision = text(settings.route && (
-        settings.route.manualSelection && settings.route.manualSelection.updatedAt
+        settings.route.manualSelection && (settings.route.manualSelection.grammarUpdatedAt || settings.route.manualSelection.updatedAt)
         || settings.route.updatedAt
       ));
       let record = plainObject(settings.record) ? clone(settings.record) : {};
@@ -499,16 +667,18 @@
         session = null;
       }
       if (!session) {
-        const [progress, weaknessView, grammarWeakSummary] = await Promise.all([
+        const [progress, weaknessView, grammarWeakSummary, grammarHistory] = await Promise.all([
           readValue(PROGRESS_KEY),
           readValue(WEAKNESS_VIEW_KEY),
-          readValue(`${GRAMMAR_WEAK_SUMMARY_PREFIX}${user}`)
+          readValue(`${GRAMMAR_WEAK_SUMMARY_PREFIX}${user}`),
+          readValue(`${GRAMMAR_HISTORY_PREFIX}${user}`)
         ]);
         const built = buildSession({
           bank: currentBank,
           progress,
           weaknessView,
           grammarWeakSummary,
+          grammarHistory,
           student: user,
           date: settings.date,
           recentLessonKey: selectedLessonKey,
@@ -554,9 +724,13 @@
         title: '15题综合语法挑战',
         interactionMode: 'challenge-locked',
         completionTitle: '今日语法挑战完成',
-        completion: '最近课程与已学知识点都完成了复习。',
+        completion: runtime.session.recentLessonKey === RANDOM_LESSON_KEY
+          ? '今天抽取的已学语法都完成了复习。'
+          : '最近课程与已学知识点都完成了复习。',
         feedbackDelayMs: 900,
-        knowledge: ['最近课程 8 题', '历史知识 7 题', '错题稍后再练'],
+        knowledge: runtime.session.recentLessonKey === RANDOM_LESSON_KEY
+          ? ['正式已授课题库随机 15 题', '薄弱知识优先', '错题稍后再练']
+          : ['最近课程 8 题', '历史知识 7 题', '错题稍后再练'],
         round: { size: QUESTION_LIMIT, shuffle: false },
         adaptiveSession: {
           enabled: true,
@@ -601,11 +775,13 @@
     QUESTION_LIMIT,
     RECENT_LIMIT,
     HISTORY_LIMIT,
+    RANDOM_LESSON_KEY,
     PRIORITY_HISTORY_LIMIT,
     RECHECK_GAP,
     stableHash,
     deterministicShuffle,
     normalizeBank,
+    normalizeUnifiedBank,
     normalizeProgress,
     normalizeFormalWeaknesses,
     weaknessIdForStudent,

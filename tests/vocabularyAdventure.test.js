@@ -165,10 +165,10 @@ const priorityState = reviewedState(priorityCandidates, candidate => ({
 })[candidate.key]);
 const priorityPool = core.classifyVocabularyAdventureCandidates(priorityCandidates, priorityState, TODAY);
 assert.deepEqual(priorityPool.review.map(item => item.reason), [
-  'challenge', 'failed', 'hinted', 'severeOverdue', 'due', 'stable'
+  'failed', 'hinted', 'severeOverdue', 'due', 'stable'
 ]);
 assert.deepEqual(priorityPool.review.map(item => item.candidate.key), [
-  'challenge', 'failed', 'hinted', 'severe', 'due', 'stable'
+  'failed', 'hinted', 'severe', 'due', 'stable'
 ]);
 assert.deepEqual(
   core.buildVocabularyAdventurePlan({
@@ -176,7 +176,7 @@ assert.deepEqual(
     state: priorityState,
     today: TODAY
   }).map(item => item.reviewReason),
-  ['challenge', 'failed', 'hinted', 'severeOverdue', 'due', 'stable']
+  ['failed', 'hinted', 'severeOverdue', 'due', 'stable']
 );
 
 const stableCandidates = core.collectVocabularyAdventureCandidates([batch('stable-order', ['due-one', 'stable-one'])]);
@@ -276,6 +276,18 @@ const newDay = core.resolveVocabularyAdventureSession({
 });
 assert.equal(newDay.action, 'created');
 assert.equal(newDay.session.date, TODAY);
+
+assert.equal(core.resolveVocabularyAdventureSession({
+  candidates: [],
+  state: core.defaultVocabularyAdventureState(),
+  today: TODAY
+}).action, 'empty_guide');
+const futureCandidate = candidates(1, 'future');
+assert.equal(core.resolveVocabularyAdventureSession({
+  candidates: futureCandidate,
+  state: reviewedState(futureCandidate, () => ({ intervalIndex: 1, nextReviewAt: '2026-08-20' })),
+  today: TODAY
+}).action, 'no_due_words');
 
 assert.equal(core.updateVocabularyAdventureSessionCursor(sameDayState.session, -5).cursor, 0);
 const ended = core.updateVocabularyAdventureSessionCursor(sameDayState.session, 99);

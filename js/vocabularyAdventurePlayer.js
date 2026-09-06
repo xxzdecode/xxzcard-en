@@ -887,6 +887,14 @@
           renderTerminalState('当前用户不可用', '探险预览仅供姐姐和弟弟使用。', 'error');
           return;
         }
+        if (context.action === 'empty_guide') {
+          renderTerminalState('新词导览暂时为空', '当前导览没有可用的有效词卡，请稍后再试。', 'empty');
+          return;
+        }
+        if (context.action === 'no_due_words') {
+          renderTerminalState('今天没有待处理单词', '新词和到期复习都已完成，之后会按复习时间再次出现。', 'complete');
+          return;
+        }
         if (context.action === 'created' && context.saved === false) {
           runtime.initialSavePending = true;
           renderProgress();

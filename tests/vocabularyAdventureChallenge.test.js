@@ -68,8 +68,8 @@ const state = {
 };
 
 const eligible = challenge.collectChallengeCandidates(candidates, state, today);
-assert.equal(eligible.length, 13);
-assert.equal(eligible.some(item => item.key === 'word13'), false, 'challenge pending words must stay out of challenge');
+assert.equal(eligible.length, 14);
+assert.equal(eligible.some(item => item.key === 'word13'), true, 'a previous challenge must not permanently remove a word');
 
 const prioritizedLesson = challenge.buildChallengeSession({
   candidates: candidates.map((item, index) => ({ ...item, lessonQueuePriority: index === 11 })),
@@ -100,15 +100,15 @@ const priorityState = {
 assert.deepEqual(
   challenge.collectChallengeCandidates(priorityCandidates, priorityState, today)
     .map(item => item.challengePriority),
-  [1, 2, 3, 4, 5, 0],
-  'priority tiers are new lesson, F, H, due, ordinary learned, then stable'
+  [1, 2, 3, 4, 4, 0],
+  'priority tiers are new lesson, F, H, due, then words never challenged'
 );
 
 const withUnscreened = {
   ...state,
   words: { ...state.words, word0: { ...state.words.word0, reviewCount: 0 } }
 };
-assert.equal(challenge.collectChallengeCandidates(candidates, withUnscreened, today).length, 12);
+assert.equal(challenge.collectChallengeCandidates(candidates, withUnscreened, today).length, 13);
 
 const first = challenge.buildChallengeSession({
   candidates,
@@ -121,7 +121,7 @@ const first = challenge.buildChallengeSession({
 assert.equal(first.ok, true);
 assert.equal(first.session.items.length, 10);
 assert.equal(new Set(first.session.items.map(item => item.wordKey)).size, 10);
-assert.equal(first.session.items.some(item => item.wordKey === 'word13'), false);
+assert.equal(first.session.items.some(item => item.wordKey === 'word13'), true);
 assert.equal(first.session.items.every(item => item.question && item.question.ok), true);
 assert.equal(first.session.items.every(item => item.question.interaction !== 'match'), true);
 
@@ -148,7 +148,7 @@ assert.notDeepEqual(
   first.session.items.map(item => [item.wordKey, item.taskType])
 );
 
-const nineEligibleState = {
+const previouslyChallengedState = {
   ...state,
   words: Object.fromEntries(Object.entries(state.words).map(([key, value], index) => [
     key,
@@ -156,9 +156,35 @@ const nineEligibleState = {
   ]))
 };
 assert.deepEqual(
-  challenge.buildChallengeSession({ candidates, state: nineEligibleState, today, userKey: 'sister' }),
-  { ok: false, code: 'INSUFFICIENT_CHALLENGE_WORDS', available: 9 }
+  challenge.collectChallengeCandidates(candidates, previouslyChallengedState, today).length,
+  14
 );
+
+const looping = challenge.buildChallengeSession({
+  candidates: candidates.slice(0, 3),
+  state,
+  today,
+  userKey: 'sister'
+});
+assert.equal(looping.ok, true);
+assert.equal(looping.session.items.length, 10);
+assert.equal(new Set(looping.session.items.map(item => item.wordKey)).size, 3, 'small valid pools loop to ten questions');
+
+const longUnchallenged = challenge.buildChallengeSession({
+  candidates: candidates.slice(0, 3),
+  state: {
+    ...state,
+    words: {
+      ...state.words,
+      word0: { ...state.words.word0, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 4, challengeFlagAt: '2026-07-28T00:00:00Z' },
+      word1: { ...state.words.word1, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 4, challengeFlagAt: '2026-07-20T00:00:00Z' },
+      word2: { ...state.words.word2, lastResult: 'D', nextReviewAt: '2026-08-10', intervalIndex: 4, challengeFlagAt: '2026-07-25T00:00:00Z' }
+    }
+  },
+  today,
+  userKey: 'sister'
+});
+assert.equal(longUnchallenged.session.items[0].wordKey, 'word1', 'the longest-unattempted word leads an equal-mastery tier');
 
 let activeState = challenge.normalizeChallengeState({
   ...state,
@@ -328,9 +354,15 @@ assert.throws(() => challenge.prepareChallengeExit(exitState, { today }), /CHALL
 
 assert.equal(challenge.challengeHomeStatus({
   state,
-  candidates: [...candidates.slice(0, 9), candidates[13]],
+  candidates: candidates.slice(0, 1),
   today
-}).state, 'insufficient', 'one pending word leaves only nine eligible candidates');
+}).state, 'insufficient', 'one learned word is below the safe question-type minimum');
+
+assert.equal(challenge.challengeHomeStatus({
+  state,
+  candidates: candidates.slice(0, 3),
+  today
+}).state, 'ready', 'a small valid pool can loop instead of disabling challenge');
 
 assert.equal(challenge.challengeHomeStatus({
   state: activeState,
@@ -349,7 +381,7 @@ const tasksSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'tasks.js')
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(__dirname, '..', 'service-worker.js'), 'utf8');
 assert.doesNotMatch(source, /Math\.random/);
-assert.match(source, /&& !wordState\.challengeFlagAt/);
+assert.doesNotMatch(source, /&& !wordState\.challengeFlagAt/);
 assert.match(source, /next\.challengeDaily\.bestScore = Math\.max\(next\.challengeDaily\.bestScore, score\)/);
 
 const homeToggle = source.match(/function toggleLegacyHome\(hidden\) \{[\s\S]*?\n    \}/);

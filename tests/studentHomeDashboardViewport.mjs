@@ -112,6 +112,24 @@ async function openHome(user, contextOptions, options = {}) {
   }, { selectedUser: user, mirror: mainData });
   const state = new Map([
     ['main', structuredClone(mainData)],
+    ['daily_learning_route_override_v1', {
+      schemaVersion: 2,
+      current: {
+        grammarChallenge: {
+          id: 'grammar-adaptive-random',
+          title: '日常随机',
+          lessonKey: 'daily-random'
+        },
+        classroomPractice: {
+          practiceId: 'classroom-none',
+          title: '今日无练习',
+          path: ''
+        },
+        grammarUpdatedAt: '2026-09-04T01:00:00.000Z',
+        classroomUpdatedAt: '2026-09-04T01:00:00.000Z',
+        updatedAt: '2026-09-04T01:00:00.000Z'
+      }
+    }],
     [`vocab_adventure_v1_${user}`, structuredClone(adventureState)],
     [`daily_task_${user}`, {}],
     ['grammar_progress', structuredClone(teacherGrammarProgress)],
@@ -400,6 +418,9 @@ try {
   await teacher.page.waitForSelector('#teacherActivityPanel:visible');
   await teacher.page.waitForSelector('#teacherStudentTagPanel:visible');
   await teacher.page.waitForSelector('.teacher-dashboard-entry-card--wrong-answers:visible');
+  await teacher.page.waitForFunction(() => document.querySelector('#teacherGrammarOverride option[value="grammar-adaptive-random"]'));
+  assert.equal(await teacher.page.locator('#teacherGrammarOverride option[value="grammar-adaptive-random"]').textContent(), '日常随机');
+  assert.equal(await teacher.page.locator('#teacherClassroomOverride option[value="classroom-none"]').textContent(), '今日无练习');
   await teacher.page.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
   await teacher.page.waitForSelector('#screenWrongAnswerDirectory.active');
   assert.equal(
@@ -413,10 +434,10 @@ try {
     document.getElementById('teacherLatestPracticeSummary')?.dataset.state === 'ready'
       && document.getElementById('teacherKnowledgeSummary')?.dataset.state === 'ready'
   ), null, { timeout: 8000 });
-  assert.equal(await teacher.page.locator('#teacherLatestPracticeDate').textContent(), '2026年8月22日');
+  assert.equal(await teacher.page.locator('#teacherLatestPracticeDate').textContent(), '2026年8月28日');
   assert.equal(
     await teacher.page.locator('#teacherLatestPracticeTitle').textContent(),
-    '比较级 -er、more 与 than 随堂练习'
+    '课堂英语与语法术语'
   );
   assert.equal(
     await teacher.page.locator('#teacherKnowledgeProgressCount').textContent(),
@@ -574,6 +595,9 @@ try {
     console.log(`teacher dashboard iPad and iPhone viewport tests passed: ${resultDir}`);
   } else {
   const ipadAir = await openHome('sister', ipadViewport(1180, 820));
+  await ipadAir.page.waitForFunction(() => document.getElementById('studentClassroomPracticeStatus')?.textContent === '播放器已停用');
+  assert.equal(await ipadAir.page.locator('#studentClassroomPracticeEntry').isDisabled(), true);
+  assert.match(await ipadAir.page.locator('#grammarChallengeHomeEntry small').textContent(), /日常随机/);
   await assertStudentHome(ipadAir.page, '姐姐', {
     orientation: 'landscape',
     minimumDashboardWidth: 1128
@@ -641,6 +665,8 @@ try {
   assert.equal(await rewardStates.page.locator('.student-home-card[data-reward-source="adventure"] .student-home-card__stamp').isVisible(), true);
   await rewardStates.page.screenshot({ path: path.join(resultDir, 'cleared-pending-claim-ipad-air11-landscape-1180x820.png'), fullPage: true });
   const pendingPhone = await openHome('sister', iphone16Portrait, { rewardRecord: pendingReward });
+  await pendingPhone.page.waitForFunction(() => document.getElementById('studentClassroomPracticeStatus')?.textContent === '播放器已停用');
+  assert.equal(await pendingPhone.page.locator('#studentClassroomPracticeEntry').isDisabled(), true);
   await pendingPhone.page.waitForSelector('.student-reward-chest[data-reward-source="adventure"][data-state="pending"]');
   const pendingPhoneVisual = await pendingPhone.page.locator(
     '.student-reward-chest[data-reward-source="adventure"]'
