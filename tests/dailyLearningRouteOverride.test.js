@@ -19,6 +19,26 @@ assert.equal(api.KEY, 'daily_learning_route_override_v1');
 assert.equal(api.PREFIX, 'manual-courseware::');
 assert.equal(api.RANDOM_GRAMMAR_ID, 'grammar-adaptive-random');
 assert.equal(api.NO_CLASSROOM_ID, 'classroom-none');
+assert.equal(api.compactDateLabel('2026-08-28'), '26.08.28');
+assert.equal(api.grammarOptionLabel({ id: api.RANDOM_GRAMMAR_ID, title: '日常随机' }), '日常随机');
+assert.equal(
+  api.grammarOptionLabel({ id: 'grammar-1', date: '2026-08-28', title: '词性复习挑战' }),
+  '26.08.28｜词性复习挑战'
+);
+const datedGrammarItems = api.buildGrammarItems([
+  { id: 'grammar-old', date: '2026-08-19', title: '旧课', lessonKey: 'old' },
+  { id: 'grammar-new', date: '2026-08-28', title: '新课', lessonKey: 'new' },
+  { id: 'grammar-new', date: '2026-08-28', title: '重复项', lessonKey: 'new' },
+  { id: 'grammar-unused', date: '2026-08-29', title: '无安全题源', lessonKey: 'unused' }
+], [
+  { sourceChallengeId: 'grammar-old' },
+  { sourceChallengeId: 'grammar-new' }
+]);
+assert.deepEqual(
+  datedGrammarItems.map(item => item.id),
+  [api.RANDOM_GRAMMAR_ID, 'grammar-new', 'grammar-old'],
+  'random stays first; dated options are newest-first, safe-bank-only, and unique by stable id'
+);
 
 const independent = api.mergeRoute(automatic, {
   current: {
