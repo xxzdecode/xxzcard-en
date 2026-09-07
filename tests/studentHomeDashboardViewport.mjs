@@ -424,6 +424,10 @@ try {
   assert.ok(datedGrammarLabels.length > 0, 'teacher grammar selector should include dated course options');
   assert.ok(datedGrammarLabels.every(label => /^\d{2}\.\d{2}\.\d{2}｜/.test(label)), 'every grammar course option should start with the same compact date format as classroom practice');
   assert.equal(await teacher.page.locator('#teacherClassroomOverride option[value="classroom-none"]').textContent(), '今日无练习');
+  await teacher.page.locator('#teacherDailyRouteSave').click();
+  await teacher.page.waitForFunction(() => document.getElementById('teacherDailyRouteStatus')?.textContent.includes('已保存'));
+  assert.ok(teacher.postKeys.includes('daily_learning_route_override_v1'), 'saving the teacher route must write the selected arrangement');
+  assert.deepEqual(teacher.errors, [], 'saving the teacher route must not raise a page error');
   await teacher.page.locator('.teacher-dashboard-entry-card--wrong-answers .teacher-dashboard-card__action').click();
   await teacher.page.waitForSelector('#screenWrongAnswerDirectory.active');
   assert.equal(

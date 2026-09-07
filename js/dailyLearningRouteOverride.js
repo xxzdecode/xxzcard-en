@@ -617,7 +617,12 @@
     if (typeof root.canWriteCloudData === 'function' && !root.canWriteCloudData()) return;
     status('正在保存…');
     try {
-      await Promise.all([loadCoursewareData(), loadGrammarSelectionData()]);
+      const [, , savedStore] = await Promise.all([
+        loadCoursewareData(),
+        loadGrammarSelectionData(),
+        refreshOverrideFromCloud({ force: true, reason: 'teacher-save' })
+      ]);
+      const current = normalize(savedStore).current || {};
       const grammar = grammarSnap(document.getElementById('teacherGrammarOverride').value);
       const classroom = snap(document.getElementById('teacherClassroomOverride').value);
       if (!grammar || !classroom) {
