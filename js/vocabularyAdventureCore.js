@@ -343,16 +343,26 @@
     const pools = classifyVocabularyAdventureCandidates(candidates, state, today);
     const firstSession = !Object.values(state.words).some(wordState => wordState.reviewCount > 0);
 
-    if (settings.sourceMode === 'specified' && pools.screening.length) {
-      const screeningCount = Math.min(firstSessionTarget, pools.screening.length);
+    if (settings.sourceMode === 'specified') {
+      const priorityOf = candidate => Number(candidate && candidate.adventurePriority) === 0 ? 0 : 1;
+      const selectedScreening = pools.screening.filter(candidate => priorityOf(candidate) === 0);
+      const fallbackScreening = pools.screening.filter(candidate => priorityOf(candidate) !== 0);
+      const selectedUrgentReview = pools.urgentReview.filter(entry => priorityOf(entry.candidate) === 0);
+      const fallbackUrgentReview = pools.urgentReview.filter(entry => priorityOf(entry.candidate) !== 0);
+      const selectedStableReview = pools.stableReview.filter(entry => priorityOf(entry.candidate) === 0);
+      const fallbackStableReview = pools.stableReview.filter(entry => priorityOf(entry.candidate) !== 0);
+      const screeningQueue = [...selectedScreening, ...fallbackScreening];
+      const urgentReviewQueue = [...selectedUrgentReview, ...fallbackUrgentReview];
+      const stableReviewQueue = [...selectedStableReview, ...fallbackStableReview];
+      const screeningCount = Math.min(firstSessionTarget, screeningQueue.length);
       let remaining = Math.max(0, firstSessionTarget - screeningCount);
-      const urgentReviewCount = Math.min(remaining, pools.urgentReview.length);
+      const urgentReviewCount = Math.min(remaining, urgentReviewQueue.length);
       remaining -= urgentReviewCount;
-      const stableReviewCount = Math.min(remaining, pools.stableReview.length);
+      const stableReviewCount = Math.min(remaining, stableReviewQueue.length);
       const selected = [
-        ...pools.screening.slice(0, screeningCount).map(candidate => planItem(candidate, 'screening')),
-        ...pools.urgentReview.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason)),
-        ...pools.stableReview.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason))
+        ...screeningQueue.slice(0, screeningCount).map(candidate => planItem(candidate, 'screening')),
+        ...urgentReviewQueue.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason)),
+        ...stableReviewQueue.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason))
       ];
       return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey);
     }

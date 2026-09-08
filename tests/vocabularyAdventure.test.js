@@ -139,6 +139,17 @@ assert.deepEqual(
   'specified wordbook must finish unseen cards before adaptive reviews'
 );
 
+const specifiedDone = candidates(2, 'specified-done').map(item => ({ ...item, adventurePriority: 0 }));
+const fallbackNew = candidates(20, 'fallback-new').map(item => ({ ...item, adventurePriority: 1 }));
+const specifiedFallbackPlan = core.buildVocabularyAdventurePlan({
+  candidates: [...specifiedDone, ...fallbackNew],
+  state: reviewedState(specifiedDone),
+  today: TODAY,
+  sourceMode: 'specified'
+});
+assert.equal(specifiedFallbackPlan.length, 20);
+assert.ok(specifiedFallbackPlan.every(item => item.wordKey.startsWith('fallback-new')));
+
 const screeningPool = candidates(30, 'screen');
 const reviewPool = candidates(20, 'review');
 const normalCandidates = [...screeningPool, ...reviewPool].map((item, index) => ({ ...item, sourceIndex: index }));
@@ -402,8 +413,8 @@ storage.set('daily_learning_route_override_v1', {
 await adapter.loadVocabularyAdventureState('sister');
 assert.deepEqual(
   adapter.collectVisibleVocabularyAdventureCandidates().map(item => item.key),
-  ['school'],
-  'specified mode must restrict adventure candidates to the selected wordbook'
+  ['school', 'apple'],
+  'specified mode must prioritize the selected wordbook and retain other common cards as fallback'
 );
 storage.delete('daily_learning_route_override_v1');
 assert.equal(await adapter.saveVocabularyAdventureState('sister', { words: { apple: firstD } }), true);

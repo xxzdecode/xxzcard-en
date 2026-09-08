@@ -60,6 +60,8 @@
       .student-home-card[data-route-state="loading"]{cursor:wait;opacity:.78}
       .student-home-card[data-route-state="error"]{outline:2px dashed rgba(185,118,89,.35);outline-offset:-4px}
       .student-home-card[data-route-state="loading"] .student-home-card__scene{filter:saturate(.7)}
+      .student-home-card[data-route-state="disabled"]{cursor:not-allowed;filter:grayscale(.9);opacity:.56}
+      .student-home-card[data-route-state="disabled"] .student-home-card__scene{filter:grayscale(1)}
       .daily-learning-route-status{display:inline-flex;align-items:center;gap:5px}
       .daily-learning-route-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.65}
       .student-home-card[data-route-state="loading"] .daily-learning-route-status::before{animation:daily-route-pulse .8s ease-in-out infinite alternate}
@@ -107,6 +109,8 @@
   function setEntryState(entry, routeState, disabled) {
     if (!entry) return;
     entry.dataset.routeState = routeState;
+    const card = entry.closest?.('.student-home-card');
+    if (card) card.dataset.routeState = routeState;
     entry.setAttribute('aria-busy', routeState === 'loading' ? 'true' : 'false');
     entry.disabled = Boolean(disabled);
   }

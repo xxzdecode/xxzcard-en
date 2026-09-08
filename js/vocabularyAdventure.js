@@ -201,10 +201,14 @@
       const common = dependencies.commonBatchesOnly(visible);
       const request = options && typeof options === 'object' ? options : {};
       const useSpecified = request.mode !== 'challenge' && adventureSource.source === 'specified';
-      const selected = useSpecified
-        ? common.filter(batch => adventureSource.batchIds.includes(String(batch.id)))
-        : common;
-      return core.collectVocabularyAdventureCandidates(selected.length ? selected : common);
+      if (!useSpecified) return core.collectVocabularyAdventureCandidates(common);
+      const selected = common.filter(batch => adventureSource.batchIds.includes(String(batch.id)));
+      const fallback = common.filter(batch => !adventureSource.batchIds.includes(String(batch.id)));
+      const selectedCandidates = core.collectVocabularyAdventureCandidates(selected)
+        .map(candidate => ({ ...candidate, adventurePriority: 0 }));
+      const fallbackCandidates = core.collectVocabularyAdventureCandidates(fallback)
+        .map(candidate => ({ ...candidate, adventurePriority: 1 }));
+      return [...selectedCandidates, ...fallbackCandidates];
     }
 
     function currentVocabularyAdventureUser() {
