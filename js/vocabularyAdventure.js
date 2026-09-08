@@ -13,6 +13,7 @@
 
   const ALLOWED_USERS = new Set(['sister', 'brother']);
   const PENDING_STATE_PREFIX = 'wc_vocab_adventure_pending_v1_';
+  const DAILY_ROUTE_OVERRIDE_KEY = 'daily_learning_route_override_v1';
 
   function rewardSettlementApi() {
     return initialRewardSettlement || (root && root.StudentVocabularyRewardSettlement) || null;
@@ -79,6 +80,36 @@
     }
     const rewardEvidenceCache = new Map();
     const pendingFlushes = new Map();
+    let adventureSource = { source: 'daily', batchIds: [] };
+
+    function normalizeAdventureSource(value) {
+      const current = value && typeof value === 'object' && value.current && typeof value.current === 'object'
+        ? value.current
+        : value;
+      const source = current && current.vocabularyAdventure && current.vocabularyAdventure.source === 'specified'
+        ? 'specified'
+        : 'daily';
+      const batchIds = current && current.vocabularyAdventure && Array.isArray(current.vocabularyAdventure.batchIds)
+        ? [...new Set(current.vocabularyAdventure.batchIds.map(item => String(item || '').trim()).filter(Boolean))]
+        : [];
+      return source === 'specified' && batchIds.length
+        ? { source: 'specified', batchIds }
+        : { source: 'daily', batchIds: [] };
+    }
+
+    async function refreshAdventureSource(requireRemote) {
+      const getter = dependencies.getValue;
+      if (typeof getter !== 'function') {
+        adventureSource = { source: 'daily', batchIds: [] };
+        return adventureSource;
+      }
+      try {
+        adventureSource = normalizeAdventureSource(await getter(DAILY_ROUTE_OVERRIDE_KEY));
+      } catch (_) {
+        adventureSource = { source: 'daily', batchIds: [] };
+      }
+      return adventureSource;
+    }
 
     function pendingStateKey(user) {
       return PENDING_STATE_PREFIX + user;
@@ -163,12 +194,17 @@
       return ALLOWED_USERS.has(user) ? `vocab_adventure_v1_${user}` : '';
     }
 
-    function collectVisibleVocabularyAdventureCandidates() {
+    function collectVisibleVocabularyAdventureCandidates(options) {
       const user = dependencies.getCurrentUser();
       if (!ALLOWED_USERS.has(user) || dependencies.isTeacherUser()) return [];
       const visible = dependencies.visibleBatchesForCurrentUser();
       const common = dependencies.commonBatchesOnly(visible);
-      return core.collectVocabularyAdventureCandidates(common);
+      const request = options && typeof options === 'object' ? options : {};
+      const useSpecified = request.mode !== 'challenge' && adventureSource.source === 'specified';
+      const selected = useSpecified
+        ? common.filter(batch => adventureSource.batchIds.includes(String(batch.id)))
+        : common;
+      return core.collectVocabularyAdventureCandidates(selected.length ? selected : common);
     }
 
     function currentVocabularyAdventureUser() {
@@ -245,6 +281,7 @@
       const getter = requireRemote
         ? dependencies.getRemoteValue
         : dependencies.getValue;
+      await refreshAdventureSource(requireRemote);
       let raw;
       try {
         raw = await getter(key);
@@ -375,7 +412,13 @@
       }
       const state = await loadVocabularyAdventureState(user, { mode: 'adventure' });
       const candidates = collectVisibleVocabularyAdventureCandidates();
-      return core.resolveVocabularyAdventureSession({ candidates, state, today, userKey: user });
+      return core.resolveVocabularyAdventureSession({
+        candidates,
+        state,
+        today,
+        userKey: user,
+        sourceMode: adventureSource.source
+      });
     }
 
     async function loadOrCreateVocabularyAdventureSession(today) {

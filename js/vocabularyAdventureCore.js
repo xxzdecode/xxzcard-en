@@ -343,6 +343,20 @@
     const pools = classifyVocabularyAdventureCandidates(candidates, state, today);
     const firstSession = !Object.values(state.words).some(wordState => wordState.reviewCount > 0);
 
+    if (settings.sourceMode === 'specified' && pools.screening.length) {
+      const screeningCount = Math.min(firstSessionTarget, pools.screening.length);
+      let remaining = Math.max(0, firstSessionTarget - screeningCount);
+      const urgentReviewCount = Math.min(remaining, pools.urgentReview.length);
+      remaining -= urgentReviewCount;
+      const stableReviewCount = Math.min(remaining, pools.stableReview.length);
+      const selected = [
+        ...pools.screening.slice(0, screeningCount).map(candidate => planItem(candidate, 'screening')),
+        ...pools.urgentReview.slice(0, urgentReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason)),
+        ...pools.stableReview.slice(0, stableReviewCount).map(entry => planItem(entry.candidate, 'review', entry.reason))
+      ];
+      return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey);
+    }
+
     if (firstSession) {
       const selected = pools.screening.slice(0, firstSessionTarget).map(candidate => planItem(candidate, 'screening'));
       return orderVocabularyAdventurePlanForUser(selected, today, settings.userKey);

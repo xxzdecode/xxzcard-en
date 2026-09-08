@@ -10,6 +10,7 @@ assert.match(adapterSource, /visibleBatches\(\)/);
 assert.match(adapterSource, /filterBatchesByBookPurpose\(batches,\s*true,\s*false\)/);
 assert.match(adapterSource, /getValue:\s*key\s*=>\s*sbGet\(key\)/);
 assert.match(adapterSource, /setValue:\s*\(key,\s*value\)\s*=>\s*sbSet\(key,\s*value\)/);
+assert.match(adapterSource, /sourceMode:\s*adventureSource\.source/);
 assert.match(adapterSource, /PENDING_STATE_PREFIX = 'wc_vocab_adventure_pending_v1_'/);
 assert.match(adapterSource, /root\.addEventListener\('online'/);
 
@@ -113,6 +114,30 @@ assert.equal(core.buildVocabularyAdventurePlan({
   state: core.defaultVocabularyAdventureState(),
   today: TODAY
 }).length, 7);
+
+const specifiedNew = candidates(25, 'specified-new');
+const specifiedFirstPlan = core.buildVocabularyAdventurePlan({
+  candidates: specifiedNew,
+  state: core.defaultVocabularyAdventureState(),
+  today: TODAY,
+  sourceMode: 'specified'
+});
+assert.equal(specifiedFirstPlan.length, 20);
+assert.ok(specifiedFirstPlan.every(item => item.phase === 'screening'));
+
+const specifiedRemaining = candidates(7, 'specified-remaining');
+const specifiedReviewed = candidates(20, 'specified-reviewed');
+const specifiedFollowUpPlan = core.buildVocabularyAdventurePlan({
+  candidates: [...specifiedRemaining, ...specifiedReviewed],
+  state: reviewedState(specifiedReviewed),
+  today: TODAY,
+  sourceMode: 'specified'
+});
+assert.deepEqual(
+  specifiedFollowUpPlan.map(item => item.phase),
+  [...Array(7).fill('screening'), ...Array(13).fill('review')],
+  'specified wordbook must finish unseen cards before adaptive reviews'
+);
 
 const screeningPool = candidates(30, 'screen');
 const reviewPool = candidates(20, 'review');
@@ -348,13 +373,14 @@ assert.deepEqual(badState, {
 const storage = new Map();
 let remoteReads = 0;
 const commonVisible = batch('common-visible', ['Apple'], { bookPurpose: 'common', sharedWith: ['sister'] });
+const specifiedVisible = batch('specified-visible', ['School'], { bookPurpose: 'common', sharedWith: ['sister'] });
 const supportVisible = batch('support-visible', ['Helper'], { bookPurpose: 'support', sharedWith: ['sister'] });
 const hidden = batch('hidden', ['Secret'], { bookPurpose: 'common', sharedWith: ['brother'] });
 let currentUser = 'sister';
 const adapter = createVocabularyAdventureAdapter({
   getCurrentUser: () => currentUser,
   isTeacherUser: () => currentUser === 'teacher',
-  visibleBatchesForCurrentUser: () => [commonVisible, supportVisible, hidden].filter(
+  visibleBatchesForCurrentUser: () => [commonVisible, specifiedVisible, supportVisible, hidden].filter(
     item => (item.sharedWith || []).includes(currentUser)
   ),
   commonBatchesOnly: batches => batches.filter(item => item.bookPurpose === 'common'),
@@ -369,7 +395,17 @@ const adapter = createVocabularyAdventureAdapter({
 assert.equal(adapter.adventureStateKeyForUser('sister'), 'vocab_adventure_v1_sister');
 assert.equal(adapter.adventureStateKeyForUser('brother'), 'vocab_adventure_v1_brother');
 assert.equal(adapter.adventureStateKeyForUser('teacher'), '');
-assert.deepEqual(adapter.collectVisibleVocabularyAdventureCandidates().map(item => item.key), ['apple']);
+assert.deepEqual(adapter.collectVisibleVocabularyAdventureCandidates().map(item => item.key), ['apple', 'school']);
+storage.set('daily_learning_route_override_v1', {
+  current: { vocabularyAdventure: { source: 'specified', batchIds: ['specified-visible'] } }
+});
+await adapter.loadVocabularyAdventureState('sister');
+assert.deepEqual(
+  adapter.collectVisibleVocabularyAdventureCandidates().map(item => item.key),
+  ['school'],
+  'specified mode must restrict adventure candidates to the selected wordbook'
+);
+storage.delete('daily_learning_route_override_v1');
 assert.equal(await adapter.saveVocabularyAdventureState('sister', { words: { apple: firstD } }), true);
 assert.equal(await adapter.saveVocabularyAdventureState('brother', { words: { pear: firstH } }), true);
 assert.deepEqual(Object.keys((await adapter.loadVocabularyAdventureState('sister')).words), ['apple']);

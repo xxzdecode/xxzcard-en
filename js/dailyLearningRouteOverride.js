@@ -81,9 +81,20 @@
     const current = source.current && typeof source.current === 'object'
       ? source.current
       : latestLegacySelection(source);
+    const normalizedCurrent = current && typeof current === 'object' ? { ...current } : null;
+    if (normalizedCurrent) {
+      const adventure = normalizedCurrent.vocabularyAdventure;
+      const sourceMode = adventure && adventure.source === 'specified' ? 'specified' : 'daily';
+      const batchIds = adventure && Array.isArray(adventure.batchIds)
+        ? [...new Set(adventure.batchIds.map(value => String(value || '').trim()).filter(Boolean))]
+        : [];
+      normalizedCurrent.vocabularyAdventure = sourceMode === 'specified' && batchIds.length
+        ? { source: 'specified', batchIds }
+        : { source: 'daily', batchIds: [] };
+    }
     return {
       schemaVersion: 2,
-      current: current && typeof current === 'object' ? { ...current } : null
+      current: normalizedCurrent
     };
   };
 
@@ -415,6 +426,52 @@
     ? root.CLASSROOM_PRACTICE_ITEMS
     : Array.isArray(root.COURSEWARE_ITEMS) ? root.COURSEWARE_ITEMS : [];
   const findItem = id => items().find(item => String(item.id) === String(id));
+  const adventureBatches = () => {
+    let batches = typeof root.getVisibleBatchesNewestFirst === 'function'
+      ? root.getVisibleBatchesNewestFirst()
+      : Array.isArray(root.appData?.batches) ? root.appData.batches : [];
+    if (typeof root.filterBatchesByBookPurpose === 'function') {
+      batches = root.filterBatchesByBookPurpose(batches, true, false);
+    }
+    return (Array.isArray(batches) ? batches : [])
+      .filter(batch => batch && batch.id != null && Array.isArray(batch.cards) && batch.cards.length);
+  };
+
+  function adventureSelection(value) {
+    const source = value && value.source === 'specified' ? 'specified' : 'daily';
+    const batchIds = value && Array.isArray(value.batchIds)
+      ? [...new Set(value.batchIds.map(item => String(item || '').trim()).filter(Boolean))]
+      : [];
+    return source === 'specified' && batchIds.length
+      ? { source: 'specified', batchIds }
+      : { source: 'daily', batchIds: [] };
+  }
+
+  function adventureSelectionValue(value) {
+    const selection = adventureSelection(value);
+    return selection.source === 'specified' && selection.batchIds[0]
+      ? `batch:${selection.batchIds[0]}`
+      : 'daily';
+  }
+
+  function adventureSelectionFromValue(value) {
+    const raw = String(value || '');
+    if (!raw.startsWith('batch:')) return { source: 'daily', batchIds: [] };
+    const batchId = raw.slice('batch:'.length).trim();
+    return batchId ? { source: 'specified', batchIds: [batchId] } : { source: 'daily', batchIds: [] };
+  }
+
+  function populateAdventureSelection(select, value) {
+    if (!select) return;
+    const batches = adventureBatches();
+    select.replaceChildren(new Option('日常顺序', 'daily'));
+    batches.forEach(batch => {
+      select.appendChild(new Option(`指定：${batch.name}`, `batch:${batch.id}`));
+    });
+    const selected = adventureSelectionValue(value);
+    select.value = [...select.options].some(option => option.value === selected) ? selected : 'daily';
+  }
+
   const grammarItems = () => buildGrammarItems(
     root.GRAMMAR_CHALLENGE_CATALOG,
     root.GRAMMAR_QUESTION_BANK?.items
@@ -528,10 +585,11 @@
     panel.id = 'teacherDailyRoutePanel';
     panel.className = 'teacher-dashboard-card teacher-dashboard-card--route teacher-only';
     panel.innerHTML = `
-      <h2>当前学习安排</h2><p>这里只使用你手动保存的选择；不按日期自动切换。下次修改前会一直保持不变。</p>
+      <h2>当前学习安排</h2>
       <div class="daily-route-grid">
-        <div class="daily-route-field"><label for="teacherGrammarOverride">语法练习</label><select id="teacherGrammarOverride"></select><small>“日常随机”从全部正式已授课课程中抽取 15 题；原有课程仍可独立选择。</small></div>
-        <div class="daily-route-field"><label for="teacherClassroomOverride">随堂练习</label><select id="teacherClassroomOverride"></select><small>可单独选择“今日无练习”，不会影响语法练习。</small></div>
+        <div class="daily-route-field"><label for="teacherGrammarOverride">语法练习</label><select id="teacherGrammarOverride"></select></div>
+        <div class="daily-route-field"><label for="teacherClassroomOverride">随堂练习</label><select id="teacherClassroomOverride"></select></div>
+        <div class="daily-route-field"><label for="teacherVocabularyAdventureOverride">词汇探险</label><select id="teacherVocabularyAdventureOverride"></select></div>
       </div>
       <div class="daily-route-actions"><span id="teacherDailyRouteStatus"></span><button class="daily-route-refresh" id="teacherDailyRouteRefresh">重新读取</button><button class="daily-route-save" id="teacherDailyRouteSave">保存当前安排</button></div>`;
     const grid = document.getElementById('teacherDashboardGrid');
@@ -584,6 +642,7 @@
       const current = store.current || {};
       const grammar = document.getElementById('teacherGrammarOverride');
       const classroom = document.getElementById('teacherClassroomOverride');
+      const adventure = document.getElementById('teacherVocabularyAdventureOverride');
       const availableGrammar = grammarItems();
       grammar.replaceChildren(...availableGrammar.map(item => new Option(grammarOptionLabel(item), item.id)));
       classroom.replaceChildren(noClassroomOption(), ...items().map(classroomOption));
@@ -597,6 +656,7 @@
       classroom.value = selectedClassroomId === NO_CLASSROOM_ID || items().some(item => item.id === selectedClassroomId)
         ? selectedClassroomId
         : NO_CLASSROOM_ID;
+      populateAdventureSelection(adventure, current.vocabularyAdventure);
       status(current.grammarChallenge && current.classroomPractice
         ? '已读取最后一次保存的安排。'
         : '请选择两项内容并保存。');
@@ -625,6 +685,9 @@
       const current = normalize(savedStore).current || {};
       const grammar = grammarSnap(document.getElementById('teacherGrammarOverride').value);
       const classroom = snap(document.getElementById('teacherClassroomOverride').value);
+      const adventure = adventureSelectionFromValue(
+        document.getElementById('teacherVocabularyAdventureOverride').value
+      );
       if (!grammar || !classroom) {
         status('请完整选择语法挑战和随堂练习。');
         return;
@@ -634,6 +697,7 @@
         current: {
           grammarChallenge: grammar,
           classroomPractice: classroom,
+          vocabularyAdventure: adventure,
           grammarUpdatedAt: JSON.stringify(grammar) === JSON.stringify(grammarSelection(current.grammarChallenge))
             ? current.grammarUpdatedAt || current.updatedAt || new Date().toISOString()
             : new Date().toISOString(),

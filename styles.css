@@ -201,13 +201,11 @@ body.is-teacher .current-mode { margin-top: 0; font-size: 11px; }
   flex-direction: column;
 }
 #teacherDashboardGrid > #teacherDailyRoutePanel { display: flex; }
-#teacherDashboardGrid #teacherDailyRoutePanel > p { min-height: 34px; }
 #teacherDashboardGrid .daily-route-grid {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 12px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 12px;
 }
 #teacherDashboardGrid .daily-route-field { display: grid; gap: 4px; min-width: 0; }
 #teacherDashboardGrid .daily-route-field label { color: #66566f; font-size: 12px; font-weight: 800; }
-#teacherDashboardGrid .daily-route-field small { color: #8a7f8d; font-size: 10px; line-height: 1.35; }
 #teacherDashboardGrid .daily-route-field select {
   width: 100%; min-width: 0; min-height: 44px; border: 1px solid #d8cdeb;
   border-radius: 10px; padding: 7px 9px; background: #fff; color: #54495a; font: inherit;
@@ -224,6 +222,10 @@ body.is-teacher .current-mode { margin-top: 0; font-size: 11px; }
 }
 #teacherDashboardGrid .daily-route-save { background: #7658ba; color: #fff; }
 #teacherDashboardGrid .daily-route-refresh { background: #eee8fb; color: #65499f; }
+@media (max-width: 760px) {
+  #teacherDashboardGrid .daily-route-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #teacherDashboardGrid .daily-route-field:last-child { grid-column: 1 / -1; }
+}
 
 #teacherDashboardGrid > .teacher-activity-panel {
   padding: 16px; border: 1px solid #e4dceb; border-radius: 18px;
