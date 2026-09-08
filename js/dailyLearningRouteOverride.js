@@ -599,6 +599,13 @@
     else home.prepend(panel);
     panel.querySelector('#teacherDailyRouteRefresh').onclick = refreshPanel;
     panel.querySelector('#teacherDailyRouteSave').onclick = savePanel;
+    panel.querySelector('#teacherVocabularyAdventureOverride')?.addEventListener('focus', () => {
+      const current = readCachedOverride().current || {};
+      populateAdventureSelection(
+        document.getElementById('teacherVocabularyAdventureOverride'),
+        current.vocabularyAdventure
+      );
+    });
   }
 
   const status = text => {
@@ -719,6 +726,9 @@
   }
 
   addPanel();
+  root.addEventListener?.('app-data-ready', () => {
+    try { if (typeof root.isTeacher === 'function' && root.isTeacher()) refreshPanel(); } catch (_) {}
+  });
   document.addEventListener('click', event => {
     if (event.target && event.target.closest && event.target.closest('#uBtnTeacher')) root.setTimeout(refreshPanel, 0);
   });

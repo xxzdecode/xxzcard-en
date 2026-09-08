@@ -132,6 +132,7 @@ assert.doesNotMatch(overrideRuntime, /const \[routeResult, freshResult\] = await
 assert.match(overrideRuntime, /schemaVersion:\s*2/);
 assert.match(overrideRuntime, /manualSelection:/);
 assert.match(overrideRuntime, /teacherVocabularyAdventureOverride/);
+assert.match(overrideRuntime, /app-data-ready/);
 assert.doesNotMatch(overrideRuntime, /这里只使用你手动保存的选择/);
 assert.doesNotMatch(overrideRuntime, /固定 15 题：所选近期知识 8 题/);
 assert.doesNotMatch(overrideRuntime, /学生首页始终进入最后一次保存的练习/);

@@ -439,6 +439,7 @@
   appData = await initData();
   window.appData = appData;
   await loadHome();
+  window.dispatchEvent?.(new Event('app-data-ready'));
 
   if (typeof loadFeatureScript === 'function') {
     const rewardEnhancements = loadFeatureScript('js/studentRewards.js')
